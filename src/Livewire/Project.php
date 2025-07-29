@@ -111,7 +111,7 @@ class Project extends Component
         ]);
 
         // Slots/State neu laden (Livewire 3 Way)
-        $this->mount($this->project);
+        $this->project->refresh();
     }
 
     /**
@@ -141,7 +141,7 @@ class Project extends Component
         ]);
 
         // Optional: State neu laden, falls Tasks direkt im UI erscheinen sollen
-        $this->mount($this->project);
+        $this->project->refresh();
     }
 
     /**
@@ -168,7 +168,7 @@ class Project extends Component
         }
 
         // Nach Update optional State refresh
-        $this->mount($this->project);
+        $this->project->refresh();
     }
 
     /**
@@ -185,6 +185,6 @@ class Project extends Component
         }
 
         // Nach Update optional State refresh
-        $this->mount($this->project);
+        $this->project->refresh();
     }
 }
