@@ -1,0 +1,15 @@
+{
+  "name": "martin3r/platform-planner",
+  "autoload": {
+    "psr-4": {
+      "Platform\\Planner\\": "src/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Platform\\Planner\\PlannerServiceProvider"
+      ]
+    }
+  }
+}
