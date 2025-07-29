@@ -15,6 +15,12 @@ class Project extends Component
     public PlannerProject $project;
     public $sprint; // Aktueller Sprint des Projekts
 
+    #[On('sprintSlotUpdated')]
+    public function sprintSlotUpdated()
+    {
+        // Optional: neu rendern bei Event
+    }
+
     public function mount(PlannerProject $plannerProject)
     {
         $this->project = $plannerProject;
@@ -111,8 +117,7 @@ class Project extends Component
         ]);
 
         // Slots/State neu laden (Livewire 3 Way)
-        $this->project->refresh();
-        $this->sprint->refresh();
+        $this->mount($this->project);
     }
 
     /**
@@ -142,7 +147,7 @@ class Project extends Component
         ]);
 
         // Optional: State neu laden, falls Tasks direkt im UI erscheinen sollen
-        $this->project->refresh();
+        $this->mount($this->project);
     }
 
     /**
@@ -169,7 +174,7 @@ class Project extends Component
         }
 
         // Nach Update optional State refresh
-        $this->project->refresh();
+        $this->mount($this->project);
     }
 
     /**
@@ -186,6 +191,6 @@ class Project extends Component
         }
 
         // Nach Update optional State refresh
-        $this->project->refresh();
+        $this->mount($this->project);
     }
 }
