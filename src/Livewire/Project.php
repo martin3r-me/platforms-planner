@@ -9,6 +9,7 @@ use Platform\Planner\Models\PlannerSprintSlot;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Enums\StoryPoints;
 use Illuminate\Database\Eloquent\Collection;
+use Livewire\Attributes\On;
 
 class Project extends Component
 {
