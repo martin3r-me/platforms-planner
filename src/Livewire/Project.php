@@ -112,6 +112,7 @@ class Project extends Component
 
         // Slots/State neu laden (Livewire 3 Way)
         $this->project->refresh();
+        $this->sprint->refresh();
     }
 
     /**
