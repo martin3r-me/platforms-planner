@@ -1,12 +1,12 @@
-<x-secondary-navbar>
-    <div class="flex items-center gap-4">
-        <x-ui-button variant="success" wire:click="createTask">+ Aufgabe</x-ui-button>
-        <x-ui-button variant="primary-outline" wire:click="createSprintSlot">+ Spalte</x-ui-button>
-        {{-- ...weitere Elemente... --}}
-    </div>
-</x-secondary-navbar>
+@extends('platform::layouts.app')
 
+@section('secondary-navbar')
+    <x-ui-button wire:click="createTask">+ Aufgabe</x-ui-button>
+    <x-ui-button wire:click="createSprintSlot">+ Spalte</x-ui-button>
+    {{-- ...weitere Tools, Filter, etc... --}}
+@endsection
 
+{{-- Hauptinhalt: --}}
 <div class="h-full">
     <x-ui-kanban-board wire:sortable="updateTaskGroupOrder" wire:sortable-group="updateTaskOrder">
 
