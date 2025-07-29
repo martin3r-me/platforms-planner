@@ -45,7 +45,7 @@ class PlannerSprint extends Model
 
     public function sprintSlots(): HasMany
     {
-        return $this->hasMany(PlannerSprintSlot::class);
+        return $this->hasMany(PlannerSprintSlot::class, 'sprint_id');
     }
 
     public function user(): BelongsTo
