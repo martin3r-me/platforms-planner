@@ -94,6 +94,11 @@ class Project extends Component
         ])->layout('platform::layouts.app');
     }
 
+    public function creatSprintSlot()
+    {
+        
+    }
+
     public function createTask($sprintSlotId = null)
     {
         $lowestOrder = PlannerTask::where('user_id', Auth::id())
