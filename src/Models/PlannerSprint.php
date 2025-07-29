@@ -40,7 +40,7 @@ class PlannerSprint extends Model
 
     public function project(): BelongsTo
     {
-        return $this->belongsTo(PlannerProject::class);
+        return $this->belongsTo(PlannerProject::class, 'project_id');
     }
 
     public function sprintSlots(): HasMany
