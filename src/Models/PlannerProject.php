@@ -37,7 +37,7 @@ class PlannerProject extends Model
 
     public function sprints(): HasMany
     {
-        return $this->hasMany(PlannerSprint::class);
+        return $this->hasMany(PlannerSprint::class, 'project_id');
     }
 
     public function user(): BelongsTo
