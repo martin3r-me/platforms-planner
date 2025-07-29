@@ -103,9 +103,9 @@ class Project extends Component
             return;
         }
 
-        $maxOrder = $this->sprint->slots()->max('order') ?? 0;
+        $maxOrder = $this->sprint->sprintSlots()->max('order') ?? 0;
 
-        $this->sprint->slots()->create([
+        $this->sprint->sprintSlots()->create([
             'name' => 'Neuer Slot',
             'order' => $maxOrder + 1,
         ]);
