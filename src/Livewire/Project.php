@@ -19,7 +19,7 @@ class Project extends Component
     {
         $this->project = $plannerProject;
         // Aktuellen Sprint laden (derzeit: erster, später ggf. mit Filter)
-        $this->sprint = $plannerProject->sprints()->first();
+        $this->sprint = $plannerProject->sprintSlots()->first();
     }
 
     public function render()
