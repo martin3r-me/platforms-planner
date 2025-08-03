@@ -27,6 +27,7 @@ class Task extends Component
     {
         $this->authorize('view', $plannerTask);
         $this->task = $plannerTask;
+        $this->dispatch('comms');
     }
 
     public function updatedTask($property, $value)

@@ -144,13 +144,17 @@ class Dashboard extends Component
 
         $monthlyPerformanceScore = $createdPoints > 0 ? round($donePoints / $createdPoints, 2) : null;
 
-        
+    
+
         return view('planner::livewire.dashboard', [
             'groups' => $groups,
             'monthlyPerformanceScore' => $monthlyPerformanceScore,
             'createdPoints' => $createdPoints,
             'donePoints' => $donePoints,
         ])->layout('platform::layouts.app');
+
+
+
     }
 
 

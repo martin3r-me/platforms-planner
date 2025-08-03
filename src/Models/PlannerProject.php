@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Symfony\Component\Uid\UuidV7;
+use Illuminate\Support\Facades\Log;
 
 class PlannerProject extends Model
 {
@@ -25,6 +26,8 @@ class PlannerProject extends Model
 
     protected static function booted(): void
     {
+        Log::info('PlannerProject Model: booted() called!');
+        
         static::creating(function (self $model) {
             
             do {

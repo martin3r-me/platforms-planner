@@ -124,6 +124,12 @@ class ProjectSettingsModal extends Component
         $this->project->refresh();
     }
 
+    public function deleteProject()
+    {
+        $this->project->delete();
+        $this->redirect('/');
+    }
+
     public function closeModal()
     {
         $this->modalShow = false;

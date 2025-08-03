@@ -24,9 +24,12 @@ class Project extends Component
 
     public function mount(PlannerProject $plannerProject)
     {
+
         $this->project = $plannerProject;
+
         // Aktuellen Sprint laden (derzeit: erster, später ggf. mit Filter)
         $this->sprint = $plannerProject->sprints()->first();
+
     }
 
     public function render()
