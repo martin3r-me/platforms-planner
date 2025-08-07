@@ -10,12 +10,12 @@
         <span class="text-xs text-muted">Zuletzt bearbeitet: 17.07.2025</span>
         <div class="d-flex gap-1">
             @if($task->story_points)
-            <x-ui-badge variant="primary" size="xs">
+            <x-ui-badge variant="secondary" size="xs">
                 {{ $task->story_points->label() }}
             </x-ui-badge>
             @endif
             @if($task->priority)
-            <x-ui-badge variant="danger" size="xs">
+            <x-ui-badge variant="secondary" size="xs">
                 {{ $task->priority->label() }}
             </x-ui-badge>
             @endif

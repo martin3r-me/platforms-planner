@@ -27,7 +27,24 @@ class Task extends Component
     {
         $this->authorize('view', $plannerTask);
         $this->task = $plannerTask;
-        $this->dispatch('comms');
+    }
+
+    public function rendered()
+    {
+        $this->dispatch('comms', [
+            'model' => get_class($this->task),                                // z. B. 'Platform\Planner\Models\PlannerTask'
+            'modelId' => $this->task->id,
+            'subject' => $this->task->title,
+            'description' => $this->task->description ?? '',
+            'url' => route('planner.tasks.show', $this->task),                // absolute URL zum Task
+            'source' => 'planner.task.view',                                 // eindeutiger Quell-Identifier (frei wählbar)
+            'recipients' => [$this->task->user_in_charge_id],                // falls vorhanden, sonst leer
+            'meta' => [
+                'priority' => $this->task->priority,
+                'due_date' => $this->task->due_date,
+                'story_points' => $this->task->story_points,
+            ],
+        ]);
     }
 
     public function updatedTask($property, $value)

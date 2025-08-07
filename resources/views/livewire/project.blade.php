@@ -51,7 +51,7 @@
         {{-- Erledigt --}}
         @php $completedGroup = $groups->last(); @endphp
         @if ($completedGroup->isDoneGroup ?? false)
-            <x-ui-kanban-column :title="'Erledigt'">
+            <x-ui-kanban-column :title="'Erledigt'" :target="false">
                 @forelse ($completedGroup->tasks as $task)
                     <livewire:planner.task-preview-card 
                         :task="$task"

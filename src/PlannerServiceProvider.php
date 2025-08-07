@@ -3,87 +3,113 @@
 namespace Platform\Planner;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Platform\Core\PlatformCore;
 use Platform\Core\Routing\ModuleRouter;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Gate; // <--- Wichtig!
 
-// Importiere Models und Policies für das Modul
+// Optional: Models und Policies absichern
 use Platform\Planner\Models\PlannerTask;
+use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Policies\PlannerTaskPolicy;
 use Platform\Planner\Policies\PlannerProjectPolicy;
 
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
+
 class PlannerServiceProvider extends ServiceProvider
 {
+    public function register(): void
+    {
+        // Reserve für zukünftige Command-Registrierung
+    }
+
     public function boot(): void
     {
-        // Config publishen, damit sie in der Haupt-App überschrieben werden kann
+        // Modul-Registrierung nur, wenn Config & Tabelle vorhanden
+        if (
+            config()->has('planner.routing') &&
+            config()->has('planner.navigation') &&
+            Schema::hasTable('modules')
+        ) {
+            PlatformCore::registerModule([
+                'key'        => 'planner',
+                'title'      => 'Planner',
+                'routing'    => config('planner.routing'),
+                'guard'      => config('planner.guard'),
+                'navigation' => config('planner.navigation'),
+                'sidebar'    => config('planner.sidebar'),
+                'billables'  => config('planner.billables'),
+            ]);
+        }
+
+        // Routen nur laden, wenn das Modul registriert wurde
+        if (PlatformCore::getModule('planner')) {
+            ModuleRouter::group('planner', function () {
+                $this->loadRoutesFrom(__DIR__.'/../routes/guest.php');
+            }, requireAuth: false);
+
+            ModuleRouter::group('planner', function () {
+                $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
+            });
+        }
+
+        // Config veröffentlichen & zusammenführen
         $this->publishes([
             __DIR__.'/../config/planner.php' => config_path('planner.php'),
         ], 'config');
 
-        // Config mergen (App kann überschreiben)
         $this->mergeConfigFrom(__DIR__.'/../config/planner.php', 'planner');
+
+        // Migrations, Views, Livewire-Komponenten
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
-
-        // Modul registrieren (zieht alles aus Config)
-        PlatformCore::registerModule([
-            'key' => 'planner',
-            'title' => 'Planner',
-            'routing' => config('planner.routing'),
-            'guard' => config('planner.guard'),
-            'navigation' => config('planner.navigation'),
-            'sidebar' => config('planner.sidebar'),
-            'billables' => config('planner.billables'),
-        ]);
-
-        // Views und Livewire-Komponenten laden
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'planner');
         $this->registerLivewireComponents();
 
-        // ==== Policy für PlannerTask registrieren ====
-        Gate::policy(PlannerTask::class, PlannerTaskPolicy::class);
-        Gate::policy(PlannerProject::class, PlannerProjectPolicy::class);
+        // Policies nur registrieren, wenn Klassen vorhanden sind
+        if (class_exists(PlannerTask::class) && class_exists(PlannerTaskPolicy::class)) {
+            Gate::policy(PlannerTask::class, PlannerTaskPolicy::class);
+        }
 
-        // Modul-Routen
-        // Öffentliche Seiten (guest.php)
-        ModuleRouter::group('planner', function () {
-            $this->loadRoutesFrom(__DIR__.'/../routes/guest.php');
-        }, requireAuth: false);
-
-        // Geschützte Seiten (web.php)
-        ModuleRouter::group('planner', function () {
-            $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
-        });
-    }
-
-    public function register(): void
-    {
-        //
+        if (class_exists(PlannerProject::class) && class_exists(PlannerProjectPolicy::class)) {
+            Gate::policy(PlannerProject::class, PlannerProjectPolicy::class);
+        }
     }
 
     protected function registerLivewireComponents(): void
     {
-        $componentPath = __DIR__ . '/Livewire';
-        $namespace = 'Platform\\Planner\\Livewire';
-        $prefix = 'planner'; // Modul-Präfix
+        $basePath = __DIR__ . '/Livewire';
+        $baseNamespace = 'Platform\\Planner\\Livewire';
+        $prefix = 'planner';
 
-        if (!is_dir($componentPath)) {
+        if (!is_dir($basePath)) {
             return;
         }
 
-        foreach (scandir($componentPath) as $file) {
-            if (!str_ends_with($file, '.php')) {
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($basePath)
+        );
+
+        foreach ($iterator as $file) {
+            if (!$file->isFile() || $file->getExtension() !== 'php') {
                 continue;
             }
 
-            $class = $namespace . '\\' . pathinfo($file, PATHINFO_FILENAME);
+            $relativePath = str_replace($basePath . DIRECTORY_SEPARATOR, '', $file->getPathname());
+            $classPath = str_replace(['/', '.php'], ['\\', ''], $relativePath);
+            $class = $baseNamespace . '\\' . $classPath;
 
-            if (class_exists($class)) {
-                $alias = $prefix . '.' . Str::kebab(pathinfo($file, PATHINFO_FILENAME));
-                Livewire::component($alias, $class);
+            if (!class_exists($class)) {
+                continue;
             }
+
+            // crm.contact.index aus crm + contact/index.php
+            $aliasPath = str_replace(['\\', '/'], '.', Str::kebab(str_replace('.php', '', $relativePath)));
+            $alias = $prefix . '.' . $aliasPath;
+
+            Livewire::component($alias, $class);
         }
     }
 }
