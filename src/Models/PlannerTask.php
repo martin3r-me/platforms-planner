@@ -9,13 +9,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Symfony\Component\Uid\UuidV7;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Platform\Comms\ChannelEmail\Traits\HasEmailThreads;
 
 use Platform\ActivityLog\Traits\LogsActivity;
 
 class PlannerTask extends Model
 {
-    use HasFactory, SoftDeletes, LogsActivity, HasEmailThreads;
+    use HasFactory, SoftDeletes, LogsActivity;
 
     protected $fillable = [
         'uuid',
