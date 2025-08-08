@@ -16,6 +16,12 @@ class Project extends Component
     public PlannerProject $project;
     public $sprint; // Aktueller Sprint des Projekts
 
+    #[On('updateProject')] 
+    public function updateProject()
+    {
+        
+    }
+
     #[On('sprintSlotUpdated')]
     public function sprintSlotUpdated()
     {
@@ -139,6 +145,7 @@ class Project extends Component
 
         PlannerTask::create([
             'user_id'        => $user->id,
+            'user_in_charge_id' => $user->id,
             'project_id'     => $this->project->id,
             'sprint_slot_id' => $sprintSlotId,
             'title'          => 'Neue Aufgabe',

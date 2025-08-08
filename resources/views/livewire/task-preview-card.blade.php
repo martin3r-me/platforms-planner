@@ -19,6 +19,11 @@
                 {{ $task->priority->label() }}
             </x-ui-badge>
             @endif
+            @if($task->is_frog)
+            <x-ui-badge variant="danger" size="xs">
+                Frosch
+            </x-ui-badge>
+            @endif
         </div>
     </x-slot>
 </x-ui-kanban-card>

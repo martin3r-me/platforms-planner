@@ -66,8 +66,6 @@ class Sidebar extends Component
             ]);
         }
 
-        dd('test');
-
         return redirect()->route('planner.projects.show', ['plannerProject' => $project->id]);
     }
 

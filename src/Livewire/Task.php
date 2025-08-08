@@ -59,6 +59,27 @@ class Task extends Component
         return $this->redirect('/', navigate: true);
     }
 
+    public function deleteTaskAndReturnToDashboard()
+    {
+        $this->authorize('delete', $this->task);
+        $this->task->delete();
+        return $this->redirect(route('planner.my-tasks'), navigate: true);
+    }
+
+    public function deleteTaskAndReturnToProject()
+    {
+        $this->authorize('delete', $this->task);
+        
+        if (!$this->task->project) {
+            // Fallback zu MyTasks wenn kein Projekt vorhanden
+            $this->task->delete();
+            return $this->redirect(route('planner.my-tasks'), navigate: true);
+        }
+        
+        $this->task->delete();
+        return $this->redirect(route('planner.projects.show', $this->task->project), navigate: true);
+    }
+
 	public function render()
     {        
         return view('planner::livewire.task')->layout('platform::layouts.app');

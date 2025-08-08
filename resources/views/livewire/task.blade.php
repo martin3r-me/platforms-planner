@@ -5,9 +5,6 @@
         <div class="border-top-1 border-bottom-1 border-muted border-top-solid border-bottom-solid p-2 flex-shrink-0">
             <div class="d-flex gap-1">
                 <div class="d-flex">
-                    <a href="{{ route('planner.dashboard') }}" class="d-flex px-3 border-right-solid border-right-1 border-right-muted underline" wire:navigate>
-                        Dashboard
-                    </a>
                     @if($task->project)
                         @can('view', $task->project)
                             <a href="{{ route('planner.projects.show', $task->project) }}" class="px-3 underline" wire:navigate>
@@ -19,6 +16,10 @@
                             </span>
                         @endcan
                     @endif
+
+                    <a href="{{ route('planner.my-tasks') }}" class="d-flex px-3 border-right-solid border-right-1 border-right-muted underline" wire:navigate>
+                        Meine Aufgaben
+                    </a>
                 </div>
                 <div class="flex-grow-1 text-right">{{ $task->title }}</div>
             </div>
@@ -94,11 +95,57 @@
 
     <!-- Rechte Spalte -->
     <div class="min-w-80 w-80 d-flex flex-col border-left-1 border-left-solid border-left-muted">
+
         <div class="d-flex gap-2 border-top-1 border-bottom-1 border-muted border-top-solid border-bottom-solid p-2 flex-shrink-0">
             <x-heroicon-o-cog-6-tooth class="w-6 h-6"/>
             Einstellungen
         </div>
         <div class="flex-grow-1 overflow-y-auto p-4">
+
+            {{-- Navigation Buttons --}}
+            <div class="d-flex flex-col gap-2 mb-4">
+                @if($task->project)
+                    @can('view', $task->project)
+                        <x-ui-button 
+                            variant="secondary-outline" 
+                            size="md" 
+                            :href="route('planner.projects.show', $task->project)" 
+                            wire:navigate
+                            class="w-full d-flex"
+                        >
+                            <div class="d-flex items-center gap-2">
+                                @svg('heroicon-o-arrow-left', 'w-4 h-4')
+                                Projekt: {{ $task->project?->name }}
+                            </div>
+                        </x-ui-button>
+                    @else
+                        <x-ui-button 
+                            variant="secondary-outline" 
+                            size="md" 
+                            disabled="true"
+                            title="Kein Zugriff auf das Projekt"
+                            class="w-full d-flex"
+                        >
+                            <div class="d-flex items-center gap-2">
+                                @svg('heroicon-o-arrow-left', 'w-4 h-4')
+                                Projekt: {{ $task->project?->name }}
+                            </div>
+                        </x-ui-button>
+                    @endcan
+                @endif
+                <x-ui-button 
+                    variant="secondary-outline" 
+                    size="md" 
+                    :href="route('planner.my-tasks')" 
+                    wire:navigate
+                    class="w-full d-flex"
+                >
+                    <div class="d-flex items-center gap-2">
+                        @svg('heroicon-o-arrow-left', 'w-4 h-4')
+                        Meine Aufgaben
+                    </div>
+                </x-ui-button>
+            
             {{-- Erledigt-Checkbox --}}
             @can('update', $task)
                 <x-ui-input-checkbox
@@ -107,15 +154,17 @@
                     unchecked-label="Als erledigt markieren"
                     size="md"
                     block="true"
+                    variant="success"
+                    :icon="@svg('heroicon-o-check-circle', 'w-4 h-4')->toHtml()"
                 />
             @else
                 <div>
                     <x-ui-badge variant="{{ $task->is_done ? 'success' : 'gray' }}">
+                        @svg('heroicon-o-check-circle', 'w-4 h-4')
                         {{ $task->is_done ? 'Erledigt' : 'Offen' }}
                     </x-ui-badge>
                 </div>
             @endcan
-            <hr>
 
             {{-- Frosch-Checkbox --}}
             @can('update', $task)
@@ -125,15 +174,18 @@
                     unchecked-label="Sei ein Frosch"
                     size="md"
                     block="true"
+                    variant="warning"
+                    :icon="@svg('heroicon-o-exclamation-triangle', 'w-4 h-4')->toHtml()"
                 />
             @else
                 <div>
                     <x-ui-badge variant="{{ $task->is_frog ? 'warning' : 'gray' }}">
+                        @svg('heroicon-o-exclamation-triangle', 'w-4 h-4')
                         {{ $task->is_frog ? 'Frosch-Aufgabe' : 'Normale Aufgabe' }}
                     </x-ui-badge>
                 </div>
             @endcan
-            <hr>
+            </div>
 
             {{-- Priorität --}}
             @can('update', $task)
@@ -202,9 +254,27 @@
 
             <hr>
 
-            {{-- Löschen-Button --}}
+            {{-- Löschen-Buttons --}}
             @can('delete', $task)
-                <x-ui-confirm-button action="deleteTask" text="Aufgabe löschen" confirmText="Wirklich löschen?" />
+                <div class="d-flex flex-col gap-2">
+                    <x-ui-confirm-button 
+                        action="deleteTaskAndReturnToDashboard" 
+                        text="Zu Meinen Aufgaben" 
+                        confirmText="Löschen?" 
+                        variant="danger-outline"
+                        :icon="@svg('heroicon-o-trash', 'w-4 h-4')->toHtml()"
+                    />
+                    
+                    @if($task->project)
+                        <x-ui-confirm-button 
+                            action="deleteTaskAndReturnToProject" 
+                            text="Zum Projekt" 
+                            confirmText="Löschen?" 
+                            variant="danger-outline"
+                            :icon="@svg('heroicon-o-trash', 'w-4 h-4')->toHtml()"
+                        />
+                    @endif
+                </div>
             @endcan
         </div>
     </div>

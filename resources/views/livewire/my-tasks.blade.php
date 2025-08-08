@@ -1,18 +1,10 @@
 <div class="h-full d-flex">
     <!-- Info-Bereich (fixe Breite) -->
     <div class="w-80 border-r border-muted p-4 flex-shrink-0">
-        <!-- Projekt-Info -->
+        <!-- Dashboard-Info -->
         <div class="mb-6">
-            <div class="d-flex justify-between items-start mb-2">
-                <h3 class="text-lg font-semibold">{{ $project->name }}</h3>
-                <x-ui-button variant="info" size="sm" @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })">
-                    <div class="d-flex items-center gap-2">
-                        @svg('heroicon-o-information-circle', 'w-4 h-4')
-                        Info
-                    </div>
-                </x-ui-button>
-            </div>
-            <div class="text-sm text-gray-600 mb-4">{{ $project->description ?? 'Keine Beschreibung' }}</div>
+            <h3 class="text-lg font-semibold mb-2">Meine Aufgaben</h3>
+            <div class="text-sm text-gray-600 mb-4">Persönliche Aufgaben und zuständige Projektaufgaben</div>
             
             <!-- Statistiken mit Dashboard-Tiles in 2-spaltigem Grid -->
             <div class="grid grid-cols-2 gap-2 mb-4">
@@ -75,16 +67,14 @@
             </div>
 
             <!-- Aktionen -->
-            @can('update', $project)
-                <div class="d-flex flex-col gap-2 mb-4">
-                    <x-ui-button variant="success-outline" size="sm" wire:click="createTask()">
-                        + Neue Aufgabe
-                    </x-ui-button>
-                    <x-ui-button variant="primary-outline" size="sm" wire:click="createSprintSlot">
-                        + Neue Spalte
-                    </x-ui-button>
-                </div>
-            @endcan
+            <div class="d-flex flex-col gap-2 mb-4">
+                <x-ui-button variant="success-outline" size="sm" wire:click="createTask()">
+                    + Neue Aufgabe
+                </x-ui-button>
+                <x-ui-button variant="primary-outline" size="sm" wire:click="createTaskGroup">
+                    + Neue Spalte
+                </x-ui-button>
+            </div>
         </div>
 
         <!-- Erledigte Aufgaben -->
@@ -118,9 +108,7 @@
     <!-- Kanban-Board (scrollbar) -->
     <div class="flex-grow overflow-x-auto">
         <x-ui-kanban-board wire:sortable="updateTaskGroupOrder" wire:sortable-group="updateTaskOrder">
-
-            {{-- BACKLOG --}}
-            <x-ui-kanban-column :title="'BACKLOG'">
+            <x-ui-kanban-column :title="'INBOX'">
                 @foreach ($groups->first()->tasks as $task)
                     <livewire:planner.task-preview-card 
                         :task="$task"
@@ -129,20 +117,15 @@
                 @endforeach
             </x-ui-kanban-column>
 
-            {{-- Mittlere Spalten --}}
-            @foreach($groups->filter(fn ($g) => !($g->isBacklog || ($g->isDoneGroup ?? false))) as $column)
+            @foreach($groups->filter(fn ($g) => !($g->isInbox || ($g->isDoneGroup ?? false))) as $column)
                 <x-ui-kanban-column
                     :title="$column->label"
-                    :sortable-id="$column->id">
-
+                    :sortable-id="$column->id"
+                >
                     <x-slot name="extra">
                         <div class="d-flex gap-1">
-                            @can('update', $project)
-                                <x-ui-button variant="success-outline" size="sm" class="w-full" wire:click="createTask('{{ $column->id }}')">
-                                    + Neue Aufgabe
-                                </x-ui-button>
-                                <x-ui-button variant="primary-outline" size="sm" class="w-full" @click="$dispatch('open-modal-sprint-slot-settings', { sprintSlotId: {{ $column->id }} })">Settings</x-ui-button>
-                            @endcan
+                            <x-ui-button variant="success-outline" size="sm" class="w-full" wire:click="createTask('{{$column->id}}')">+ Neue Aufgabe</x-ui-button>
+                            <x-ui-button variant="primary-outline" size="sm" class="w-full" @click="$dispatch('open-modal-task-group-settings', { taskGroupId: {{ $column->id }} })">Settings</x-ui-button>
                         </div>
                     </x-slot>
 
@@ -152,13 +135,10 @@
                             wire:key="task-preview-{{ $task->uuid }}"
                         />
                     @endforeach
-
                 </x-ui-kanban-column>
             @endforeach
-
         </x-ui-kanban-board>
     </div>
 
-    <livewire:planner.project-settings-modal/>
-    <livewire:planner.sprint-slot-settings-modal/>
+    <livewire:planner.task-group-settings-modal/>
 </div>

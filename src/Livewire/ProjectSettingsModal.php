@@ -59,6 +59,8 @@ class ProjectSettingsModal extends Component
 
         $this->project->save();
         $this->dispatch('updateSidebar');
+        $this->dispatch('updateProject');
+        $this->dispatch('updateDashboard');
 
         // 1. Owner sichern
         $ownerId = $this->project->projectUsers->firstWhere('role', ProjectRole::OWNER->value)?->user_id;
