@@ -171,6 +171,8 @@ class MyTasks extends Component
 
     public function createTask($taskGroupId = null)
     {
+        $user = Auth::user();
+        
         $lowestOrder = PlannerTask::where('user_id', Auth::id())
             ->where('team_id', Auth::user()->currentTeam->id)
             ->min('order') ?? 0;
