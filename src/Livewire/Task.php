@@ -5,11 +5,16 @@ namespace Platform\Planner\Livewire;
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Platform\Planner\Models\PlannerTask;
+use Platform\Printing\Contracts\PrintingServiceInterface;
 
 
 class Task extends Component
 {
 	public $task;
+    public $printModalShow = false;
+    public $printTarget = 'printer'; // 'printer' oder 'group'
+    public $selectedPrinterId = null;
+    public $selectedPrinterGroupId = null;
 
 	protected $rules = [
         'task.title' => 'required|string|max:255',
@@ -80,8 +85,71 @@ class Task extends Component
         return $this->redirect(route('planner.projects.show', $this->task->project), navigate: true);
     }
 
+    public function printTask()
+    {
+        $this->printModalShow = true;
+    }
+
+    public function closePrintModal()
+    {
+        $this->printModalShow = false;
+        $this->resetPrintSelection();
+    }
+
+    public function updatedPrintTarget()
+    {
+        // Reset Auswahl wenn Typ gewechselt wird
+        $this->resetPrintSelection();
+    }
+
+    private function resetPrintSelection()
+    {
+        $this->selectedPrinterId = null;
+        $this->selectedPrinterGroupId = null;
+    }
+
+    public function printTaskConfirm()
+    {
+        if (!$this->selectedPrinterId && !$this->selectedPrinterGroupId) {
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Bitte wählen Sie einen Drucker oder eine Gruppe',
+            ]);
+            return;
+        }
+
+        /** @var PrintingServiceInterface $printing */
+        $printing = app(PrintingServiceInterface::class);
+
+        $printing->createJob(
+            printable: $this->task,
+            // template: null, // Automatische Template-Auswahl: planner-task
+            data: [
+                'requested_by' => Auth::user()?->name,
+            ],
+            printerId: $this->selectedPrinterId ? (int) $this->selectedPrinterId : null,
+            printerGroupId: $this->selectedPrinterGroupId ? (int) $this->selectedPrinterGroupId : null,
+        );
+
+        $this->closePrintModal();
+
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => 'Druckauftrag wurde erstellt',
+        ]);
+    }
+
 	public function render()
     {        
-        return view('planner::livewire.task')->layout('platform::layouts.app');
+        /** @var PrintingServiceInterface $printing */
+        $printing = app(PrintingServiceInterface::class);
+
+        $printers = $printing->listPrinters();
+        $groups   = $printing->listPrinterGroups();
+
+        return view('planner::livewire.task', [
+            'printers' => $printers,
+            'printerGroups' => $groups,
+        ])->layout('platform::layouts.app');
     }
 }

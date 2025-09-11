@@ -11,10 +11,11 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 use Platform\ActivityLog\Traits\LogsActivity;
+use Platform\Media\Traits\HasMedia;
 
 class PlannerTask extends Model
 {
-    use HasFactory, SoftDeletes, LogsActivity;
+    use HasFactory, SoftDeletes, LogsActivity, HasMedia;
 
     protected $fillable = [
         'uuid',
