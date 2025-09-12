@@ -58,8 +58,22 @@ class PlannerTaskPolicy
      */
     public function delete(User $user, PlannerTask $task): bool
     {
-        // Nur der Ersteller darf löschen!
-        return $task->user_id === $user->id;
+        // Persönliche Aufgabe (Owner)
+        if ($task->user_id === $user->id) {
+            return true;
+        }
+
+        // Team-Aufgabe: User ist im aktuellen Team
+        if (
+            $task->team_id &&
+            $user->currentTeam &&
+            $task->team_id === $user->currentTeam->id
+        ) {
+            return true;
+        }
+
+        // Kein Zugriff
+        return false;
     }
 
     // Weitere Methoden nach Bedarf (create, complete, assign, ...)
