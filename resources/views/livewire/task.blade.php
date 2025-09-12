@@ -267,26 +267,29 @@
 
             <hr>
 
-            {{-- Löschen-Buttons --}}
+            {{-- Löschen --}}
             @can('delete', $task)
-                <div class="d-flex flex-col gap-2">
-                    <x-ui-confirm-button 
-                        action="deleteTaskAndReturnToDashboard" 
-                        text="Zu Meinen Aufgaben" 
-                        confirmText="Löschen?" 
-                        variant="danger-outline"
-                        :icon="@svg('heroicon-o-trash', 'w-4 h-4')->toHtml()"
-                    />
-                    
-                    @if($task->project)
+                <div class="mb-4">
+                    <h4 class="font-semibold mb-2">Löschen</h4>
+                    <div class="d-flex flex-col gap-2">
                         <x-ui-confirm-button 
-                            action="deleteTaskAndReturnToProject" 
-                            text="Zum Projekt" 
-                            confirmText="Löschen?" 
+                            action="deleteTaskAndReturnToDashboard" 
+                            text="Löschen und zu Meinen Aufgaben" 
+                            confirmText="Task wirklich löschen?" 
                             variant="danger-outline"
                             :icon="@svg('heroicon-o-trash', 'w-4 h-4')->toHtml()"
                         />
-                    @endif
+                        
+                        @if($task->project)
+                            <x-ui-confirm-button 
+                                action="deleteTaskAndReturnToProject" 
+                                text="Löschen und zum Projekt" 
+                                confirmText="Task wirklich löschen?" 
+                                variant="danger-outline"
+                                :icon="@svg('heroicon-o-trash', 'w-4 h-4')->toHtml()"
+                            />
+                        @endif
+                    </div>
                 </div>
             @endcan
         </div>
