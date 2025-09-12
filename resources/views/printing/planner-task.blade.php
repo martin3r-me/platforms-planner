@@ -12,7 +12,7 @@
 {{ str_pad('TASK #' . $printable->id, $width, ' ', STR_PAD_BOTH) }}
 {{ $separator }}
 
-{{ str_pad('TITEL:', 15, ' ') }}{{ Str::limit($printable->title, $width - 15) }}
+{{ str_pad('TITEL:', 15, ' ') }}{{ \Illuminate\Support\Str::limit($printable->title, $width - 15) }}
 {{ str_pad('PRIORITAT:', 15, ' ') }}{{ $printable->priority?->label() ?? 'Normal' }}
 {{ str_pad('STATUS:', 15, ' ') }}{{ $printable->is_done ? 'Erledigt' : 'Offen' }}
 
@@ -39,21 +39,21 @@
 @if($printable->project)
 {{ $line }}
 {{ str_pad('PROJEKT INFO:', 15, ' ') }}
-{{ str_pad('Projekt:', 15, ' ') }}{{ Str::limit($printable->project->name, $width - 15) }}
+{{ str_pad('Projekt:', 15, ' ') }}{{ \Illuminate\Support\Str::limit($printable->project->name, $width - 15) }}
 @if($printable->user_in_charge_id)
 @php
     $assignedUser = collect($printable->project->projectUsers ?? [])
         ->firstWhere('user.id', $printable->user_in_charge_id);
 @endphp
 @if($assignedUser)
-{{ str_pad('Verantwortlich:', 15, ' ') }}{{ Str::limit($assignedUser['user']['fullname'] ?? 'Unbekannt', $width - 15) }}
+{{ str_pad('Verantwortlich:', 15, ' ') }}{{ \Illuminate\Support\Str::limit($assignedUser['user']['fullname'] ?? 'Unbekannt', $width - 15) }}
 @endif
 @endif
 @endif
 
 @if(isset($data['requested_by']))
 {{ $line }}
-{{ str_pad('Gedruckt von:', 15, ' ') }}{{ Str::limit($data['requested_by'], $width - 15) }}
+{{ str_pad('Gedruckt von:', 15, ' ') }}{{ \Illuminate\Support\Str::limit($data['requested_by'], $width - 15) }}
 @endif
 
 {{ $separator }}
