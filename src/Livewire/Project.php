@@ -43,8 +43,7 @@ class Project extends Component
         $user = Auth::user();
 
         // === 1. BACKLOG ===
-        $backlogTasks = PlannerTask::where('user_id', $user->id)
-            ->where('project_id', $this->project->id)
+        $backlogTasks = PlannerTask::where('project_id', $this->project->id)
             ->whereNull('sprint_slot_id')
             ->where('is_done', false)
             ->orderBy('sprint_slot_order')
@@ -87,8 +86,7 @@ class Project extends Component
         }
 
         // === 3. ERLEDIGTE AUFGABEN ===
-        $doneTasks = PlannerTask::where('user_id', $user->id)
-            ->where('project_id', $this->project->id)
+        $doneTasks = PlannerTask::where('project_id', $this->project->id)
             ->where('is_done', true)
             ->orderByDesc('done_at')
             ->get();
