@@ -10,7 +10,7 @@ use Carbon\Carbon;
 
 class Dashboard extends Component
 {
-    public $perspective = 'personal';
+    public $perspective = 'team';
 
     public function render()
     {
@@ -170,6 +170,46 @@ class Dashboard extends Component
                 ->sum(fn($task) => $task->story_points?->points() ?? 0);
         }
 
+        // === TEAM-MITGLIEDER-ÜBERSICHT ===
+        $teamMembers = $team->allUsers()->map(function ($member) use ($team) {
+            // Alle Aufgaben des Team-Mitglieds (private + zuständige Projektaufgaben)
+            $memberTasks = PlannerTask::query()
+                ->where('team_id', $team->id)
+                ->where(function ($q) use ($member) {
+                    $q->where(function ($q) use ($member) {
+                        $q->whereNull('project_id')
+                          ->where('user_id', $member->id); // private Aufgaben
+                    })->orWhere(function ($q) use ($member) {
+                        $q->whereNotNull('project_id')
+                          ->where('user_in_charge_id', $member->id)
+                          ->whereNotNull('sprint_slot_id'); // zuständige Projektaufgabe im Sprint
+                    });
+                })
+                ->get();
+
+            $openTasks = $memberTasks->where('is_done', false)->count();
+            $completedTasks = $memberTasks->where('is_done', true)->count();
+            $totalTasks = $memberTasks->count();
+            $totalStoryPoints = $memberTasks->sum(fn($task) => $task->story_points?->points() ?? 0);
+            $completedStoryPoints = $memberTasks->where('is_done', true)
+                ->sum(fn($task) => $task->story_points?->points() ?? 0);
+            $openStoryPoints = $memberTasks->where('is_done', false)
+                ->sum(fn($task) => $task->story_points?->points() ?? 0);
+
+            return [
+                'id' => $member->id,
+                'name' => $member->name,
+                'email' => $member->email,
+                'profile_photo_url' => $member->profile_photo_url,
+                'open_tasks' => $openTasks,
+                'completed_tasks' => $completedTasks,
+                'total_tasks' => $totalTasks,
+                'total_story_points' => $totalStoryPoints,
+                'completed_story_points' => $completedStoryPoints,
+                'open_story_points' => $openStoryPoints,
+            ];
+        })->sortByDesc('open_tasks');
+
         // === PROJEKT-ÜBERSICHT (nur aktive Projekte) ===
         $perspective = $this->perspective;
         $activeProjectsList = $projects->filter(function($project) {
@@ -216,6 +256,7 @@ class Dashboard extends Component
             'monthlyCompletedTasks' => $monthlyCompletedTasks,
             'monthlyCreatedPoints' => $monthlyCreatedPoints,
             'monthlyCompletedPoints' => $monthlyCompletedPoints,
+            'teamMembers' => $teamMembers,
             'activeProjectsList' => $activeProjectsList,
         ])->layout('platform::layouts.app');
     }

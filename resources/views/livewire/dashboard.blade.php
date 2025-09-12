@@ -187,6 +187,84 @@
         </div>
     </div>
 
+    <!-- Team-Mitglieder-Übersicht -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-8">
+        <div class="p-6 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900">Team-Mitglieder Übersicht</h3>
+            <p class="text-sm text-gray-600 mt-1">Aufgaben und Story Points pro Team-Mitglied</p>
+        </div>
+        
+        <div class="p-6">
+            @if($teamMembers->count() > 0)
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    @foreach($teamMembers as $member)
+                        <div class="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition">
+                            <div class="d-flex items-center gap-3 mb-3">
+                                @if($member['profile_photo_url'])
+                                    <img src="{{ $member['profile_photo_url'] }}" 
+                                         alt="{{ $member['name'] }}" 
+                                         class="w-10 h-10 rounded-full object-cover">
+                                @else
+                                    <div class="w-10 h-10 bg-primary text-on-primary rounded-full d-flex items-center justify-center">
+                                        <span class="text-sm font-medium">
+                                            {{ substr($member['name'], 0, 2) }}
+                                        </span>
+                                    </div>
+                                @endif
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="font-medium text-gray-900 truncate">{{ $member['name'] }}</h4>
+                                    <p class="text-sm text-gray-600 truncate">{{ $member['email'] }}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <!-- Aufgaben-Statistik -->
+                                <div class="d-flex items-center justify-between">
+                                    <span class="text-sm text-gray-600">Aufgaben:</span>
+                                    <div class="d-flex items-center gap-2">
+                                        <span class="text-sm font-medium text-gray-900">{{ $member['open_tasks'] }}</span>
+                                        <span class="text-xs text-gray-500">/ {{ $member['total_tasks'] }}</span>
+                                        @if($member['completed_tasks'] > 0)
+                                            <span class="text-xs text-success">✓{{ $member['completed_tasks'] }}</span>
+                                        @endif
+                                    </div>
+                                </div>
+                                
+                                <!-- Story Points-Statistik -->
+                                @if($member['total_story_points'] > 0)
+                                    <div class="d-flex items-center justify-between">
+                                        <span class="text-sm text-gray-600">Story Points:</span>
+                                        <div class="d-flex items-center gap-2">
+                                            <span class="text-sm font-medium text-gray-900">{{ $member['open_story_points'] }}</span>
+                                            <span class="text-xs text-gray-500">/ {{ $member['total_story_points'] }}</span>
+                                            @if($member['completed_story_points'] > 0)
+                                                <span class="text-xs text-success">✓{{ $member['completed_story_points'] }}</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                @endif
+                                
+                                <!-- Fortschritts-Balken -->
+                                @if($member['total_tasks'] > 0)
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="bg-success h-2 rounded-full" 
+                                             style="width: {{ $member['total_tasks'] > 0 ? ($member['completed_tasks'] / $member['total_tasks']) * 100 : 0 }}%"></div>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div class="text-center py-8">
+                    @svg('heroicon-o-users', 'w-12 h-12 text-gray-400 mx-auto mb-4')
+                    <h4 class="text-lg font-medium text-gray-900 mb-2">Keine Team-Mitglieder</h4>
+                    <p class="text-gray-600">Es sind noch keine Team-Mitglieder vorhanden.</p>
+                </div>
+            @endif
+        </div>
+    </div>
+
     <!-- Projekt-Übersicht -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200">
         <div class="p-6 border-b border-gray-200">
