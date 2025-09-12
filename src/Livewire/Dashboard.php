@@ -171,7 +171,7 @@ class Dashboard extends Component
         }
 
         // === TEAM-MITGLIEDER-ÜBERSICHT ===
-        $teamMembers = $team->users()->map(function ($member) use ($team) {
+        $teamMembers = $team->users()->get()->map(function ($member) use ($team) {
             // Alle Aufgaben des Team-Mitglieds (private + zuständige Projektaufgaben)
             $memberTasks = PlannerTask::query()
                 ->where('team_id', $team->id)
