@@ -1,5 +1,8 @@
 {{-- resources/views/vendor/planner/livewire/sidebar-content.blade.php --}}
 <div>
+    {{-- Modul Header --}}
+    <x-module-header module-name="Planner" />
+    
     {{-- Abschnitt: Allgemein --}}
     <div>
         <h4 x-show="!collapsed" class="p-3 text-sm italic text-secondary uppercase">Allgemein</h4>
