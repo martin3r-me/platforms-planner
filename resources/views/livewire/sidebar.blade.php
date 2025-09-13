@@ -1,7 +1,7 @@
 {{-- resources/views/vendor/planner/livewire/sidebar-content.blade.php --}}
 <div>
     {{-- Modul Header --}}
-    <x-module-header module-name="Planner" />
+    <x-sidebar-module-header module-name="Planner" />
     
     {{-- Abschnitt: Allgemein --}}
     <div>
