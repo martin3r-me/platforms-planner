@@ -12,16 +12,15 @@
                     wire:model.live.debounce.300ms="companySearch"
                     placeholder="Firma suchen..."
                 />
-                <x-ui-input-select
-                    name="companyId"
-                    label="Firma (CRM)"
-                    :options="$companyOptions"
-                    optionValue="value"
-                    optionLabel="label"
-                    :nullable="true"
-                    nullLabel="– wählen –"
-                    wire:model.live="companyId"
-                />
+                <div>
+                    <label class="block text-sm font-medium mb-1">Firma (CRM)</label>
+                    <select class="w-full border rounded px-2 py-1 text-sm" wire:model.live="companyId">
+                        <option value="">– wählen –</option>
+                        @foreach($companyOptions as $opt)
+                            <option value="{{ $opt['value'] }}">{{ $opt['label'] }}</option>
+                        @endforeach
+                    </select>
+                </div>
                 <div>
                     <label class="block text-sm font-medium mb-1">Auswahl</label>
                     <div class="text-sm text-muted py-2">{{ $companyDisplay ?? '–' }}</div>
