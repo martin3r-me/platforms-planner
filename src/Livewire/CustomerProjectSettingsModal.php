@@ -8,6 +8,7 @@ use Livewire\Attributes\On;
 use Platform\Planner\Models\PlannerCustomerProject;
 use Illuminate\Support\Facades\Auth;
 use Platform\Core\Contracts\CrmCompanyResolverInterface;
+use Platform\Core\Contracts\CrmCompanyOptionsProviderInterface;
 
 class CustomerProjectSettingsModal extends Component
 {
@@ -15,6 +16,7 @@ class CustomerProjectSettingsModal extends Component
     public $project;
     public $companyId = null;
     public $companyDisplay = null;
+    public $companyOptions = [];
 
     #[On('open-modal-customer-project')]
     public function openModalCustomerProject($projectId)
@@ -22,6 +24,7 @@ class CustomerProjectSettingsModal extends Component
         $this->project = PlannerProject::with('customerProject')->findOrFail($projectId);
         $this->companyId = $this->project->customerProject?->company_id;
         $this->resolveCompanyDisplay();
+        $this->loadCompanyOptions();
         $this->modalShow = true;
     }
 
@@ -45,6 +48,13 @@ class CustomerProjectSettingsModal extends Component
         /** @var CrmCompanyResolverInterface $resolver */
         $resolver = app(CrmCompanyResolverInterface::class);
         $this->companyDisplay = $resolver->displayName($this->companyId ? (int)$this->companyId : null);
+    }
+
+    private function loadCompanyOptions(?string $q = null): void
+    {
+        /** @var CrmCompanyOptionsProviderInterface $provider */
+        $provider = app(CrmCompanyOptionsProviderInterface::class);
+        $this->companyOptions = $provider->options($q, 50);
     }
 
     public function saveCompany()

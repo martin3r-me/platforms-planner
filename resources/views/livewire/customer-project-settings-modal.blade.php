@@ -6,14 +6,18 @@
     @if($project)
         <div class="p-4">
             <div class="grid grid-cols-2 gap-3">
-                <x-ui-input-text 
+                <x-ui-input-select
                     name="companyId"
-                    label="Company ID (CRM)"
-                    wire:model.live.debounce.500ms="companyId"
-                    placeholder="z.B. 123"
+                    label="Firma (CRM)"
+                    :options="$companyOptions"
+                    optionValue="value"
+                    optionLabel="label"
+                    :nullable="true"
+                    nullLabel="– wählen –"
+                    wire:model.live="companyId"
                 />
                 <div>
-                    <label class="block text-sm font-medium mb-1">Firma</label>
+                    <label class="block text-sm font-medium mb-1">Auswahl</label>
                     <div class="text-sm text-muted py-2">{{ $companyDisplay ?? '–' }}</div>
                 </div>
             </div>
