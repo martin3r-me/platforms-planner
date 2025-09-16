@@ -77,8 +77,20 @@ class Sidebar extends Component
             ->orderBy('name')
             ->get();
 
+        $customerProjects = $projects->filter(function ($p) {
+            $type = is_string($p->project_type) ? $p->project_type : ($p->project_type?->value ?? null);
+            return $type === 'customer';
+        });
+
+        $internalProjects = $projects->filter(function ($p) {
+            $type = is_string($p->project_type) ? $p->project_type : ($p->project_type?->value ?? null);
+            return $type !== 'customer';
+        });
+
         return view('planner::livewire.sidebar', [
             'projects' => $projects,
+            'customerProjects' => $customerProjects,
+            'internalProjects' => $internalProjects,
         ]);
     }
 }
