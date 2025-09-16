@@ -36,7 +36,11 @@ return new class extends Migration {
             $table->timestamps();
             $table->softDeletes();
 
-            $table->foreign('customer_project_id')->references('id')->on('planner_customer_projects')->onDelete('cascade');
+            // Verwende einen kurzen Namen für den FK, um MySQLs 64-Zeichen-Limit einzuhalten
+            $table->foreign('customer_project_id', 'pcp_bi_customer_project_fk')
+                ->references('id')
+                ->on('planner_customer_projects')
+                ->onDelete('cascade');
         });
     }
 
