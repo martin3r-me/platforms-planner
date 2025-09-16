@@ -5,12 +5,22 @@
         <div class="mb-6">
             <div class="d-flex justify-between items-start mb-2">
                 <h3 class="text-lg font-semibold">{{ $project->name }}</h3>
-                <x-ui-button variant="info" size="sm" @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })">
-                    <div class="d-flex items-center gap-2">
-                        @svg('heroicon-o-information-circle', 'w-4 h-4')
-                        Info
-                    </div>
-                </x-ui-button>
+                <div class="d-flex items-center gap-2">
+                    @if(($project->project_type?->value ?? $project->project_type) === 'customer')
+                        <x-ui-button variant="primary" size="sm" @click="$dispatch('open-modal-customer-project', { projectId: {{ $project->id }} })">
+                            <div class="d-flex items-center gap-2">
+                                @svg('heroicon-o-user-group', 'w-4 h-4')
+                                Kunden
+                            </div>
+                        </x-ui-button>
+                    @endif
+                    <x-ui-button variant="info" size="sm" @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })">
+                        <div class="d-flex items-center gap-2">
+                            @svg('heroicon-o-information-circle', 'w-4 h-4')
+                            Info
+                        </div>
+                    </x-ui-button>
+                </div>
             </div>
             <div class="text-sm text-gray-600 mb-4">{{ $project->description ?? 'Keine Beschreibung' }}</div>
             
@@ -161,4 +171,5 @@
 
     <livewire:planner.project-settings-modal/>
     <livewire:planner.sprint-slot-settings-modal/>
+    <livewire:planner.customer-project-settings-modal/>
 </div>
