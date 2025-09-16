@@ -17,6 +17,7 @@ class CustomerProjectSettingsModal extends Component
     public $companyId = null;
     public $companyDisplay = null;
     public $companyOptions = [];
+    public $companySearch = '';
 
     #[On('open-modal-customer-project')]
     public function openModalCustomerProject($projectId)
@@ -24,7 +25,7 @@ class CustomerProjectSettingsModal extends Component
         $this->project = PlannerProject::with('customerProject')->findOrFail($projectId);
         $this->companyId = $this->project->customerProject?->company_id;
         $this->resolveCompanyDisplay();
-        $this->loadCompanyOptions();
+        $this->loadCompanyOptions('');
         $this->modalShow = true;
     }
 
@@ -43,6 +44,11 @@ class CustomerProjectSettingsModal extends Component
         $this->resolveCompanyDisplay();
     }
 
+    public function updatedCompanySearch($value)
+    {
+        $this->loadCompanyOptions($this->companySearch);
+    }
+
     private function resolveCompanyDisplay(): void
     {
         /** @var CrmCompanyResolverInterface $resolver */
@@ -55,6 +61,17 @@ class CustomerProjectSettingsModal extends Component
         /** @var CrmCompanyOptionsProviderInterface $provider */
         $provider = app(CrmCompanyOptionsProviderInterface::class);
         $this->companyOptions = $provider->options($q, 50);
+
+        // Falls aktuelle Auswahl nicht in den Optionen ist, füge sie als erste Option hinzu
+        if ($this->companyId && !collect($this->companyOptions)->contains(fn($o) => (string)($o['value'] ?? null) === (string)$this->companyId)) {
+            /** @var CrmCompanyResolverInterface $resolver */
+            $resolver = app(CrmCompanyResolverInterface::class);
+            $label = $resolver->displayName((int)$this->companyId) ?? ('#'.$this->companyId);
+            array_unshift($this->companyOptions, [
+                'value' => (int)$this->companyId,
+                'label' => $label,
+            ]);
+        }
     }
 
     public function saveCompany()

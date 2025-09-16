@@ -6,6 +6,12 @@
     @if($project)
         <div class="p-4">
             <div class="grid grid-cols-2 gap-3">
+                <x-ui-input-text 
+                    name="companySearch"
+                    label="Suche"
+                    wire:model.live.debounce.300ms="companySearch"
+                    placeholder="Firma suchen..."
+                />
                 <x-ui-input-select
                     name="companyId"
                     label="Firma (CRM)"
