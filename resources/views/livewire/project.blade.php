@@ -3,25 +3,35 @@
     <div class="w-80 border-r border-muted p-4 flex-shrink-0">
         <!-- Projekt-Info -->
         <div class="mb-6">
-            <div class="d-flex justify-between items-start mb-2">
+            <div class="d-flex justify-between items-start">
                 <h3 class="text-lg font-semibold">{{ $project->name }}</h3>
-                <div class="d-flex items-center gap-2">
-                    @if(($project->project_type?->value ?? $project->project_type) === 'customer')
-                        <x-ui-button variant="primary" size="sm" @click="$dispatch('open-modal-customer-project', { projectId: {{ $project->id }} })">
-                            <div class="d-flex items-center gap-2">
-                                @svg('heroicon-o-user-group', 'w-4 h-4')
-                                Kunden
-                            </div>
-                        </x-ui-button>
-                    @endif
-                    <x-ui-button variant="info" size="sm" @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })">
+            </div>
+            <div class="d-flex items-center gap-2 mt-2">
+                @if(($project->project_type?->value ?? $project->project_type) === 'customer')
+                    <x-ui-button variant="primary" size="sm" @click="$dispatch('open-modal-customer-project', { projectId: {{ $project->id }} })">
                         <div class="d-flex items-center gap-2">
-                            @svg('heroicon-o-information-circle', 'w-4 h-4')
-                            Info
+                            @svg('heroicon-o-user-group', 'w-4 h-4')
+                            Kunden
                         </div>
                     </x-ui-button>
-                </div>
+                @endif
+                <x-ui-button variant="info" size="sm" @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })">
+                    <div class="d-flex items-center gap-2">
+                        @svg('heroicon-o-information-circle', 'w-4 h-4')
+                        Info
+                    </div>
+                </x-ui-button>
             </div>
+            @if(($project->project_type?->value ?? $project->project_type) === 'customer' && $customerCompanyName)
+                <div class="mt-2 text-sm text-secondary d-flex items-center gap-2">
+                    <x-heroicon-o-building-office class="w-4 h-4"/>
+                    @if($customerCompanyUrl)
+                        <a href="{{ $customerCompanyUrl }}" class="underline" wire:navigate>{{ $customerCompanyName }}</a>
+                    @else
+                        <span>{{ $customerCompanyName }}</span>
+                    @endif
+                </div>
+            @endif
             <div class="text-sm text-gray-600 mb-4">{{ $project->description ?? 'Keine Beschreibung' }}</div>
             
             <!-- Statistiken mit Dashboard-Tiles in 2-spaltigem Grid -->

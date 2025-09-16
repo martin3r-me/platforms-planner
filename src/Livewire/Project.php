@@ -10,6 +10,7 @@ use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Enums\StoryPoints;
 use Illuminate\Database\Eloquent\Collection;
 use Livewire\Attributes\On;
+use Platform\Core\Contracts\CrmCompanyResolverInterface;
 
 class Project extends Component
 {
@@ -102,8 +103,17 @@ class Project extends Component
         // === BOARD-GRUPPEN ZUSAMMENSTELLEN ===
         $groups = collect([$backlog])->concat($slots)->push($completedGroup);
 
+        // Kundenprojekt-Company anzeigen
+        /** @var CrmCompanyResolverInterface $companyResolver */
+        $companyResolver = app(CrmCompanyResolverInterface::class);
+        $companyId = $this->project?->customerProject?->company_id;
+        $customerCompanyName = $companyResolver->displayName($companyId);
+        $customerCompanyUrl = $companyResolver->url($companyId);
+
         return view('planner::livewire.project', [
             'groups' => $groups,
+            'customerCompanyName' => $customerCompanyName,
+            'customerCompanyUrl' => $customerCompanyUrl,
         ])->layout('platform::layouts.app');
     }
 
