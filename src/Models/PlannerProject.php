@@ -18,10 +18,12 @@ class PlannerProject extends Model
         'order',
         'user_id',
         'team_id',
+        'project_type',
     ];
 
     protected $casts = [
         'uuid' => 'string',
+        'project_type' => \Platform\Planner\Enums\ProjectType::class,
     ];
 
     protected static function booted(): void
@@ -56,5 +58,10 @@ class PlannerProject extends Model
     public function team(): BelongsTo
     {
         return $this->belongsTo(\Platform\Core\Models\Team::class);
+    }
+
+    public function customerProject()
+    {
+        return $this->hasOne(\Platform\Planner\Models\PlannerCustomerProject::class, 'project_id');
     }
 }
