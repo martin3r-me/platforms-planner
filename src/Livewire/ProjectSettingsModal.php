@@ -19,11 +19,16 @@ class ProjectSettingsModal extends Component
     public $roles = [];
     public $customerProjectForm = [];
     public $hasCustomerProject = false;
+    public $originalProjectType = null;
+    public $billingMethodOptions = [];
 
     #[On('open-modal-project-settings')] 
     public function openModalProjectSettings($projectId)
     {
         $this->project = PlannerProject::with(['projectUsers.user', 'customerProject'])->findOrFail($projectId);
+        $this->originalProjectType = is_string($this->project->project_type)
+            ? $this->project->project_type
+            : ($this->project->project_type?->value ?? null);
 
         // Teammitglieder holen (z.B. für Auswahl und Anzeige)
         $this->teamUsers = Auth::user()
@@ -60,6 +65,12 @@ class ProjectSettingsModal extends Component
     public function mount()
     {
         $this->modalShow = false;
+        // Options zentral bereitstellen (verhindert htmlspecialchars-Fehler durch Inline-Arrays)
+        $this->billingMethodOptions = [
+            ['value' => 'time_and_material', 'label' => 'Zeit & Material'],
+            ['value' => 'fixed_price', 'label' => 'Festpreis'],
+            ['value' => 'retainer', 'label' => 'Retainer'],
+        ];
     }
 
     public function rules(): array
@@ -87,7 +98,18 @@ class ProjectSettingsModal extends Component
     {
         $this->validate();
 
+        // Kunde -> Intern verhindern (irreversibel)
+        $currentType = is_string($this->project->project_type)
+            ? $this->project->project_type
+            : ($this->project->project_type?->value ?? null);
+        if ($this->originalProjectType === 'customer' && $currentType === 'internal') {
+            $this->project->project_type = ProjectType::CUSTOMER;
+        }
+
         $this->project->save();
+        $this->originalProjectType = is_string($this->project->project_type)
+            ? $this->project->project_type
+            : ($this->project->project_type?->value ?? null);
 
         // Kundenprojekt anlegen/aktualisieren, falls Projekttyp = Kunde
         if ($this->project->project_type === ProjectType::CUSTOMER) {
@@ -178,6 +200,18 @@ class ProjectSettingsModal extends Component
 
         $this->project->refresh();
         $this->hasCustomerProject = true;
+    }
+
+    public function setProjectType(string $type): void
+    {
+        $current = is_string($this->project->project_type)
+            ? $this->project->project_type
+            : ($this->project->project_type?->value ?? null);
+        if ($current === 'customer' && $type === 'internal') {
+            // Nicht zurückwechseln erlaubt
+            return;
+        }
+        $this->project->project_type = $type;
     }
 
     public function removeProjectUser($userId)

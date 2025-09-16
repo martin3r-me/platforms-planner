@@ -41,17 +41,33 @@
                 @endcan
             </div>
 
-            {{-- Projekttyp --}}
+            {{-- Projekttyp Toggle (Buttons) --}}
             <div class="mt-4">
-                <x-ui-input-select
-                    name="project.project_type"
-                    label="Projekttyp"
-                    :options="[['value'=>'internal','label'=>'Intern'], ['value'=>'customer','label'=>'Kunde']]"
-                    optionValue="value"
-                    optionLabel="label"
-                    :nullable="false"
-                    wire:model.live="project.project_type"
-                />
+                <label class="block text-sm font-medium mb-1">Projekttyp</label>
+                <div class="d-flex gap-2">
+                    <x-ui-button 
+                        size="sm" 
+                        variant="secondary-outline" 
+                        @click="$wire.setProjectType('internal')"
+                        :disabled="($project->project_type?->value ?? $project->project_type) === 'customer'"
+                    >
+                        Intern
+                    </x-ui-button>
+                    <x-ui-button 
+                        size="sm" 
+                        variant="primary-outline" 
+                        @click="$wire.setProjectType('customer')"
+                    >
+                        Kunde
+                    </x-ui-button>
+                </div>
+                <div class="text-xs text-muted mt-1">
+                    @if(($project->project_type?->value ?? $project->project_type) === 'customer')
+                        Typ: Kunde (nicht zurücksetzbar)
+                    @else
+                        Typ: Intern
+                    @endif
+                </div>
             </div>
 
             {{-- Kundenprojekt Einstellungen (sichtbar wenn Typ Kunde) --}}
@@ -74,11 +90,7 @@
                     <x-ui-input-select
                         name="customerProjectForm.billing_method"
                         label="Abrechnungsmethode"
-                        :options="[
-                            ['value'=>'time_and_material','label'=>'Zeit & Material'],
-                            ['value'=>'fixed_price','label'=>'Festpreis'],
-                            ['value'=>'retainer','label'=>'Retainer']
-                        ]"
+                        :options="$billingMethodOptions"
                         optionValue="value"
                         optionLabel="label"
                         :nullable="true"
