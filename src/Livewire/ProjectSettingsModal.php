@@ -8,6 +8,8 @@ use Platform\Planner\Models\PlannerProjectUser;
 use Platform\Planner\Enums\ProjectRole;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On; 
+use Platform\Planner\Enums\ProjectType;
+use Platform\Planner\Models\PlannerCustomerProject;
 
 class ProjectSettingsModal extends Component
 {
@@ -15,11 +17,13 @@ class ProjectSettingsModal extends Component
     public $project;
     public $teamUsers = [];
     public $roles = [];
+    public $customerProjectForm = [];
+    public $hasCustomerProject = false;
 
     #[On('open-modal-project-settings')] 
     public function openModalProjectSettings($projectId)
     {
-        $this->project = PlannerProject::with('projectUsers.user')->findOrFail($projectId);
+        $this->project = PlannerProject::with(['projectUsers.user', 'customerProject'])->findOrFail($projectId);
 
         // Teammitglieder holen (z.B. für Auswahl und Anzeige)
         $this->teamUsers = Auth::user()
@@ -35,6 +39,21 @@ class ProjectSettingsModal extends Component
             $this->roles[$user->id] = $projectUser?->role ?? '';
         }
 
+        // Kundenprojekt-Form vorbereiten
+        $this->hasCustomerProject = (bool) $this->project->customerProject;
+        $cp = $this->project->customerProject;
+        $this->customerProjectForm = [
+            'company_id' => $cp?->company_id,
+            'contact_id' => $cp?->contact_id,
+            'billing_method' => $cp?->billing_method,
+            'hourly_rate' => $cp?->hourly_rate,
+            'currency' => $cp?->currency ?? 'EUR',
+            'budget_amount' => $cp?->budget_amount,
+            'cost_center' => $cp?->cost_center,
+            'invoice_account' => $cp?->invoice_account,
+            'notes' => $cp?->notes,
+        ];
+
         $this->modalShow = true;
     }
 
@@ -48,8 +67,19 @@ class ProjectSettingsModal extends Component
         return [
             'project.name' => 'required|string|max:255',
             'project.description' => 'nullable|string',
+            'project.project_type' => 'nullable|in:internal,customer',
             'roles' => 'array',
             'roles.*' => 'nullable|string|in:' . implode(',', array_column(ProjectRole::cases(), 'value')),
+            // Kundenprojekt Felder
+            'customerProjectForm.company_id' => 'nullable|integer',
+            'customerProjectForm.contact_id' => 'nullable|integer',
+            'customerProjectForm.billing_method' => 'nullable|in:time_and_material,fixed_price,retainer',
+            'customerProjectForm.hourly_rate' => 'nullable|numeric',
+            'customerProjectForm.currency' => 'nullable|string|size:3',
+            'customerProjectForm.budget_amount' => 'nullable|numeric',
+            'customerProjectForm.cost_center' => 'nullable|string|max:64',
+            'customerProjectForm.invoice_account' => 'nullable|string|max:64',
+            'customerProjectForm.notes' => 'nullable|string',
         ];
     }
 
@@ -58,6 +88,23 @@ class ProjectSettingsModal extends Component
         $this->validate();
 
         $this->project->save();
+
+        // Kundenprojekt anlegen/aktualisieren, falls Projekttyp = Kunde
+        if ($this->project->project_type === ProjectType::CUSTOMER) {
+            $payload = array_merge(
+                [
+                    'team_id' => Auth::user()->currentTeam->id,
+                    'user_id' => Auth::id(),
+                    'project_id' => $this->project->id,
+                ],
+                $this->customerProjectForm
+            );
+
+            PlannerCustomerProject::updateOrCreate(
+                ['project_id' => $this->project->id],
+                $payload
+            );
+        }
         $this->dispatch('updateSidebar');
         $this->dispatch('updateProject');
         $this->dispatch('updateDashboard');
@@ -109,6 +156,28 @@ class ProjectSettingsModal extends Component
 
         $this->reset('project', 'roles', 'teamUsers');
         $this->closeModal();
+    }
+
+    public function createCustomerProject()
+    {
+        if (! $this->project) {
+            return;
+        }
+
+        if ($this->project->customerProject) {
+            $this->hasCustomerProject = true;
+            return;
+        }
+
+        $cp = PlannerCustomerProject::create([
+            'project_id' => $this->project->id,
+            'team_id' => Auth::user()->currentTeam->id,
+            'user_id' => Auth::id(),
+            'currency' => $this->customerProjectForm['currency'] ?? 'EUR',
+        ]);
+
+        $this->project->refresh();
+        $this->hasCustomerProject = true;
     }
 
     public function removeProjectUser($userId)

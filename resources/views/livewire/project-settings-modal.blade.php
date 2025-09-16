@@ -41,6 +41,96 @@
                 @endcan
             </div>
 
+            {{-- Projekttyp --}}
+            <div class="mt-4">
+                <x-ui-input-select
+                    name="project.project_type"
+                    label="Projekttyp"
+                    :options="[['value'=>'internal','label'=>'Intern'], ['value'=>'customer','label'=>'Kunde']]"
+                    optionValue="value"
+                    optionLabel="label"
+                    :nullable="false"
+                    wire:model.live="project.project_type"
+                />
+            </div>
+
+            {{-- Kundenprojekt Einstellungen (sichtbar wenn Typ Kunde) --}}
+            @if(($project->project_type?->value ?? $project->project_type) === 'customer')
+                <hr class="my-4">
+                <h4 class="text-sm font-semibold mb-2">Kundenprojekt</h4>
+                <div class="grid grid-cols-2 gap-3">
+                    <x-ui-input-text 
+                        name="customerProjectForm.company_id"
+                        label="Company ID (CRM)"
+                        wire:model.live.debounce.500ms="customerProjectForm.company_id"
+                        placeholder="z.B. 123"
+                    />
+                    <x-ui-input-text 
+                        name="customerProjectForm.contact_id"
+                        label="Contact ID (CRM)"
+                        wire:model.live.debounce.500ms="customerProjectForm.contact_id"
+                        placeholder="z.B. 456"
+                    />
+                    <x-ui-input-select
+                        name="customerProjectForm.billing_method"
+                        label="Abrechnungsmethode"
+                        :options="[
+                            ['value'=>'time_and_material','label'=>'Zeit & Material'],
+                            ['value'=>'fixed_price','label'=>'Festpreis'],
+                            ['value'=>'retainer','label'=>'Retainer']
+                        ]"
+                        optionValue="value"
+                        optionLabel="label"
+                        :nullable="true"
+                        nullLabel="– wählen –"
+                        wire:model.live="customerProjectForm.billing_method"
+                    />
+                    <x-ui-input-text 
+                        name="customerProjectForm.hourly_rate"
+                        type="number"
+                        step="0.01"
+                        label="Stundensatz"
+                        wire:model.live.debounce.500ms="customerProjectForm.hourly_rate"
+                        placeholder="z.B. 120.00"
+                    />
+                    <x-ui-input-text 
+                        name="customerProjectForm.currency"
+                        label="Währung"
+                        wire:model.live.debounce.500ms="customerProjectForm.currency"
+                        placeholder="EUR"
+                    />
+                    <x-ui-input-text 
+                        name="customerProjectForm.budget_amount"
+                        type="number"
+                        step="0.01"
+                        label="Budget"
+                        wire:model.live.debounce.500ms="customerProjectForm.budget_amount"
+                        placeholder="z.B. 10000.00"
+                    />
+                    <x-ui-input-text 
+                        name="customerProjectForm.cost_center"
+                        label="Kostenstelle"
+                        wire:model.live.debounce.500ms="customerProjectForm.cost_center"
+                        placeholder="z.B. KST-1001"
+                    />
+                    <x-ui-input-text 
+                        name="customerProjectForm.invoice_account"
+                        label="Sachkonto"
+                        wire:model.live.debounce.500ms="customerProjectForm.invoice_account"
+                        placeholder="z.B. 8400"
+                    />
+                </div>
+                <div class="mt-3">
+                    <x-ui-input-textarea 
+                        name="customerProjectForm.notes"
+                        label="Notizen"
+                        wire:model.live.debounce.500ms="customerProjectForm.notes"
+                        placeholder="Interne Hinweise zum Kundenprojekt"
+                        rows="3"
+                    />
+                </div>
+            @endif
+
             {{-- Beteiligte Benutzer --}}
             <div>
                 <label class="block text-sm font-medium text-slate-700 mb-2">Projekt-Mitglieder & Rollen</label>
