@@ -212,6 +212,21 @@ class ProjectSettingsModal extends Component
             return;
         }
         $this->project->project_type = $type;
+        // Bei Umstellung auf Kunden sofort persistieren und CustomerProject anlegen
+        if ($type === 'customer') {
+            $this->project->save();
+            $this->originalProjectType = 'customer';
+            if (! $this->project->customerProject) {
+                PlannerCustomerProject::create([
+                    'project_id' => $this->project->id,
+                    'team_id' => Auth::user()->currentTeam->id,
+                    'user_id' => Auth::id(),
+                    'currency' => 'EUR',
+                ]);
+                $this->project->refresh();
+                $this->hasCustomerProject = true;
+            }
+        }
     }
 
     public function removeProjectUser($userId)
