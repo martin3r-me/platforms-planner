@@ -25,11 +25,7 @@
             @if(($project->project_type?->value ?? $project->project_type) === 'customer' && $customerCompanyName)
                 <div class="mt-2 text-sm text-secondary d-flex items-center gap-2">
                     <x-heroicon-o-building-office class="w-4 h-4"/>
-                    @if($customerCompanyUrl)
-                        <a href="{{ $customerCompanyUrl }}" class="underline" wire:navigate>{{ $customerCompanyName }}</a>
-                    @else
-                        <span>{{ $customerCompanyName }}</span>
-                    @endif
+                    <span>{{ $customerCompanyName }}</span>
                 </div>
             @endif
             <div class="text-sm text-gray-600 mb-4">{{ $project->description ?? 'Keine Beschreibung' }}</div>

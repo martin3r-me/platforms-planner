@@ -33,7 +33,7 @@ return [
             'group' => 'Projekte',
             'dynamic' => [
                 // Nur Model und Parameter, keine Closures
-                'model'     => Platform\Planner\Models\PlannerProject::class,
+                'model'     => \Platform\Planner\Models\PlannerProject::class,
                 'team_based' => true, // sagt der Sidebar, nach aktuellem Team filtern
                 'order_by'  => 'name',
                 'route'     => 'planner.projects.show', // Basisroute
