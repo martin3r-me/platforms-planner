@@ -5,7 +5,6 @@ namespace Platform\Planner\Livewire;
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Platform\Planner\Models\PlannerTask;
-use Platform\Printing\Contracts\PrintingServiceInterface;
 
 
 class Task extends Component
@@ -15,6 +14,7 @@ class Task extends Component
     public $printTarget = 'printer'; // 'printer' oder 'group'
     public $selectedPrinterId = null;
     public $selectedPrinterGroupId = null;
+    public $printingAvailable = false;
 
 	protected $rules = [
         'task.title' => 'required|string|max:255',
@@ -87,7 +87,9 @@ class Task extends Component
 
     public function printTask()
     {
-        $this->printModalShow = true;
+        if ($this->printingAvailable) {
+            $this->printModalShow = true;
+        }
     }
 
     public function closePrintModal()
@@ -110,6 +112,10 @@ class Task extends Component
 
     public function printTaskConfirm()
     {
+        if (! $this->printingAvailable) {
+            return;
+        }
+
         if (!$this->selectedPrinterId && !$this->selectedPrinterGroupId) {
             $this->dispatch('notify', [
                 'type' => 'error',
@@ -118,8 +124,8 @@ class Task extends Component
             return;
         }
 
-        /** @var PrintingServiceInterface $printing */
-        $printing = app(PrintingServiceInterface::class);
+        // Auflösung nur, wenn Service existiert
+        $printing = app('Platform\\Printing\\Contracts\\PrintingServiceInterface');
 
         $printing->createJob(
             printable: $this->task,
@@ -141,15 +147,21 @@ class Task extends Component
 
 	public function render()
     {        
-        /** @var PrintingServiceInterface $printing */
-        $printing = app(PrintingServiceInterface::class);
+        $this->printingAvailable = interface_exists('Platform\\Printing\\Contracts\\PrintingServiceInterface')
+            && app()->bound('Platform\\Printing\\Contracts\\PrintingServiceInterface');
 
-        $printers = $printing->listPrinters();
-        $groups   = $printing->listPrinterGroups();
+        $printers = collect();
+        $groups = collect();
+        if ($this->printingAvailable) {
+            $printing = app('Platform\\Printing\\Contracts\\PrintingServiceInterface');
+            $printers = $printing->listPrinters();
+            $groups   = $printing->listPrinterGroups();
+        }
 
         return view('planner::livewire.task', [
             'printers' => $printers,
             'printerGroups' => $groups,
+            'printingAvailable' => $this->printingAvailable,
         ])->layout('platform::layouts.app');
     }
 }

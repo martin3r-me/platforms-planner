@@ -23,17 +23,19 @@
                 </div>
                 <div class="flex-grow-1 text-right d-flex items-center justify-end gap-2">
                     <span>{{ $task->title }}</span>
-                    <x-ui-button 
-                        variant="secondary" 
-                        size="sm"
-                        wire:click="printTask"
-                        title="Task drucken"
-                    >
-                        <div class="d-flex items-center gap-2">
-                            @svg('heroicon-o-printer', 'w-4 h-4')
-                            Drucken
-                        </div>
-                    </x-ui-button>
+                    @if($printingAvailable ?? false)
+                        <x-ui-button 
+                            variant="secondary" 
+                            size="sm"
+                            wire:click="printTask"
+                            title="Task drucken"
+                        >
+                            <div class="d-flex items-center gap-2">
+                                @svg('heroicon-o-printer', 'w-4 h-4')
+                                Drucken
+                            </div>
+                        </x-ui-button>
+                    @endif
                 </div>
             </div>
         </div>
@@ -296,6 +298,7 @@
     </div>
 
     <!-- Print Modal -->
+    @if($printingAvailable ?? false)
     <x-ui-modal model="printModalShow" size="md">
         <x-slot name="header">
             Task drucken
@@ -407,4 +410,5 @@
             </div>
         </x-slot>
     </x-ui-modal>
+    @endif
 </div>
