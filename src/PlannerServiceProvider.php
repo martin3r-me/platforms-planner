@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Platform\Core\PlatformCore;
+use Platform\Core\Registry\CommandRegistry;
 use Platform\Core\Routing\ModuleRouter;
 
 // Optional: Models und Policies absichern
@@ -76,6 +77,33 @@ class PlannerServiceProvider extends ServiceProvider
         if (class_exists(PlannerProject::class) && class_exists(PlannerProjectPolicy::class)) {
             Gate::policy(PlannerProject::class, PlannerProjectPolicy::class);
         }
+
+        // Kommandos (MVP) registrieren
+        CommandRegistry::register('planner', [
+            [
+                'key' => 'planner.open_dashboard',
+                'phrases' => [
+                    'öffne planner',
+                    'planner öffnen',
+                    'zeige planner dashboard',
+                ],
+                'slots' => [],
+                'guard' => 'web',
+                'handler' => ['route', 'planner.dashboard'],
+            ],
+            [
+                'key' => 'planner.create_project_form',
+                'phrases' => [
+                    'lege projekt {name} an',
+                    'erstelle projekt {name}',
+                    'projekt {name} anlegen'
+                ],
+                'slots' => [ ['name' => 'name'] ],
+                'guard' => 'web',
+                // MVP: Navigation zum Formular; spätere Version callt Service und legt direkt an
+                'handler' => ['route', 'planner.projects.create'],
+            ],
+        ]);
     }
 
     protected function registerLivewireComponents(): void
