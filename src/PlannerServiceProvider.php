@@ -172,6 +172,48 @@ class PlannerServiceProvider extends ServiceProvider
                     ['desc' => 'Task anlegen', 'slots' => ['model' => 'planner.tasks', 'data' => ['title' => 'Rechnung erstellen']]],
                 ],
             ],
+            [
+                'key' => 'planner.update',
+                'description' => 'Generisches Aktualisieren für Aufgaben/Projekte.',
+                'parameters' => [
+                    ['name' => 'model', 'type' => 'string', 'required' => true],
+                    ['name' => 'id', 'type' => 'integer', 'required' => true],
+                    ['name' => 'data', 'type' => 'object', 'required' => true],
+                ],
+                'impact' => 'medium',
+                'confirmRequired' => true,
+                'autoAllowed' => false,
+                'phrases' => [ 'aktualisiere {model} {id}', 'bearbeite {model} {id}', 'ändere {model} {id}' ],
+                'slots' => [ ['name' => 'model'], ['name' => 'id'], ['name' => 'data'] ],
+                'guard' => 'web',
+                'handler' => ['service', \Platform\Planner\Services\PlannerCommandService::class.'@update'],
+                'scope' => 'write:planner',
+                'examples' => [
+                    ['desc' => 'Aufgabe bearbeiten', 'slots' => ['model' => 'planner.tasks', 'id' => 123, 'data' => ['title' => 'Neuer Titel']]],
+                    ['desc' => 'Projekt bearbeiten', 'slots' => ['model' => 'planner.projects', 'id' => 456, 'data' => ['name' => 'Neuer Name']]],
+                ],
+            ],
+            [
+                'key' => 'planner.delete',
+                'description' => 'Generisches Löschen für Aufgaben/Projekte.',
+                'parameters' => [
+                    ['name' => 'model', 'type' => 'string', 'required' => true],
+                    ['name' => 'id', 'type' => 'integer', 'required' => false],
+                    ['name' => 'name', 'type' => 'string', 'required' => false],
+                ],
+                'impact' => 'high',
+                'confirmRequired' => true,
+                'autoAllowed' => false,
+                'phrases' => [ 'lösche {model} {id}', 'entferne {model} {name}', 'aufgabe löschen', 'projekt löschen' ],
+                'slots' => [ ['name' => 'model'], ['name' => 'id'], ['name' => 'name'] ],
+                'guard' => 'web',
+                'handler' => ['service', \Platform\Planner\Services\PlannerCommandService::class.'@delete'],
+                'scope' => 'delete:planner',
+                'examples' => [
+                    ['desc' => 'Aufgabe löschen', 'slots' => ['model' => 'planner.tasks', 'id' => 123]],
+                    ['desc' => 'Projekt löschen', 'slots' => ['model' => 'planner.projects', 'name' => 'Alpha']],
+                ],
+            ],
         ]);
 
         // Dynamische Routen als Tools exportieren (GET, benannte Routen mit Prefix planner.)

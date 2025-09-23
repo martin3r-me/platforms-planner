@@ -149,6 +149,103 @@ class PlannerCommandService
         return ['ok' => true, 'message' => 'Angelegt', 'data' => ['id' => $row->id], 'navigate' => $navigate];
     }
 
+    public function update(array $slots): array
+    {
+        $modelKey = (string)($slots['model'] ?? '');
+        $id = (int)($slots['id'] ?? 0);
+        $data = (array)($slots['data'] ?? []);
+        $confirmed = (bool)($slots['confirmed'] ?? false);
+        
+        $eloquent = Schemas::meta($modelKey, 'eloquent');
+        if (!$eloquent || !class_exists($eloquent)) {
+            return ['ok' => false, 'message' => 'Unbekanntes Modell'];
+        }
+
+        if ($id <= 0) {
+            return ['ok' => false, 'message' => 'ID erforderlich'];
+        }
+
+        $row = $eloquent::find($id);
+        if (!$row) {
+            return ['ok' => false, 'message' => 'Eintrag nicht gefunden'];
+        }
+
+        $writable = Schemas::writable($modelKey);
+        
+        // Sanitize einfache Textfelder
+        if (isset($data['title'])) {
+            $data['title'] = trim((string) $data['title']);
+        }
+        if (isset($data['name'])) {
+            $data['name'] = trim((string) $data['name']);
+        }
+        if (isset($data['description'])) {
+            $data['description'] = trim((string) $data['description']);
+        }
+
+        // Due-Date Parsing
+        if (!empty($data['due_date'])) {
+            $data['due_date'] = $this->parseDueDate((string)$data['due_date']);
+        }
+
+        // Confirm-Gate: ohne bestätigtes Flag keine Speicherung
+        if ($confirmed !== true) {
+            return [
+                'ok' => false,
+                'message' => 'Bestätigung erforderlich',
+                'needResolve' => true,
+                'confirmRequired' => true,
+                'data' => ['proposed' => $data],
+            ];
+        }
+
+        $payload = [];
+        foreach ($writable as $f) {
+            if (array_key_exists($f, $data)) {
+                $payload[$f] = $data[$f];
+            }
+        }
+
+        $row->fill($payload);
+        $row->save();
+        
+        $route = Schemas::meta($modelKey, 'show_route');
+        $param = Schemas::meta($modelKey, 'route_param');
+        $navigate = ($route && $param) ? route($route, [$param => $row->id]) : null;
+        return ['ok' => true, 'message' => 'Aktualisiert', 'data' => ['id' => $row->id], 'navigate' => $navigate];
+    }
+
+    public function delete(array $slots): array
+    {
+        $modelKey = (string)($slots['model'] ?? '');
+        $id = (int)($slots['id'] ?? 0);
+        $name = (string)($slots['name'] ?? '');
+        
+        $eloquent = Schemas::meta($modelKey, 'eloquent');
+        if (!$eloquent || !class_exists($eloquent)) {
+            return ['ok' => false, 'message' => 'Unbekanntes Modell'];
+        }
+
+        $query = $eloquent::query();
+        
+        if ($id > 0) {
+            $query->where('id', $id);
+        } elseif (!empty($name)) {
+            $labelKey = Schemas::meta($modelKey, 'label_key') ?: 'name';
+            $query->where($labelKey, 'LIKE', '%' . $name . '%');
+        } else {
+            return ['ok' => false, 'message' => 'ID oder Name erforderlich'];
+        }
+
+        $row = $query->first();
+        if (!$row) {
+            return ['ok' => false, 'message' => 'Eintrag nicht gefunden'];
+        }
+
+        $row->delete();
+        return ['ok' => true, 'message' => 'Gelöscht', 'data' => ['id' => $row->id]];
+    }
+
     // keine Normalisierung: LLM soll das Modell explizit setzen oder nachfragen
 }
 
