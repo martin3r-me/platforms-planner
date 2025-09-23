@@ -72,7 +72,9 @@ class PlannerCommandService
         \Log::info("PlannerCommandService: Abgefragte Felder: " . implode(', ', $fields));
         \Log::info("PlannerCommandService: Anzahl Ergebnisse: " . $rows->count());
         if ($rows->count() > 0) {
-            \Log::info("PlannerCommandService: Erstes Ergebnis: " . json_encode($rows->first()->toArray()));
+            $firstRow = $rows->first()->toArray();
+            \Log::info("PlannerCommandService: Erstes Ergebnis: " . json_encode($firstRow));
+            \Log::info("PlannerCommandService: Titel im ersten Ergebnis: " . ($firstRow['title'] ?? 'FEHLT'));
         }
         
         return ['ok' => true, 'data' => ['items' => $rows->toArray()], 'message' => 'Gefunden ('.$rows->count().')'];
