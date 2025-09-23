@@ -12,6 +12,9 @@ class PlannerCommandService
     public function query(array $slots): array
     {
         $modelKey = (string)($slots['model'] ?? '');
+        if ($modelKey === '') {
+            return ['ok' => false, 'message' => 'Modell nicht angegeben', 'needResolve' => true];
+        }
         $eloquent = Schemas::meta($modelKey, 'eloquent');
         if (!$eloquent || !class_exists($eloquent)) return ['ok' => false, 'message' => 'Unbekanntes Modell'];
 
@@ -31,6 +34,14 @@ class PlannerCommandService
         // Team-Scoped: falls Spalte team_id existiert, filtern
         if (Schema::hasColumn((new $eloquent)->getTable(), 'team_id') && auth()->check()) {
             $query->where('team_id', auth()->user()->currentTeam?->id);
+        }
+
+        // Standard-Sichtbarkeit: für Tasks nur eigene Aufgaben (owner oder in charge)
+        if ($modelKey === 'planner.tasks' && auth()->check()) {
+            $query->where(function($q){
+                $uid = auth()->id();
+                $q->where('user_id', $uid)->orWhere('user_in_charge_id', $uid);
+            });
         }
 
         // Volltext: wenn title/name vorhanden
@@ -57,6 +68,9 @@ class PlannerCommandService
     public function open(array $slots): array
     {
         $modelKey = (string)($slots['model'] ?? '');
+        if ($modelKey === '') {
+            return ['ok' => false, 'message' => 'Modell nicht angegeben', 'needResolve' => true];
+        }
         $eloquent = Schemas::meta($modelKey, 'eloquent');
         $route    = Schemas::meta($modelKey, 'show_route');
         $param    = Schemas::meta($modelKey, 'route_param');
@@ -83,6 +97,8 @@ class PlannerCommandService
         $url = route($route, [$param => $row->id]);
         return ['ok' => true, 'navigate' => $url, 'message' => 'Navigation bereit'];
     }
+
+    // keine Normalisierung: LLM soll das Modell explizit setzen oder nachfragen
 }
 
 
