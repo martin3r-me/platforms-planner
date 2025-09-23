@@ -79,7 +79,7 @@ class PlannerServiceProvider extends ServiceProvider
         }
 
         // Model-Schemata automatisch registrieren lassen
-        \Platform\Core\Services\ModelAutoRegistrar::scanAndRegister();
+        (new \Platform\Core\Services\ModelAutoRegistrar())->scanAndRegister();
         
         // Nur Meta-Daten präzisieren (Routes, etc.)
         \Platform\Core\Schema\ModelSchemaRegistry::updateMeta('planner.tasks', [
