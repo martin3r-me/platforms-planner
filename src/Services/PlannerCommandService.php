@@ -94,13 +94,23 @@ class PlannerCommandService
         } elseif ($name) {
             $titleField = in_array('title', Schemas::get($modelKey)['fields'] ?? [], true) ? 'title' : (in_array('name', Schemas::get($modelKey)['fields'] ?? [], true) ? 'name' : null);
             if ($titleField) {
-                $row = $eloquent::where($titleField, 'LIKE', '%'.$name.'%')
+                $matches = $eloquent::where($titleField, 'LIKE', '%'.$name.'%')
                     ->orderByRaw('CASE WHEN '.$titleField.' = ? THEN 0 ELSE 1 END', [$name])
                     ->orderBy($titleField)
-                    ->first();
+                    ->limit(5)
+                    ->get(['id', $titleField]);
+                if ($matches->count() === 1) {
+                    $row = $matches->first();
+                } elseif ($matches->count() > 1) {
+                    $labelKey = Schemas::meta($modelKey, 'label_key') ?: $titleField;
+                    $choices = $matches->map(function($m) use ($labelKey){
+                        return ['id' => $m->id, 'label' => $m->{$labelKey} ?? (string)$m->id];
+                    })->toArray();
+                    return ['ok' => false, 'message' => 'Bitte wählen', 'needResolve' => true, 'choices' => $choices];
+                }
             }
         }
-        if (!$row) return ['ok' => false, 'message' => 'Eintrag nicht gefunden'];
+        if (!$row) return ['ok' => false, 'message' => 'Eintrag nicht gefunden', 'needResolve' => true];
         $url = route($route, [$param => $row->id]);
         return ['ok' => true, 'navigate' => $url, 'message' => 'Navigation bereit'];
     }
