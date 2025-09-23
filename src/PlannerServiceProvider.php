@@ -85,10 +85,17 @@ class PlannerServiceProvider extends ServiceProvider
             'sortable' => ['id','due_date','title','story_points'],
             'selectable' => ['id','uuid','title','due_date','is_done','story_points','project_id','sprint_slot_id','status','user_in_charge_id'],
             'relations' => [ 'project' => ['fields' => ['id','name']] ],
+            'required' => ['title'],
+            'writable' => ['title','description','due_date','status','is_done','is_frog','story_points','project_id','sprint_slot_id','task_group_id','user_in_charge_id'],
+            'foreign_keys' => [
+                'project_id' => ['references' => 'planner.projects', 'field' => 'id', 'label_key' => 'name'],
+                'sprint_slot_id' => ['references' => 'planner.sprint_slots', 'field' => 'id', 'label_key' => 'name'],
+            ],
             'meta' => [
                 'eloquent' => \Platform\Planner\Models\PlannerTask::class,
                 'show_route' => 'planner.tasks.show',
                 'route_param' => 'plannerTask',
+                'label_key' => 'title',
             ],
         ]);
         \Platform\Core\Schema\ModelSchemaRegistry::register('planner.projects', [
@@ -97,10 +104,13 @@ class PlannerServiceProvider extends ServiceProvider
             'sortable' => ['id','name'],
             'selectable' => ['id','uuid','name'],
             'relations' => [],
+            'required' => ['name'],
+            'writable' => ['name'],
             'meta' => [
                 'eloquent' => \Platform\Planner\Models\PlannerProject::class,
                 'show_route' => 'planner.projects.show',
                 'route_param' => 'plannerProject',
+                'label_key' => 'name',
             ],
         ]);
 
@@ -142,6 +152,21 @@ class PlannerServiceProvider extends ServiceProvider
                 'slots' => [ ['name' => 'model'], ['name' => 'id'], ['name' => 'name'] ],
                 'guard' => 'web',
                 'handler' => ['service', \Platform\Planner\Services\PlannerCommandService::class.'@open'],
+            ],
+            [
+                'key' => 'planner.create',
+                'description' => 'Generisches Anlegen (schema-validiert).',
+                'parameters' => [
+                    ['name' => 'model', 'type' => 'string', 'required' => true],
+                    ['name' => 'data', 'type' => 'object', 'required' => true],
+                ],
+                'impact' => 'medium',
+                'confirmRequired' => true,
+                'autoAllowed' => false,
+                'phrases' => [ 'erstelle {model}', 'lege {model} an' ],
+                'slots' => [ ['name' => 'model'], ['name' => 'data'] ],
+                'guard' => 'web',
+                'handler' => ['service', \Platform\Planner\Services\PlannerCommandService::class.'@create'],
             ],
             [
                 'key' => 'planner.open_dashboard',

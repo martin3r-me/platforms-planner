@@ -105,6 +105,40 @@ class PlannerCommandService
         return ['ok' => true, 'navigate' => $url, 'message' => 'Navigation bereit'];
     }
 
+    // Create generisch (schema-validiert, confirmRequired via Command)
+    public function create(array $slots): array
+    {
+        $modelKey = (string)($slots['model'] ?? '');
+        $data = (array)($slots['data'] ?? []);
+        $eloquent = Schemas::meta($modelKey, 'eloquent');
+        if (!$eloquent || !class_exists($eloquent)) return ['ok' => false, 'message' => 'Unbekanntes Modell'];
+
+        $required = Schemas::required($modelKey);
+        $writable = Schemas::writable($modelKey);
+        foreach ($required as $f) {
+            if (!array_key_exists($f, $data) || $data[$f] === null || $data[$f] === '') {
+                return ['ok' => false, 'message' => 'Pflichtfeld fehlt: '.$f, 'needResolve' => true, 'missing' => $required];
+            }
+        }
+        $payload = [];
+        foreach ($writable as $f) {
+            if (array_key_exists($f, $data)) {
+                $payload[$f] = $data[$f];
+            }
+        }
+        if (Schema::hasColumn((new $eloquent)->getTable(), 'team_id') && auth()->check()) {
+            $payload['team_id'] = auth()->user()->currentTeam?->id;
+        }
+        /** @var \Illuminate\Database\Eloquent\Model $row */
+        $row = new $eloquent();
+        $row->fill($payload);
+        $row->save();
+        $route = Schemas::meta($modelKey, 'show_route');
+        $param = Schemas::meta($modelKey, 'route_param');
+        $navigate = ($route && $param) ? route($route, [$param => $row->id]) : null;
+        return ['ok' => true, 'message' => 'Angelegt', 'data' => ['id' => $row->id], 'navigate' => $navigate];
+    }
+
     // keine Normalisierung: LLM soll das Modell explizit setzen oder nachfragen
 }
 
