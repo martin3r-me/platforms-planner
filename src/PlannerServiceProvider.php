@@ -133,6 +133,7 @@ class PlannerServiceProvider extends ServiceProvider
         ]);
 
         // Kommandos (MVP) registrieren
+        \Log::info('Planner ServiceProvider: Commands registrieren...');
         CommandRegistry::register('planner', [
             [
                 'key' => 'planner.query',
