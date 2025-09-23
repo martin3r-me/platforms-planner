@@ -28,8 +28,10 @@ class PlannerCommandService
         $limit      = min(max((int)($slots['limit'] ?? 20), 1), 100);
         $fieldsReq  = array_map('trim', explode(',', (string)($slots['fields'] ?? '')));
         if (empty($fieldsReq) || $fieldsReq === ['']) {
-            // Fallback: erste 6 selectable Felder
-            $fieldsReq = array_slice(Schemas::get($modelKey)['selectable'] ?? [], 0, 6);
+            // Vollständig dynamischer Fallback: id + alle selectable Felder
+            $schema = Schemas::get($modelKey);
+            $selectable = $schema['selectable'] ?? [];
+            $fieldsReq = array_merge(['id'], $selectable);
         }
         $fields     = Schemas::validateFields($modelKey, $fieldsReq, ['id']);
 
