@@ -140,6 +140,26 @@ class PlannerServiceProvider extends ServiceProvider
                 'handler' => ['service', \Platform\Planner\Services\PlannerProjectService::class.'@listProjects'],
             ],
             [
+                'key' => 'planner.list_project_tasks',
+                'description' => 'Listet Aufgaben eines Projekts (Top 50).',
+                'parameters' => [
+                    ['name' => 'project_id', 'type' => 'integer', 'required' => false, 'description' => 'Projekt-ID'],
+                    ['name' => 'project_uuid', 'type' => 'string', 'required' => false, 'description' => 'Projekt-UUID'],
+                    ['name' => 'project_name', 'type' => 'string', 'required' => false, 'description' => 'Projektname (unscharf)'],
+                ],
+                'impact' => 'low',
+                'confirmRequired' => false,
+                'autoAllowed' => true,
+                'phrases' => [
+                    'zeige aufgaben in projekt {project_name}',
+                    'liste aufgaben projekt {project_name}',
+                    'aufgaben im projekt {project_name}',
+                ],
+                'slots' => [ ['name' => 'project_id'], ['name' => 'project_uuid'], ['name' => 'project_name'] ],
+                'guard' => 'web',
+                'handler' => ['service', \Platform\Planner\Services\PlannerTaskService::class.'@listProjectTasks'],
+            ],
+            [
                 'key' => 'planner.open_project',
                 'description' => 'Öffnet ein Projekt per ID oder UUID.',
                 'parameters' => [
@@ -151,6 +171,26 @@ class PlannerServiceProvider extends ServiceProvider
                 'slots' => [ ['name' => 'id'] ],
                 'guard' => 'web',
                 'handler' => ['service', \Platform\Planner\Services\PlannerProjectService::class.'@openProject'],
+            ],
+            [
+                'key' => 'planner.open_task',
+                'description' => 'Öffnet eine Aufgabe per ID oder UUID.',
+                'parameters' => [
+                    ['name' => 'id', 'type' => 'integer', 'required' => false, 'description' => 'Task-ID'],
+                    ['name' => 'uuid', 'type' => 'string', 'required' => false, 'description' => 'Task-UUID'],
+                    ['name' => 'title', 'type' => 'string', 'required' => false, 'description' => 'Task-Titel (unscharf)'],
+                ],
+                'impact' => 'low',
+                'confirmRequired' => false,
+                'autoAllowed' => true,
+                'phrases' => [
+                    'öffne aufgabe {id}',
+                    'aufgabe {id} öffnen',
+                    'öffne task {id}',
+                ],
+                'slots' => [ ['name' => 'id'], ['name' => 'uuid'], ['name' => 'title'] ],
+                'guard' => 'web',
+                'handler' => ['service', \Platform\Planner\Services\PlannerTaskService::class.'@openTask'],
             ],
         ]);
     }
