@@ -40,7 +40,8 @@ class PlannerProjectService
                 ->first();
         }
         if (!$proj) return ['ok' => false, 'message' => 'Projekt nicht gefunden'];
-        $url = route('planner.projects.show', ['project' => $proj->id]);
+        // Route erwartet Parameter-Namen 'plannerProject' (Model-Binding)
+        $url = route('planner.projects.show', ['plannerProject' => $proj->id]);
         return ['ok' => true, 'navigate' => $url, 'message' => 'Projekt öffnen'];
     }
 }
