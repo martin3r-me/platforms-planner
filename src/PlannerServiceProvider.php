@@ -131,10 +131,23 @@ class PlannerServiceProvider extends ServiceProvider
                 'impact' => 'low',
                 'confirmRequired' => false,
                 'autoAllowed' => true,
-                'phrases' => [ 'suche {model} {q}', 'zeige {model}' ],
+                'phrases' => [
+                    'suche {model} {q}',
+                    'zeige {model}',
+                    'übersicht {model}',
+                    'meine aufgaben',
+                    'übersicht aufgaben',
+                    'zeige meine aufgaben',
+                ],
                 'slots' => [ ['name' => 'model'], ['name' => 'q'] ],
                 'guard' => 'web',
                 'handler' => ['service', \Platform\Planner\Services\PlannerCommandService::class.'@query'],
+                'scope' => 'read:planner',
+                'examples' => [
+                    ['desc' => 'Meine Aufgaben', 'slots' => ['model' => 'planner.tasks']],
+                    ['desc' => 'Projektübersicht', 'slots' => ['model' => 'planner.projects']],
+                    ['desc' => 'Aufgaben mit Stichwort', 'slots' => ['model' => 'planner.tasks', 'q' => 'Rechnung']],
+                ],
             ],
             [
                 'key' => 'planner.open',
@@ -148,10 +161,20 @@ class PlannerServiceProvider extends ServiceProvider
                 'impact' => 'low',
                 'confirmRequired' => false,
                 'autoAllowed' => true,
-                'phrases' => [ 'öffne {model} {id}', 'öffne {model} {name}' ],
+                'phrases' => [
+                    'öffne {model} {id}',
+                    'öffne {model} {name}',
+                    'zeige {model} {name}',
+                    'gehe zu {model} {name}',
+                ],
                 'slots' => [ ['name' => 'model'], ['name' => 'id'], ['name' => 'name'] ],
                 'guard' => 'web',
                 'handler' => ['service', \Platform\Planner\Services\PlannerCommandService::class.'@open'],
+                'scope' => 'read:planner',
+                'examples' => [
+                    ['desc' => 'Projekt öffnen', 'slots' => ['model' => 'planner.projects', 'name' => 'Alpha']],
+                    ['desc' => 'Aufgabe öffnen', 'slots' => ['model' => 'planner.tasks', 'name' => 'Login']],
+                ],
             ],
             [
                 'key' => 'planner.create',
@@ -167,6 +190,10 @@ class PlannerServiceProvider extends ServiceProvider
                 'slots' => [ ['name' => 'model'], ['name' => 'data'] ],
                 'guard' => 'web',
                 'handler' => ['service', \Platform\Planner\Services\PlannerCommandService::class.'@create'],
+                'scope' => 'write:planner.tasks',
+                'examples' => [
+                    ['desc' => 'Task anlegen', 'slots' => ['model' => 'planner.tasks', 'data' => ['title' => 'Rechnung erstellen']]],
+                ],
             ],
         ]);
 
