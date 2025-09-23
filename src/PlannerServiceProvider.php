@@ -165,10 +165,17 @@ class PlannerServiceProvider extends ServiceProvider
                 'parameters' => [
                     ['name' => 'id', 'type' => 'integer', 'required' => false, 'description' => 'Projekt-ID'],
                     ['name' => 'uuid', 'type' => 'string', 'required' => false, 'description' => 'Projekt-UUID'],
+                    ['name' => 'name', 'type' => 'string', 'required' => false, 'description' => 'Projektname (unscharf)'],
                 ],
                 'impact' => 'low',
-                'phrases' => [ 'öffne projekt {id}', 'projekt {id} öffnen' ],
-                'slots' => [ ['name' => 'id'] ],
+                'phrases' => [
+                    'öffne projekt {id}',
+                    'projekt {id} öffnen',
+                    'wechsle in projekt {name}',
+                    'öffne projekt {name}',
+                    'gehe zum projekt {name}',
+                ],
+                'slots' => [ ['name' => 'id'], ['name' => 'name'] ],
                 'guard' => 'web',
                 // Reine Navigation: direkt zur Show-Route; Parameter heißt 'plannerProject'
                 'handler' => ['route', 'planner.projects.show', ['plannerProject' => 'id']],
