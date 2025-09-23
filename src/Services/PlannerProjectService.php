@@ -56,11 +56,13 @@ class PlannerProjectService
         $q     = trim((string)($slots['q'] ?? ''));
         $id    = isset($slots['id']) ? (int)$slots['id'] : null;
         $uuid  = isset($slots['uuid']) ? (string)$slots['uuid'] : null;
-        $sort  = in_array(($slots['sort'] ?? 'name'), ['name','id'], true) ? $slots['sort'] : 'name';
+        $sortInput = $slots['sort'] ?? 'name';
+        $sort  = in_array($sortInput, ['name','id'], true) ? $sortInput : 'name';
         $order = strtolower((string)($slots['order'] ?? 'asc')) === 'desc' ? 'desc' : 'asc';
         $limit = min(max((int)($slots['limit'] ?? 50), 1), 100);
+        $fieldsRaw = (string)($slots['fields'] ?? 'id,uuid,name');
         $fields = array_intersect(
-            array_map('trim', explode(',', (string)($slots['fields'] ?? 'id,uuid,name'))),
+            array_filter(array_map('trim', explode(',', $fieldsRaw))),
             ['id','uuid','name']
         );
         if (empty($fields)) { $fields = ['id','name']; }
