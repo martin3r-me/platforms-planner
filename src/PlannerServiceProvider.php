@@ -78,8 +78,71 @@ class PlannerServiceProvider extends ServiceProvider
             Gate::policy(PlannerProject::class, PlannerProjectPolicy::class);
         }
 
+        // Model-Schemata registrieren
+        \Platform\Core\Schema\ModelSchemaRegistry::register('planner.tasks', [
+            'fields' => ['id','uuid','title','description','due_date','status','is_done','is_frog','story_points','order','sprint_slot_order','project_id','sprint_slot_id','task_group_id','user_id','user_in_charge_id'],
+            'filterable' => ['project_id','user_id','user_in_charge_id','status','is_done','due_date'],
+            'sortable' => ['id','due_date','title','story_points'],
+            'selectable' => ['id','uuid','title','due_date','is_done','story_points','project_id','sprint_slot_id','status','user_in_charge_id'],
+            'relations' => [ 'project' => ['fields' => ['id','name']] ],
+            'meta' => [
+                'eloquent' => \Platform\Planner\Models\PlannerTask::class,
+                'show_route' => 'planner.tasks.show',
+                'route_param' => 'plannerTask',
+            ],
+        ]);
+        \Platform\Core\Schema\ModelSchemaRegistry::register('planner.projects', [
+            'fields' => ['id','uuid','name','team_id'],
+            'filterable' => ['id','uuid','name'],
+            'sortable' => ['id','name'],
+            'selectable' => ['id','uuid','name'],
+            'relations' => [],
+            'meta' => [
+                'eloquent' => \Platform\Planner\Models\PlannerProject::class,
+                'show_route' => 'planner.projects.show',
+                'route_param' => 'plannerProject',
+            ],
+        ]);
+
         // Kommandos (MVP) registrieren
         CommandRegistry::register('planner', [
+            [
+                'key' => 'planner.query',
+                'description' => 'Generische Abfrage für Aufgaben/Projekte.',
+                'parameters' => [
+                    ['name' => 'model', 'type' => 'string', 'required' => true, 'description' => 'tasks|projects'],
+                    ['name' => 'q', 'type' => 'string', 'required' => false],
+                    ['name' => 'filters', 'type' => 'object', 'required' => false],
+                    ['name' => 'sort', 'type' => 'string', 'required' => false],
+                    ['name' => 'order', 'type' => 'string', 'required' => false],
+                    ['name' => 'limit', 'type' => 'integer', 'required' => false],
+                    ['name' => 'fields', 'type' => 'string', 'required' => false],
+                ],
+                'impact' => 'low',
+                'confirmRequired' => false,
+                'autoAllowed' => true,
+                'phrases' => [ 'suche {model} {q}', 'zeige {model}' ],
+                'slots' => [ ['name' => 'model'], ['name' => 'q'] ],
+                'guard' => 'web',
+                'handler' => ['service', \Platform\Planner\Services\PlannerCommandService::class.'@query'],
+            ],
+            [
+                'key' => 'planner.open',
+                'description' => 'Generisches Öffnen (Navigation) für Aufgaben/Projekte.',
+                'parameters' => [
+                    ['name' => 'model', 'type' => 'string', 'required' => true, 'description' => 'task|project'],
+                    ['name' => 'id', 'type' => 'integer', 'required' => false],
+                    ['name' => 'uuid', 'type' => 'string', 'required' => false],
+                    ['name' => 'name', 'type' => 'string', 'required' => false],
+                ],
+                'impact' => 'low',
+                'confirmRequired' => false,
+                'autoAllowed' => true,
+                'phrases' => [ 'öffne {model} {id}', 'öffne {model} {name}' ],
+                'slots' => [ ['name' => 'model'], ['name' => 'id'], ['name' => 'name'] ],
+                'guard' => 'web',
+                'handler' => ['service', \Platform\Planner\Services\PlannerCommandService::class.'@open'],
+            ],
             [
                 'key' => 'planner.open_dashboard',
                 'description' => 'Öffnet das Planner-Dashboard.',
@@ -93,64 +156,6 @@ class PlannerServiceProvider extends ServiceProvider
                 'slots' => [],
                 'guard' => 'web',
                 'handler' => ['route', 'planner.dashboard'],
-            ],
-            [
-                'key' => 'planner.query_tasks',
-                'description' => 'Flexible Aufgabenabfrage mit Filtern (LLM-tauglich).',
-                'parameters' => [
-                    ['name' => 'q', 'type' => 'string', 'required' => false, 'description' => 'Volltextsuche im Titel'],
-                    ['name' => 'project_id', 'type' => 'integer', 'required' => false, 'description' => 'Projekt-ID'],
-                    ['name' => 'project_name', 'type' => 'string', 'required' => false, 'description' => 'Projektname (unscharf)'],
-                    ['name' => 'assigned_to', 'type' => 'integer', 'required' => false, 'description' => 'User-ID'],
-                    ['name' => 'is_done', 'type' => 'boolean', 'required' => false, 'description' => 'Abgeschlossen?'],
-                    ['name' => 'status', 'type' => 'string', 'required' => false, 'description' => 'Status'],
-                    ['name' => 'due_from', 'type' => 'string', 'required' => false, 'description' => 'Fällig ab (YYYY-MM-DD)'],
-                    ['name' => 'due_to', 'type' => 'string', 'required' => false, 'description' => 'Fällig bis (YYYY-MM-DD)'],
-                    ['name' => 'sort', 'type' => 'string', 'required' => false, 'description' => 'Sortierfeld'],
-                    ['name' => 'order', 'type' => 'string', 'required' => false, 'description' => 'asc|desc'],
-                    ['name' => 'limit', 'type' => 'integer', 'required' => false, 'description' => 'Limit (max 100)'],
-                    ['name' => 'fields', 'type' => 'string', 'required' => false, 'description' => 'Kommagetrennte Feldliste'],
-                ],
-                'impact' => 'low',
-                'confirmRequired' => false,
-                'autoAllowed' => true,
-                'phrases' => [
-                    'suche aufgaben {q}',
-                    'zeige aufgaben projekt {project_name}',
-                    'aufgaben fällig von {due_from} bis {due_to}',
-                    'meine offenen aufgaben',
-                ],
-                'slots' => [
-                    ['name' => 'q'], ['name' => 'project_id'], ['name' => 'project_name'],
-                    ['name' => 'assigned_to'], ['name' => 'is_done'], ['name' => 'status'],
-                    ['name' => 'due_from'], ['name' => 'due_to'],
-                    ['name' => 'sort'], ['name' => 'order'], ['name' => 'limit'], ['name' => 'fields']
-                ],
-                'guard' => 'web',
-                'handler' => ['service', \Platform\Planner\Services\PlannerTaskService::class.'@queryTasks'],
-            ],
-            [
-                'key' => 'planner.query_projects',
-                'description' => 'Flexible Projektabfrage (LLM-tauglich).',
-                'parameters' => [
-                    ['name' => 'q', 'type' => 'string', 'required' => false, 'description' => 'Volltextsuche im Namen'],
-                    ['name' => 'id', 'type' => 'integer', 'required' => false, 'description' => 'Projekt-ID'],
-                    ['name' => 'uuid', 'type' => 'string', 'required' => false, 'description' => 'Projekt-UUID'],
-                    ['name' => 'sort', 'type' => 'string', 'required' => false, 'description' => 'Sortierfeld (name,id)'],
-                    ['name' => 'order', 'type' => 'string', 'required' => false, 'description' => 'asc|desc'],
-                    ['name' => 'limit', 'type' => 'integer', 'required' => false, 'description' => 'Limit (max 100)'],
-                    ['name' => 'fields', 'type' => 'string', 'required' => false, 'description' => 'Kommagetrennte Feldliste'],
-                ],
-                'impact' => 'low',
-                'confirmRequired' => false,
-                'autoAllowed' => true,
-                'phrases' => [
-                    'suche projekte {q}',
-                    'zeige projekte',
-                ],
-                'slots' => [ ['name' => 'q'], ['name' => 'id'], ['name' => 'uuid'], ['name' => 'sort'], ['name' => 'order'], ['name' => 'limit'], ['name' => 'fields'] ],
-                'guard' => 'web',
-                'handler' => ['service', \Platform\Planner\Services\PlannerProjectService::class.'@queryProjects'],
             ],
             [
                 'key' => 'planner.create_project_form',
@@ -168,96 +173,6 @@ class PlannerServiceProvider extends ServiceProvider
                 'guard' => 'web',
                 // MVP: Navigation zum Formular; spätere Version callt Service und legt direkt an
                 'handler' => ['route', 'planner.projects.create'],
-            ],
-            [
-                'key' => 'planner.list_my_tasks',
-                'description' => 'Listet Aufgaben des aktuellen Nutzers (Top 20).',
-                'parameters' => [],
-                'impact' => 'low',
-                'confirmRequired' => false,
-                'autoAllowed' => true,
-                'phrases' => [
-                    'meine aufgaben',
-                    'zeige meine aufgaben',
-                    'was habe ich offen',
-                ],
-                'slots' => [],
-                'guard' => 'web',
-                'handler' => ['service', \Platform\Planner\Services\PlannerTaskService::class.'@listMyTasks'],
-            ],
-            [
-                'key' => 'planner.list_projects',
-                'description' => 'Listet Projekte (Top 50, alphabetisch).',
-                'parameters' => [],
-                'impact' => 'low',
-                'confirmRequired' => false,
-                'autoAllowed' => true,
-                'phrases' => [ 'zeige projekte', 'liste projekte', 'projekte anzeigen' ],
-                'slots' => [],
-                'guard' => 'web',
-                'handler' => ['service', \Platform\Planner\Services\PlannerProjectService::class.'@listProjects'],
-            ],
-            [
-                'key' => 'planner.list_project_tasks',
-                'description' => 'Listet Aufgaben eines Projekts (Top 50).',
-                'parameters' => [
-                    ['name' => 'project_id', 'type' => 'integer', 'required' => false, 'description' => 'Projekt-ID'],
-                    ['name' => 'project_uuid', 'type' => 'string', 'required' => false, 'description' => 'Projekt-UUID'],
-                    ['name' => 'project_name', 'type' => 'string', 'required' => false, 'description' => 'Projektname (unscharf)'],
-                ],
-                'impact' => 'low',
-                'confirmRequired' => false,
-                'autoAllowed' => true,
-                'phrases' => [
-                    'zeige aufgaben in projekt {project_name}',
-                    'liste aufgaben projekt {project_name}',
-                    'aufgaben im projekt {project_name}',
-                ],
-                'slots' => [ ['name' => 'project_id'], ['name' => 'project_uuid'], ['name' => 'project_name'] ],
-                'guard' => 'web',
-                'handler' => ['service', \Platform\Planner\Services\PlannerTaskService::class.'@listProjectTasks'],
-            ],
-            [
-                'key' => 'planner.open_project',
-                'description' => 'Öffnet ein Projekt per ID oder UUID.',
-                'parameters' => [
-                    ['name' => 'id', 'type' => 'integer', 'required' => false, 'description' => 'Projekt-ID'],
-                    ['name' => 'uuid', 'type' => 'string', 'required' => false, 'description' => 'Projekt-UUID'],
-                    ['name' => 'name', 'type' => 'string', 'required' => false, 'description' => 'Projektname (unscharf)'],
-                ],
-                'impact' => 'low',
-                'phrases' => [
-                    'öffne projekt {id}',
-                    'projekt {id} öffnen',
-                    'wechsle in projekt {name}',
-                    'öffne projekt {name}',
-                    'gehe zum projekt {name}',
-                ],
-                'slots' => [ ['name' => 'id'], ['name' => 'name'] ],
-                'guard' => 'web',
-                // Reine Navigation: direkt zur Show-Route; Parameter heißt 'plannerProject'
-                'handler' => ['route', 'planner.projects.show', ['plannerProject' => 'id']],
-            ],
-            [
-                'key' => 'planner.open_task',
-                'description' => 'Öffnet eine Aufgabe per ID oder UUID.',
-                'parameters' => [
-                    ['name' => 'id', 'type' => 'integer', 'required' => false, 'description' => 'Task-ID'],
-                    ['name' => 'uuid', 'type' => 'string', 'required' => false, 'description' => 'Task-UUID'],
-                    ['name' => 'title', 'type' => 'string', 'required' => false, 'description' => 'Task-Titel (unscharf)'],
-                ],
-                'impact' => 'low',
-                'confirmRequired' => false,
-                'autoAllowed' => true,
-                'phrases' => [
-                    'öffne aufgabe {id}',
-                    'aufgabe {id} öffnen',
-                    'öffne task {id}',
-                ],
-                'slots' => [ ['name' => 'id'], ['name' => 'uuid'], ['name' => 'title'] ],
-                'guard' => 'web',
-                // Reine Navigation: direkt zur Task-Show-Route; Parameter heißt 'plannerTask'
-                'handler' => ['route', 'planner.tasks.show', ['plannerTask' => 'id']],
             ],
         ]);
     }
