@@ -127,6 +127,31 @@ class PlannerServiceProvider extends ServiceProvider
                 'guard' => 'web',
                 'handler' => ['service', \Platform\Planner\Services\PlannerTaskService::class.'@listMyTasks'],
             ],
+            [
+                'key' => 'planner.list_projects',
+                'description' => 'Listet Projekte (Top 50, alphabetisch).',
+                'parameters' => [],
+                'impact' => 'low',
+                'confirmRequired' => false,
+                'autoAllowed' => true,
+                'phrases' => [ 'zeige projekte', 'liste projekte', 'projekte anzeigen' ],
+                'slots' => [],
+                'guard' => 'web',
+                'handler' => ['service', \Platform\Planner\Services\PlannerProjectService::class.'@listProjects'],
+            ],
+            [
+                'key' => 'planner.open_project',
+                'description' => 'Öffnet ein Projekt per ID oder UUID.',
+                'parameters' => [
+                    ['name' => 'id', 'type' => 'integer', 'required' => false, 'description' => 'Projekt-ID'],
+                    ['name' => 'uuid', 'type' => 'string', 'required' => false, 'description' => 'Projekt-UUID'],
+                ],
+                'impact' => 'low',
+                'phrases' => [ 'öffne projekt {id}', 'projekt {id} öffnen' ],
+                'slots' => [ ['name' => 'id'] ],
+                'guard' => 'web',
+                'handler' => ['service', \Platform\Planner\Services\PlannerProjectService::class.'@openProject'],
+            ],
         ]);
     }
 
