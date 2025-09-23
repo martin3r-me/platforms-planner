@@ -67,6 +67,14 @@ class PlannerCommandService
         }
 
         $rows = $query->orderBy($sort, $order)->limit($limit)->get($fields);
+        
+        // Debug: Log die abgefragten Felder und Ergebnisse
+        \Log::info("PlannerCommandService: Abgefragte Felder: " . implode(', ', $fields));
+        \Log::info("PlannerCommandService: Anzahl Ergebnisse: " . $rows->count());
+        if ($rows->count() > 0) {
+            \Log::info("PlannerCommandService: Erstes Ergebnis: " . json_encode($rows->first()->toArray()));
+        }
+        
         return ['ok' => true, 'data' => ['items' => $rows->toArray()], 'message' => 'Gefunden ('.$rows->count().')'];
     }
 

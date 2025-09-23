@@ -402,5 +402,6 @@ class PlannerServiceProvider extends ServiceProvider
         ]);
 
         \Log::info("PlannerServiceProvider: Modell {$modelKey} registriert mit " . count($relations) . " Relationen und " . count($enums) . " Enums");
+        \Log::info("PlannerServiceProvider: Selectable Felder für {$modelKey}: " . implode(', ', $selectable));
     }
 }
