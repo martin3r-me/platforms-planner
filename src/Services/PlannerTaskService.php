@@ -210,10 +210,23 @@ class PlannerTaskService
             $query->whereDate('due_date', '<=', $dueTo);
         }
 
-        $tasks = $query->orderBy($sort, $order)->limit($limit)->get($fields);
+        // Eager Load Project minimal und Felder ergänzen
+        $tasks = $query->with(['project:id,name'])
+            ->orderBy($sort, $order)
+            ->limit($limit)
+            ->get($fields);
+
+        $out = $tasks->map(function($t){
+            $arr = $t->toArray();
+            $arr['project'] = $t->project ? ['id' => $t->project->id, 'name' => $t->project->name] : null;
+            if (!isset($arr['project_name']) && $t->project) {
+                $arr['project_name'] = $t->project->name;
+            }
+            return $arr;
+        })->toArray();
         return [
             'ok' => true,
-            'data' => [ 'tasks' => $tasks->toArray() ],
+            'data' => [ 'tasks' => $out ],
             'message' => 'Aufgaben gefunden ('.$tasks->count().')',
         ];
     }
