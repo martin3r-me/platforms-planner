@@ -82,6 +82,9 @@ class PlannerServiceProvider extends ServiceProvider
         CommandRegistry::register('planner', [
             [
                 'key' => 'planner.open_dashboard',
+                'description' => 'Öffnet das Planner-Dashboard.',
+                'parameters' => [],
+                'impact' => 'low',
                 'phrases' => [
                     'öffne planner',
                     'planner öffnen',
@@ -93,6 +96,11 @@ class PlannerServiceProvider extends ServiceProvider
             ],
             [
                 'key' => 'planner.create_project_form',
+                'description' => 'Öffnet das Formular zum Anlegen eines Projekts.',
+                'parameters' => [
+                    ['name' => 'name', 'type' => 'string', 'required' => false, 'description' => 'Projektname'],
+                ],
+                'impact' => 'low',
                 'phrases' => [
                     'lege projekt {name} an',
                     'erstelle projekt {name}',
@@ -102,6 +110,20 @@ class PlannerServiceProvider extends ServiceProvider
                 'guard' => 'web',
                 // MVP: Navigation zum Formular; spätere Version callt Service und legt direkt an
                 'handler' => ['route', 'planner.projects.create'],
+            ],
+            [
+                'key' => 'planner.list_my_tasks',
+                'description' => 'Listet Aufgaben des aktuellen Nutzers (Top 20).',
+                'parameters' => [],
+                'impact' => 'low',
+                'phrases' => [
+                    'meine aufgaben',
+                    'zeige meine aufgaben',
+                    'was habe ich offen',
+                ],
+                'slots' => [],
+                'guard' => 'web',
+                'handler' => ['service', \Platform\Planner\Services\PlannerTaskService::class.'@listMyTasks'],
             ],
         ]);
     }
