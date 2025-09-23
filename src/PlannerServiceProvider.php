@@ -116,6 +116,8 @@ class PlannerServiceProvider extends ServiceProvider
                 'description' => 'Listet Aufgaben des aktuellen Nutzers (Top 20).',
                 'parameters' => [],
                 'impact' => 'low',
+                'confirmRequired' => false,
+                'autoAllowed' => true,
                 'phrases' => [
                     'meine aufgaben',
                     'zeige meine aufgaben',
