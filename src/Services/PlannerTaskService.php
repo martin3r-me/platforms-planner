@@ -161,7 +161,8 @@ class PlannerTaskService
         $status     = isset($slots['status']) ? (string)$slots['status'] : null;
         $dueFrom    = isset($slots['due_from']) ? (string)$slots['due_from'] : null;
         $dueTo      = isset($slots['due_to']) ? (string)$slots['due_to'] : null;
-        $sort       = in_array(($slots['sort'] ?? 'id'), ['id','due_date','title'], true) ? $slots['sort'] : 'id';
+        $sortInput  = $slots['sort'] ?? 'id';
+        $sort       = in_array($sortInput, ['id','due_date','title'], true) ? $sortInput : 'id';
         $order      = strtolower((string)($slots['order'] ?? 'desc')) === 'asc' ? 'asc' : 'desc';
         $limit      = min(max((int)($slots['limit'] ?? 20), 1), 100);
         $fields     = array_intersect(
