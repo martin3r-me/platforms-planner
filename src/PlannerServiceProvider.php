@@ -279,11 +279,17 @@ class PlannerServiceProvider extends ServiceProvider
         // Basis-Daten
         $columns = \Illuminate\Support\Facades\Schema::getColumnListing($table);
         $fields = array_values($columns);
+        
+        // Debug: Log alle verfügbaren Felder
+        \Log::info("PlannerServiceProvider: Verfügbare Felder für {$modelKey}: " . implode(', ', $fields));
+        
+        // Standard-Logik für alle Modelle
         $selectable = array_values(array_slice($fields, 0, 6));
+        $labelKey = in_array('name', $fields, true) ? 'name' : (in_array('title', $fields, true) ? 'title' : 'id');
+        
         $writable = $model->getFillable();
         $sortable = array_values(array_intersect($fields, ['id','name','title','created_at','updated_at']));
         $filterable = array_values(array_intersect($fields, ['id','uuid','name','title','team_id','user_id','status','is_done']));
-        $labelKey = in_array('name', $fields, true) ? 'name' : (in_array('title', $fields, true) ? 'title' : 'id');
 
         // Required-Felder per Doctrine DBAL
         $required = [];
