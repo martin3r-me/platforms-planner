@@ -81,7 +81,48 @@ class PlannerServiceProvider extends ServiceProvider
         // Model-Schemata automatisch registrieren lassen
         (new \Platform\Core\Services\ModelAutoRegistrar())->scanAndRegister();
         
-        // Nur Meta-Daten präzisieren (Routes, etc.)
+        // Fallback: Falls Auto-Registrar nicht funktioniert, manuell registrieren
+        if (!\Platform\Core\Schema\ModelSchemaRegistry::get('planner.projects')) {
+            \Platform\Core\Schema\ModelSchemaRegistry::register('planner.projects', [
+                'fields' => ['id','uuid','name','team_id'],
+                'filterable' => ['id','uuid','name'],
+                'sortable' => ['id','name'],
+                'selectable' => ['id','uuid','name'],
+                'relations' => [],
+                'required' => ['name'],
+                'writable' => ['name'],
+                'meta' => [
+                    'eloquent' => \Platform\Planner\Models\PlannerProject::class,
+                    'show_route' => 'planner.projects.show',
+                    'route_param' => 'plannerProject',
+                    'label_key' => 'name',
+                ],
+            ]);
+        }
+        
+        if (!\Platform\Core\Schema\ModelSchemaRegistry::get('planner.tasks')) {
+            \Platform\Core\Schema\ModelSchemaRegistry::register('planner.tasks', [
+                'fields' => ['id','uuid','title','description','due_date','status','is_done','is_frog','story_points','order','sprint_slot_order','project_id','sprint_slot_id','task_group_id','user_id','user_in_charge_id'],
+                'filterable' => ['project_id','user_id','user_in_charge_id','status','is_done','due_date'],
+                'sortable' => ['id','due_date','title','story_points'],
+                'selectable' => ['id','uuid','title','due_date','is_done','story_points','project_id','sprint_slot_id','status','user_in_charge_id'],
+                'relations' => [ 'project' => ['fields' => ['id','name']] ],
+                'required' => ['title'],
+                'writable' => ['title','description','due_date','status','is_done','is_frog','story_points','project_id','sprint_slot_id','task_group_id','user_in_charge_id'],
+                'foreign_keys' => [
+                    'project_id' => ['references' => 'planner.projects', 'field' => 'id', 'label_key' => 'name'],
+                    'sprint_slot_id' => ['references' => 'planner.sprint_slots', 'field' => 'id', 'label_key' => 'name'],
+                ],
+                'meta' => [
+                    'eloquent' => \Platform\Planner\Models\PlannerTask::class,
+                    'show_route' => 'planner.tasks.show',
+                    'route_param' => 'plannerTask',
+                    'label_key' => 'title',
+                ],
+            ]);
+        }
+        
+        // Meta-Daten präzisieren (falls Auto-Registrar funktioniert hat)
         \Platform\Core\Schema\ModelSchemaRegistry::updateMeta('planner.tasks', [
             'show_route' => 'planner.tasks.show',
             'route_param' => 'plannerTask',
