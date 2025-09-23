@@ -168,38 +168,10 @@ class PlannerServiceProvider extends ServiceProvider
                 'guard' => 'web',
                 'handler' => ['service', \Platform\Planner\Services\PlannerCommandService::class.'@create'],
             ],
-            [
-                'key' => 'planner.open_dashboard',
-                'description' => 'Öffnet das Planner-Dashboard.',
-                'parameters' => [],
-                'impact' => 'low',
-                'phrases' => [
-                    'öffne planner',
-                    'planner öffnen',
-                    'zeige planner dashboard',
-                ],
-                'slots' => [],
-                'guard' => 'web',
-                'handler' => ['route', 'planner.dashboard'],
-            ],
-            [
-                'key' => 'planner.create_project_form',
-                'description' => 'Öffnet das Formular zum Anlegen eines Projekts.',
-                'parameters' => [
-                    ['name' => 'name', 'type' => 'string', 'required' => false, 'description' => 'Projektname'],
-                ],
-                'impact' => 'low',
-                'phrases' => [
-                    'lege projekt {name} an',
-                    'erstelle projekt {name}',
-                    'projekt {name} anlegen'
-                ],
-                'slots' => [ ['name' => 'name'] ],
-                'guard' => 'web',
-                // MVP: Navigation zum Formular; spätere Version callt Service und legt direkt an
-                'handler' => ['route', 'planner.projects.create'],
-            ],
         ]);
+
+        // Dynamische Routen als Tools exportieren (GET, benannte Routen mit Prefix planner.)
+        \Platform\Core\Services\RouteToolExporter::registerModuleRoutes('planner');
     }
 
     protected function registerLivewireComponents(): void
