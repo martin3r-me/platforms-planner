@@ -13,7 +13,11 @@ class PlannerCommandService
     {
         $modelKey = (string)($slots['model'] ?? '');
         if ($modelKey === '') {
-            return ['ok' => false, 'message' => 'Modell nicht angegeben', 'needResolve' => true];
+            // Generische Auswahl anbieten (alle Planner-Modelle)
+            $choices = array_map(function($k){
+                return ['key' => $k, 'label' => $k];
+            }, \Platform\Core\Schema\ModelSchemaRegistry::keysByPrefix('planner.'));
+            return ['ok' => false, 'message' => 'Modell wählen', 'needResolve' => true, 'choices' => $choices];
         }
         $eloquent = Schemas::meta($modelKey, 'eloquent');
         if (!$eloquent || !class_exists($eloquent)) return ['ok' => false, 'message' => 'Unbekanntes Modell'];
@@ -69,7 +73,10 @@ class PlannerCommandService
     {
         $modelKey = (string)($slots['model'] ?? '');
         if ($modelKey === '') {
-            return ['ok' => false, 'message' => 'Modell nicht angegeben', 'needResolve' => true];
+            $choices = array_map(function($k){
+                return ['key' => $k, 'label' => $k];
+            }, \Platform\Core\Schema\ModelSchemaRegistry::keysByPrefix('planner.'));
+            return ['ok' => false, 'message' => 'Modell wählen', 'needResolve' => true, 'choices' => $choices];
         }
         $eloquent = Schemas::meta($modelKey, 'eloquent');
         $route    = Schemas::meta($modelKey, 'show_route');
