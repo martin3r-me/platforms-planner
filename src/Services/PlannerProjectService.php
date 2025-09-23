@@ -44,6 +44,40 @@ class PlannerProjectService
         $url = route('planner.projects.show', ['plannerProject' => $proj->id]);
         return ['ok' => true, 'navigate' => $url, 'message' => 'Projekt öffnen'];
     }
+
+    // Generische Projektabfrage
+    public function queryProjects(array $slots): array
+    {
+        $user = auth()->user();
+        if (!$user) return ['ok' => false, 'message' => 'Nicht angemeldet'];
+        $teamId = $user->currentTeam?->id;
+        if (!$teamId) return ['ok' => false, 'message' => 'Kein Team konfiguriert'];
+
+        $q     = trim((string)($slots['q'] ?? ''));
+        $id    = isset($slots['id']) ? (int)$slots['id'] : null;
+        $uuid  = isset($slots['uuid']) ? (string)$slots['uuid'] : null;
+        $sort  = in_array(($slots['sort'] ?? 'name'), ['name','id'], true) ? $slots['sort'] : 'name';
+        $order = strtolower((string)($slots['order'] ?? 'asc')) === 'desc' ? 'desc' : 'asc';
+        $limit = min(max((int)($slots['limit'] ?? 50), 1), 100);
+        $fields = array_intersect(
+            array_map('trim', explode(',', (string)($slots['fields'] ?? 'id,uuid,name'))),
+            ['id','uuid','name']
+        );
+        if (empty($fields)) { $fields = ['id','name']; }
+
+        $query = PlannerProject::query()->where('team_id', $teamId);
+        if ($id) { $query->where('id', $id); }
+        if ($uuid) { $query->where('uuid', $uuid); }
+        if ($q !== '') {
+            $query->where('name', 'LIKE', '%'.$q.'%');
+        }
+        $projects = $query->orderBy($sort, $order)->limit($limit)->get($fields);
+        return [
+            'ok' => true,
+            'data' => [ 'projects' => $projects->toArray() ],
+            'message' => 'Projekte gefunden ('.$projects->count().')',
+        ];
+    }
 }
 
 
