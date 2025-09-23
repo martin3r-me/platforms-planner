@@ -170,7 +170,8 @@ class PlannerServiceProvider extends ServiceProvider
                 'phrases' => [ 'öffne projekt {id}', 'projekt {id} öffnen' ],
                 'slots' => [ ['name' => 'id'] ],
                 'guard' => 'web',
-                'handler' => ['service', \Platform\Planner\Services\PlannerProjectService::class.'@openProject'],
+                // Reine Navigation: direkt zur Show-Route; Parameter heißt 'plannerProject'
+                'handler' => ['route', 'planner.projects.show', ['plannerProject' => 'id']],
             ],
             [
                 'key' => 'planner.open_task',
@@ -190,7 +191,8 @@ class PlannerServiceProvider extends ServiceProvider
                 ],
                 'slots' => [ ['name' => 'id'], ['name' => 'uuid'], ['name' => 'title'] ],
                 'guard' => 'web',
-                'handler' => ['service', \Platform\Planner\Services\PlannerTaskService::class.'@openTask'],
+                // Reine Navigation: direkt zur Task-Show-Route; Parameter heißt 'plannerTask'
+                'handler' => ['route', 'planner.tasks.show', ['plannerTask' => 'id']],
             ],
         ]);
     }
