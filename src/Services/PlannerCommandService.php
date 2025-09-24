@@ -53,10 +53,28 @@ class PlannerCommandService
 
         // Volltext: wenn title/name vorhanden
         if ($q !== '') {
-            if (in_array('title', Schemas::get($modelKey)['fields'] ?? [], true)) {
-                $query->where('title', 'LIKE', '%'.$q.'%');
-            } elseif (in_array('name', Schemas::get($modelKey)['fields'] ?? [], true)) {
-                $query->where('name', 'LIKE', '%'.$q.'%');
+            $schemaFields = Schemas::get($modelKey)['fields'] ?? [];
+            foreach (['title','name'] as $candidate) {
+                if (in_array($candidate, $schemaFields, true)) {
+                    $query->where($candidate, 'LIKE', '%'.$q.'%');
+                    break;
+                }
+            }
+            // Sonderfall: Tasks nach Projekt-Name suchen → project_id auflösen
+            if ($modelKey === 'planner.tasks') {
+                try {
+                    $projClass = Schemas::meta('planner.projects', 'eloquent');
+                    $labelKey = Schemas::meta('planner.projects', 'label_key') ?? 'name';
+                    if ($projClass && class_exists($projClass)) {
+                        $match = $projClass::where($labelKey, 'LIKE', '%'.$q.'%')
+                            ->orderByRaw('CASE WHEN '.$labelKey.' = ? THEN 0 ELSE 1 END', [$q])
+                            ->orderBy($labelKey)
+                            ->first(['id', $labelKey]);
+                        if ($match) {
+                            $query->orWhere('project_id', $match->id);
+                        }
+                    }
+                } catch (\Throwable $e) {}
             }
         }
 
