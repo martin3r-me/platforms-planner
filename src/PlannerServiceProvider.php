@@ -350,7 +350,7 @@ class PlannerServiceProvider extends ServiceProvider
 
                 // DocComment für belongsTo-Relationen parsen
                 $docComment = $method->getDocComment();
-                if ($docComment && preg_match('/@return \\s*\\\\\Illuminate\\\\Database\\\\Eloquent\\\\Relations\\\\BelongsTo<([^>]+)>/', $docComment, $matches)) {
+                if ($docComment && preg_match('/@return \s*\\\\Illuminate\\\\Database\\\\Eloquent\\\\Relations\\\\BelongsTo<([^>]+)>/', $docComment, $matches)) {
                     $targetClass = $matches[1];
                     if (class_exists($targetClass)) {
                         $targetModel = new $targetClass();
@@ -378,6 +378,30 @@ class PlannerServiceProvider extends ServiceProvider
                                 'label_key' => \Platform\Core\Schema\ModelSchemaRegistry::meta($targetModelKey, 'label_key') ?: 'name',
                             ];
                         }
+                    }
+                }
+                // HasMany erkennen
+                if ($docComment && preg_match('/@return \s*\\\\Illuminate\\\\Database\\\\Eloquent\\\\Relations\\\\HasMany<([^>]+)>/', $docComment, $m2)) {
+                    $tClass = $m2[1];
+                    if (class_exists($tClass)) {
+                        $tModel = new $tClass();
+                        $tTable = $tModel->getTable();
+                        $tMod = \Illuminate\Support\Str::before($tTable, '_');
+                        $tEnt = \Illuminate\Support\Str::after($tTable, '_');
+                        $tKey = $tMod.'.'.$tEnt;
+                        $relations[$name] = [ 'type' => 'hasMany', 'target' => $tKey ];
+                    }
+                }
+                // BelongsToMany erkennen
+                if ($docComment && preg_match('/@return \s*\\\\Illuminate\\\\Database\\\\Eloquent\\\\Relations\\\\BelongsToMany<([^>]+)>/', $docComment, $m3)) {
+                    $tClass = $m3[1];
+                    if (class_exists($tClass)) {
+                        $tModel = new $tClass();
+                        $tTable = $tModel->getTable();
+                        $tMod = \Illuminate\Support\Str::before($tTable, '_');
+                        $tEnt = \Illuminate\Support\Str::after($tTable, '_');
+                        $tKey = $tMod.'.'.$tEnt;
+                        $relations[$name] = [ 'type' => 'belongsToMany', 'target' => $tKey ];
                     }
                 }
             }
