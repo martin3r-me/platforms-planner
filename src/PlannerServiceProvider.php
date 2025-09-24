@@ -78,7 +78,7 @@ class PlannerServiceProvider extends ServiceProvider
             Gate::policy(PlannerProject::class, PlannerProjectPolicy::class);
         }
 
-        // Schritt 7: Planner-Modelle direkt registrieren
+        // Modelle automatisch scannen und registrieren
         $this->registerPlannerModels();
         
         // Meta-Daten präzisieren (falls Auto-Registrar funktioniert hat)
@@ -257,9 +257,30 @@ class PlannerServiceProvider extends ServiceProvider
 
     protected function registerPlannerModels(): void
     {
-        // Planner-Modelle direkt registrieren
-        $this->registerModel('planner.projects', \Platform\Planner\Models\PlannerProject::class);
-        $this->registerModel('planner.tasks', \Platform\Planner\Models\PlannerTask::class);
+        $baseNs = 'Platform\\Planner\\Models\\';
+        $baseDir = __DIR__ . '/Models';
+        if (!is_dir($baseDir)) {
+            return;
+        }
+        foreach (scandir($baseDir) as $file) {
+            if (!str_ends_with($file, '.php')) continue;
+            $class = $baseNs . pathinfo($file, PATHINFO_FILENAME);
+            if (!class_exists($class)) continue;
+            try {
+                $model = new $class();
+                if (!method_exists($model, 'getTable')) continue;
+                $table = $model->getTable();
+                if (!\Illuminate\Support\Facades\Schema::hasTable($table)) continue;
+                $moduleKey = \Illuminate\Support\Str::before($table, '_');
+                $entityKey = \Illuminate\Support\Str::after($table, '_');
+                if ($moduleKey !== 'planner' || $entityKey === '') continue;
+                $modelKey = $moduleKey.'.'.$entityKey;
+                $this->registerModel($modelKey, $class);
+            } catch (\Throwable $e) {
+                \Log::info('PlannerServiceProvider: Scan-Registrierung übersprungen für '.$class.': '.$e->getMessage());
+                continue;
+            }
+        }
     }
 
     protected function registerModel(string $modelKey, string $eloquentClass): void
@@ -288,6 +309,7 @@ class PlannerServiceProvider extends ServiceProvider
         $labelKey = in_array('name', $fields, true) ? 'name' : (in_array('title', $fields, true) ? 'title' : 'id');
         
         $writable = $model->getFillable();
+        
         $sortable = array_values(array_intersect($fields, ['id','name','title','created_at','updated_at']));
         $filterable = array_values(array_intersect($fields, ['id','uuid','name','title','team_id','user_id','status','is_done']));
 

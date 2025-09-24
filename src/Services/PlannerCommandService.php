@@ -5,6 +5,7 @@ namespace Platform\Planner\Services;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Schema;
 use Platform\Core\Schema\ModelSchemaRegistry as Schemas;
+use Platform\Core\Services\ForeignKeyResolver;
 
 class PlannerCommandService
 {
@@ -137,6 +138,25 @@ class PlannerCommandService
 
         $required = Schemas::required($modelKey);
         $writable = Schemas::writable($modelKey);
+        // Fremdschlüssel generisch auflösen (Labels -> IDs)
+        $coercion = (new ForeignKeyResolver())->coerce($modelKey, $data);
+        $data = $coercion['data'];
+        if (!empty($coercion['needResolve'])) {
+            $nr = $coercion['needResolve'];
+            if (!empty($nr['choices'] ?? [])) {
+                return [
+                    'ok' => false,
+                    'message' => $nr['message'] ?? 'Bitte wählen',
+                    'needResolve' => true,
+                    'choices' => $nr['choices'],
+                ];
+            }
+            return [
+                'ok' => false,
+                'message' => $nr['message'] ?? 'Referenz nicht gefunden',
+                'needResolve' => true,
+            ];
+        }
         foreach ($required as $f) {
             if (!array_key_exists($f, $data) || $data[$f] === null || $data[$f] === '') {
                 return ['ok' => false, 'message' => 'Pflichtfeld fehlt: '.$f, 'needResolve' => true, 'missing' => $required];
@@ -183,6 +203,26 @@ class PlannerCommandService
         }
 
         $writable = Schemas::writable($modelKey);
+
+        // Fremdschlüssel generisch auflösen (Labels -> IDs)
+        $coercion = (new \Platform\Core\Services\ForeignKeyResolver())->coerce($modelKey, $data);
+        $data = $coercion['data'];
+        if (!empty($coercion['needResolve'])) {
+            $nr = $coercion['needResolve'];
+            if (!empty($nr['choices'] ?? [])) {
+                return [
+                    'ok' => false,
+                    'message' => $nr['message'] ?? 'Bitte wählen',
+                    'needResolve' => true,
+                    'choices' => $nr['choices'],
+                ];
+            }
+            return [
+                'ok' => false,
+                'message' => $nr['message'] ?? 'Referenz nicht gefunden',
+                'needResolve' => true,
+            ];
+        }
         
         // Sanitize einfache Textfelder
         if (isset($data['title'])) {
