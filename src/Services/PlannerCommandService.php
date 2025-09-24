@@ -156,8 +156,8 @@ class PlannerCommandService
 
         $required = Schemas::required($modelKey);
         $writable = Schemas::writable($modelKey);
-        // Fremdschlüssel generisch auflösen (Labels -> IDs)
-        $coercion = (new ForeignKeyResolver())->coerce($modelKey, $data);
+        // Generische FK-Auflösung mit Kontext (z. B. sprint_slot innerhalb der Projekt-Sprints)
+        $coercion = (new \Platform\Core\Services\ForeignKeyResolver())->coerceWithContext($modelKey, $data);
         $data = $coercion['data'];
         if (!empty($coercion['needResolve'])) {
             $nr = $coercion['needResolve'];
@@ -178,6 +178,74 @@ class PlannerCommandService
         foreach ($required as $f) {
             if (!array_key_exists($f, $data) || $data[$f] === null || $data[$f] === '') {
                 return ['ok' => false, 'message' => 'Pflichtfeld fehlt: '.$f, 'needResolve' => true, 'missing' => $required];
+            }
+        }
+        // Sonderlogik: sprint_slot_id muss zum Projekt gehören
+        if ($modelKey === 'planner.tasks' && !empty($data['project_id'])) {
+            try {
+                $projectId = (int) $data['project_id'];
+                // Falls sprint_slot_id als Name übergeben wurde oder numerisch, aber evtl. falsches Projekt: innerhalb des Projekts validieren/auflösen
+                if (!empty($data['sprint_slot_id'])) {
+                    $slotVal = $data['sprint_slot_id'];
+                    $slotsClass = \Platform\Planner\Models\PlannerSprintSlot::class;
+                    $sprintsClass = \Platform\Planner\Models\PlannerSprint::class;
+                    if (class_exists($slotsClass) && class_exists($sprintsClass)) {
+                        $labelCol = 'name';
+                        // alle Sprints des Projekts ermitteln
+                        $sprintIds = $sprintsClass::where('project_id', $projectId)->pluck('id');
+                        if ($sprintIds->count() > 0) {
+                            // Wenn numerisch: prüfen, ob Slot in Projekt-Sprints liegt, sonst per Name im Projekt suchen
+                            if (is_int($slotVal) || (is_string($slotVal) && ctype_digit($slotVal))) {
+                                $slotId = (int) $slotVal;
+                                $belongs = $slotsClass::whereIn('sprint_id', $sprintIds)->where('id', $slotId)->exists();
+                                if (!$belongs) {
+                                    // versuche per Label im Projekt zu matchen (falls versehentlich fremder Slot gewählt)
+                                    $match = $slotsClass::whereIn('sprint_id', $sprintIds)
+                                        ->where($labelCol, 'LIKE', '%'.$slotVal.'%')
+                                        ->orderByRaw('CASE WHEN '.$labelCol.' = ? THEN 0 ELSE 1 END', [$slotVal])
+                                        ->orderBy($labelCol)
+                                        ->first(['id']);
+                                    if ($match) {
+                                        $data['sprint_slot_id'] = $match->id;
+                                    } else {
+                                        return [
+                                            'ok' => false,
+                                            'message' => 'Sprint-Slot nicht im Projekt gefunden',
+                                            'needResolve' => true,
+                                        ];
+                                    }
+                                }
+                            } else {
+                                // nicht-numerischer Wert: per Label im Projekt suchen
+                                $term = (string) $slotVal;
+                                $candidates = $slotsClass::whereIn('sprint_id', $sprintIds)
+                                    ->where($labelCol, 'LIKE', '%'.$term+'%')
+                                    ->orderByRaw('CASE WHEN '.$labelCol.' = ? THEN 0 ELSE 1 END', [$term])
+                                    ->orderBy($labelCol)
+                                    ->limit(5)
+                                    ->get(['id', $labelCol]);
+                                if ($candidates->count() === 1) {
+                                    $data['sprint_slot_id'] = $candidates->first()->id;
+                                } elseif ($candidates->count() > 1) {
+                                    return [
+                                        'ok' => false,
+                                        'message' => 'Bitte Sprint-Slot wählen',
+                                        'needResolve' => true,
+                                        'choices' => $candidates->map(fn($m) => ['id' => $m->id, 'label' => $m->{$labelCol}])->toArray(),
+                                    ];
+                                } else {
+                                    return [
+                                        'ok' => false,
+                                        'message' => 'Kein passender Sprint-Slot im Projekt gefunden',
+                                        'needResolve' => true,
+                                    ];
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {
+                // keine harten Fehler werfen – notfalls Standardpfad
             }
         }
         $payload = [];
