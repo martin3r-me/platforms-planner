@@ -24,7 +24,12 @@ class PlannerServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // Reserve für zukünftige Command-Registrierung
+        // Commands registrieren
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                \Platform\Planner\Console\Commands\MigrateSprintSlotsToProjectSlots::class,
+            ]);
+        }
     }
 
     public function boot(): void
