@@ -99,13 +99,13 @@
         :groups="$groups"
         sortable-group-order="updateTaskGroupOrder"
         sortable-task-order="updateTaskOrder"
-        settings-modal-event="open-modal-sprint-slot-settings"
-        settings-modal-param="sprintSlotId"
+        settings-modal-event="open-modal-project-slot-settings"
+        settings-modal-param="projectSlotId"
         taskRoute="planner.tasks.show"
     />
 
     <livewire:planner.project-settings-modal/>
-    <livewire:planner.sprint-slot-settings-modal/>
+    <livewire:planner.project-slot-settings-modal/>
     <livewire:planner.customer-project-settings-modal/>
 
 </div>
