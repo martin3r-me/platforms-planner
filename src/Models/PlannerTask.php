@@ -30,9 +30,9 @@ class PlannerTask extends Model
         'is_frog',
         'story_points',
         'order',
-        'sprint_slot_order',
+        'project_slot_order',
         'project_id',
-        'sprint_slot_id',
+        'project_slot_id',
         'task_group_id',
     ];
 
@@ -90,5 +90,10 @@ class PlannerTask extends Model
     public function taskGroup()
     {
         return $this->belongsTo(PlannerTaskGroup::class, 'task_group_id');
+    }
+
+    public function projectSlot()
+    {
+        return $this->belongsTo(PlannerProjectSlot::class, 'project_slot_id');
     }
 }

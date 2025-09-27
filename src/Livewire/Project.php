@@ -5,7 +5,7 @@ namespace Platform\Planner\Livewire;
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Platform\Planner\Models\PlannerProject;
-use Platform\Planner\Models\PlannerSprintSlot;
+use Platform\Planner\Models\PlannerProjectSlot;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Enums\StoryPoints;
 use Illuminate\Database\Eloquent\Collection;
@@ -31,12 +31,8 @@ class Project extends Component
 
     public function mount(PlannerProject $plannerProject)
     {
-
         $this->project = $plannerProject;
-
-        // Aktuellen Sprint laden (derzeit: erster, später ggf. mit Filter)
-        $this->sprint = $plannerProject->sprints()->first();
-
+        // Sprints werden nicht mehr geladen - nur Project-Slots
     }
 
     public function render()
@@ -45,9 +41,9 @@ class Project extends Component
 
         // === 1. BACKLOG ===
         $backlogTasks = PlannerTask::where('project_id', $this->project->id)
-            ->whereNull('sprint_slot_id')
+            ->whereNull('project_slot_id')
             ->where('is_done', false)
-            ->orderBy('sprint_slot_order')
+            ->orderBy('project_slot_order')
             ->get();
 
         $backlog = (object) [
@@ -63,28 +59,25 @@ class Project extends Component
             ),
         ];
 
-        // === 2. SPRINT-SLOTS (nur für aktuellen Sprint) ===
-        $slots = collect();
-        if ($this->sprint) {
-            $slots = PlannerSprintSlot::with(['tasks' => function ($q) {
-                    $q->where('is_done', false)->orderBy('sprint_slot_order');
-                }])
-                ->where('sprint_id', $this->sprint->id)
-                ->orderBy('order')
-                ->get()
-                ->map(fn ($slot) => (object) [
-                    'id' => $slot->id,
-                    'label' => $slot->name,
-                    'isBacklog' => false,
-                    'tasks' => $slot->tasks,
-                    'open_count' => $slot->tasks->count(),
-                    'open_points' => $slot->tasks->sum(
-                        fn ($task) => $task->story_points instanceof StoryPoints
-                            ? $task->story_points->points()
-                            : 1
-                    ),
-                ]);
-        }
+        // === 2. PROJECT-SLOTS ===
+        $slots = PlannerProjectSlot::with(['tasks' => function ($q) {
+                $q->where('is_done', false)->orderBy('project_slot_order');
+            }])
+            ->where('project_id', $this->project->id)
+            ->orderBy('order')
+            ->get()
+            ->map(fn ($slot) => (object) [
+                'id' => $slot->id,
+                'label' => $slot->name,
+                'isBacklog' => false,
+                'tasks' => $slot->tasks,
+                'open_count' => $slot->tasks->count(),
+                'open_points' => $slot->tasks->sum(
+                    fn ($task) => $task->story_points instanceof StoryPoints
+                        ? $task->story_points->points()
+                        : 1
+                ),
+            ]);
 
         // === 3. ERLEDIGTE AUFGABEN ===
         $doneTasks = PlannerTask::where('project_id', $this->project->id)
@@ -118,20 +111,18 @@ class Project extends Component
     }
 
     /**
-     * Legt einen neuen Sprint-Slot im aktuellen Sprint an und lädt State neu.
+     * Legt einen neuen Project-Slot an und lädt State neu.
      */
-    public function createSprintSlot()
+    public function createProjectSlot()
     {
-        if (! $this->sprint) {
-            // Kein aktiver Sprint vorhanden
-            return;
-        }
+        $user = Auth::user();
+        $maxOrder = $this->project->projectSlots()->max('order') ?? 0;
 
-        $maxOrder = $this->sprint->sprintSlots()->max('order') ?? 0;
-
-        $this->sprint->sprintSlots()->create([
+        $this->project->projectSlots()->create([
             'name' => 'Neuer Slot',
             'order' => $maxOrder + 1,
+            'user_id' => $user->id,
+            'team_id' => $user->currentTeam->id,
         ]);
 
         // Slots/State neu laden (Livewire 3 Way)
@@ -141,7 +132,7 @@ class Project extends Component
     /**
      * Legt eine neue Aufgabe an, optional direkt in einem Slot.
      */
-    public function createTask($sprintSlotId = null)
+    public function createTask($projectSlotId = null)
     {
         $user = Auth::user();
 
@@ -155,7 +146,7 @@ class Project extends Component
             'user_id'        => $user->id,
             'user_in_charge_id' => $user->id,
             'project_id'     => $this->project->id,
-            'sprint_slot_id' => $sprintSlotId,
+            'project_slot_id' => $projectSlotId,
             'title'          => 'Neue Aufgabe',
             'description'    => null,
             'due_date'       => null,
@@ -186,8 +177,8 @@ class Project extends Component
                     continue;
                 }
 
-                $task->sprint_slot_order = $item['order'];
-                $task->sprint_slot_id    = $taskGroupId;
+                $task->project_slot_order = $item['order'];
+                $task->project_slot_id    = $taskGroupId;
                 $task->save();
             }
         }
@@ -202,7 +193,7 @@ class Project extends Component
     public function updateTaskGroupOrder($groups)
     {
         foreach ($groups as $taskGroup) {
-            $taskGroupDb = PlannerSprintSlot::find($taskGroup['value']);
+            $taskGroupDb = PlannerProjectSlot::find($taskGroup['value']);
             if ($taskGroupDb) {
                 $taskGroupDb->order = $taskGroup['order'];
                 $taskGroupDb->save();
