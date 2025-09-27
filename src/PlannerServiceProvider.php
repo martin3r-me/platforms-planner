@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Platform\Core\PlatformCore;
-use Platform\Core\Registry\CommandRegistry;
+// CommandRegistry entfernt
 use Platform\Core\Routing\ModuleRouter;
 
 // Optional: Models und Policies absichern

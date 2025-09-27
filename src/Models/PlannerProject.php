@@ -9,6 +9,17 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Symfony\Component\Uid\UuidV7;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * PlannerProject Model
+ * 
+ * Repräsentiert ein Projekt im Planner-Modul.
+ * Projekte haben Project Slots (auch als "slots" bezeichnet), die Tasks enthalten.
+ * 
+ * @hint Project Slots sind Container für Tasks in einem Projekt
+ * @hint Projekte haben Sprints und Project Slots
+ * @hint Jedes Projekt gehört zu einem Team und einem User
+ * @hint Projekte können Kunden-Projekte sein
+ */
 class PlannerProject extends Model
 {
 
@@ -40,6 +51,11 @@ class PlannerProject extends Model
         });
     }
 
+    /**
+     * Project Slots Relation
+     * 
+     * @hint Alle Project Slots eines Projekts abrufen (enthält Tasks)
+     */
     public function projectSlots(): HasMany
     {
         return $this->hasMany(PlannerProjectSlot::class, 'project_id');

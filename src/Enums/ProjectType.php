@@ -6,10 +6,15 @@ enum ProjectType: string
 {
     case INTERNAL = 'internal';
     case CUSTOMER = 'customer';
+    case EVENT = 'event';
 
     public function label(): string
     {
-        return $this === self::CUSTOMER ? 'Kunde' : 'Intern';
+        return match($this) {
+            self::CUSTOMER => 'Kunde',
+            self::EVENT => 'Event',
+            default => 'Intern'
+        };
     }
 }
 

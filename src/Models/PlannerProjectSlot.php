@@ -7,6 +7,17 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Symfony\Component\Uid\UuidV7;
 
+/**
+ * PlannerProjectSlot Model
+ * 
+ * Repräsentiert einen Project Slot (auch als "slot" bezeichnet) in einem Projekt.
+ * Project Slots sind Container für Tasks und organisieren die Arbeit in einem Projekt.
+ * 
+ * @hint Project Slots sind Container für Tasks in einem Projekt
+ * @hint Slots organisieren die Arbeit in einem Projekt
+ * @hint Jeder Slot gehört zu einem Projekt und kann Tasks enthalten
+ * @hint Slots können Benutzern und Teams zugewiesen werden
+ */
 class PlannerProjectSlot extends Model
 {
     protected $fillable = [
@@ -39,6 +50,11 @@ class PlannerProjectSlot extends Model
         return $this->belongsTo(PlannerProject::class, 'project_id');
     }
 
+    /**
+     * Tasks Relation
+     * 
+     * @hint Alle Tasks in einem Project Slot abrufen
+     */
     public function tasks(): HasMany
     {
         return $this->hasMany(PlannerTask::class, 'project_slot_id');
