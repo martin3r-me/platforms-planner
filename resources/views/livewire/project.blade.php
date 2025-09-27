@@ -62,7 +62,7 @@
                 'label' => '+ Neue Spalte',
                 'variant' => 'primary',
                 'size' => 'sm',
-                'wire_click' => 'createSprintSlot'
+                'wire_click' => 'createProjectSlot'
             ]
         ];
         
