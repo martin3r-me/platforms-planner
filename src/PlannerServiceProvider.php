@@ -83,8 +83,7 @@ class PlannerServiceProvider extends ServiceProvider
             Gate::policy(PlannerProject::class, PlannerProjectPolicy::class);
         }
 
-        // Modelle automatisch scannen und registrieren
-        $this->registerPlannerModels();
+        // Dynamische Modell-Registrierung entfernt - Sidebar soll leer sein
         
         // Meta-Daten präzisieren (falls Auto-Registrar funktioniert hat)
         \Platform\Core\Schema\ModelSchemaRegistry::updateMeta('planner.tasks', [
@@ -96,133 +95,9 @@ class PlannerServiceProvider extends ServiceProvider
             'route_param' => 'plannerProject',
         ]);
 
-        // Kommandos (MVP) registrieren
-        CommandRegistry::register('planner', [
-            [
-                'key' => 'planner.query',
-                'description' => 'Generische Abfrage für Aufgaben/Projekte.',
-                'parameters' => [
-                    ['name' => 'model', 'type' => 'string', 'required' => true, 'description' => 'tasks|projects'],
-                    ['name' => 'q', 'type' => 'string', 'required' => false],
-                    ['name' => 'filters', 'type' => 'object', 'required' => false],
-                    ['name' => 'sort', 'type' => 'string', 'required' => false],
-                    ['name' => 'order', 'type' => 'string', 'required' => false],
-                    ['name' => 'limit', 'type' => 'integer', 'required' => false],
-                    ['name' => 'fields', 'type' => 'string', 'required' => false],
-                ],
-                'impact' => 'low',
-                'confirmRequired' => false,
-                'autoAllowed' => true,
-                'phrases' => [
-                    'suche {model} {q}',
-                    'zeige {model}',
-                    'übersicht {model}',
-                    'meine aufgaben',
-                    'übersicht aufgaben',
-                    'zeige meine aufgaben',
-                ],
-                'slots' => [ ['name' => 'model'], ['name' => 'q'] ],
-                'guard' => 'web',
-                'handler' => ['service', \Platform\Planner\Services\PlannerCommandService::class.'@query'],
-                'scope' => 'read:planner',
-                'examples' => [
-                    ['desc' => 'Meine Aufgaben', 'slots' => ['model' => 'planner.tasks']],
-                    ['desc' => 'Projektübersicht', 'slots' => ['model' => 'planner.projects']],
-                    ['desc' => 'Aufgaben mit Stichwort', 'slots' => ['model' => 'planner.tasks', 'q' => 'Rechnung']],
-                ],
-            ],
-            [
-                'key' => 'planner.open',
-                'description' => 'Generisches Öffnen (Navigation) für Aufgaben/Projekte.',
-                'parameters' => [
-                    ['name' => 'model', 'type' => 'string', 'required' => true, 'description' => 'task|project'],
-                    ['name' => 'id', 'type' => 'integer', 'required' => false],
-                    ['name' => 'uuid', 'type' => 'string', 'required' => false],
-                    ['name' => 'name', 'type' => 'string', 'required' => false],
-                ],
-                'impact' => 'low',
-                'confirmRequired' => false,
-                'autoAllowed' => true,
-                'phrases' => [
-                    'öffne {model} {id}',
-                    'öffne {model} {name}',
-                    'zeige {model} {name}',
-                    'gehe zu {model} {name}',
-                ],
-                'slots' => [ ['name' => 'model'], ['name' => 'id'], ['name' => 'name'] ],
-                'guard' => 'web',
-                'handler' => ['service', \Platform\Planner\Services\PlannerCommandService::class.'@open'],
-                'scope' => 'read:planner',
-                'examples' => [
-                    ['desc' => 'Projekt öffnen', 'slots' => ['model' => 'planner.projects', 'name' => 'Alpha']],
-                    ['desc' => 'Aufgabe öffnen', 'slots' => ['model' => 'planner.tasks', 'name' => 'Login']],
-                ],
-            ],
-            [
-                'key' => 'planner.create',
-                'description' => 'Generisches Anlegen (schema-validiert).',
-                'parameters' => [
-                    ['name' => 'model', 'type' => 'string', 'required' => true],
-                    ['name' => 'data', 'type' => 'object', 'required' => true],
-                ],
-                'impact' => 'medium',
-                'confirmRequired' => true,
-                'autoAllowed' => false,
-                'phrases' => [ 'erstelle {model}', 'lege {model} an' ],
-                'slots' => [ ['name' => 'model'], ['name' => 'data'] ],
-                'guard' => 'web',
-                'handler' => ['service', \Platform\Planner\Services\PlannerCommandService::class.'@create'],
-                'scope' => 'write:planner.tasks',
-                'examples' => [
-                    ['desc' => 'Task anlegen', 'slots' => ['model' => 'planner.tasks', 'data' => ['title' => 'Rechnung erstellen']]],
-                ],
-            ],
-            [
-                'key' => 'planner.update',
-                'description' => 'Generisches Aktualisieren für Aufgaben/Projekte.',
-                'parameters' => [
-                    ['name' => 'model', 'type' => 'string', 'required' => true],
-                    ['name' => 'id', 'type' => 'integer', 'required' => true],
-                    ['name' => 'data', 'type' => 'object', 'required' => true],
-                ],
-                'impact' => 'medium',
-                'confirmRequired' => true,
-                'autoAllowed' => false,
-                'phrases' => [ 'aktualisiere {model} {id}', 'bearbeite {model} {id}', 'ändere {model} {id}' ],
-                'slots' => [ ['name' => 'model'], ['name' => 'id'], ['name' => 'data'] ],
-                'guard' => 'web',
-                'handler' => ['service', \Platform\Planner\Services\PlannerCommandService::class.'@update'],
-                'scope' => 'write:planner',
-                'examples' => [
-                    ['desc' => 'Aufgabe bearbeiten', 'slots' => ['model' => 'planner.tasks', 'id' => 123, 'data' => ['title' => 'Neuer Titel']]],
-                    ['desc' => 'Projekt bearbeiten', 'slots' => ['model' => 'planner.projects', 'id' => 456, 'data' => ['name' => 'Neuer Name']]],
-                ],
-            ],
-            [
-                'key' => 'planner.delete',
-                'description' => 'Generisches Löschen für Aufgaben/Projekte.',
-                'parameters' => [
-                    ['name' => 'model', 'type' => 'string', 'required' => true],
-                    ['name' => 'id', 'type' => 'integer', 'required' => false],
-                    ['name' => 'name', 'type' => 'string', 'required' => false],
-                ],
-                'impact' => 'high',
-                'confirmRequired' => true,
-                'autoAllowed' => false,
-                'phrases' => [ 'lösche {model} {id}', 'entferne {model} {name}', 'aufgabe löschen', 'projekt löschen' ],
-                'slots' => [ ['name' => 'model'], ['name' => 'id'], ['name' => 'name'] ],
-                'guard' => 'web',
-                'handler' => ['service', \Platform\Planner\Services\PlannerCommandService::class.'@delete'],
-                'scope' => 'delete:planner',
-                'examples' => [
-                    ['desc' => 'Aufgabe löschen', 'slots' => ['model' => 'planner.tasks', 'id' => 123]],
-                    ['desc' => 'Projekt löschen', 'slots' => ['model' => 'planner.projects', 'name' => 'Alpha']],
-                ],
-            ],
-        ]);
+        // Commands entfernt - Sidebar soll leer sein
 
-        // Dynamische Routen als Tools exportieren (GET, benannte Routen mit Prefix planner.)
-        \Platform\Core\Services\RouteToolExporter::registerModuleRoutes('planner');
+        // RouteToolExporter entfernt - Sidebar soll leer sein
     }
 
     protected function registerLivewireComponents(): void
