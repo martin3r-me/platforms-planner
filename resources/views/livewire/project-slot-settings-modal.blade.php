@@ -1,4 +1,4 @@
-<x-ui-organisms-modal size="md" model="modalShow" header="Project Spalte Settings">
+<x-ui-organisms-modal size="md" model="modalShow" header="Project Spalte Settings" wire:click.away="closeModal">
 
     @if($projectSlot)
         <x-ui-form-grid :cols="1" :gap="4">
@@ -14,7 +14,6 @@
                 <x-ui-confirm-button action="deleteProjectSlot" text="Spalte löschen" confirmText="Wirklich löschen?" />
             </div>
         </x-ui-form-grid>
-    </div>
     @endif
     
     <x-slot name="footer">

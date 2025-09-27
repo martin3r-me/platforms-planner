@@ -37,7 +37,6 @@ class ProjectSlotSettingsModal extends Component
     public function save()
     {
         $this->projectSlot->save();
-        $this->reset('projectSlot');
         $this->dispatch('projectSlotUpdated');
         $this->closeModal();
     }
@@ -45,7 +44,6 @@ class ProjectSlotSettingsModal extends Component
     public function deleteProjectSlot(): void
     {
         $this->projectSlot->delete();
-        $this->reset('projectSlot');
         $this->dispatch('projectSlotUpdated');
         $this->closeModal();
     }

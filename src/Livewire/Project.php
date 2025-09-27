@@ -23,11 +23,13 @@ class Project extends Component
         
     }
 
-    #[On('sprintSlotUpdated')]
-    public function sprintSlotUpdated()
+    #[On('projectSlotUpdated')]
+    public function projectSlotUpdated()
     {
-        // Optional: neu rendern bei Event
+        // Board neu laden nach Slot-Änderungen
+        $this->mount($this->project);
     }
+
 
     public function mount(PlannerProject $plannerProject)
     {
