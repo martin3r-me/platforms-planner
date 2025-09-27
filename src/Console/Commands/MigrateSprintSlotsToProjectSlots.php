@@ -14,7 +14,7 @@ class MigrateSprintSlotsToProjectSlots extends Command
     /**
      * The name and signature of the console command.
      */
-    protected $signature = 'planner:migrate-sprint-slots-to-project-slots {--dry-run : Zeige nur was passieren würde, ohne Änderungen}';
+    protected $signature = 'migrate-sprint-slots-to-project-slots {--dry-run : Zeige nur was passieren würde, ohne Änderungen}';
 
     /**
      * The console command description.
