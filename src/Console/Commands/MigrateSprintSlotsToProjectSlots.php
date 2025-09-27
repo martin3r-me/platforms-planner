@@ -96,14 +96,14 @@ class MigrateSprintSlotsToProjectSlots extends Command
             // 4. Alte Sprint-Slots und Sprints löschen
             $this->info('🗑️  Lösche alte Sprint-Slots und Sprints...');
             
-            // Alle Sprint-Slots löschen
+            // Alle Sprint-Slots löschen (mit delete() statt truncate())
             $deletedSlots = PlannerSprintSlot::count();
-            PlannerSprintSlot::truncate();
+            PlannerSprintSlot::query()->delete();
             $this->info("  ✅ {$deletedSlots} Sprint-Slots gelöscht");
             
-            // Alle Sprints löschen
+            // Alle Sprints löschen (mit delete() statt truncate())
             $deletedSprints = PlannerSprint::count();
-            PlannerSprint::truncate();
+            PlannerSprint::query()->delete();
             $this->info("  ✅ {$deletedSprints} Sprints gelöscht");
             
             $this->info('✅ Migration erfolgreich abgeschlossen!');
