@@ -36,7 +36,13 @@ class Dashboard extends Component
                     })->orWhere(function ($q) use ($user) {
                         $q->whereNotNull('project_id')
                           ->where('user_in_charge_id', $user->id)
-                          ->whereNotNull('sprint_slot_id'); // zuständige Projektaufgabe im Sprint
+                          ->where(function ($subQ) {
+                              $subQ->whereNotNull('project_slot_id') // zuständige Projektaufgabe im Project-Slot
+                                   ->orWhere(function ($slotQ) {
+                                       $slotQ->whereNull('project_slot_id')
+                                             ->whereNull('sprint_slot_id'); // oder ohne Slot-Zuordnung (Backlog)
+                                   });
+                          });
                     });
                 })
                 ->where('team_id', $team->id)
@@ -67,7 +73,13 @@ class Dashboard extends Component
                     })->orWhere(function ($q) use ($user) {
                         $q->whereNotNull('project_id')
                           ->where('user_in_charge_id', $user->id)
-                          ->whereNotNull('sprint_slot_id');
+                          ->where(function ($subQ) {
+                              $subQ->whereNotNull('project_slot_id')
+                                   ->orWhere(function ($slotQ) {
+                                       $slotQ->whereNull('project_slot_id')
+                                             ->whereNull('sprint_slot_id');
+                                   });
+                          });
                     });
                 })
                 ->whereDate('created_at', '>=', $startOfMonth)
@@ -82,7 +94,13 @@ class Dashboard extends Component
                     })->orWhere(function ($q) use ($user) {
                         $q->whereNotNull('project_id')
                           ->where('user_in_charge_id', $user->id)
-                          ->whereNotNull('sprint_slot_id');
+                          ->where(function ($subQ) {
+                              $subQ->whereNotNull('project_slot_id')
+                                   ->orWhere(function ($slotQ) {
+                                       $slotQ->whereNull('project_slot_id')
+                                             ->whereNull('sprint_slot_id');
+                                   });
+                          });
                     });
                 })
                 ->whereDate('done_at', '>=', $startOfMonth)
@@ -97,7 +115,13 @@ class Dashboard extends Component
                     })->orWhere(function ($q) use ($user) {
                         $q->whereNotNull('project_id')
                           ->where('user_in_charge_id', $user->id)
-                          ->whereNotNull('sprint_slot_id');
+                          ->where(function ($subQ) {
+                              $subQ->whereNotNull('project_slot_id')
+                                   ->orWhere(function ($slotQ) {
+                                       $slotQ->whereNull('project_slot_id')
+                                             ->whereNull('sprint_slot_id');
+                                   });
+                          });
                     });
                 })
                 ->whereDate('created_at', '>=', $startOfMonth)
@@ -113,7 +137,13 @@ class Dashboard extends Component
                     })->orWhere(function ($q) use ($user) {
                         $q->whereNotNull('project_id')
                           ->where('user_in_charge_id', $user->id)
-                          ->whereNotNull('sprint_slot_id');
+                          ->where(function ($subQ) {
+                              $subQ->whereNotNull('project_slot_id')
+                                   ->orWhere(function ($slotQ) {
+                                       $slotQ->whereNull('project_slot_id')
+                                             ->whereNull('sprint_slot_id');
+                                   });
+                          });
                     });
                 })
                 ->whereDate('done_at', '>=', $startOfMonth)
@@ -124,7 +154,13 @@ class Dashboard extends Component
             // === TEAM-AUFGABEN ===
             $teamTasks = PlannerTask::query()
                 ->where('team_id', $team->id)
-                ->whereNotNull('sprint_slot_id') // Nur Sprint-Aufgaben
+                ->where(function ($q) {
+                    $q->whereNotNull('project_slot_id') // Project-Slot Aufgaben
+                      ->orWhere(function ($slotQ) {
+                          $slotQ->whereNull('project_slot_id')
+                                ->whereNull('sprint_slot_id'); // oder ohne Slot-Zuordnung (Backlog)
+                      });
+                })
                 ->get();
 
             $openTasks = $teamTasks->where('is_done', false)->count();
@@ -145,26 +181,50 @@ class Dashboard extends Component
             // === TEAM MONATLICHE PERFORMANCE ===
             $monthlyCreatedTasks = PlannerTask::query()
                 ->where('team_id', $team->id)
-                ->whereNotNull('sprint_slot_id')
+                ->where(function ($q) {
+                    $q->whereNotNull('project_slot_id')
+                      ->orWhere(function ($slotQ) {
+                          $slotQ->whereNull('project_slot_id')
+                                ->whereNull('sprint_slot_id');
+                      });
+                })
                 ->whereDate('created_at', '>=', $startOfMonth)
                 ->count();
 
             $monthlyCompletedTasks = PlannerTask::query()
                 ->where('team_id', $team->id)
-                ->whereNotNull('sprint_slot_id')
+                ->where(function ($q) {
+                    $q->whereNotNull('project_slot_id')
+                      ->orWhere(function ($slotQ) {
+                          $slotQ->whereNull('project_slot_id')
+                                ->whereNull('sprint_slot_id');
+                      });
+                })
                 ->whereDate('done_at', '>=', $startOfMonth)
                 ->count();
 
             $monthlyCreatedPoints = PlannerTask::query()
                 ->where('team_id', $team->id)
-                ->whereNotNull('sprint_slot_id')
+                ->where(function ($q) {
+                    $q->whereNotNull('project_slot_id')
+                      ->orWhere(function ($slotQ) {
+                          $slotQ->whereNull('project_slot_id')
+                                ->whereNull('sprint_slot_id');
+                      });
+                })
                 ->whereDate('created_at', '>=', $startOfMonth)
                 ->get()
                 ->sum(fn($task) => $task->story_points?->points() ?? 0);
 
             $monthlyCompletedPoints = PlannerTask::query()
                 ->where('team_id', $team->id)
-                ->whereNotNull('sprint_slot_id')
+                ->where(function ($q) {
+                    $q->whereNotNull('project_slot_id')
+                      ->orWhere(function ($slotQ) {
+                          $slotQ->whereNull('project_slot_id')
+                                ->whereNull('sprint_slot_id');
+                      });
+                })
                 ->whereDate('done_at', '>=', $startOfMonth)
                 ->get()
                 ->sum(fn($task) => $task->story_points?->points() ?? 0);
@@ -182,7 +242,13 @@ class Dashboard extends Component
                     })->orWhere(function ($q) use ($member) {
                         $q->whereNotNull('project_id')
                           ->where('user_in_charge_id', $member->id)
-                          ->whereNotNull('sprint_slot_id'); // zuständige Projektaufgabe im Sprint
+                          ->where(function ($subQ) {
+                              $subQ->whereNotNull('project_slot_id')
+                                   ->orWhere(function ($slotQ) {
+                                       $slotQ->whereNull('project_slot_id')
+                                             ->whereNull('sprint_slot_id');
+                                   });
+                          });
                     });
                 })
                 ->get();
@@ -219,11 +285,23 @@ class Dashboard extends Component
             if ($perspective === 'personal') {
                 $projectTasks = PlannerTask::where('project_id', $project->id)
                     ->where('user_in_charge_id', $user->id)
-                    ->whereNotNull('sprint_slot_id')
+                    ->where(function ($q) {
+                        $q->whereNotNull('project_slot_id')
+                          ->orWhere(function ($slotQ) {
+                              $slotQ->whereNull('project_slot_id')
+                                    ->whereNull('sprint_slot_id');
+                          });
+                    })
                     ->get();
             } else {
                 $projectTasks = PlannerTask::where('project_id', $project->id)
-                    ->whereNotNull('sprint_slot_id')
+                    ->where(function ($q) {
+                        $q->whereNotNull('project_slot_id')
+                          ->orWhere(function ($slotQ) {
+                              $slotQ->whereNull('project_slot_id')
+                                    ->whereNull('sprint_slot_id');
+                          });
+                    })
                     ->get();
             }
             
