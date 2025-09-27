@@ -76,7 +76,13 @@ class MyTasks extends Component
                   })->orWhere(function ($q) use ($userId) {
                       $q->whereNotNull('project_id')
                         ->where('user_in_charge_id', $userId)
-                        ->whereNotNull('sprint_slot_id');
+                        ->where(function ($subQ) {
+                            $subQ->whereNotNull('project_slot_id') // zuständige Projektaufgabe im Project-Slot
+                                 ->orWhere(function ($slotQ) {
+                                     $slotQ->whereNull('project_slot_id')
+                                           ->whereNull('sprint_slot_id'); // oder ohne Slot-Zuordnung (Backlog)
+                                 });
+                        });
                   });
               })
               ->orderBy('order');
@@ -103,7 +109,13 @@ class MyTasks extends Component
                 })->orWhere(function ($q) use ($userId) {
                     $q->whereNotNull('project_id')
                       ->where('user_in_charge_id', $userId)
-                      ->whereNotNull('sprint_slot_id');
+                      ->where(function ($subQ) {
+                          $subQ->whereNotNull('project_slot_id') // zuständige Projektaufgabe im Project-Slot
+                               ->orWhere(function ($slotQ) {
+                                   $slotQ->whereNull('project_slot_id')
+                                         ->whereNull('sprint_slot_id'); // oder ohne Slot-Zuordnung (Backlog)
+                               });
+                      });
                 });
             })
             ->orderByDesc('done_at')
