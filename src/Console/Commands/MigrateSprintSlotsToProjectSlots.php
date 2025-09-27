@@ -93,8 +93,21 @@ class MigrateSprintSlotsToProjectSlots extends Command
         if ($isDryRun) {
             $this->warn('🔍 Dies war ein DRY-RUN. Führe den Command ohne --dry-run aus, um die Änderungen zu übernehmen.');
         } else {
+            // 4. Alte Sprint-Slots und Sprints löschen
+            $this->info('🗑️  Lösche alte Sprint-Slots und Sprints...');
+            
+            // Alle Sprint-Slots löschen
+            $deletedSlots = PlannerSprintSlot::count();
+            PlannerSprintSlot::truncate();
+            $this->info("  ✅ {$deletedSlots} Sprint-Slots gelöscht");
+            
+            // Alle Sprints löschen
+            $deletedSprints = PlannerSprint::count();
+            PlannerSprint::truncate();
+            $this->info("  ✅ {$deletedSprints} Sprints gelöscht");
+            
             $this->info('✅ Migration erfolgreich abgeschlossen!');
-            $this->warn('⚠️  Alte Sprint-Slots sind noch vorhanden. Du kannst sie nach dem Test löschen.');
+            $this->info('🎉 Alle Sprint-Slots und Sprints wurden entfernt.');
         }
 
         return Command::SUCCESS;
