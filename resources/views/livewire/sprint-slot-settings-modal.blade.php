@@ -1,20 +1,23 @@
-<x-ui-modal size="md" wire:model="modalShow">
-    <x-slot name="header">
-        Sprint Spalte Settings
-    </x-slot>
+<x-ui-organisms-modal size="md" model="modalShow" header="Sprint Spalte Settings">
 
     @if($sprintSlot)
-    <div class="grid grid-cols-2 gap-4">
-        <label class="block text-sm font-medium text-slate-700">Projektname</label>
-        <input type="text" wire:model="sprintSlot.name"
-               class="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:ring-blue-500 focus:border-blue-500"
-               placeholder="z. B. Neue Plattform, Website-Redesign">
-        @error('sprintSlot.label') <span class="text-sm text-red-500">{{ $message }}</span> @enderror
-        
-        <x-ui-confirm-button action="deleteSprintSlot" text="Spalte löschen" confirmText="Wirklich löschen?" />
+        <x-ui-form-grid :cols="1" :gap="4">
+            <x-ui-input-text
+                name="sprintSlot.name"
+                label="Spaltenname"
+                wire:model="sprintSlot.name"
+                placeholder="Name der Spalte eingeben"
+                errorKey="sprintSlot.label"
+            />
+            
+            <div class="d-flex justify-end">
+                <x-ui-confirm-button action="deleteSprintSlot" text="Spalte löschen" confirmText="Wirklich löschen?" />
+            </div>
+        </x-ui-form-grid>
     </div>
     @endif
+    
     <x-slot name="footer">
         <x-ui-button variant="success" wire:click="save">Speichern</x-ui-button>
     </x-slot>
-</x-ui-modal>
+</x-ui-organisms-modal>
