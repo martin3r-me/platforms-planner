@@ -35,8 +35,8 @@ class MyTasks extends Component
             'modelId' => null,
             'subject' => 'Meine Aufgaben',
             'description' => 'Übersicht aller persönlichen Aufgaben',
-            'url' => route('planner.tasks.index'),
-            'source' => 'planner.tasks.index',
+            'url' => route('planner.my-tasks'),
+            'source' => 'planner.my-tasks',
             'recipients' => [],
             'meta' => [
                 'view_type' => 'my_tasks',
