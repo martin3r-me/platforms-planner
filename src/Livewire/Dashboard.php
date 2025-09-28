@@ -12,6 +12,23 @@ class Dashboard extends Component
 {
     public $perspective = 'team';
 
+    public function rendered()
+    {
+        $this->dispatch('comms', [
+            'model' => 'Platform\Planner\Models\PlannerProject',
+            'modelId' => null,
+            'subject' => 'Planner Dashboard',
+            'description' => 'Übersicht aller Projekte und Aufgaben',
+            'url' => route('planner.dashboard'),
+            'source' => 'planner.dashboard',
+            'recipients' => [],
+            'meta' => [
+                'view_type' => 'dashboard',
+                'perspective' => $this->perspective,
+            ],
+        ]);
+    }
+
     public function render()
     {
         $user = Auth::user();

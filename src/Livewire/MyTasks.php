@@ -28,6 +28,23 @@ class MyTasks extends Component
         // Optional: neu rendern bei Event
     }
 
+    public function rendered()
+    {
+        $this->dispatch('comms', [
+            'model' => 'Platform\Planner\Models\PlannerTask',
+            'modelId' => null,
+            'subject' => 'Meine Aufgaben',
+            'description' => 'Übersicht aller persönlichen Aufgaben',
+            'url' => route('planner.tasks.index'),
+            'source' => 'planner.tasks.index',
+            'recipients' => [],
+            'meta' => [
+                'view_type' => 'my_tasks',
+                'user_id' => Auth::id(),
+            ],
+        ]);
+    }
+
     public function render()
     {
         $user = Auth::user();

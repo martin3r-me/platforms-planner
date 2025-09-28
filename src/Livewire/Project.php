@@ -37,6 +37,23 @@ class Project extends Component
         // Sprints werden nicht mehr geladen - nur Project-Slots
     }
 
+    public function rendered()
+    {
+        $this->dispatch('comms', [
+            'model' => get_class($this->project),
+            'modelId' => $this->project->id,
+            'subject' => $this->project->name,
+            'description' => $this->project->description ?? '',
+            'url' => route('planner.projects.show', $this->project),
+            'source' => 'planner.project.view',
+            'recipients' => [],
+            'meta' => [
+                'project_type' => $this->project->project_type,
+                'created_at' => $this->project->created_at,
+            ],
+        ]);
+    }
+
     public function render()
     {
         $user = Auth::user();
