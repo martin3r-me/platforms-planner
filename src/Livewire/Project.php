@@ -47,7 +47,33 @@ class Project extends Component
             'timestamp' => now()
         ]);
         
+        // DEBUG: Teste verschiedene Event-Methoden
+        \Log::info("🔍 TESTE EVENT DISPATCH:", [
+            'method' => 'dispatch',
+            'project_id' => $this->project->id
+        ]);
+        
         $this->dispatch('comms', [
+            'model' => get_class($this->project),
+            'modelId' => $this->project->id,
+            'subject' => $this->project->name,
+            'description' => $this->project->description ?? '',
+            'url' => route('planner.projects.show', $this->project),
+            'source' => 'planner.project.view',
+            'recipients' => [],
+            'meta' => [
+                'project_type' => $this->project->project_type,
+                'created_at' => $this->project->created_at,
+            ],
+        ]);
+        
+        // DEBUG: Teste auch mit Laravel Event
+        \Log::info("🔍 TESTE LARAVEL EVENT:", [
+            'method' => 'Event::dispatch',
+            'project_id' => $this->project->id
+        ]);
+        
+        \Illuminate\Support\Facades\Event::dispatch('comms', [
             'model' => get_class($this->project),
             'modelId' => $this->project->id,
             'subject' => $this->project->name,
