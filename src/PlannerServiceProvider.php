@@ -83,17 +83,7 @@ class PlannerServiceProvider extends ServiceProvider
             Gate::policy(PlannerProject::class, PlannerProjectPolicy::class);
         }
 
-        // Dynamische Modell-Registrierung entfernt - Sidebar soll leer sein
-        
-        // Meta-Daten präzisieren (falls Auto-Registrar funktioniert hat)
-        \Platform\Core\Schema\ModelSchemaRegistry::updateMeta('planner.tasks', [
-            'show_route' => 'planner.tasks.show',
-            'route_param' => 'plannerTask',
-        ]);
-        \Platform\Core\Schema\ModelSchemaRegistry::updateMeta('planner.projects', [
-            'show_route' => 'planner.projects.show',
-            'route_param' => 'plannerProject',
-        ]);
+        // Modelle-Scan & Schema-Registry-Meta entfernt (war für Agent)
 
         // Commands entfernt - Sidebar soll leer sein
 
@@ -181,8 +171,7 @@ class PlannerServiceProvider extends ServiceProvider
         $columns = \Illuminate\Support\Facades\Schema::getColumnListing($table);
         $fields = array_values($columns);
         
-        // Debug: Log alle verfügbaren Felder
-        \Log::info("PlannerServiceProvider: Verfügbare Felder für {$modelKey}: " . implode(', ', $fields));
+        // Debug-Logs entfernt
         
         // Standard-Logik für alle Modelle
         $selectable = array_values(array_slice($fields, 0, 6));
@@ -333,7 +322,6 @@ class PlannerServiceProvider extends ServiceProvider
             ],
         ]);
 
-        \Log::info("PlannerServiceProvider: Modell {$modelKey} registriert mit " . count($relations) . " Relationen und " . count($enums) . " Enums");
-        \Log::info("PlannerServiceProvider: Selectable Felder für {$modelKey}: " . implode(', ', $selectable));
+        // Debug-Logs entfernt
     }
 }
