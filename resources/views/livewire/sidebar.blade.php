@@ -14,7 +14,7 @@
         <div class="mt-2">
             {{-- Kundenprojekte nur anzeigen, wenn welche vorhanden sind --}}
             @if($customerProjects->isNotEmpty())
-                <div class="px-3 py-2 text-xs uppercase text-secondary">Kundenprojekte</div>
+                <div class="px-3 py-2 text-xs uppercase text-on-primary">Kundenprojekte</div>
                 @foreach($customerProjects as $project)
                     <a href="{{ route('planner.projects.show', ['plannerProject' => $project]) }}"
                        class="relative d-flex items-center p-2 my-1 rounded-md font-medium transition gap-3"
@@ -33,7 +33,7 @@
 
             {{-- Interne Projekte nur anzeigen, wenn welche vorhanden sind --}}
             @if($internalProjects->isNotEmpty())
-                <div class="px-3 py-2 text-xs uppercase text-secondary">Interne Projekte</div>
+                <div class="px-3 py-2 text-xs uppercase text-on-primary">Interne Projekte</div>
                 @foreach($internalProjects as $project)
                     <a href="{{ route('planner.projects.show', ['plannerProject' => $project]) }}"
                        class="relative d-flex items-center p-2 my-1 rounded-md font-medium transition gap-3"
