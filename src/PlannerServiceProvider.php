@@ -74,14 +74,8 @@ class PlannerServiceProvider extends ServiceProvider
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'planner');
         $this->registerLivewireComponents();
 
-        // Policies nur registrieren, wenn Klassen vorhanden sind
-        if (class_exists(PlannerTask::class) && class_exists(PlannerTaskPolicy::class)) {
-            Gate::policy(PlannerTask::class, PlannerTaskPolicy::class);
-        }
-
-        if (class_exists(PlannerProject::class) && class_exists(PlannerProjectPolicy::class)) {
-            Gate::policy(PlannerProject::class, PlannerProjectPolicy::class);
-        }
+        // Policies mit standardisierter Registrierung
+        $this->registerPolicies();
 
         // Modelle-Scan & Schema-Registry-Meta entfernt (war für Agent)
 
@@ -323,5 +317,23 @@ class PlannerServiceProvider extends ServiceProvider
         ]);
 
         // Debug-Logs entfernt
+    }
+
+    /**
+     * Registriert Policies für das Planner-Modul
+     */
+    protected function registerPolicies(): void
+    {
+        // Standardisierte Policy-Registrierung
+        $policies = [
+            PlannerTask::class => PlannerTaskPolicy::class,
+            PlannerProject::class => PlannerProjectPolicy::class,
+        ];
+
+        foreach ($policies as $model => $policy) {
+            if (class_exists($model) && class_exists($policy)) {
+                Gate::policy($model, $policy);
+            }
+        }
     }
 }

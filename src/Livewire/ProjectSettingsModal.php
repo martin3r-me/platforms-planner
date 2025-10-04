@@ -26,6 +26,10 @@ class ProjectSettingsModal extends Component
     public function openModalProjectSettings($projectId)
     {
         $this->project = PlannerProject::with(['projectUsers.user', 'customerProject'])->findOrFail($projectId);
+        
+        // Policy-Berechtigung prüfen
+        $this->authorize('view', $this->project);
+        
         $this->originalProjectType = is_string($this->project->project_type)
             ? $this->project->project_type
             : ($this->project->project_type?->value ?? null);
@@ -97,6 +101,9 @@ class ProjectSettingsModal extends Component
     public function save()
     {
         $this->validate();
+        
+        // Policy-Berechtigung prüfen
+        $this->authorize('update', $this->project);
 
         // Kunde -> Intern verhindern (irreversibel)
         $currentType = is_string($this->project->project_type)
@@ -231,6 +238,9 @@ class ProjectSettingsModal extends Component
 
     public function removeProjectUser($userId)
     {
+        // Policy-Berechtigung prüfen
+        $this->authorize('removeMember', $this->project);
+        
         $ownerId = $this->project->projectUsers->firstWhere('role', ProjectRole::OWNER->value)?->user_id;
         if ($userId == $ownerId) {
             // Owner kann nicht entfernt werden!
@@ -246,6 +256,9 @@ class ProjectSettingsModal extends Component
 
     public function deleteProject()
     {
+        // Policy-Berechtigung prüfen
+        $this->authorize('delete', $this->project);
+        
         $this->project->delete();
         $this->redirect('/');
     }
@@ -253,6 +266,102 @@ class ProjectSettingsModal extends Component
     public function closeModal()
     {
         $this->modalShow = false;
+    }
+
+    /**
+     * Fügt einen neuen Teilnehmer zum Projekt hinzu
+     */
+    public function addProjectUser($userId, $role = 'member')
+    {
+        // Policy-Berechtigung prüfen
+        $this->authorize('invite', $this->project);
+        
+        // Prüfen ob User bereits im Projekt ist
+        $existingUser = $this->project->projectUsers()->where('user_id', $userId)->first();
+        if ($existingUser) {
+            return; // User bereits im Projekt
+        }
+        
+        // Neuen Teilnehmer hinzufügen
+        PlannerProjectUser::create([
+            'project_id' => $this->project->id,
+            'user_id' => $userId,
+            'role' => $role
+        ]);
+        
+        $this->roles[$userId] = $role;
+        $this->project->refresh();
+    }
+
+    /**
+     * Ändert die Rolle eines Teilnehmers
+     */
+    public function changeUserRole($userId, $newRole)
+    {
+        // Policy-Berechtigung prüfen
+        $this->authorize('changeRole', $this->project);
+        
+        $ownerId = $this->project->projectUsers->firstWhere('role', ProjectRole::OWNER->value)?->user_id;
+        
+        // Owner-Rolle kann nicht geändert werden
+        if ($userId == $ownerId && $newRole !== ProjectRole::OWNER->value) {
+            return;
+        }
+        
+        // Rolle aktualisieren
+        PlannerProjectUser::where('project_id', $this->project->id)
+            ->where('user_id', $userId)
+            ->update(['role' => $newRole]);
+        
+        $this->roles[$userId] = $newRole;
+        $this->project->refresh();
+    }
+
+    /**
+     * Überträgt das Ownership an einen anderen User
+     */
+    public function transferOwnership($newOwnerId)
+    {
+        // Policy-Berechtigung prüfen
+        $this->authorize('transferOwnership', $this->project);
+        
+        $currentOwner = $this->project->projectUsers->firstWhere('role', ProjectRole::OWNER->value);
+        
+        if ($currentOwner) {
+            // Aktueller Owner wird zu Admin
+            $currentOwner->update(['role' => ProjectRole::ADMIN->value]);
+        }
+        
+        // Neuer Owner
+        $newOwner = $this->project->projectUsers()->where('user_id', $newOwnerId)->first();
+        if ($newOwner) {
+            $newOwner->update(['role' => ProjectRole::OWNER->value]);
+        } else {
+            // Falls User noch nicht im Projekt, hinzufügen
+            PlannerProjectUser::create([
+                'project_id' => $this->project->id,
+                'user_id' => $newOwnerId,
+                'role' => ProjectRole::OWNER->value
+            ]);
+        }
+        
+        $this->roles[$newOwnerId] = ProjectRole::OWNER->value;
+        $this->project->refresh();
+    }
+
+    /**
+     * Lädt verfügbare Team-Mitglieder für Einladung
+     */
+    public function getAvailableUsers()
+    {
+        $currentUserIds = $this->project->projectUsers->pluck('user_id')->toArray();
+        
+        return Auth::user()
+            ->currentTeam
+            ->users()
+            ->whereNotIn('id', $currentUserIds)
+            ->orderBy('name')
+            ->get();
     }
 
     public function render()

@@ -59,13 +59,120 @@
                 @endif
 
                 {{-- Beteiligte Benutzer --}}
-                <x-ui-project-members-list
-                    :users="$teamUsers"
-                    :project="$project"
-                    :canUpdate="auth()->user()->can('update', $project)"
-                    :roles="\Platform\Planner\Enums\ProjectRole::cases()"
-                    :ownerRoleValue="\Platform\Planner\Enums\ProjectRole::OWNER->value"
-                />
+                <div class="space-y-4">
+                    <h3 class="text-lg font-medium">Projekt-Teilnehmer</h3>
+                    
+                    {{-- Aktuelle Teilnehmer --}}
+                    <div class="space-y-2">
+                        @foreach($project->projectUsers as $projectUser)
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-medium">
+                                        {{ substr($projectUser->user->name, 0, 1) }}
+                                    </div>
+                                    <div>
+                                        <div class="font-medium">{{ $projectUser->user->name }}</div>
+                                        <div class="text-sm text-gray-500">{{ $projectUser->user->email }}</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center space-x-2">
+                                    {{-- Rolle ändern --}}
+                                    @can('changeRole', $project)
+                                        <select 
+                                            wire:change="changeUserRole({{ $projectUser->user_id }}, $event.target.value)"
+                                            class="text-sm border rounded px-2 py-1"
+                                            @if($projectUser->role === \Platform\Planner\Enums\ProjectRole::OWNER->value) disabled @endif
+                                        >
+                                            @foreach(\Platform\Planner\Enums\ProjectRole::cases() as $role)
+                                                <option value="{{ $role->value }}" 
+                                                    @if($projectUser->role === $role->value) selected @endif
+                                                >
+                                                    {{ ucfirst($role->value) }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    @else
+                                        <span class="text-sm font-medium px-2 py-1 bg-gray-200 rounded">
+                                            {{ ucfirst($projectUser->role) }}
+                                        </span>
+                                    @endcan
+                                    
+                                    {{-- Teilnehmer entfernen --}}
+                                    @can('removeMember', $project)
+                                        @if($projectUser->role !== \Platform\Planner\Enums\ProjectRole::OWNER->value)
+                                            <button 
+                                                wire:click="removeProjectUser({{ $projectUser->user_id }})"
+                                                class="text-red-500 hover:text-red-700 text-sm"
+                                            >
+                                                Entfernen
+                                            </button>
+                                        @endif
+                                    @endcan
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                    
+                    {{-- Neuen Teilnehmer hinzufügen --}}
+                    @can('invite', $project)
+                        <div class="border-t pt-4">
+                            <h4 class="text-md font-medium mb-3">Teilnehmer hinzufügen</h4>
+                            
+                            @php
+                                $availableUsers = $this->getAvailableUsers();
+                            @endphp
+                            
+                            @if($availableUsers->count() > 0)
+                                <div class="space-y-2">
+                                    @foreach($availableUsers as $user)
+                                        <div class="flex items-center justify-between p-2 border rounded">
+                                            <div class="flex items-center space-x-3">
+                                                <div class="w-6 h-6 bg-gray-300 text-gray-700 rounded-full flex items-center justify-center text-xs font-medium">
+                                                    {{ substr($user->name, 0, 1) }}
+                                                </div>
+                                                <div>
+                                                    <div class="font-medium text-sm">{{ $user->name }}</div>
+                                                    <div class="text-xs text-gray-500">{{ $user->email }}</div>
+                                                </div>
+                                            </div>
+                                            <button 
+                                                wire:click="addProjectUser({{ $user->id }}, 'member')"
+                                                class="text-primary hover:text-primary-dark text-sm font-medium"
+                                            >
+                                                Hinzufügen
+                                            </button>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @else
+                                <p class="text-sm text-gray-500">Alle Team-Mitglieder sind bereits im Projekt.</p>
+                            @endif
+                        </div>
+                    @endcan
+                    
+                    {{-- Ownership übertragen --}}
+                    @can('transferOwnership', $project)
+                        <div class="border-t pt-4">
+                            <h4 class="text-md font-medium mb-3 text-orange-600">Ownership übertragen</h4>
+                            <p class="text-sm text-gray-600 mb-3">Vorsicht: Dies überträgt die Projektleitung an einen anderen User.</p>
+                            
+                            <select 
+                                wire:change="transferOwnership($event.target.value)"
+                                class="w-full border rounded px-3 py-2"
+                            >
+                                <option value="">Ownership übertragen an...</option>
+                                @foreach($project->projectUsers as $projectUser)
+                                    @if($projectUser->role !== \Platform\Planner\Enums\ProjectRole::OWNER->value)
+                                        <option value="{{ $projectUser->user_id }}">
+                                            {{ $projectUser->user->name }} ({{ ucfirst($projectUser->role) }})
+                                        </option>
+                                    @endif
+                                @endforeach
+                            </select>
+                        </div>
+                    @endcan
+                </div>
                 
                 {{-- Projekt löschen --}}
                 @can('delete', $project)
