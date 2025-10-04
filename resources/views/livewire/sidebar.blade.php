@@ -17,12 +17,12 @@
                 <div class="px-3 py-2 text-xs uppercase text-on-primary">Kundenprojekte</div>
                 @foreach($customerProjects as $project)
                     <a href="{{ route('planner.projects.show', ['plannerProject' => $project]) }}"
-                       class="relative d-flex items-center p-2 my-1 rounded-md font-medium transition gap-3"
+                       class="relative d-flex items-center p-2 my-1 rounded-md font-medium transition gap-3 text-on-primary"
                        :class="[
                            window.location.pathname.includes('/planner/projects/{{ $project->id }}') || 
                            window.location.pathname.endsWith('/planner/projects/{{ $project->id }}')
-                               ? 'bg-primary text-on-primary shadow-md'
-                               : 'text-black hover:bg-primary-10 hover:text-primary hover:shadow-md'
+                               ? 'bg-primary shadow-md'
+                               : 'hover:bg-primary-10 hover:shadow-md'
                        ]"
                        wire:navigate>
                         <x-heroicon-o-folder class="w-6 h-6 flex-shrink-0"/>
@@ -36,12 +36,12 @@
                 <div class="px-3 py-2 text-xs uppercase text-on-primary">Interne Projekte</div>
                 @foreach($internalProjects as $project)
                     <a href="{{ route('planner.projects.show', ['plannerProject' => $project]) }}"
-                       class="relative d-flex items-center p-2 my-1 rounded-md font-medium transition gap-3"
+                       class="relative d-flex items-center p-2 my-1 rounded-md font-medium transition gap-3 text-on-primary"
                        :class="[
                            window.location.pathname.includes('/planner/projects/{{ $project->id }}') || 
                            window.location.pathname.endsWith('/planner/projects/{{ $project->id }}')
-                               ? 'bg-primary text-on-primary shadow-md'
-                               : 'text-black hover:bg-primary-10 hover:text-primary hover:shadow-md'
+                               ? 'bg-primary shadow-md'
+                               : 'hover:bg-primary-10 hover:shadow-md'
                        ]"
                        wire:navigate>
                         <x-heroicon-o-folder class="w-6 h-6 flex-shrink-0"/>
