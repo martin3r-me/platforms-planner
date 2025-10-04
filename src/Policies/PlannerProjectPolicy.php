@@ -12,7 +12,7 @@ class PlannerProjectPolicy extends RolePolicy
     /**
      * Darf der User dieses Projekt sehen?
      */
-    public function view(User $user, PlannerProject $project): bool
+    public function view(User $user, $project): bool
     {
         // Team-Zugriff prüfen
         if (!$this->isInTeam($user, $project)) {
@@ -27,7 +27,7 @@ class PlannerProjectPolicy extends RolePolicy
     /**
      * Darf der User dieses Projekt bearbeiten?
      */
-    public function update(User $user, PlannerProject $project): bool
+    public function update(User $user, $project): bool
     {
         // Team-Zugriff prüfen
         if (!$this->isInTeam($user, $project)) {
@@ -46,7 +46,7 @@ class PlannerProjectPolicy extends RolePolicy
     /**
      * Darf der User dieses Projekt löschen?
      */
-    public function delete(User $user, PlannerProject $project): bool
+    public function delete(User $user, $project): bool
     {
         // Team-Zugriff prüfen
         if (!$this->isInTeam($user, $project)) {
@@ -70,7 +70,7 @@ class PlannerProjectPolicy extends RolePolicy
     /**
      * Darf der User Mitglieder einladen?
      */
-    public function invite(User $user, PlannerProject $project): bool
+    public function invite(User $user, $project): bool
     {
         // Team-Zugriff prüfen
         if (!$this->isInTeam($user, $project)) {
@@ -88,7 +88,7 @@ class PlannerProjectPolicy extends RolePolicy
     /**
      * Darf der User Mitglieder entfernen?
      */
-    public function removeMember(User $user, PlannerProject $project): bool
+    public function removeMember(User $user, $project): bool
     {
         // Team-Zugriff prüfen
         if (!$this->isInTeam($user, $project)) {
@@ -106,7 +106,7 @@ class PlannerProjectPolicy extends RolePolicy
     /**
      * Darf der User Rollen ändern?
      */
-    public function changeRole(User $user, PlannerProject $project): bool
+    public function changeRole(User $user, $project): bool
     {
         // Team-Zugriff prüfen
         if (!$this->isInTeam($user, $project)) {
@@ -121,7 +121,7 @@ class PlannerProjectPolicy extends RolePolicy
     /**
      * Darf der User das Projekt verlassen?
      */
-    public function leave(User $user, PlannerProject $project): bool
+    public function leave(User $user, $project): bool
     {
         // Team-Zugriff prüfen
         if (!$this->isInTeam($user, $project)) {
@@ -136,7 +136,7 @@ class PlannerProjectPolicy extends RolePolicy
     /**
      * Darf der User Ownership übertragen?
      */
-    public function transferOwnership(User $user, PlannerProject $project): bool
+    public function transferOwnership(User $user, $project): bool
     {
         // Team-Zugriff prüfen
         if (!$this->isInTeam($user, $project)) {
@@ -151,7 +151,7 @@ class PlannerProjectPolicy extends RolePolicy
     /**
      * Hole die Projekt-Rolle des Users
      */
-    protected function getUserProjectRole(User $user, PlannerProject $project): ?string
+    protected function getUserProjectRole(User $user, $project): ?string
     {
         $relation = $project->projectUsers()->where('user_id', $user->id)->first();
         return $relation?->role ?? null;

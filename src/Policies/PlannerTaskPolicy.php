@@ -12,7 +12,7 @@ class PlannerTaskPolicy extends BasePolicy
     /**
      * Darf der User diese Aufgabe sehen?
      */
-    public function view(User $user, PlannerTask $task): bool
+    public function view(User $user, $task): bool
     {
         // 1. Owner hat immer Zugriff
         if ($this->isOwner($user, $task)) {
@@ -36,7 +36,7 @@ class PlannerTaskPolicy extends BasePolicy
     /**
      * Darf der User diese Aufgabe bearbeiten?
      */
-    public function update(User $user, PlannerTask $task): bool
+    public function update(User $user, $task): bool
     {
         // 1. Owner hat immer Zugriff
         if ($this->isOwner($user, $task)) {
@@ -60,7 +60,7 @@ class PlannerTaskPolicy extends BasePolicy
     /**
      * Darf der User diese Aufgabe löschen?
      */
-    public function delete(User $user, PlannerTask $task): bool
+    public function delete(User $user, $task): bool
     {
         // 1. Owner hat immer Zugriff
         if ($this->isOwner($user, $task)) {
@@ -98,7 +98,7 @@ class PlannerTaskPolicy extends BasePolicy
     /**
      * Darf der User diese Aufgabe zuweisen?
      */
-    public function assign(User $user, PlannerTask $task): bool
+    public function assign(User $user, $task): bool
     {
         // 1. Owner hat immer Zugriff
         if ($this->isOwner($user, $task)) {
@@ -122,7 +122,7 @@ class PlannerTaskPolicy extends BasePolicy
     /**
      * Darf der User diese Aufgabe abschließen?
      */
-    public function complete(User $user, PlannerTask $task): bool
+    public function complete(User $user, $task): bool
     {
         // 1. Owner hat immer Zugriff
         if ($this->isOwner($user, $task)) {
@@ -151,7 +151,7 @@ class PlannerTaskPolicy extends BasePolicy
     /**
      * Prüft Projekt-Zugriff (Lesen)
      */
-    protected function canAccessProject(User $user, PlannerProject $project): bool
+    protected function canAccessProject(User $user, $project): bool
     {
         // Team-Zugriff prüfen
         if (!$this->isInTeam($user, $project)) {
@@ -166,7 +166,7 @@ class PlannerTaskPolicy extends BasePolicy
     /**
      * Prüft Projekt-Schreibzugriff
      */
-    protected function canWriteProject(User $user, PlannerProject $project): bool
+    protected function canWriteProject(User $user, $project): bool
     {
         // Team-Zugriff prüfen
         if (!$this->isInTeam($user, $project)) {
@@ -181,7 +181,7 @@ class PlannerTaskPolicy extends BasePolicy
     /**
      * Prüft Projekt-Admin-Zugriff
      */
-    protected function canAdminProject(User $user, PlannerProject $project): bool
+    protected function canAdminProject(User $user, $project): bool
     {
         // Team-Zugriff prüfen
         if (!$this->isInTeam($user, $project)) {
@@ -196,7 +196,7 @@ class PlannerTaskPolicy extends BasePolicy
     /**
      * Hole die Projekt-Rolle des Users
      */
-    protected function getUserProjectRole(User $user, PlannerProject $project): ?string
+    protected function getUserProjectRole(User $user, $project): ?string
     {
         $relation = $project->projectUsers()->where('user_id', $user->id)->first();
         return $relation?->role ?? null;
