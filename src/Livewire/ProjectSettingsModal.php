@@ -359,8 +359,8 @@ class ProjectSettingsModal extends Component
         return Auth::user()
             ->currentTeam
             ->users()
-            ->whereNotIn('id', $currentUserIds)
-            ->orderBy('name')
+            ->whereNotIn('users.id', $currentUserIds)
+            ->orderBy('users.name')
             ->get();
     }
 
