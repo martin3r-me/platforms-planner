@@ -98,13 +98,13 @@
                     </h1>
                 </div>
                 <div class="d-flex items-center gap-2">
-                <x-ui-button variant="primary-soft" size="sm" class="rounded-md" wire:click="createProjectSlot">
+                <x-ui-button variant="primary" size="sm" class="rounded-md" wire:click="createProjectSlot">
                         <div class="d-flex items-center gap-2">
                             @svg('heroicon-o-square-2-stack','w-4 h-4')
                             <span class="hidden sm:inline">Spalte</span>
                         </div>
                     </x-ui-button>
-                <x-ui-button variant="success-soft" size="sm" class="rounded-md" wire:click="createTask()">
+                <x-ui-button variant="success" size="sm" class="rounded-md" wire:click="createTask()">
                         <div class="d-flex items-center gap-2">
                             @svg('heroicon-o-plus','w-4 h-4')
                             <span class="hidden sm:inline">Aufgabe</span>
@@ -129,7 +129,7 @@
                 {{-- Backlog (nicht sortierbar als Gruppe) --}}
                 @php $backlog = $groups->first(fn($g) => ($g->isBacklog ?? false)); @endphp
                 @if($backlog)
-                    <x-ui-kanban-column :title="($backlog->label ?? 'Backlog')" :sortable-id="null" :scrollable="true">
+                    <x-ui-kanban-column :title="($backlog->label ?? 'Backlog')" :sortable-id="null" :scrollable="true" :muted="true">
                         @foreach($backlog->tasks as $task)
                             <x-ui-kanban-card :title="$task->title" :sortable-id="$task->id" :href="route('planner.tasks.show', $task)">
                                 <div class="text-xs text-[var(--ui-muted)]">
@@ -173,7 +173,7 @@
                 {{-- Erledigt (nicht sortierbar als Gruppe) --}}
                 @php $done = $groups->first(fn($g) => ($g->isDoneGroup ?? false)); @endphp
                 @if($done)
-                    <x-ui-kanban-column :title="($done->label ?? 'Erledigt')" :sortable-id="null" :scrollable="true">
+                    <x-ui-kanban-column :title="($done->label ?? 'Erledigt')" :sortable-id="null" :scrollable="true" :muted="true">
                         @foreach($done->tasks as $task)
                             <x-ui-kanban-card :title="$task->title" :sortable-id="$task->id" :href="route('planner.tasks.show', $task)">
                                 <div class="text-xs text-[var(--ui-muted)]">
