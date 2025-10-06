@@ -86,23 +86,71 @@
         ];
     @endphp
 
-    <x-ui-tasks-info-sidebar 
-        :title="$project->name"
-        :subtitle="'Projekt-Übersicht und Statistiken'"
-        :stats="$stats"
-        :completed-tasks="$completedTasks"
-        :actions="$actions"
-        :can-update="auth()->user()->can('update', $project)"
-    />
+    {{-- Projekt Kopf & Statistiken (lokal gerendert) --}}
+    <section class="mb-4">
+        <div class="flex items-center justify-between gap-3">
+            <div>
+                <h2 class="text-2xl font-semibold text-[var(--ui-secondary)] m-0">{{ $project->name }}</h2>
+                <div class="text-sm text-[var(--ui-muted)]">Projekt-Übersicht und Statistiken</div>
+            </div>
+            <div class="flex items-center gap-2">
+                @foreach($actions as $action)
+                    @php $onclick = $action['onclick'] ?? null; @endphp
+                    <button 
+                        @if(isset($action['wire_click'])) wire:click="{{ $action['wire_click'] }}" @endif
+                        @if($onclick) x-data @click="{!! $onclick !!}" @endif
+                        class="inline-flex items-center justify-center rounded border border-[var(--ui-border)] px-3 py-1 text-sm hover:bg-[var(--ui-muted-5)]">
+                        {{ $action['label'] }}
+                    </button>
+                @endforeach
+            </div>
+        </div>
 
-    <x-ui-tasks-kanban-container 
-        :groups="$groups"
-        sortable-group-order="updateTaskGroupOrder"
-        sortable-task-order="updateTaskOrder"
-        settings-modal-event="open-modal-project-slot-settings"
-        settings-modal-param="projectSlotId"
-        taskRoute="planner.tasks.show"
-    />
+        <div class="mt-3 grid grid-cols-4 gap-4">
+            @foreach($stats as $s)
+                <div class="rounded-md border border-[var(--ui-border)] bg-white p-3">
+                    <div class="text-xs text-[var(--ui-muted)]">{{ $s['title'] }}</div>
+                    <div class="text-xl font-semibold">{{ $s['count'] }}</div>
+                </div>
+            @endforeach
+        </div>
+
+        @if($completedTasks->count())
+            <div class="mt-2 text-xs text-[var(--ui-muted)]">Erledigte Aufgaben: {{ $completedTasks->count() }}</div>
+        @endif
+    </section>
+
+    {{-- Kanban Container (lokal) --}}
+    <section class="grid grid-flow-col auto-cols-[18rem] gap-4 overflow-x-auto pb-4">
+        @foreach($groups as $group)
+            <div class="flex flex-col h-full">
+                <div class="flex items-center justify-between px-3 py-2 rounded-t-md bg-[var(--ui-muted-5)] border border-b-0 border-[var(--ui-border)]">
+                    <div class="text-sm font-semibold text-[var(--ui-secondary)] truncate">{{ $group->name ?? 'Spalte' }}</div>
+                    <button x-data @click="$dispatch('open-modal-project-slot-settings', { projectSlotId: {{ $group->id ?? 'null' }} })" title="Spalte bearbeiten"
+                            class="text-[var(--ui-primary)] hover:opacity-80">
+                        @svg('heroicon-o-cog-6-tooth','w-4 h-4')
+                    </button>
+                </div>
+                <div class="flex-1 min-h-0 overflow-y-auto rounded-b-md border border-[var(--ui-border)] bg-white p-2 space-y-2">
+                    @forelse($group->tasks as $task)
+                        <a href="{{ route('planner.tasks.show', $task) }}" wire:navigate
+                           class="block rounded border border-[var(--ui-border)] bg-white p-2 hover:bg-[var(--ui-muted-5)]">
+                            <div class="text-sm font-medium truncate">{{ $task->title }}</div>
+                            <div class="mt-1 text-xs text-[var(--ui-muted)]">
+                                @if($task->due_date)
+                                    Fällig: {{ $task->due_date->format('d.m.Y') }}
+                                @else
+                                    Keine Fälligkeit
+                                @endif
+                            </div>
+                        </a>
+                    @empty
+                        <div class="text-xs text-[var(--ui-muted)]">Keine Aufgaben</div>
+                    @endforelse
+                </div>
+            </div>
+        @endforeach
+    </section>
 
     <livewire:planner.project-settings-modal/>
     <livewire:planner.project-slot-settings-modal/>
