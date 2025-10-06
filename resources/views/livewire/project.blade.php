@@ -98,30 +98,26 @@
                     </h1>
                 </div>
                 <div class="d-flex items-center gap-2">
-                <button wire:click="createProjectSlot" class="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold select-none whitespace-nowrap 
-                    bg-[rgb(var(--ui-primary-rgb))] text-[var(--ui-on-primary)] shadow-sm hover:bg-[rgba(var(--ui-primary-rgb),0.90)] 
-                    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--ui-primary-rgb))]">
-                    @svg('heroicon-o-square-2-stack','w-4 h-4')
-                    <span class="hidden sm:inline">Spalte</span>
-                </button>
-                <button wire:click="createTask()" class="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold select-none whitespace-nowrap 
-                    bg-[rgb(var(--ui-success-rgb))] text-[var(--ui-on-success)] shadow-sm hover:bg-[rgba(var(--ui-success-rgb),0.90)] 
-                    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--ui-success-rgb))]">
-                    @svg('heroicon-o-plus','w-4 h-4')
-                    <span class="hidden sm:inline">Aufgabe</span>
-                </button>
+                <x-ui-button variant="primary" size="sm" rounded="full" wire:click="createProjectSlot">
+                    <div class="d-flex items-center gap-2">
+                        @svg('heroicon-o-square-2-stack','w-4 h-4')
+                        <span class="hidden sm:inline">Spalte</span>
+                    </div>
+                </x-ui-button>
+                <x-ui-button variant="success" size="sm" rounded="full" wire:click="createTask()">
+                    <div class="d-flex items-center gap-2">
+                        @svg('heroicon-o-plus','w-4 h-4')
+                        <span class="hidden sm:inline">Aufgabe</span>
+                    </div>
+                </x-ui-button>
                 @if(($project->project_type?->value ?? $project->project_type) === 'customer')
-                    <button x-data @click="$dispatch('open-modal-customer-project', { projectId: {{ $project->id }} })" class="inline-flex items-center justify-center rounded-full h-8 w-8 sm:w-auto sm:px-2 text-sm 
-                        text-[var(--ui-secondary)] hover:bg-[rgba(var(--ui-secondary-rgb),0.08)] border border-transparent 
-                        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--ui-secondary-rgb))]">
+                    <x-ui-button variant="secondary-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-customer-project', { projectId: {{ $project->id }} })">
                         @svg('heroicon-o-user-group','w-4 h-4')
-                    </button>
+                    </x-ui-button>
                 @endif
-                <button x-data @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })" class="inline-flex items-center justify-center rounded-full h-8 w-8 sm:w-auto sm:px-2 text-sm 
-                    text-[var(--ui-info)] hover:bg-[rgba(var(--ui-info-rgb),0.08)] border border-transparent 
-                    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--ui-info-rgb))]">
+                <x-ui-button variant="info-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })">
                     @svg('heroicon-o-cog-6-tooth','w-4 h-4')
-                </button>
+                </x-ui-button>
                 </div>
             </div>
         </div>
