@@ -99,16 +99,16 @@
                 </div>
                 <div class="d-flex items-center gap-2">
                 <x-ui-button simple size="sm" rounded="full" wire:click="createProjectSlot">
-                    <div class="d-flex items-center gap-2">
-                        @svg('heroicon-o-square-2-stack','w-4 h-4')
+                    <span class="inline-flex items-center gap-2">
+                        @svg('heroicon-o-square-2-stack','w-4 h-4 inline-block align-middle')
                         <span class="hidden sm:inline">Spalte</span>
-                    </div>
+                    </span>
                 </x-ui-button>
                 <x-ui-button simple size="sm" rounded="full" wire:click="createTask()">
-                    <div class="d-flex items-center gap-2">
-                        @svg('heroicon-o-plus','w-4 h-4')
+                    <span class="inline-flex items-center gap-2">
+                        @svg('heroicon-o-plus','w-4 h-4 inline-block align-middle')
                         <span class="hidden sm:inline">Aufgabe</span>
-                    </div>
+                    </span>
                 </x-ui-button>
                 @if(($project->project_type?->value ?? $project->project_type) === 'customer')
                     <x-ui-button simple size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-customer-project', { projectId: {{ $project->id }} })">
