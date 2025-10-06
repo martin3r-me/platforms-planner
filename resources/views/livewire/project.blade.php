@@ -98,24 +98,24 @@
                     </h1>
                 </div>
                 <div class="d-flex items-center gap-2">
-                <x-ui-button simple size="md" rounded="full" wire:click="createProjectSlot">
+                <x-ui-button variant="primary" size="sm" rounded="full" wire:click="createProjectSlot">
                     <span class="inline-flex items-center gap-2">
                         @svg('heroicon-o-square-2-stack','w-4 h-4 inline-block align-middle')
                         <span class="hidden sm:inline">Spalte</span>
                     </span>
                 </x-ui-button>
-                <x-ui-button simple size="md" rounded="full" wire:click="createTask()">
+                <x-ui-button variant="success" size="sm" rounded="full" wire:click="createTask()">
                     <span class="inline-flex items-center gap-2">
                         @svg('heroicon-o-plus','w-4 h-4 inline-block align-middle')
                         <span class="hidden sm:inline">Aufgabe</span>
                     </span>
                 </x-ui-button>
                 @if(($project->project_type?->value ?? $project->project_type) === 'customer')
-                    <x-ui-button simple size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-customer-project', { projectId: {{ $project->id }} })">
+                    <x-ui-button variant="secondary-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-customer-project', { projectId: {{ $project->id }} })">
                         @svg('heroicon-o-user-group','w-4 h-4')
                     </x-ui-button>
                 @endif
-                <x-ui-button simple size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })">
+                <x-ui-button variant="info-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })">
                     @svg('heroicon-o-cog-6-tooth','w-4 h-4')
                 </x-ui-button>
                 </div>
