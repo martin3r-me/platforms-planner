@@ -1,7 +1,9 @@
-<x-ui-task-card 
-    :task="$task"
-    title="AUFGABE"
-    :href="route('planner.tasks.show', $task)"
-    :timestamp="$task->updated_at->format('d.m.Y')"
-    :taskRoute="route('planner.tasks.show', $task)"
-/>
+<x-ui-kanban-card :title="$task->title" :sortable-id="$task->id" :href="route('planner.tasks.show', $task)">
+    <div class="text-xs text-[var(--ui-muted)]">
+        @if($task->due_date)
+            Fällig: {{ $task->due_date->format('d.m.Y') }}
+        @else
+            Keine Fälligkeit
+        @endif
+    </div>
+</x-ui-kanban-card>
