@@ -98,13 +98,13 @@
                     </h1>
                 </div>
                 <div class="d-flex items-center gap-2">
-                <button wire:click="createProjectSlot" class="inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-semibold select-none whitespace-nowrap 
+                <button wire:click="createProjectSlot" class="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold select-none whitespace-nowrap 
                     bg-[rgb(var(--ui-primary-rgb))] text-[var(--ui-on-primary)] shadow-sm hover:bg-[rgba(var(--ui-primary-rgb),0.90)] 
                     focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--ui-primary-rgb))]">
                     @svg('heroicon-o-square-2-stack','w-4 h-4')
                     <span class="hidden sm:inline">Spalte</span>
                 </button>
-                <button wire:click="createTask()" class="inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-semibold select-none whitespace-nowrap 
+                <button wire:click="createTask()" class="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold select-none whitespace-nowrap 
                     bg-[rgb(var(--ui-success-rgb))] text-[var(--ui-on-success)] shadow-sm hover:bg-[rgba(var(--ui-success-rgb),0.90)] 
                     focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--ui-success-rgb))]">
                     @svg('heroicon-o-plus','w-4 h-4')
