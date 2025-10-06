@@ -1,4 +1,4 @@
-<x-ui-organisms-modal size="md" model="modalShow" header="Project Spalte Settings" wire:click.away="closeModal">
+<x-ui-modal size="md" model="modalShow" header="Project Spalte Settings" wire:click.away="closeModal">
 
     @if($projectSlot)
         <x-ui-form-grid :cols="1" :gap="4">
@@ -19,4 +19,4 @@
     <x-slot name="footer">
         <x-ui-button variant="success" wire:click="save">Speichern</x-ui-button>
     </x-slot>
-</x-ui-organisms-modal>
+</x-ui-modal>

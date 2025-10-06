@@ -1,4 +1,4 @@
-<x-ui-organisms-modal size="md" model="modalShow" header="Kundenprojekt">
+<x-ui-modal size="md" model="modalShow" header="Kundenprojekt">
 
     @if($project)
             <x-ui-form-grid :cols="2" :gap="3">
@@ -29,6 +29,6 @@
         <x-ui-button variant="secondary-outline" wire:click="closeModal">Schließen</x-ui-button>
         <x-ui-button variant="success" wire:click="saveCompany">Speichern</x-ui-button>
     </x-slot>
-</x-ui-organisms-modal>
+</x-ui-modal>
 
 

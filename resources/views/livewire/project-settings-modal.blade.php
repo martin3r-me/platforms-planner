@@ -1,4 +1,4 @@
-<x-ui-organisms-modal size="md" model="modalShow" header="Project Settings">
+<x-ui-modal size="md" model="modalShow" header="Project Settings">
 
     @if($project)
             <x-ui-form-grid :cols="1" :gap="4">
@@ -37,18 +37,27 @@
             </x-ui-form-grid>
 
             <x-ui-form-grid :cols="1" :gap="6">
-                {{-- Projekttyp Toggle --}}
-                <x-ui-toggle-buttons
-                    name="projectType"
-                    label="Projekttyp"
-                    :options="[
-                        ['value' => 'internal', 'label' => 'Intern'],
-                        ['value' => 'customer', 'label' => 'Kunde']
-                    ]"
-                    :value="($project->project_type?->value ?? $project->project_type)"
-                    :disabled="($project->project_type?->value ?? $project->project_type) === 'customer'"
-                    :infoText="($project->project_type?->value ?? $project->project_type) === 'customer' ? 'Typ: Kunde (nicht zurücksetzbar)' : 'Typ: Intern'"
-                />
+                {{-- Projekttyp Toggle (lokal) --}}
+                @php $ptype = ($project->project_type?->value ?? $project->project_type); @endphp
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-[var(--ui-body-color)]">Projekttyp</label>
+                    <div class="inline-flex rounded-lg border border-[var(--ui-border)] bg-white overflow-hidden">
+                        <button type="button"
+                                wire:click="setProjectType('internal')"
+                                class="inline-flex items-center gap-2 text-sm h-8 px-3 {{ $ptype==='internal' ? 'bg-[rgb(var(--ui-primary-rgb))] text-[var(--ui-on-primary)]' : 'bg-white text-[var(--ui-body-color)] hover:bg-[var(--ui-muted-5)]' }} border-r border-[var(--ui-border)]">
+                            Intern
+                        </button>
+                        <button type="button"
+                                wire:click="setProjectType('customer')"
+                                @if($ptype==='customer') disabled @endif
+                                class="inline-flex items-center gap-2 text-sm h-8 px-3 {{ $ptype==='customer' ? 'bg-[rgb(var(--ui-primary-rgb))] text-[var(--ui-on-primary)]' : 'bg-white text-[var(--ui-body-color)] hover:bg-[var(--ui-muted-5)]' }}">
+                            Kunde
+                        </button>
+                    </div>
+                    <div class="text-xs text-[var(--ui-muted)]">
+                        {{ $ptype==='customer' ? 'Typ: Kunde (nicht zurücksetzbar)' : 'Typ: Intern' }}
+                    </div>
+                </div>
 
                 {{-- Kundenprojekt: vorerst keine Eingaben, nur Hinweis --}}
                 @if(($project->project_type?->value ?? $project->project_type) === 'customer')
@@ -186,4 +195,4 @@
             <x-ui-button variant="success" wire:click="save">Speichern</x-ui-button>
         @endcan
     </x-slot>
-</x-ui-organisms-modal>
+</x-ui-modal>

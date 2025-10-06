@@ -1,7 +1,20 @@
-<x-ui-organisms-modal model="modalShow" size="md" header="Task drucken">
+<x-ui-modal model="modalShow" size="md" header="Task drucken">
 
         <!-- Auswahl-Typ -->
-        <x-ui-radio-group
+        {{-- Radio Gruppe lokal --}}
+        <div class="space-y-2">
+            <label class="block text-sm font-medium">Druckansicht</label>
+            <div class="space-y-1">
+                <label class="flex items-center gap-2 text-sm">
+                    <input type="radio" name="print_view" value="simple" wire:model.live="printView" class="accent-[rgb(var(--ui-primary-rgb))]">
+                    <span>Einfach</span>
+                </label>
+                <label class="flex items-center gap-2 text-sm">
+                    <input type="radio" name="print_view" value="detailed" wire:model.live="printView" class="accent-[rgb(var(--ui-primary-rgb))]">
+                    <span>Detailiert</span>
+                </label>
+            </div>
+        </div>
             name="printTarget"
             label="Druckziel wählen:"
             :options="[
@@ -12,7 +25,17 @@
 
         <!-- Drucker-Auswahl -->
         @if($printTarget === 'printer')
-            <x-ui-radio-list
+            {{-- Radio Liste lokal --}}
+            <div class="space-y-1">
+                <label class="flex items-center gap-2 text-sm">
+                    <input type="radio" name="paper" value="a4" wire:model.live="paper" class="accent-[rgb(var(--ui-primary-rgb))]">
+                    <span>A4</span>
+                </label>
+                <label class="flex items-center gap-2 text-sm">
+                    <input type="radio" name="paper" value="letter" wire:model.live="paper" class="accent-[rgb(var(--ui-primary-rgb))]">
+                    <span>Letter</span>
+                </label>
+            </div>
                 name="selectedPrinterId"
                 label="Drucker auswählen:"
                 :items="$printers"
@@ -22,7 +45,16 @@
 
         <!-- Gruppen-Auswahl -->
         @if($printTarget === 'group')
-            <x-ui-radio-list
+            <div class="space-y-1">
+                <label class="flex items-center gap-2 text-sm">
+                    <input type="radio" name="orientation" value="portrait" wire:model.live="orientation" class="accent-[rgb(var(--ui-primary-rgb))]">
+                    <span>Hochformat</span>
+                </label>
+                <label class="flex items-center gap-2 text-sm">
+                    <input type="radio" name="orientation" value="landscape" wire:model.live="orientation" class="accent-[rgb(var(--ui-primary-rgb))]">
+                    <span>Querformat</span>
+                </label>
+            </div>
                 name="selectedPrinterGroupId"
                 label="Gruppe auswählen:"
                 :items="$printerGroups"
@@ -48,4 +80,4 @@
                 Drucken
             </x-ui-button>
     </x-slot>
-</x-ui-organisms-modal>
+</x-ui-modal>

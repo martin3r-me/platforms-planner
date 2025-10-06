@@ -1,4 +1,4 @@
-<x-ui-organisms-modal size="md" model="modalShow" header="Sprint Spalte Settings">
+<x-ui-modal size="md" model="modalShow" header="Sprint Spalte Settings">
 
     @if($sprintSlot)
         <x-ui-form-grid :cols="1" :gap="4">
@@ -20,4 +20,4 @@
     <x-slot name="footer">
         <x-ui-button variant="success" wire:click="save">Speichern</x-ui-button>
     </x-slot>
-</x-ui-organisms-modal>
+</x-ui-modal>

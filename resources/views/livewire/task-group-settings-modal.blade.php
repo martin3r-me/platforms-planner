@@ -1,4 +1,4 @@
-<x-ui-organisms-modal size="md" model="modalShow" header="Aufgaben Gruppe Settings">
+<x-ui-modal size="md" model="modalShow" header="Aufgaben Gruppe Settings">
 
     @if($taskGroup)
     <div class="p-4">
@@ -21,4 +21,4 @@
     <x-slot name="footer">
         <x-ui-button variant="success" wire:click="save">Speichern</x-ui-button>
     </x-slot>
-</x-ui-organisms-modal>
+</x-ui-modal>
