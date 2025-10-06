@@ -89,31 +89,36 @@
     {{-- Neues Layout: oben Navbar + Aktionen, darunter volles Kanban mit Spalten-Scroll --}}
     <div class="h-full flex flex-col">
         <!-- Top-Navbar: Titel + Aktionen -->
-        <div class="flex items-center justify-between gap-3 px-4 py-3 border-b border-[var(--ui-border)]">
-            <div class="flex items-center gap-3">
-                <h2 class="text-lg font-semibold m-0">{{ $project->name }}</h2>
-            </div>
-            <div class="d-flex items-center gap-2">
-                <x-ui-button variant="primary" size="sm" wire:click="createProjectSlot">
-                    <div class="d-flex items-center gap-2">
-                        @svg('heroicon-o-square-2-stack','w-4 h-4')
-                        Spalte
-                    </div>
-                </x-ui-button>
-                <x-ui-button variant="success" size="sm" wire:click="createTask()">
-                    <div class="d-flex items-center gap-2">
-                        @svg('heroicon-o-plus','w-4 h-4')
-                        Aufgabe
-                    </div>
-                </x-ui-button>
-                @if(($project->project_type?->value ?? $project->project_type) === 'customer')
-                    <x-ui-button variant="secondary" size="sm" @click="$dispatch('open-modal-customer-project', { projectId: {{ $project->id }} })">
-                        @svg('heroicon-o-user-group','w-4 h-4')
+        <div class="sticky top-0 z-10 px-4 py-3 bg-[var(--ui-surface)]/90 border-b border-[var(--ui-border)]/60 shadow-sm backdrop-blur">
+            <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-2 min-w-0">
+                    @svg('heroicon-o-clipboard-document-list','w-5 h-5 text-[color:var(--ui-primary)]')
+                    <h1 class="m-0 truncate text-[color:var(--ui-secondary)] font-semibold tracking-tight text-base md:text-lg">
+                        {{ $project->name }}
+                    </h1>
+                </div>
+                <div class="d-flex items-center gap-2">
+                    <x-ui-button variant="primary" size="sm" class="rounded-md" wire:click="createProjectSlot">
+                        <div class="d-flex items-center gap-2">
+                            @svg('heroicon-o-square-2-stack','w-4 h-4')
+                            <span class="hidden sm:inline">Spalte</span>
+                        </div>
                     </x-ui-button>
-                @endif
-                <x-ui-button variant="info" size="sm" @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })">
-                    @svg('heroicon-o-cog-6-tooth','w-4 h-4')
-                </x-ui-button>
+                    <x-ui-button variant="success" size="sm" class="rounded-md" wire:click="createTask()">
+                        <div class="d-flex items-center gap-2">
+                            @svg('heroicon-o-plus','w-4 h-4')
+                            <span class="hidden sm:inline">Aufgabe</span>
+                        </div>
+                    </x-ui-button>
+                    @if(($project->project_type?->value ?? $project->project_type) === 'customer')
+                        <x-ui-button variant="secondary" size="sm" class="rounded-md" @click="$dispatch('open-modal-customer-project', { projectId: {{ $project->id }} })">
+                            @svg('heroicon-o-user-group','w-4 h-4')
+                        </x-ui-button>
+                    @endif
+                    <x-ui-button variant="info" size="sm" class="rounded-md" @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })">
+                        @svg('heroicon-o-cog-6-tooth','w-4 h-4')
+                    </x-ui-button>
+                </div>
             </div>
         </div>
 
