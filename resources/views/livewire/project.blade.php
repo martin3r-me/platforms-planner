@@ -98,13 +98,13 @@
                     </h1>
                 </div>
                 <div class="d-flex items-center gap-2">
-                <x-ui-button simple size="sm" rounded="full" wire:click="createProjectSlot">
+                <x-ui-button simple size="md" rounded="full" wire:click="createProjectSlot">
                     <span class="inline-flex items-center gap-2">
                         @svg('heroicon-o-square-2-stack','w-4 h-4 inline-block align-middle')
                         <span class="hidden sm:inline">Spalte</span>
                     </span>
                 </x-ui-button>
-                <x-ui-button simple size="sm" rounded="full" wire:click="createTask()">
+                <x-ui-button simple size="md" rounded="full" wire:click="createTask()">
                     <span class="inline-flex items-center gap-2">
                         @svg('heroicon-o-plus','w-4 h-4 inline-block align-middle')
                         <span class="hidden sm:inline">Aufgabe</span>
