@@ -18,10 +18,10 @@
                     nullLabel="– wählen –"
                 />
                 
-                <x-ui-info-display
-                    label="Auswahl"
-                    :value="$companyDisplay"
-                />
+                <div class="flex items-center justify-between text-sm p-2 rounded border border-[var(--ui-border)] bg-white col-span-2">
+                    <span class="text-[var(--ui-muted)]">Auswahl</span>
+                    <span class="font-medium text-[var(--ui-body-color)]">{{ $companyDisplay }}</span>
+                </div>
             </x-ui-form-grid>
     @endif
 

@@ -13,10 +13,10 @@
                         :errorKey="'project.name'"
                     />
                 @else
-                    <x-ui-info-display
-                        label="Projektname"
-                        :value="$project->name"
-                    />
+                    <div class="flex items-center justify-between text-sm p-2 rounded border border-[var(--ui-border)] bg-white">
+                        <span class="text-[var(--ui-muted)]">Projektname</span>
+                        <span class="font-medium text-[var(--ui-body-color)]">{{ $project->name }}</span>
+                    </div>
                 @endcan
 
                 {{-- Beschreibung --}}
@@ -29,10 +29,10 @@
                         :errorKey="'project.description'"
                     />
                 @else
-                    <x-ui-info-display
-                        label="Projekt Beschreibung"
-                        :value="$project->description"
-                    />
+                    <div class="flex items-start justify-between text-sm p-2 rounded border border-[var(--ui-border)] bg-white">
+                        <span class="text-[var(--ui-muted)] mr-3">Projekt Beschreibung</span>
+                        <span class="font-medium text-[var(--ui-body-color)] text-right">{{ $project->description }}</span>
+                    </div>
                 @endcan
             </x-ui-form-grid>
 
