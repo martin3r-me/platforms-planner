@@ -120,36 +120,73 @@
         @endif
     </section>
 
-    {{-- Kanban Container (lokal) --}}
-    <section class="grid grid-flow-col auto-cols-[18rem] gap-4 overflow-x-auto pb-4">
-        @foreach($groups as $group)
-            <div class="flex flex-col h-full">
-                <div class="flex items-center justify-between px-3 py-2 rounded-t-md bg-[var(--ui-muted-5)] border border-b-0 border-[var(--ui-border)]">
-                    <div class="text-sm font-semibold text-[var(--ui-secondary)] truncate">{{ $group->name ?? 'Spalte' }}</div>
-                    <button x-data @click="$dispatch('open-modal-project-slot-settings', { projectSlotId: {{ $group->id ?? 'null' }} })" title="Spalte bearbeiten"
-                            class="text-[var(--ui-primary)] hover:opacity-80">
-                        @svg('heroicon-o-cog-6-tooth','w-4 h-4')
-                    </button>
-                </div>
-                <div class="flex-1 min-h-0 overflow-y-auto rounded-b-md border border-[var(--ui-border)] bg-white p-2 space-y-2">
-                    @forelse($group->tasks as $task)
-                        <a href="{{ route('planner.tasks.show', $task) }}" wire:navigate
-                           class="block rounded border border-[var(--ui-border)] bg-white p-2 hover:bg-[var(--ui-muted-5)]">
-                            <div class="text-sm font-medium truncate">{{ $task->title }}</div>
-                            <div class="mt-1 text-xs text-[var(--ui-muted)]">
+    {{-- Kanban Container (mit Komponenten & Drag&Drop) --}}
+    <section class="pb-4">
+        <x-ui-kanban-board wire:sortable="updateTaskGroupOrder" wire:sortable-group="updateTaskOrder">
+
+            {{-- Backlog (nicht sortierbar als Gruppe) --}}
+            @php $backlog = $groups->first(fn($g) => ($g->isBacklog ?? false)); @endphp
+            @if($backlog)
+                <x-ui-kanban-column :title="($backlog->label ?? 'Backlog')" :sortable-id="null">
+                    @foreach($backlog->tasks as $task)
+                        <x-ui-kanban-card :title="$task->title" :sortable-id="$task->id" :href="route('planner.tasks.show', $task)">
+                            <div class="text-xs text-[var(--ui-muted)]">
                                 @if($task->due_date)
                                     Fällig: {{ $task->due_date->format('d.m.Y') }}
                                 @else
                                     Keine Fälligkeit
                                 @endif
                             </div>
-                        </a>
-                    @empty
-                        <div class="text-xs text-[var(--ui-muted)]">Keine Aufgaben</div>
-                    @endforelse
-                </div>
-            </div>
-        @endforeach
+                        </x-ui-kanban-card>
+                    @endforeach
+                </x-ui-kanban-column>
+            @endif
+
+            {{-- Mittlere Spalten (sortierbar) --}}
+            @foreach($groups->filter(fn ($g) => !($g->isDoneGroup ?? false) && !($g->isBacklog ?? false)) as $column)
+                <x-ui-kanban-column :title="($column->label ?? $column->name ?? 'Spalte')" :sortable-id="$column->id">
+                    <x-slot name="extra">
+                        <div class="d-flex gap-1">
+                            <x-ui-button variant="success-outline" size="sm" class="w-full" wire:click="createTask('{{ $column->id }}')">
+                                + Neue Aufgabe
+                            </x-ui-button>
+                            <x-ui-button variant="primary-outline" size="sm" class="w-full" @click="$dispatch('open-modal-project-slot-settings', { projectSlotId: {{ $column->id }} })">Settings</x-ui-button>
+                        </div>
+                    </x-slot>
+
+                    @foreach($column->tasks as $task)
+                        <x-ui-kanban-card :title="$task->title" :sortable-id="$task->id" :href="route('planner.tasks.show', $task)">
+                            <div class="text-xs text-[var(--ui-muted)]">
+                                @if($task->due_date)
+                                    Fällig: {{ $task->due_date->format('d.m.Y') }}
+                                @else
+                                    Keine Fälligkeit
+                                @endif
+                            </div>
+                        </x-ui-kanban-card>
+                    @endforeach
+                </x-ui-kanban-column>
+            @endforeach
+
+            {{-- Erledigt (nicht sortierbar als Gruppe) --}}
+            @php $done = $groups->first(fn($g) => ($g->isDoneGroup ?? false)); @endphp
+            @if($done)
+                <x-ui-kanban-column :title="($done->label ?? 'Erledigt')" :sortable-id="null">
+                    @foreach($done->tasks as $task)
+                        <x-ui-kanban-card :title="$task->title" :sortable-id="$task->id" :href="route('planner.tasks.show', $task)">
+                            <div class="text-xs text-[var(--ui-muted)]">
+                                @if($task->due_date)
+                                    Fällig: {{ $task->due_date->format('d.m.Y') }}
+                                @else
+                                    Keine Fälligkeit
+                                @endif
+                            </div>
+                        </x-ui-kanban-card>
+                    @endforeach
+                </x-ui-kanban-column>
+            @endif
+
+        </x-ui-kanban-board>
     </section>
 
     <livewire:planner.project-settings-modal/>
