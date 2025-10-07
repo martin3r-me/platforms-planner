@@ -1,88 +1,31 @@
 <div class="h-full d-flex">
-    <!-- Info-Sidebar lokal -->
-    <section class="w-80 border-r border-[var(--ui-border)] p-4 flex-shrink-0 hidden md:block">
-        <h3 class="text-lg font-semibold m-0">Meine Aufgaben</h3>
-        <div class="text-sm text-[var(--ui-muted)] mb-4">Persönliche Aufgaben und zuständige Projektaufgaben</div>
+    {{-- Navbar --}}
+    <x-ui-page-navbar title="Meine Aufgaben" icon="heroicon-o-clipboard-document-check">
+        <x-ui-button variant="success" size="sm" rounded="full" wire:click="createTask()">
+            <span class="inline-flex items-center gap-2">
+                @svg('heroicon-o-plus','w-4 h-4 inline-block align-middle')
+                <span class="hidden sm:inline">Aufgabe</span>
+            </span>
+        </x-ui-button>
+    </x-ui-page-navbar>
 
-        <div class="space-y-2">
-            <div class="grid grid-cols-2 gap-2">
-                <x-ui-dashboard-tile title="Offen" :count="$groups->filter(fn($g) => !($g->isDoneGroup ?? false))->sum(fn($g) => $g->tasks->count())" icon="clock" variant="yellow" size="sm" />
-                <x-ui-dashboard-tile title="Erledigt" :count="$groups->filter(fn($g) => $g->isDoneGroup ?? false)->sum(fn($g) => $g->tasks->count())" icon="check-circle" variant="green" size="sm" />
+    <!-- Main Content Area: Sidebar + Board -->
+    <div class="flex-1 min-h-0 flex">
+        <!-- Left Sidebar -->
+        <x-ui-page-sidebar title="Übersicht" width="w-80" :defaultOpen="true">
+            <div class="p-4 space-y-4">
+                <div>
+                    <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Statistiken</h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <x-ui-dashboard-tile title="Offen" :count="$groups->filter(fn($g) => !($g->isDoneGroup ?? false))->sum(fn($g) => $g->tasks->count())" icon="clock" variant="yellow" size="sm" />
+                        <x-ui-dashboard-tile title="Erledigt" :count="$groups->filter(fn($g) => $g->isDoneGroup ?? false)->sum(fn($g) => $g->tasks->count())" icon="check-circle" variant="green" size="sm" />
+                    </div>
+                </div>
             </div>
-        </div>
-    </section>
-        title="Meine Aufgaben"
-        subtitle="Persönliche Aufgaben und zuständige Projektaufgaben"
-        :stats="[
-            [
-                'title' => 'Story Points (offen)',
-                'count' => $groups->filter(fn($g) => !($g->isDoneGroup ?? false))->flatMap(fn($g) => $g->tasks)->sum(fn($t) => $t->story_points?->points() ?? 0),
-                'icon' => 'chart-bar',
-                'variant' => 'warning'
-            ],
-            [
-                'title' => 'Story Points (erledigt)',
-                'count' => $groups->filter(fn($g) => $g->isDoneGroup ?? false)->flatMap(fn($g) => $g->tasks)->sum(fn($t) => $t->story_points?->points() ?? 0),
-                'icon' => 'check-circle',
-                'variant' => 'success'
-            ],
-            [
-                'title' => 'Offen',
-                'count' => $groups->filter(fn($g) => !($g->isDoneGroup ?? false))->sum(fn($g) => $g->tasks->count()),
-                'icon' => 'clock',
-                'variant' => 'warning'
-            ],
-            [
-                'title' => 'Gesamt',
-                'count' => $groups->flatMap(fn($g) => $g->tasks)->count(),
-                'icon' => 'document-text',
-                'variant' => 'secondary'
-            ],
-            [
-                'title' => 'Erledigt',
-                'count' => $groups->filter(fn($g) => $g->isDoneGroup ?? false)->sum(fn($g) => $g->tasks->count()),
-                'icon' => 'check-circle',
-                'variant' => 'success'
-            ],
-            [
-                'title' => 'Ohne Fälligkeit',
-                'count' => $groups->flatMap(fn($g) => $g->tasks)->filter(fn($t) => !$t->due_date)->count(),
-                'icon' => 'calendar',
-                'variant' => 'neutral'
-            ],
-            [
-                'title' => 'Frösche',
-                'count' => $groups->flatMap(fn($g) => $g->tasks)->filter(fn($t) => $t->is_frog)->count(),
-                'icon' => 'exclamation-triangle',
-                'variant' => 'danger'
-            ],
-            [
-                'title' => 'Überfällig',
-                'count' => $groups->flatMap(fn($g) => $g->tasks)->filter(fn($t) => $t->due_date && $t->due_date->isPast() && !$t->is_done)->count(),
-                'icon' => 'exclamation-circle',
-                'variant' => 'danger'
-            ]
-        ]"
-        :actions="[
-            [
-                'label' => '+ Neue Aufgabe',
-                'variant' => 'success-outline',
-                'size' => 'sm',
-                'wire_click' => 'createTask()'
-            ],
-            [
-                'label' => '+ Neue Spalte',
-                'variant' => 'primary-outline',
-                'size' => 'sm',
-                'wire_click' => 'createTaskGroup'
-            ]
-        ]"
-        :completed-tasks="$groups->filter(fn($g) => $g->isDoneGroup ?? false)->flatMap(fn($g) => $g->tasks)"
-    />
+        </x-ui-page-sidebar>
 
-    <!-- Kanban mit generischen UI-Komponenten -->
-    <section class="flex-1 min-h-0 overflow-x-auto">
-        <x-ui-kanban-board wire:sortable="updateTaskGroupOrder" wire:sortable-group="updateTaskOrder">
+        <!-- Board -->
+        <x-ui-kanban-container sortable="updateTaskGroupOrder" sortable-group="updateTaskOrder">
 
             {{-- Backlog (nicht sortierbar) --}}
             @php $backlog = $groups->first(fn($g) => ($g->isBacklog ?? false)); @endphp
@@ -137,8 +80,7 @@
                 </x-ui-kanban-column>
             @endif
 
-        </x-ui-kanban-board>
-    </section>
+        </x-ui-kanban-container>
 
     <livewire:planner.task-group-settings-modal/>
 </div>
