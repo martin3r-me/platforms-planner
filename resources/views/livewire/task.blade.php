@@ -1,35 +1,28 @@
-<div class="flex h-full">
-    <!-- Linke Spalte: Inhalt -->
-    <div class="flex-1 flex flex-col min-w-0">
-        <!-- Header (Breadcrumb + Aktionen) -->
-        <div class="border-b border-[var(--ui-border)] p-2 flex items-center justify-between shrink-0">
-            <div class="flex items-center gap-1 text-sm">
-                @if($task->project)
-                    <a href="{{ auth()->user()->can('view', $task->project) ? route('planner.projects.show', $task->project) : '#' }}"
-                       @if(auth()->user()->can('view', $task->project)) wire:navigate @endif
-                       class="px-3 border-r border-[var(--ui-border)] underline">
-                        Projekt: {{ $task->project->name }}
-                    </a>
-                @endif
-                <a href="{{ route('planner.my-tasks') }}" wire:navigate class="px-3 border-r border-[var(--ui-border)] underline">
-                    Meine Aufgaben
+<x-ui-page>
+    <x-slot name="navbar">
+        <x-ui-page-navbar :title="$task->title" icon="heroicon-o-clipboard-document-check">
+            @if($task->project)
+                <a href="{{ auth()->user()->can('view', $task->project) ? route('planner.projects.show', $task->project) : '#' }}"
+                   @if(auth()->user()->can('view', $task->project)) wire:navigate @endif
+                   class="hidden md:inline text-sm underline text-[var(--ui-secondary)] hover:text-[var(--ui-primary)] mr-2">
+                    Projekt: {{ $task->project->name }}
                 </a>
-                <span class="px-3 font-semibold">{{ $task->title }}</span>
-            </div>
-            <div class="flex items-center gap-2">
-                @can('update', $task)
-                    <x-ui-button variant="primary" size="sm" wire:click="save">
-                        <div class="flex items-center gap-2">
-                            @svg('heroicon-o-check', 'w-4 h-4')
-                            Speichern
-                        </div>
-                    </x-ui-button>
-                @endcan
-            </div>
-        </div>
+            @endif
+            <a href="{{ route('planner.my-tasks') }}" wire:navigate class="hidden md:inline text-sm underline text-[var(--ui-secondary)] hover:text-[var(--ui-primary)] mr-2">
+                Meine Aufgaben
+            </a>
+            @can('update', $task)
+                <x-ui-button variant="primary" size="sm" rounded="full" wire:click="save">
+                    <span class="inline-flex items-center gap-2">
+                        @svg('heroicon-o-check', 'w-4 h-4')
+                        <span class="hidden sm:inline">Speichern</span>
+                    </span>
+                </x-ui-button>
+            @endcan
+        </x-ui-page-navbar>
+    </x-slot>
 
-        <!-- Haupt-Content (scrollt eigenständig) -->
-        <div class="flex-1 overflow-y-auto p-4 min-w-0">
+    <div class="flex-1 overflow-y-auto p-4 min-w-0">
             {{-- Aufgaben-Details --}}
             <div class="mb-6">
                 <h3 class="text-lg font-semibold mb-4 text-[var(--ui-secondary)]">Aufgaben-Details</h3>
@@ -105,7 +98,6 @@
                 </div>
             </div>
         </div>
-
         <!-- Aktivitäten unten -->
         <div class="shrink-0 border-t border-[var(--ui-border)]">
             <div x-data="{ open: false }" class="p-2">
@@ -125,90 +117,87 @@
         </div>
     </div>
 
-    <!-- Rechte Spalte: Einstellungen/Aktionen -->
-    <div class="min-w-80 w-80 flex flex-col border-l border-[var(--ui-border)]">
-        <div class="flex items-center gap-2 border-b border-[var(--ui-border)] p-2 shrink-0">
-            <x-heroicon-o-cog-6-tooth class="w-6 h-6"/>
-            Einstellungen
-        </div>
-        <div class="flex-1 overflow-y-auto p-4">
-            {{-- Navigation Buttons --}}
-            <div class="flex flex-col gap-2 mb-4">
-                @if($task->project)
+    <x-slot name="sidebar">
+        <x-ui-page-sidebar title="Einstellungen" width="w-80" :defaultOpen="true">
+            <div class="p-4">
+                {{-- Navigation Buttons --}}
+                <div class="flex flex-col gap-2 mb-4">
+                    @if($task->project)
+                        <x-ui-button 
+                            variant="secondary-outline" 
+                            size="md" 
+                            :href="route('planner.projects.show', ['plannerProject' => $task->project->id])" 
+                            wire:navigate
+                            class="w-full"
+                        >
+                            <div class="flex items-center gap-2">
+                                @svg('heroicon-o-arrow-left', 'w-4 h-4')
+                                Zum Projekt
+                            </div>
+                        </x-ui-button>
+                    @endif
                     <x-ui-button 
                         variant="secondary-outline" 
                         size="md" 
-                        :href="route('planner.projects.show', ['plannerProject' => $task->project->id])" 
+                        :href="route('planner.my-tasks')" 
                         wire:navigate
                         class="w-full"
                     >
                         <div class="flex items-center gap-2">
                             @svg('heroicon-o-arrow-left', 'w-4 h-4')
-                            Zum Projekt
+                            Zu meinen Aufgaben
                         </div>
                     </x-ui-button>
-                @endif
-                <x-ui-button 
-                    variant="secondary-outline" 
-                    size="md" 
-                    :href="route('planner.my-tasks')" 
-                    wire:navigate
-                    class="w-full"
-                >
-                    <div class="flex items-center gap-2">
-                        @svg('heroicon-o-arrow-left', 'w-4 h-4')
-                        Zu meinen Aufgaben
+                </div>
+
+                {{-- Kurze Übersicht --}}
+                <div class="mb-4 p-3 bg-[var(--ui-muted-5)] rounded-lg">
+                    <h4 class="font-semibold mb-2 text-[var(--ui-secondary)]">Aufgaben-Übersicht</h4>
+                    <div class="space-y-1 text-sm">
+                        <div><strong>Titel:</strong> {{ $task->title }}</div>
+                        @if($task->project)
+                            <div><strong>Projekt:</strong> {{ $task->project->name }}</div>
+                        @endif
+                        @if($task->due_date)
+                            <div><strong>Fällig:</strong> {{ $task->due_date->format('d.m.Y') }}</div>
+                        @endif
+                        @if($task->story_points)
+                            <div><strong>Story Points:</strong> {{ $task->story_points }}</div>
+                        @endif
                     </div>
-                </x-ui-button>
-            </div>
+                </div>
 
-            {{-- Kurze Übersicht --}}
-            <div class="mb-4 p-3 bg-[var(--ui-muted-5)] rounded-lg">
-                <h4 class="font-semibold mb-2 text-[var(--ui-secondary)]">Aufgaben-Übersicht</h4>
-                <div class="space-y-1 text-sm">
-                    <div><strong>Titel:</strong> {{ $task->title }}</div>
-                    @if($task->project)
-                        <div><strong>Projekt:</strong> {{ $task->project->name }}</div>
-                    @endif
-                    @if($task->due_date)
-                        <div><strong>Fällig:</strong> {{ $task->due_date->format('d.m.Y') }}</div>
-                    @endif
-                    @if($task->story_points)
-                        <div><strong>Story Points:</strong> {{ $task->story_points }}</div>
-                    @endif
+                {{-- Status --}}
+                <x-ui-input-checkbox
+                    model="task.is_done"
+                    checked-label="Aufgabe erledigt"
+                    unchecked-label="Als erledigt markieren"
+                    size="md"
+                    block="true"
+                />
+
+                <hr class="my-4">
+
+                {{-- Aktionen --}}
+                <div class="mb-4">
+                    <h4 class="font-semibold mb-2">Aktionen</h4>
+                    <div class="space-y-2">
+                        @can('delete', $task)
+                            <x-ui-confirm-button 
+                                action="delete" 
+                                text="Aufgabe löschen" 
+                                confirmText="Wirklich löschen?" 
+                                variant="danger-outline"
+                                :icon="@svg('heroicon-o-trash', 'w-4 h-4')->toHtml()"
+                                class="w-full"
+                            />
+                        @endcan
+                    </div>
                 </div>
             </div>
-
-            {{-- Status --}}
-            <x-ui-input-checkbox
-                model="task.is_done"
-                checked-label="Aufgabe erledigt"
-                unchecked-label="Als erledigt markieren"
-                size="md"
-                block="true"
-            />
-
-            <hr class="my-4">
-
-            {{-- Aktionen --}}
-            <div class="mb-4">
-                <h4 class="font-semibold mb-2">Aktionen</h4>
-                <div class="space-y-2">
-                    @can('delete', $task)
-                        <x-ui-confirm-button 
-                            action="delete" 
-                            text="Aufgabe löschen" 
-                            confirmText="Wirklich löschen?" 
-                            variant="danger-outline"
-                            :icon="@svg('heroicon-o-trash', 'w-4 h-4')->toHtml()"
-                            class="w-full"
-                        />
-                    @endcan
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+        </x-ui-page-sidebar>
+    </x-slot>
 
     <!-- Print Modal direkt hier einbinden -->
     <livewire:planner.print-modal />
+</x-ui-page>
