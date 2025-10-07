@@ -22,11 +22,10 @@
         </x-ui-page-navbar>
     </x-slot>
 
-    <div class="flex-1 overflow-y-auto p-4 min-w-0">
-            {{-- Aufgaben-Details --}}
-            <div class="mb-6">
-                <h3 class="text-lg font-semibold mb-4 text-[var(--ui-secondary)]">Aufgaben-Details</h3>
-                <div class="grid grid-cols-2 gap-4">
+    <div class="flex-1 overflow-y-auto p-4 min-w-0 space-y-6">
+        {{-- Aufgaben-Details --}}
+        <x-ui-panel title="Aufgaben-Details">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <x-ui-input-text 
                         name="task.title"
                         label="Titel"
@@ -45,7 +44,7 @@
                         wire:model.live="task.priority"
                     />
                 </div>
-                <div class="grid grid-cols-2 gap-4 mt-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                     <x-ui-input-date
                         name="task.due_date"
                         label="Fälligkeitsdatum"
@@ -75,7 +74,7 @@
                         :errorKey="'task.description'"
                     />
                 </div>
-            </div>
+        </x-ui-panel>
 
             {{-- Status & Zuweisung --}}
             <div class="mb-6">
@@ -99,18 +98,18 @@
             </div>
         </div>
         <!-- Aktivitäten unten -->
-        <div class="shrink-0 border-t border-[var(--ui-border)]">
+        <div class="shrink-0 border-t border-[var(--ui-border)]/60 bg-[var(--ui-surface)]">
             <div x-data="{ open: false }" class="p-2">
-                <div 
+                <button 
                     @click="open = !open" 
-                    class="cursor-pointer border-t border-b border-[var(--ui-border)] p-2 text-center flex items-center justify-center gap-1 mx-2 shadow-sm"
+                    class="w-full inline-flex items-center justify-center gap-2 text-sm py-2 rounded-md border border-[var(--ui-border)]/60 hover:bg-[var(--ui-muted-5)] transition"
                 >
-                    AKTIVITÄTEN 
+                    Aktivitäten anzeigen
                     <span class="text-xs">{{$task->activities->count()}}</span>
                     <x-heroicon-o-chevron-double-down class="w-3 h-3" x-show="!open" />
                     <x-heroicon-o-chevron-double-up class="w-3 h-3" x-show="open" />
-                </div>
-                <div x-show="open" class="p-2 max-h-64 overflow-y-auto">
+                </button>
+                <div x-show="open" class="mt-2 p-2 max-h-64 overflow-y-auto rounded-md border border-[var(--ui-border)]/60 bg-[var(--ui-surface)]">
                     <livewire:activity-log.index :model="$task" :key="get_class($task) . '_' . $task->id" />
                 </div>
             </div>
@@ -119,9 +118,9 @@
 
     <x-slot name="sidebar">
         <x-ui-page-sidebar title="Einstellungen" width="w-80" :defaultOpen="true">
-            <div class="p-4">
+            <div class="p-4 space-y-6">
                 {{-- Navigation Buttons --}}
-                <div class="flex flex-col gap-2 mb-4">
+                <div class="flex flex-col gap-2">
                     @if($task->project)
                         <x-ui-button 
                             variant="secondary-outline" 
@@ -151,8 +150,7 @@
                 </div>
 
                 {{-- Kurze Übersicht --}}
-                <div class="mb-4 p-3 bg-[var(--ui-muted-5)] rounded-lg">
-                    <h4 class="font-semibold mb-2 text-[var(--ui-secondary)]">Aufgaben-Übersicht</h4>
+                <x-ui-panel title="Aufgaben-Übersicht">
                     <div class="space-y-1 text-sm">
                         <div><strong>Titel:</strong> {{ $task->title }}</div>
                         @if($task->project)
@@ -165,7 +163,7 @@
                             <div><strong>Story Points:</strong> {{ $task->story_points }}</div>
                         @endif
                     </div>
-                </div>
+                </x-ui-panel>
 
                 {{-- Status --}}
                 <x-ui-input-checkbox
@@ -179,9 +177,8 @@
                 <hr class="my-4">
 
                 {{-- Aktionen --}}
-                <div class="mb-4">
-                    <h4 class="font-semibold mb-2">Aktionen</h4>
-                    <div class="space-y-2">
+                <x-ui-panel title="Aktionen">
+                    <div class="space-y-2 mt-2">
                         @can('delete', $task)
                             <x-ui-confirm-button 
                                 action="delete" 
@@ -193,7 +190,7 @@
                             />
                         @endcan
                     </div>
-                </div>
+                </x-ui-panel>
             </div>
         </x-ui-page-sidebar>
     </x-slot>
