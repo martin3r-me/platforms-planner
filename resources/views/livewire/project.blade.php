@@ -103,12 +103,12 @@
                     </span>
                 </x-ui-button>
                 @if(($project->project_type?->value ?? $project->project_type) === 'customer')
-                    <x-ui-button variant="secondary-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-customer-project', { projectId: {{ $project->id }} })">
-                        @svg('heroicon-o-user-group','w-4 h-4')
+                <x-ui-button variant="secondary-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-customer-project', { projectId: {{ $project->id }} })">
+                    @svg('heroicon-o-user-group','w-6 h-6')
                     </x-ui-button>
                 @endif
-                <x-ui-button variant="info-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })">
-                    @svg('heroicon-o-cog-6-tooth','w-4 h-4')
+            <x-ui-button variant="info-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })">
+                @svg('heroicon-o-cog-6-tooth','w-6 h-6')
                 </x-ui-button>
             </x-ui-page-navbar>
         </x-slot>
