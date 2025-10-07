@@ -98,22 +98,7 @@
             </div>
         </div>
         <!-- Aktivitäten unten -->
-        <div class="shrink-0 border-t border-[var(--ui-border)]/60 bg-[var(--ui-surface)]">
-            <div x-data="{ open: false }" class="p-2">
-                <button 
-                    @click="open = !open" 
-                    class="w-full inline-flex items-center justify-center gap-2 text-sm py-2 rounded-md border border-[var(--ui-border)]/60 hover:bg-[var(--ui-muted-5)] transition"
-                >
-                    Aktivitäten anzeigen
-                    <span class="text-xs">{{$task->activities->count()}}</span>
-                    <x-heroicon-o-chevron-double-down class="w-3 h-3" x-show="!open" />
-                    <x-heroicon-o-chevron-double-up class="w-3 h-3" x-show="open" />
-                </button>
-                <div x-show="open" class="mt-2 p-2 max-h-64 overflow-y-auto rounded-md border border-[var(--ui-border)]/60 bg-[var(--ui-surface)]">
-                    <livewire:activity-log.index :model="$task" :key="get_class($task) . '_' . $task->id" />
-                </div>
-            </div>
-        </div>
+        
     </div>
 
     <x-slot name="sidebar">
@@ -191,6 +176,15 @@
                         @endcan
                     </div>
                 </x-ui-panel>
+            </div>
+        </x-ui-page-sidebar>
+
+        <x-ui-page-sidebar title="Aktivitäten" width="w-96" :defaultOpen="false">
+            <div class="p-4">
+                <div class="text-xs text-[var(--ui-muted)] mb-3">Letzte Aktivitäten ({{$task->activities->count()}})</div>
+                <div class="space-y-2 max-h-full overflow-y-auto">
+                    <livewire:activity-log.index :model="$task" :key="'task_activities_' . $task->id" />
+                </div>
             </div>
         </x-ui-page-sidebar>
     </x-slot>
