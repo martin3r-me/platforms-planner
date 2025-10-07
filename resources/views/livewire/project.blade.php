@@ -135,13 +135,21 @@
             {{-- Mittlere Spalten (sortierbar) --}}
             @foreach($groups->filter(fn ($g) => !($g->isDoneGroup ?? false) && !($g->isBacklog ?? false)) as $column)
                 <x-ui-kanban-column :title="($column->label ?? $column->name ?? 'Spalte')" :sortable-id="$column->id" :scrollable="true">
-                    <x-slot name="extra">
-                        <div class="d-flex gap-1">
-                            <x-ui-button variant="success-outline" size="sm" class="w-full" wire:click="createTask('{{ $column->id }}')">
-                                + Neue Aufgabe
-                            </x-ui-button>
-                            <x-ui-button variant="primary-outline" size="sm" class="w-full" @click="$dispatch('open-modal-project-slot-settings', { projectSlotId: {{ $column->id }} })">Settings</x-ui-button>
-                        </div>
+                    <x-slot name="headerActions">
+                        <button 
+                            wire:click="createTask('{{ $column->id }}')" 
+                            class="text-[var(--ui-success)] hover:opacity-80 transition-opacity"
+                            title="Neue Aufgabe"
+                        >
+                            @svg('heroicon-o-plus-circle', 'w-5 h-5')
+                        </button>
+                        <button 
+                            @click="$dispatch('open-modal-project-slot-settings', { projectSlotId: {{ $column->id }} })"
+                            class="text-[var(--ui-muted)] hover:text-[var(--ui-primary)] transition-colors"
+                            title="Einstellungen"
+                        >
+                            @svg('heroicon-o-cog-6-tooth', 'w-5 h-5')
+                        </button>
                     </x-slot>
 
                     @foreach($column->tasks as $task)
