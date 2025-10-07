@@ -1,17 +1,16 @@
-<div class="h-full d-flex">
-    {{-- Navbar --}}
-    <x-ui-page-navbar title="Meine Aufgaben" icon="heroicon-o-clipboard-document-check">
-        <x-ui-button variant="success" size="sm" rounded="full" wire:click="createTask()">
-            <span class="inline-flex items-center gap-2">
-                @svg('heroicon-o-plus','w-4 h-4 inline-block align-middle')
-                <span class="hidden sm:inline">Aufgabe</span>
-            </span>
-        </x-ui-button>
-    </x-ui-page-navbar>
+<x-ui-page>
+    <x-slot name="navbar">
+        <x-ui-page-navbar title="Meine Aufgaben" icon="heroicon-o-clipboard-document-check">
+            <x-ui-button variant="success" size="sm" rounded="full" wire:click="createTask()">
+                <span class="inline-flex items-center gap-2">
+                    @svg('heroicon-o-plus','w-4 h-4 inline-block align-middle')
+                    <span class="hidden sm:inline">Aufgabe</span>
+                </span>
+            </x-ui-button>
+        </x-ui-page-navbar>
+    </x-slot>
 
-    <!-- Main Content Area: Sidebar + Board -->
-    <div class="flex-1 min-h-0 flex">
-        <!-- Left Sidebar -->
+    <x-slot name="sidebar">
         <x-ui-page-sidebar title="Übersicht" width="w-80" :defaultOpen="true">
             <div class="p-4 space-y-4">
                 <div>
@@ -23,9 +22,9 @@
                 </div>
             </div>
         </x-ui-page-sidebar>
+    </x-slot>
 
-        <!-- Board -->
-        <x-ui-kanban-container sortable="updateTaskGroupOrder" sortable-group="updateTaskOrder">
+    <x-ui-kanban-container sortable="updateTaskGroupOrder" sortable-group="updateTaskOrder">
 
             {{-- Backlog (nicht sortierbar) --}}
             @php $backlog = $groups->first(fn($g) => ($g->isBacklog ?? false)); @endphp
@@ -80,7 +79,7 @@
                 </x-ui-kanban-column>
             @endif
 
-        </x-ui-kanban-container>
+    </x-ui-kanban-container>
 
     <livewire:planner.task-group-settings-modal/>
-</div>
+</x-ui-page>

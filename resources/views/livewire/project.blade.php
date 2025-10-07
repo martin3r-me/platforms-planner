@@ -86,35 +86,34 @@
         ];
     @endphp
 
-    {{-- Neues Layout: oben Navbar + Aktionen, darunter Sidebar + Kanban --}}
-    <div class="h-full flex flex-col">
-        <!-- Top-Navbar: Titel + Aktionen -->
-        <x-ui-page-navbar :title="$project->name" icon="heroicon-o-clipboard-document-list">
-            <x-ui-button variant="primary" size="sm" rounded="full" wire:click="createProjectSlot">
-                <span class="inline-flex items-center gap-2">
-                    @svg('heroicon-o-square-2-stack','w-4 h-4 inline-block align-middle')
-                    <span class="hidden sm:inline">Spalte</span>
-                </span>
-            </x-ui-button>
-            <x-ui-button variant="success" size="sm" rounded="full" wire:click="createTask()">
-                <span class="inline-flex items-center gap-2">
-                    @svg('heroicon-o-plus','w-4 h-4 inline-block align-middle')
-                    <span class="hidden sm:inline">Aufgabe</span>
-                </span>
-            </x-ui-button>
-            @if(($project->project_type?->value ?? $project->project_type) === 'customer')
-                <x-ui-button variant="secondary-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-customer-project', { projectId: {{ $project->id }} })">
-                    @svg('heroicon-o-user-group','w-4 h-4')
+    {{-- Neues Layout via x-ui-page --}}
+    <x-ui-page>
+        <x-slot name="navbar">
+            <x-ui-page-navbar :title="$project->name" icon="heroicon-o-clipboard-document-list">
+                <x-ui-button variant="primary" size="sm" rounded="full" wire:click="createProjectSlot">
+                    <span class="inline-flex items-center gap-2">
+                        @svg('heroicon-o-square-2-stack','w-4 h-4 inline-block align-middle')
+                        <span class="hidden sm:inline">Spalte</span>
+                    </span>
                 </x-ui-button>
-            @endif
-            <x-ui-button variant="info-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })">
-                @svg('heroicon-o-cog-6-tooth','w-4 h-4')
-            </x-ui-button>
-        </x-ui-page-navbar>
+                <x-ui-button variant="success" size="sm" rounded="full" wire:click="createTask()">
+                    <span class="inline-flex items-center gap-2">
+                        @svg('heroicon-o-plus','w-4 h-4 inline-block align-middle')
+                        <span class="hidden sm:inline">Aufgabe</span>
+                    </span>
+                </x-ui-button>
+                @if(($project->project_type?->value ?? $project->project_type) === 'customer')
+                    <x-ui-button variant="secondary-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-customer-project', { projectId: {{ $project->id }} })">
+                        @svg('heroicon-o-user-group','w-4 h-4')
+                    </x-ui-button>
+                @endif
+                <x-ui-button variant="info-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })">
+                    @svg('heroicon-o-cog-6-tooth','w-4 h-4')
+                </x-ui-button>
+            </x-ui-page-navbar>
+        </x-slot>
 
-        <!-- Main Content Area: Sidebar + Board -->
-        <div class="flex-1 min-h-0 flex">
-            <!-- Left Sidebar: Projekt-Info & Stats -->
+        <x-slot name="sidebar">
             <x-ui-page-sidebar title="Projekt-Übersicht" width="w-80" :defaultOpen="true">
                 <div class="p-4 space-y-4">
                     <!-- Projekt-Statistiken -->
@@ -155,9 +154,10 @@
                     </div>
                 </div>
             </x-ui-page-sidebar>
+        </x-slot>
 
-            <!-- Board-Container: füllt restliche Breite, Spalten scrollen intern -->
-            <x-ui-kanban-container sortable="updateTaskGroupOrder" sortable-group="updateTaskOrder">
+        <!-- Board-Container: füllt restliche Breite, Spalten scrollen intern -->
+        <x-ui-kanban-container sortable="updateTaskGroupOrder" sortable-group="updateTaskOrder">
             {{-- Backlog (nicht sortierbar als Gruppe) --}}
             @php $backlog = $groups->first(fn($g) => ($g->isBacklog ?? false)); @endphp
             @if($backlog)
@@ -227,9 +227,8 @@
                     @endforeach
                 </x-ui-kanban-column>
             @endif
-            </x-ui-kanban-container>
-        </div>
-    </div>
+        </x-ui-kanban-container>
+    </x-ui-page>
 
     <livewire:planner.project-settings-modal/>
     <livewire:planner.project-slot-settings-modal/>
