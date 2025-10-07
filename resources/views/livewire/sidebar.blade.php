@@ -15,7 +15,7 @@
             @svg('heroicon-o-clipboard-document-check', 'w-4 h-4 text-[var(--ui-secondary)]')
             <span class="ml-2 text-sm">Meine Aufgaben</span>
         </x-ui-sidebar-item>
-        <x-ui-sidebar-item :href="route('planner.projects.create')">
+        <x-ui-sidebar-item wire:click="createProject">
             @svg('heroicon-o-plus-circle', 'w-4 h-4 text-[var(--ui-secondary)]')
             <span class="ml-2 text-sm">Neues Projekt</span>
         </x-ui-sidebar-item>
