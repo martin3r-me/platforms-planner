@@ -89,7 +89,7 @@
     {{-- Neues Layout: oben Navbar + Aktionen, darunter volles Kanban mit Spalten-Scroll --}}
     <div class="h-full flex flex-col">
         <!-- Top-Navbar: Titel + Aktionen -->
-        <div class="sticky top-0 z-10 px-4 py-3 bg-[var(--ui-surface)]/90 border-b border-[var(--ui-border)]/60 shadow-sm backdrop-blur">
+        <div class="sticky top-0 z-10 px-0 py-2 bg-[var(--ui-surface)]/90 border-b border-[var(--ui-border)]/60 shadow-sm backdrop-blur">
             <div class="flex items-center justify-between gap-3">
                 <div class="flex items-center gap-2 min-w-0">
                     @svg('heroicon-o-clipboard-document-list','w-5 h-5 text-[color:var(--ui-primary)]')
