@@ -178,15 +178,6 @@
                 </x-ui-panel>
             </div>
         </x-ui-page-sidebar>
-
-        <x-ui-page-sidebar title="Aktivitäten" width="w-96" :defaultOpen="false">
-            <div class="p-4">
-                <div class="text-xs text-[var(--ui-muted)] mb-3">Letzte Aktivitäten ({{$task->activities->count()}})</div>
-                <div class="space-y-2 max-h-full overflow-y-auto">
-                    <livewire:activity-log.index :model="$task" :key="'task_activities_' . $task->id" />
-                </div>
-            </div>
-        </x-ui-page-sidebar>
     </x-slot>
 
     <!-- Print Modal direkt hier einbinden -->
