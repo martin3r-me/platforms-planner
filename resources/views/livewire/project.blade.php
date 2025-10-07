@@ -86,7 +86,7 @@
         ];
     @endphp
 
-    {{-- Neues Layout: oben Navbar + Aktionen, darunter volles Kanban mit Spalten-Scroll --}}
+    {{-- Neues Layout: oben Navbar + Aktionen, darunter Sidebar + Kanban --}}
     <div class="h-full flex flex-col">
         <!-- Top-Navbar: Titel + Aktionen -->
         <x-ui-page-navbar :title="$project->name" icon="heroicon-o-clipboard-document-list">
@@ -112,8 +112,52 @@
             </x-ui-button>
         </x-ui-page-navbar>
 
-        <!-- Board-Container: füllt Höhe, Spalten scrollen intern -->
-        <x-ui-kanban-container sortable="updateTaskGroupOrder" sortable-group="updateTaskOrder">
+        <!-- Main Content Area: Sidebar + Board -->
+        <div class="flex-1 min-h-0 flex">
+            <!-- Left Sidebar: Projekt-Info & Stats -->
+            <x-ui-page-sidebar title="Projekt-Übersicht" width="w-80" :defaultOpen="true">
+                <div class="p-4 space-y-4">
+                    <!-- Projekt-Statistiken -->
+                    <div>
+                        <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Statistiken</h3>
+                        <div class="space-y-2">
+                            @foreach($stats as $stat)
+                                <div class="flex items-center justify-between py-2 px-3 rounded-lg bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
+                                    <div class="flex items-center gap-2">
+                                        @svg('heroicon-o-' . $stat['icon'], 'w-4 h-4 text-[var(--ui-' . $stat['variant'] . ')]')
+                                        <span class="text-sm text-[var(--ui-secondary)]">{{ $stat['title'] }}</span>
+                                    </div>
+                                    <span class="text-sm font-semibold text-[var(--ui-' . $stat['variant'] . ')]">
+                                        {{ $stat['count'] }}
+                                    </span>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <!-- Projekt-Details -->
+                    <div>
+                        <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Details</h3>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between py-1">
+                                <span class="text-[var(--ui-muted)]">Typ:</span>
+                                <span class="text-[var(--ui-secondary)] font-medium">
+                                    {{ $project->project_type?->value ?? $project->project_type ?? 'Unbekannt' }}
+                                </span>
+                            </div>
+                            <div class="flex justify-between py-1">
+                                <span class="text-[var(--ui-muted)]">Erstellt:</span>
+                                <span class="text-[var(--ui-secondary)] font-medium">
+                                    {{ $project->created_at->format('d.m.Y') }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </x-ui-page-sidebar>
+
+            <!-- Board-Container: füllt restliche Breite, Spalten scrollen intern -->
+            <x-ui-kanban-container sortable="updateTaskGroupOrder" sortable-group="updateTaskOrder">
             {{-- Backlog (nicht sortierbar als Gruppe) --}}
             @php $backlog = $groups->first(fn($g) => ($g->isBacklog ?? false)); @endphp
             @if($backlog)
@@ -183,7 +227,8 @@
                     @endforeach
                 </x-ui-kanban-column>
             @endif
-        </x-ui-kanban-container>
+            </x-ui-kanban-container>
+        </div>
     </div>
 
     <livewire:planner.project-settings-modal/>
