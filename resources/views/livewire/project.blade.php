@@ -89,38 +89,28 @@
     {{-- Neues Layout: oben Navbar + Aktionen, darunter volles Kanban mit Spalten-Scroll --}}
     <div class="h-full flex flex-col">
         <!-- Top-Navbar: Titel + Aktionen -->
-        <div class="sticky top-0 z-10 px-4 py-3 bg-[var(--ui-surface)]/90 border-b border-[var(--ui-border)]/60 shadow-sm backdrop-blur">
-            <div class="flex items-center justify-between gap-3">
-                <div class="flex items-center gap-2 min-w-0">
-                    @svg('heroicon-o-clipboard-document-list','w-5 h-5 text-[color:var(--ui-primary)]')
-                    <h1 class="m-0 truncate text-[color:var(--ui-secondary)] font-semibold tracking-tight text-base md:text-lg">
-                        {{ $project->name }}
-                    </h1>
-                </div>
-                <div class="d-flex items-center gap-2">
-                <x-ui-button variant="primary" size="sm" rounded="full" wire:click="createProjectSlot">
-                    <span class="inline-flex items-center gap-2">
-                        @svg('heroicon-o-square-2-stack','w-4 h-4 inline-block align-middle')
-                        <span class="hidden sm:inline">Spalte</span>
-                    </span>
+        <x-ui-page-navbar :title="$project->name" icon="heroicon-o-clipboard-document-list">
+            <x-ui-button variant="primary" size="sm" rounded="full" wire:click="createProjectSlot">
+                <span class="inline-flex items-center gap-2">
+                    @svg('heroicon-o-square-2-stack','w-4 h-4 inline-block align-middle')
+                    <span class="hidden sm:inline">Spalte</span>
+                </span>
+            </x-ui-button>
+            <x-ui-button variant="success" size="sm" rounded="full" wire:click="createTask()">
+                <span class="inline-flex items-center gap-2">
+                    @svg('heroicon-o-plus','w-4 h-4 inline-block align-middle')
+                    <span class="hidden sm:inline">Aufgabe</span>
+                </span>
+            </x-ui-button>
+            @if(($project->project_type?->value ?? $project->project_type) === 'customer')
+                <x-ui-button variant="secondary-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-customer-project', { projectId: {{ $project->id }} })">
+                    @svg('heroicon-o-user-group','w-4 h-4')
                 </x-ui-button>
-                <x-ui-button variant="success" size="sm" rounded="full" wire:click="createTask()">
-                    <span class="inline-flex items-center gap-2">
-                        @svg('heroicon-o-plus','w-4 h-4 inline-block align-middle')
-                        <span class="hidden sm:inline">Aufgabe</span>
-                    </span>
-                </x-ui-button>
-                @if(($project->project_type?->value ?? $project->project_type) === 'customer')
-                    <x-ui-button variant="secondary-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-customer-project', { projectId: {{ $project->id }} })">
-                        @svg('heroicon-o-user-group','w-4 h-4')
-                    </x-ui-button>
-                @endif
-                <x-ui-button variant="info-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })">
-                    @svg('heroicon-o-cog-6-tooth','w-4 h-4')
-                </x-ui-button>
-                </div>
-            </div>
-        </div>
+            @endif
+            <x-ui-button variant="info-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })">
+                @svg('heroicon-o-cog-6-tooth','w-4 h-4')
+            </x-ui-button>
+        </x-ui-page-navbar>
 
         <!-- Board-Container: füllt Höhe, Spalten scrollen intern -->
         <div class="flex-1 min-h-0 overflow-x-auto">
