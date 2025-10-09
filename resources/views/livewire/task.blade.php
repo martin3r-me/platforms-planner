@@ -101,7 +101,7 @@
                         name="dueDateInput"
                         label="Fälligkeitsdatum"
                         :value="$dueDateInput"
-                        wire:model.live.debounce.500ms="dueDateInput"
+                        wire:model="dueDateInput"
                         placeholder="Fälligkeitsdatum auswählen..."
                         :nullable="true"
                         :errorKey="'dueDateInput'"
