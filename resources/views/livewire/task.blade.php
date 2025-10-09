@@ -29,159 +29,173 @@
         </x-ui-page-navbar>
     </x-slot>
 
-    <x-ui-page-container maxWidth="max-w-4xl" spacing="space-y-12">
-        {{-- Bauhaus-Style Header --}}
-        <div class="bg-white border-b border-gray-100 px-8 py-6">
-            <div class="max-w-4xl">
-                <h1 class="text-2xl font-bold text-gray-900 mb-2 tracking-tight">{{ $task->title }}</h1>
-                <div class="flex items-center gap-4 text-sm text-gray-600">
-                    @if($task->project)
-                        <span class="flex items-center gap-1">
-                            @svg('heroicon-o-folder', 'w-4 h-4')
-                            {{ $task->project->name }}
-                        </span>
+    <x-ui-page-container maxWidth="max-w-4xl" spacing="space-y-8">
+        {{-- Modern Header --}}
+        <div class="bg-white rounded-lg border border-[var(--ui-border)]/60 p-8">
+            <div class="flex items-start justify-between">
+                <div class="flex-1 min-w-0">
+                    <h1 class="text-3xl font-bold text-[var(--ui-secondary)] mb-4 tracking-tight">{{ $task->title }}</h1>
+                    <div class="flex items-center gap-6 text-sm text-[var(--ui-muted)]">
+                        @if($task->project)
+                            <span class="flex items-center gap-2">
+                                @svg('heroicon-o-folder', 'w-4 h-4')
+                                {{ $task->project->name }}
+                            </span>
+                        @endif
+                        @if($task->due_date)
+                            <span class="flex items-center gap-2">
+                                @svg('heroicon-o-calendar', 'w-4 h-4')
+                                {{ $task->due_date->format('d.m.Y') }}
+                            </span>
+                        @endif
+                        @if($task->story_points)
+                            <span class="flex items-center gap-2">
+                                @svg('heroicon-o-sparkles', 'w-4 h-4')
+                                {{ $task->story_points->points() }} SP
+                            </span>
+                        @endif
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    @if($task->is_done)
+                        <x-ui-badge variant="success" size="lg">Erledigt</x-ui-badge>
                     @endif
-                    @if($task->due_date)
-                        <span class="flex items-center gap-1">
-                            @svg('heroicon-o-calendar', 'w-4 h-4')
-                            {{ $task->due_date->format('d.m.Y') }}
-                        </span>
-                    @endif
-                    @if($task->story_points)
-                        <span class="flex items-center gap-1">
-                            @svg('heroicon-o-sparkles', 'w-4 h-4')
-                            {{ $task->story_points->points() }} SP
-                        </span>
+                    @if($task->is_frog)
+                        <x-ui-badge variant="danger" size="lg">Frosch</x-ui-badge>
                     @endif
                 </div>
             </div>
         </div>
-            {{-- Form Section --}}
-            <div class="bg-white rounded-lg border border-gray-100 p-8">
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {{-- Left Column --}}
-                    <div class="space-y-6">
-                        <div>
-                            <x-ui-input-text
-                                name="task.title"
-                                label="Titel"
-                                wire:model.live.debounce.500ms="task.title"
-                                placeholder="Aufgabentitel eingeben..."
-                                required
-                                :errorKey="'task.title'"
-                            />
-                        </div>
-                        <div>
-                            <x-ui-input-select
-                                name="task.priority"
-                                label="Priorität"
-                                :options="\Platform\Planner\Enums\TaskPriority::cases()"
-                                optionValue="value"
-                                optionLabel="label"
-                                :nullable="false"
-                                wire:model.live="task.priority"
-                            />
-                        </div>
-                        <div>
-                            <x-ui-input-date
-                                name="task.due_date"
-                                label="Fälligkeitsdatum"
-                                wire:model.live.debounce.500ms="task.due_date"
-                                placeholder="Fälligkeitsdatum (optional)"
-                                :nullable="true"
-                                :errorKey="'task.due_date'"
-                            />
-                        </div>
-                    </div>
-
-                    {{-- Right Column --}}
-                    <div class="space-y-6">
-                        <div>
-                            <x-ui-input-select
-                                name="task.story_points"
-                                label="Story Points"
-                                :options="\Platform\Planner\Enums\TaskStoryPoints::cases()"
-                                optionValue="value"
-                                optionLabel="label"
-                                :nullable="true"
-                                nullLabel="– Story Points auswählen –"
-                                wire:model.live="task.story_points"
-                            />
-                        </div>
-                        <div class="space-y-4">
-                            <x-ui-input-checkbox
-                                model="task.is_done"
-                                checked-label="Erledigt"
-                                unchecked-label="Als erledigt markieren"
-                                size="md"
-                                block="true"
-                            />
-                            <x-ui-input-checkbox
-                                model="task.is_frog"
-                                checked-label="Frosch (wichtig & unangenehm)"
-                                unchecked-label="Als Frosch markieren"
-                                size="md"
-                                block="true"
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Description --}}
-                <div class="mt-8 pt-8 border-t border-gray-100">
-                    <x-ui-input-textarea
-                        name="task.description"
-                        label="Beschreibung"
-                        wire:model.live.debounce.500ms="task.description"
-                        placeholder="Aufgabenbeschreibung (optional)"
-                        rows="4"
-                        :errorKey="'task.description'"
+        {{-- Form Section --}}
+        <div class="bg-white rounded-lg border border-[var(--ui-border)]/60 p-8">
+            <x-ui-form-grid :cols="2" :gap="6">
+                <div>
+                    <x-ui-input-text
+                        name="task.title"
+                        label="Titel"
+                        wire:model.live.debounce.500ms="task.title"
+                        placeholder="Aufgabentitel eingeben..."
+                        required
+                        :errorKey="'task.title'"
                     />
                 </div>
+                <div>
+                    <x-ui-input-select
+                        name="task.priority"
+                        label="Priorität"
+                        :options="\Platform\Planner\Enums\TaskPriority::cases()"
+                        optionValue="value"
+                        optionLabel="label"
+                        :nullable="false"
+                        wire:model.live="task.priority"
+                    />
+                </div>
+                <div>
+                    <x-ui-input-date
+                        name="task.due_date"
+                        label="Fälligkeitsdatum"
+                        wire:model.live.debounce.500ms="task.due_date"
+                        placeholder="Fälligkeitsdatum (optional)"
+                        :nullable="true"
+                        :errorKey="'task.due_date'"
+                    />
+                </div>
+                <div>
+                    <x-ui-input-select
+                        name="task.story_points"
+                        label="Story Points"
+                        :options="\Platform\Planner\Enums\TaskStoryPoints::cases()"
+                        optionValue="value"
+                        optionLabel="label"
+                        :nullable="true"
+                        nullLabel="– Story Points auswählen –"
+                        wire:model.live="task.story_points"
+                    />
+                </div>
+            </x-ui-form-grid>
+
+            {{-- Status Checkboxes --}}
+            <div class="mt-8 pt-8 border-t border-[var(--ui-border)]/60">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <x-ui-panel class="bg-gray-50 rounded-lg">
+                        <x-ui-input-checkbox
+                            model="task.is_done"
+                            checked-label="Erledigt"
+                            unchecked-label="Als erledigt markieren"
+                            size="md"
+                            block="true"
+                        />
+                    </x-ui-panel>
+                    <x-ui-panel class="bg-gray-50 rounded-lg">
+                        <x-ui-input-checkbox
+                            model="task.is_frog"
+                            checked-label="Frosch (wichtig & unangenehm)"
+                            unchecked-label="Als Frosch markieren"
+                            size="md"
+                            block="true"
+                        />
+                    </x-ui-panel>
+                </div>
             </div>
+
+            {{-- Description --}}
+            <div class="mt-8 pt-8 border-t border-[var(--ui-border)]/60">
+                <x-ui-input-textarea
+                    name="task.description"
+                    label="Beschreibung"
+                    wire:model.live.debounce.500ms="task.description"
+                    placeholder="Aufgabenbeschreibung (optional)"
+                    rows="4"
+                    :errorKey="'task.description'"
+                />
+            </div>
+        </div>
     </x-ui-page-container>
 
     <x-slot name="sidebar">
-        <x-ui-page-sidebar title="Details" width="w-80" :defaultOpen="true">
+        <x-ui-page-sidebar title="Navigation & Details" width="w-80" :defaultOpen="true">
             <div class="p-6 space-y-8">
                 {{-- Navigation --}}
-                <div class="space-y-3">
-                    @if($task->project)
+                <div>
+                    <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-4">Navigation</h3>
+                    <div class="space-y-2">
+                        @if($task->project)
+                            <x-ui-button
+                                variant="secondary-outline"
+                                size="sm"
+                                :href="route('planner.projects.show', ['plannerProject' => $task->project->id])"
+                                wire:navigate
+                                class="w-full"
+                            >
+                                <span class="flex items-center gap-2">
+                                    @svg('heroicon-o-folder', 'w-4 h-4')
+                                    Zum Projekt
+                                </span>
+                            </x-ui-button>
+                        @endif
                         <x-ui-button
                             variant="secondary-outline"
-                            size="md"
-                            :href="route('planner.projects.show', ['plannerProject' => $task->project->id])"
+                            size="sm"
+                            :href="route('planner.my-tasks')"
                             wire:navigate
                             class="w-full"
                         >
                             <span class="flex items-center gap-2">
-                                @svg('heroicon-o-arrow-left', 'w-4 h-4')
-                                Zum Projekt
+                                @svg('heroicon-o-clipboard-document-list', 'w-4 h-4')
+                                Zu meinen Aufgaben
                             </span>
                         </x-ui-button>
-                    @endif
-                    <x-ui-button
-                        variant="secondary-outline"
-                        size="md"
-                        :href="route('planner.my-tasks')"
-                        wire:navigate
-                        class="w-full"
-                    >
-                        <span class="flex items-center gap-2">
-                            @svg('heroicon-o-arrow-left', 'w-4 h-4')
-                            Zu meinen Aufgaben
-                        </span>
-                    </x-ui-button>
+                    </div>
                 </div>
 
-                {{-- Bauhaus-Style Stats --}}
+                {{-- Status & Details --}}
                 <div class="space-y-6">
                     {{-- Quick Stats --}}
                     <div>
-                        <h3 class="text-xs font-bold text-gray-600 uppercase tracking-wider mb-4">Status</h3>
+                        <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-4">Status</h3>
                         <div class="space-y-3">
-                            <div class="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg">
-                                <span class="text-sm font-medium text-gray-700">Erledigt</span>
+                            <div class="flex items-center justify-between py-3 px-4 bg-[var(--ui-muted-5)] rounded-lg border border-[var(--ui-border)]/40">
+                                <span class="text-sm font-medium text-[var(--ui-secondary)]">Erledigt</span>
                                 <x-ui-input-checkbox
                                     model="task.is_done"
                                     checked-label=""
@@ -190,8 +204,8 @@
                                     block="false"
                                 />
                             </div>
-                            <div class="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg">
-                                <span class="text-sm font-medium text-gray-700">Frosch</span>
+                            <div class="flex items-center justify-between py-3 px-4 bg-[var(--ui-muted-5)] rounded-lg border border-[var(--ui-border)]/40">
+                                <span class="text-sm font-medium text-[var(--ui-secondary)]">Frosch</span>
                                 <x-ui-input-checkbox
                                     model="task.is_frog"
                                     checked-label=""
@@ -205,22 +219,22 @@
 
                     {{-- Metrics --}}
                     <div>
-                        <h3 class="text-xs font-bold text-gray-600 uppercase tracking-wider mb-4">Metriken</h3>
+                        <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-4">Metriken</h3>
                         <div class="space-y-3">
-                            <div class="py-3 px-4 bg-blue-50 rounded-lg border-l-4 border-blue-400">
-                                <div class="text-xs text-blue-600 font-medium uppercase tracking-wide">Offen seit</div>
-                                <div class="text-lg font-bold text-blue-900">{{ optional($task->created_at)->diffForHumans(null, true) }}</div>
+                            <div class="py-3 px-4 bg-[var(--ui-primary-5)] rounded-lg border-l-4 border-[var(--ui-primary)]">
+                                <div class="text-xs text-[var(--ui-primary)] font-medium uppercase tracking-wide">Offen seit</div>
+                                <div class="text-lg font-bold text-[var(--ui-primary)]">{{ optional($task->created_at)->diffForHumans(null, true) }}</div>
                             </div>
-                            <div class="py-3 px-4 bg-gray-50 rounded-lg">
-                                <div class="text-xs text-gray-600 font-medium uppercase tracking-wide">Kommentare</div>
-                                <div class="text-lg font-bold text-gray-900">0</div>
+                            <div class="py-3 px-4 bg-[var(--ui-muted-5)] rounded-lg border border-[var(--ui-border)]/40">
+                                <div class="text-xs text-[var(--ui-muted)] font-medium uppercase tracking-wide">Kommentare</div>
+                                <div class="text-lg font-bold text-[var(--ui-secondary)]">0</div>
                             </div>
                         </div>
                     </div>
 
                     {{-- Actions --}}
                     <div>
-                        <h3 class="text-xs font-bold text-gray-600 uppercase tracking-wider mb-4">Aktionen</h3>
+                        <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-4">Aktionen</h3>
                         <div class="space-y-2">
                             @can('delete', $task)
                                 <x-ui-confirm-button
