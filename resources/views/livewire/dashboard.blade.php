@@ -124,12 +124,6 @@
                 <div>
                     <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-3">Aktionen</h3>
                     <div class="space-y-2">
-                        <x-ui-button variant="primary" size="sm" :href="route('planner.projects.create')" wire:navigate class="w-full">
-                            <span class="flex items-center gap-2">
-                                @svg('heroicon-o-plus', 'w-4 h-4')
-                                Neues Projekt
-                            </span>
-                        </x-ui-button>
                         <x-ui-button variant="secondary-outline" size="sm" :href="route('planner.my-tasks')" wire:navigate class="w-full">
                             <span class="flex items-center gap-2">
                                 @svg('heroicon-o-clipboard-document-list', 'w-4 h-4')
