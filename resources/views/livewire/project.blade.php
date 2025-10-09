@@ -175,7 +175,7 @@
         </x-slot>
 
         <!-- Board-Container: füllt restliche Breite, Spalten scrollen intern -->
-            <x-ui-kanban-container sortable="updateTaskGroupOrder" sortable-group="updateTaskOrder">
+            <x-ui-kanban-board wire:sortable="updateTaskGroupOrder" wire:sortable-group="updateTaskOrder">
             {{-- Backlog (nicht sortierbar als Gruppe) --}}
             @php $backlog = $groups->first(fn($g) => ($g->isBacklog ?? false)); @endphp
             @if($backlog)
@@ -245,7 +245,7 @@
                     @endforeach
                 </x-ui-kanban-column>
             @endif
-            </x-ui-kanban-container>
+            </x-ui-kanban-board>
     </x-ui-page>
 
     <livewire:planner.project-settings-modal/>

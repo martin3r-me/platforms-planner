@@ -70,7 +70,7 @@
         </x-ui-page-sidebar>
     </x-slot>
 
-    <x-ui-kanban-container sortable="updateTaskGroupOrder" sortable-group="updateTaskOrder">
+    <x-ui-kanban-board wire:sortable="updateTaskGroupOrder" wire:sortable-group="updateTaskOrder">
 
             {{-- Backlog (nicht sortierbar) --}}
             @php $backlog = $groups->first(fn($g) => ($g->isBacklog ?? false)); @endphp
@@ -141,7 +141,7 @@
                 </x-ui-kanban-column>
             @endif
 
-    </x-ui-kanban-container>
+    </x-ui-kanban-board>
 
     <livewire:planner.task-group-settings-modal/>
 </x-ui-page>
