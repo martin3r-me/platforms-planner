@@ -1,6 +1,13 @@
 <x-ui-page>
     <x-slot name="navbar">
         <x-ui-page-navbar :title="$task->title" icon="heroicon-o-clipboard-document-check">
+            <x-slot name="titleActions">
+                @can('update', $task)
+                    <x-ui-button variant="info-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-task-settings', { taskId: {{ $task->id }} })" title="Einstellungen">
+                        @svg('heroicon-o-cog-6-tooth','w-6 h-6')
+                    </x-ui-button>
+                @endcan
+            </x-slot>
             @if($task->project)
                 <a href="{{ auth()->user()->can('view', $task->project) ? route('planner.projects.show', $task->project) : '#' }}"
                    @if(auth()->user()->can('view', $task->project)) wire:navigate @endif
@@ -19,10 +26,6 @@
                     </span>
                 </x-ui-button>
             @endcan
-
-            <x-ui-button variant="secondary-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="Alpine.store('page').activityOpen = !Alpine.store('page').activityOpen" title="Aktivitäten">
-                @svg('heroicon-o-bell-alert','w-6 h-6')
-            </x-ui-button>
         </x-ui-page-navbar>
     </x-slot>
 

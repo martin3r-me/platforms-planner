@@ -90,6 +90,11 @@
     <x-ui-page>
         <x-slot name="navbar">
             <x-ui-page-navbar :title="$project->name" icon="heroicon-o-clipboard-document-list">
+                <x-slot name="titleActions">
+                    <x-ui-button variant="info-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })" title="Einstellungen">
+                        @svg('heroicon-o-cog-6-tooth','w-6 h-6')
+                    </x-ui-button>
+                </x-slot>
                 <x-ui-button variant="primary" size="sm" rounded="full" wire:click="createProjectSlot">
                     <span class="inline-flex items-center gap-2">
                         @svg('heroicon-o-square-2-stack','w-4 h-4 inline-block align-middle')
@@ -103,13 +108,10 @@
                     </span>
                 </x-ui-button>
                 @if(($project->project_type?->value ?? $project->project_type) === 'customer')
-                <x-ui-button variant="secondary-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-customer-project', { projectId: {{ $project->id }} })">
-                    @svg('heroicon-o-user-group','w-6 h-6')
+                    <x-ui-button variant="secondary-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-customer-project', { projectId: {{ $project->id }} })">
+                        @svg('heroicon-o-user-group','w-6 h-6')
                     </x-ui-button>
                 @endif
-            <x-ui-button variant="info-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })">
-                @svg('heroicon-o-cog-6-tooth','w-6 h-6')
-                </x-ui-button>
                 <x-ui-button variant="secondary-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="Alpine.store('page').activityOpen = !Alpine.store('page').activityOpen" title="Aktivitäten">
                     @svg('heroicon-o-bell-alert','w-6 h-6')
                 </x-ui-button>
@@ -160,7 +162,7 @@
         </x-slot>
 
         <x-slot name="activity">
-            <x-ui-page-sidebar title="Aktivitäten" width="w-80" :defaultOpen="false" storeKey="activityOpen" class="border-l border-r-0">
+            <x-ui-page-sidebar title="Aktivitäten" width="w-80" :defaultOpen="false" storeKey="activityOpen" side="right">
                 <div class="p-4 space-y-4">
                     <div class="text-sm text-[var(--ui-muted)]">Letzte Aktivitäten</div>
                     <div class="space-y-3 text-sm">
