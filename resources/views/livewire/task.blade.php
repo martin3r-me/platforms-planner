@@ -30,49 +30,45 @@
     </x-slot>
 
     <div class="flex-1 overflow-y-auto p-4 min-w-0 space-y-6">
-        {{-- Aufgaben-Details --}}
-        <x-ui-panel title="Aufgaben-Details">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <x-ui-input-text 
-                        name="task.title"
-                        label="Titel"
-                        wire:model.live.debounce.500ms="task.title"
-                        placeholder="Aufgabentitel eingeben..."
-                        required
-                        :errorKey="'task.title'"
-                    />
-                    <x-ui-input-select
-                        name="task.priority"
-                        label="Priorität"
-                        :options="\Platform\Planner\Enums\TaskPriority::cases()"
-                        optionValue="value"
-                        optionLabel="label"
-                        :nullable="false"
-                        wire:model.live="task.priority"
-                    />
-                </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    <x-ui-input-date
-                        name="task.due_date"
-                        label="Fälligkeitsdatum"
-                        wire:model.live.debounce.500ms="task.due_date"
-                        placeholder="Fälligkeitsdatum (optional)"
-                        :nullable="true"
-                        :errorKey="'task.due_date'"
-                    />
-                    <x-ui-input-select
-                        name="task.story_points"
-                        label="Story Points"
-                        :options="\Platform\Planner\Enums\TaskStoryPoints::cases()"
-                        optionValue="value"
-                        optionLabel="label"
-                        :nullable="true"
-                        nullLabel="– Story Points auswählen –"
-                        wire:model.live="task.story_points"
-                    />
-                </div>
-                <div class="mt-4">
-                    <x-ui-input-textarea 
+        <x-ui-form-container title="Aufgaben-Details">
+            <x-ui-form-grid cols="2">
+                <x-ui-input-text
+                    name="task.title"
+                    label="Titel"
+                    wire:model.live.debounce.500ms="task.title"
+                    placeholder="Aufgabentitel eingeben..."
+                    required
+                    :errorKey="'task.title'"
+                />
+                <x-ui-input-select
+                    name="task.priority"
+                    label="Priorität"
+                    :options="\Platform\Planner\Enums\TaskPriority::cases()"
+                    optionValue="value"
+                    optionLabel="label"
+                    :nullable="false"
+                    wire:model.live="task.priority"
+                />
+                <x-ui-input-date
+                    name="task.due_date"
+                    label="Fälligkeitsdatum"
+                    wire:model.live.debounce.500ms="task.due_date"
+                    placeholder="Fälligkeitsdatum (optional)"
+                    :nullable="true"
+                    :errorKey="'task.due_date'"
+                />
+                <x-ui-input-select
+                    name="task.story_points"
+                    label="Story Points"
+                    :options="\Platform\Planner\Enums\TaskStoryPoints::cases()"
+                    optionValue="value"
+                    optionLabel="label"
+                    :nullable="true"
+                    nullLabel="– Story Points auswählen –"
+                    wire:model.live="task.story_points"
+                />
+                <div class="col-span-2">
+                    <x-ui-input-textarea
                         name="task.description"
                         label="Beschreibung"
                         wire:model.live.debounce.500ms="task.description"
@@ -81,28 +77,27 @@
                         :errorKey="'task.description'"
                     />
                 </div>
-        </x-ui-panel>
+            </x-ui-form-grid>
+        </x-ui-form-container>
 
-            {{-- Status & Zuweisung --}}
-            <div class="mb-6">
-                <h3 class="text-lg font-semibold mb-4 text-[var(--ui-secondary)]">Status & Zuweisung</h3>
-                <div class="grid grid-cols-2 gap-4">
-                    <x-ui-input-checkbox
-                        model="task.is_done"
-                        checked-label="Erledigt"
-                        unchecked-label="Als erledigt markieren"
-                        size="md"
-                        block="true"
-                    />
-                    <x-ui-input-checkbox
-                        model="task.is_frog"
-                        checked-label="Frosch (wichtig & unangenehm)"
-                        unchecked-label="Als Frosch markieren"
-                        size="md"
-                        block="true"
-                    />
-                </div>
-            </div>
+        <x-ui-form-container title="Status & Zuweisung">
+            <x-ui-form-grid cols="2">
+                <x-ui-input-checkbox
+                    model="task.is_done"
+                    checked-label="Erledigt"
+                    unchecked-label="Als erledigt markieren"
+                    size="md"
+                    block="true"
+                />
+                <x-ui-input-checkbox
+                    model="task.is_frog"
+                    checked-label="Frosch (wichtig & unangenehm)"
+                    unchecked-label="Als Frosch markieren"
+                    size="md"
+                    block="true"
+                />
+            </x-ui-form-grid>
+        </x-ui-form-container>
     </div>
 
     <x-slot name="sidebar">
