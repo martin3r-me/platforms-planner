@@ -42,7 +42,7 @@
                     :count="$activeProjects"
                     subtitle="von {{ $totalProjects }}"
                     icon="folder"
-                    variant="neutral"
+                    variant="primary"
                     size="lg"
                 />
                 <x-ui-dashboard-tile
@@ -50,7 +50,7 @@
                     :count="$openTasks"
                     subtitle="von {{ $totalTasks }}"
                     icon="clock"
-                    variant="neutral"
+                    variant="warning"
                     size="lg"
                 />
                 <x-ui-dashboard-tile
@@ -58,7 +58,7 @@
                     :count="$completedTasks"
                     subtitle="diesen Monat: {{ $monthlyCompletedTasks }}"
                     icon="check-circle"
-                    variant="neutral"
+                    variant="success"
                     size="lg"
                 />
                 <x-ui-dashboard-tile
@@ -66,7 +66,7 @@
                     :count="$openStoryPoints"
                     subtitle="erledigt: {{ $completedStoryPoints }}"
                     icon="chart-bar"
-                    variant="neutral"
+                    variant="info"
                     size="lg"
                 />
             </div>
@@ -76,19 +76,19 @@
                 <x-slot:left>
                     <h3 class="text-lg font-semibold text-[var(--ui-secondary)] mb-4">Aufgaben-Übersicht</h3>
                     <x-ui-form-grid :cols="2" :gap="3">
-                        <x-ui-dashboard-tile title="Frösche" :count="$frogTasks" icon="exclamation-triangle" variant="neutral" size="sm" />
-                        <x-ui-dashboard-tile title="Überfällig" :count="$overdueTasks" icon="exclamation-circle" variant="neutral" size="sm" />
+                        <x-ui-dashboard-tile title="Frösche" :count="$frogTasks" icon="exclamation-triangle" variant="danger" size="sm" />
+                        <x-ui-dashboard-tile title="Überfällig" :count="$overdueTasks" icon="exclamation-circle" variant="danger" size="sm" />
                         <x-ui-dashboard-tile title="Erstellt (Monat)" :count="$monthlyCreatedTasks" icon="plus-circle" variant="neutral" size="sm" />
-                        <x-ui-dashboard-tile title="Erledigt (Monat)" :count="$monthlyCompletedTasks" icon="check-circle" variant="neutral" size="sm" />
+                        <x-ui-dashboard-tile title="Erledigt (Monat)" :count="$monthlyCompletedTasks" icon="check-circle" variant="success" size="sm" />
                     </x-ui-form-grid>
                 </x-slot:left>
                 <x-slot:right>
                     <h3 class="text-lg font-semibold text-[var(--ui-secondary)] mb-4">Story Points Performance</h3>
                     <x-ui-form-grid :cols="2" :gap="3">
-                        <x-ui-dashboard-tile title="Offen" :count="$openStoryPoints" icon="clock" variant="neutral" size="sm" />
-                        <x-ui-dashboard-tile title="Erledigt" :count="$completedStoryPoints" icon="check-circle" variant="neutral" size="sm" />
+                        <x-ui-dashboard-tile title="Offen" :count="$openStoryPoints" icon="clock" variant="warning" size="sm" />
+                        <x-ui-dashboard-tile title="Erledigt" :count="$completedStoryPoints" icon="check-circle" variant="success" size="sm" />
                         <x-ui-dashboard-tile title="Erstellt (Monat)" :count="$monthlyCreatedPoints" icon="plus-circle" variant="neutral" size="sm" />
-                        <x-ui-dashboard-tile title="Erledigt (Monat)" :count="$monthlyCompletedPoints" icon="check-circle" variant="neutral" size="sm" />
+                        <x-ui-dashboard-tile title="Erledigt (Monat)" :count="$monthlyCompletedPoints" icon="check-circle" variant="success" size="sm" />
                     </x-ui-form-grid>
                 </x-slot:right>
             </x-ui-detail-stats-grid>
