@@ -29,7 +29,7 @@
         </x-ui-page-navbar>
     </x-slot>
 
-    <x-ui-page-container maxWidth="max-w-4xl" spacing="space-y-8">
+    <x-ui-page-container spacing="space-y-8">
         {{-- Modern Header --}}
         <div class="bg-white rounded-lg border border-[var(--ui-border)]/60 p-8">
             <div class="flex items-start justify-between">
