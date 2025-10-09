@@ -60,8 +60,13 @@ class Task extends Component
                 $this->task->due_date = null;
             } else {
                 try {
-                    // Parse das DateTime-Format (YYYY-MM-DD HH:MM)
-                    $this->task->due_date = \Carbon\Carbon::parse($value);
+                    // Prüfe ob es nur ein Jahr ist (z.B. "2025")
+                    if (preg_match('/^\d{4}$/', $value)) {
+                        $this->task->due_date = null; // Ungültiges Format ignorieren
+                    } else {
+                        // Parse das Date-Format (YYYY-MM-DD)
+                        $this->task->due_date = \Carbon\Carbon::parse($value);
+                    }
                 } catch (\Exception $e) {
                     // Bei ungültigem Datum auf null setzen
                     $this->task->due_date = null;
