@@ -101,80 +101,92 @@
     </div>
 
     <x-slot name="sidebar">
-        <x-ui-page-sidebar title="Einstellungen" width="w-80" :defaultOpen="true">
-            <div class="p-4 space-y-6">
-                {{-- Navigation Buttons --}}
-                <div class="flex flex-col gap-2">
-                    @if($task->project)
-                        <x-ui-button 
-                            variant="secondary-outline" 
-                            size="md" 
-                            :href="route('planner.projects.show', ['plannerProject' => $task->project->id])" 
+        <x-ui-page-sidebar title="Details" width="w-80" :defaultOpen="true">
+            <div class="p-4 space-y-4">
+                {{-- Navigation --}}
+                <x-ui-form-container>
+                    <div class="flex flex-col gap-2">
+                        @if($task->project)
+                            <x-ui-button
+                                variant="secondary-outline"
+                                size="md"
+                                :href="route('planner.projects.show', ['plannerProject' => $task->project->id])"
+                                wire:navigate
+                                class="w-full"
+                            >
+                                <span class="flex items-center gap-2">
+                                    @svg('heroicon-o-arrow-left', 'w-4 h-4')
+                                    Zum Projekt
+                                </span>
+                            </x-ui-button>
+                        @endif
+                        <x-ui-button
+                            variant="secondary-outline"
+                            size="md"
+                            :href="route('planner.my-tasks')"
                             wire:navigate
                             class="w-full"
                         >
-                            <div class="flex items-center gap-2">
+                            <span class="flex items-center gap-2">
                                 @svg('heroicon-o-arrow-left', 'w-4 h-4')
-                                Zum Projekt
-                            </div>
+                                Zu meinen Aufgaben
+                            </span>
                         </x-ui-button>
-                    @endif
-                    <x-ui-button 
-                        variant="secondary-outline" 
-                        size="md" 
-                        :href="route('planner.my-tasks')" 
-                        wire:navigate
-                        class="w-full"
-                    >
-                        <div class="flex items-center gap-2">
-                            @svg('heroicon-o-arrow-left', 'w-4 h-4')
-                            Zu meinen Aufgaben
-                        </div>
-                    </x-ui-button>
-                </div>
-
-                {{-- Kurze Übersicht --}}
-                <x-ui-panel title="Aufgaben-Übersicht">
-                    <div class="space-y-1 text-sm">
-                        <div><strong>Titel:</strong> {{ $task->title }}</div>
-                        @if($task->project)
-                            <div><strong>Projekt:</strong> {{ $task->project->name }}</div>
-                        @endif
-                        @if($task->due_date)
-                            <div><strong>Fällig:</strong> {{ $task->due_date->format('d.m.Y') }}</div>
-                        @endif
-                        @if($task->story_points)
-                            <div><strong>Story Points:</strong> {{ $task->story_points }}</div>
-                        @endif
                     </div>
-                </x-ui-panel>
+                </x-ui-form-container>
+
+                {{-- Übersicht --}}
+                <x-ui-form-container title="Übersicht">
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between"><span class="text-[var(--ui-muted)]">Titel</span><span class="text-[var(--ui-secondary)] font-medium truncate max-w-[12rem] text-right">{{ $task->title }}</span></div>
+                        @if($task->project)
+                            <div class="flex justify-between"><span class="text-[var(--ui-muted)]">Projekt</span><span class="text-[var(--ui-secondary)] font-medium truncate max-w-[12rem] text-right">{{ $task->project->name }}</span></div>
+                        @endif
+                        <div class="flex justify-between"><span class="text-[var(--ui-muted)]">Fälligkeit</span><span class="text-[var(--ui-secondary)] font-medium">{{ $task->due_date ? $task->due_date->format('d.m.Y') : '—' }}</span></div>
+                        <div class="flex justify-between"><span class="text-[var(--ui-muted)]">Story Points</span><span class="text-[var(--ui-secondary)] font-medium">{{ $task->story_points ?? '—' }}</span></div>
+                    </div>
+                </x-ui-form-container>
+
+                {{-- KPIs --}}
+                <x-ui-form-container title="KPIs">
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between py-2 px-3 rounded-md bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
+                            <span class="text-sm text-[var(--ui-secondary)]">Offen seit</span>
+                            <span class="text-sm font-semibold text-[var(--ui-warning)]">{{ optional($task->created_at)->diffForHumans(null, true) }}</span>
+                        </div>
+                        <div class="flex items-center justify-between py-2 px-3 rounded-md bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
+                            <span class="text-sm text-[var(--ui-secondary)]">Kommentare</span>
+                            <span class="text-sm font-semibold text-[var(--ui-secondary)]">—</span>
+                        </div>
+                    </div>
+                </x-ui-form-container>
 
                 {{-- Status --}}
-                <x-ui-input-checkbox
-                    model="task.is_done"
-                    checked-label="Aufgabe erledigt"
-                    unchecked-label="Als erledigt markieren"
-                    size="md"
-                    block="true"
-                />
-
-                <hr class="my-4">
+                <x-ui-form-container title="Status">
+                    <x-ui-input-checkbox
+                        model="task.is_done"
+                        checked-label="Aufgabe erledigt"
+                        unchecked-label="Als erledigt markieren"
+                        size="md"
+                        block="true"
+                    />
+                </x-ui-form-container>
 
                 {{-- Aktionen --}}
-                <x-ui-panel title="Aktionen">
-                    <div class="space-y-2 mt-2">
+                <x-ui-form-container title="Aktionen">
+                    <div class="space-y-2">
                         @can('delete', $task)
-                            <x-ui-confirm-button 
-                                action="delete" 
-                                text="Aufgabe löschen" 
-                                confirmText="Wirklich löschen?" 
+                            <x-ui-confirm-button
+                                action="delete"
+                                text="Aufgabe löschen"
+                                confirmText="Wirklich löschen?"
                                 variant="danger-outline"
                                 :icon="@svg('heroicon-o-trash', 'w-4 h-4')->toHtml()"
                                 class="w-full"
                             />
                         @endcan
                     </div>
-                </x-ui-panel>
+                </x-ui-form-container>
             </div>
         </x-ui-page-sidebar>
     </x-slot>
