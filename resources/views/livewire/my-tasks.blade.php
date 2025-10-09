@@ -96,14 +96,14 @@
                     <x-slot name="headerActions">
                         <button 
                             wire:click="createTask('{{ $column->id }}')" 
-                            class="text-[var(--ui-success)] hover:opacity-80 transition-opacity"
+                            class="text-green-600 hover:opacity-80 transition-opacity"
                             title="Neue Aufgabe"
                         >
                             @svg('heroicon-o-plus-circle', 'w-5 h-5')
                         </button>
                         <button 
                             @click="$dispatch('open-modal-project-slot-settings', { projectSlotId: '{{ $column->id ?? 'unknown' }}' })"
-                            class="text-[var(--ui-muted)] hover:text-[var(--ui-primary)] transition-colors"
+                            class="text-gray-500 hover:text-blue-600 transition-colors"
                             title="Einstellungen"
                         >
                             @svg('heroicon-o-cog-6-tooth', 'w-5 h-5')
