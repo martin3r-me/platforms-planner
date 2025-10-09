@@ -343,8 +343,6 @@ class Dashboard extends Component
             ->count();
 
         return view('planner::livewire.dashboard', [
-            'currentDate' => now()->format('d.m.Y'),
-            'currentDay' => now()->format('l'),
             'perspective' => $this->perspective,
             'activeProjects' => $activeProjects,
             'totalProjects' => $totalProjects,

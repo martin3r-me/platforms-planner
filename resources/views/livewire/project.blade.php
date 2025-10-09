@@ -112,9 +112,6 @@
                         @svg('heroicon-o-user-group','w-6 h-6')
                     </x-ui-button>
                 @endif
-                <x-ui-button variant="secondary-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="Alpine.store('page').activityOpen = !Alpine.store('page').activityOpen" title="Aktivitäten">
-                    @svg('heroicon-o-bell-alert','w-6 h-6')
-                </x-ui-button>
             </x-ui-page-navbar>
         </x-slot>
 
