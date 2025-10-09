@@ -102,7 +102,7 @@
                             @svg('heroicon-o-plus-circle', 'w-5 h-5')
                         </button>
                         <button 
-                            @click="$dispatch('open-modal-project-slot-settings', { projectSlotId: {{ $column->id }} })"
+                            @click="$dispatch('open-modal-project-slot-settings', { projectSlotId: '{{ $column->id ?? 'unknown' }}' })"
                             class="text-[var(--ui-muted)] hover:text-[var(--ui-primary)] transition-colors"
                             title="Einstellungen"
                         >
