@@ -60,6 +60,7 @@ class Task extends Component
                 $this->task->due_date = null;
             } else {
                 try {
+                    // Parse das DateTime-Format (YYYY-MM-DD HH:MM)
                     $this->task->due_date = \Carbon\Carbon::parse($value);
                 } catch (\Exception $e) {
                     // Bei ungültigem Datum auf null setzen

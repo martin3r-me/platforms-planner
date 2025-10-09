@@ -51,7 +51,7 @@
                         @if($task->due_date)
                             <span class="flex items-center gap-2">
                                 @svg('heroicon-o-calendar', 'w-4 h-4')
-                                {{ $task->due_date->format('d.m.Y') }}
+                                {{ $task->due_date->format('d.m.Y H:i') }}
                             </span>
                         @endif
                         @if($task->story_points)
@@ -97,13 +97,14 @@
                     />
                 </div>
                 <div>
-                    <x-ui-input-date
+                    <x-ui-input-datetime
                         name="task.due_date"
                         label="Fälligkeitsdatum"
                         :value="$task->due_date"
                         wire:model.live.debounce.500ms="task.due_date"
-                        placeholder="Fälligkeitsdatum (optional)"
+                        placeholder="Fälligkeitsdatum und Zeit auswählen..."
                         :nullable="true"
+                        :showTime="true"
                         :errorKey="'task.due_date'"
                     />
                 </div>
