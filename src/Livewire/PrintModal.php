@@ -7,6 +7,10 @@ use Livewire\Component;
 class PrintModal extends Component
 {
     public $modalShow = false;
+    // Ansicht & Optionen
+    public $printView = 'simple';           // 'simple' | 'detailed'
+    public $paper = 'a4';                  // 'a4' | 'letter'
+    public $orientation = 'portrait';      // 'portrait' | 'landscape' (für Gruppen)
     public $printTarget = 'printer';
     public $selectedPrinterId = null;
     public $selectedPrinterGroupId = null;
@@ -32,7 +36,14 @@ class PrintModal extends Component
     public function closePrintModal()
     {
         $this->modalShow = false;
-        $this->reset(['printTarget', 'selectedPrinterId', 'selectedPrinterGroupId']);
+        $this->reset([
+            'printTarget',
+            'selectedPrinterId',
+            'selectedPrinterGroupId',
+            'printView',
+            'paper',
+            'orientation',
+        ]);
     }
 
     public function printTaskConfirm()
