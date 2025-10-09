@@ -54,6 +54,20 @@ class Task extends Component
 
     public function updatedTask($property, $value)
     {
+        // Spezielle Behandlung für due_date
+        if ($property === 'due_date') {
+            if (empty($value)) {
+                $this->task->due_date = null;
+            } else {
+                try {
+                    $this->task->due_date = \Carbon\Carbon::parse($value);
+                } catch (\Exception $e) {
+                    // Bei ungültigem Datum auf null setzen
+                    $this->task->due_date = null;
+                }
+            }
+        }
+        
         $this->validateOnly("task.$property");
         $this->task->save();
     }
