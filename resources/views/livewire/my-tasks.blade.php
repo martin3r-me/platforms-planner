@@ -70,7 +70,7 @@
         </x-ui-page-sidebar>
     </x-slot>
 
-    <x-ui-kanban-container sortable="updateTaskGroupOrder" sortable-group="updateTaskOrder">
+    <x-ui-kanban-container sortable="updateTaskGroupOrder" sortable-group="updateTaskOrder" show-toggle="true" view="board">
 
             {{-- Backlog (nicht sortierbar) --}}
             @php $backlog = $groups->first(fn($g) => ($g->isBacklog ?? false)); @endphp

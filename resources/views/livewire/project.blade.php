@@ -175,7 +175,7 @@
         </x-slot>
 
         <!-- Board-Container: füllt restliche Breite, Spalten scrollen intern -->
-        <x-ui-kanban-container sortable="updateTaskGroupOrder" sortable-group="updateTaskOrder">
+        <x-ui-kanban-container sortable="updateTaskGroupOrder" sortable-group="updateTaskOrder" show-toggle="true" view="board">
             {{-- Backlog (nicht sortierbar als Gruppe) --}}
             @php $backlog = $groups->first(fn($g) => ($g->isBacklog ?? false)); @endphp
             @if($backlog)
