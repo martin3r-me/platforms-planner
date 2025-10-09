@@ -333,6 +333,15 @@ class Dashboard extends Component
         ->sortByDesc('open_tasks')
         ->take(5);
 
+        // Additional properties for sidebar
+        $todayCreatedTasks = PlannerTask::where('team_id', $team->id)
+            ->whereDate('created_at', today())
+            ->count();
+            
+        $todayCompletedTasks = PlannerTask::where('team_id', $team->id)
+            ->whereDate('done_at', today())
+            ->count();
+
         return view('planner::livewire.dashboard', [
             'currentDate' => now()->format('d.m.Y'),
             'currentDay' => now()->format('l'),
@@ -353,6 +362,8 @@ class Dashboard extends Component
             'monthlyCompletedPoints' => $monthlyCompletedPoints,
             'teamMembers' => $teamMembers,
             'activeProjectsList' => $activeProjectsList,
+            'todayCreatedTasks' => $todayCreatedTasks,
+            'todayCompletedTasks' => $todayCompletedTasks,
         ])->layout('platform::layouts.app');
     }
 }
