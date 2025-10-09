@@ -42,6 +42,12 @@
                                 {{ $task->project->name }}
                             </span>
                         @endif
+                        @if($task->userInCharge)
+                            <span class="flex items-center gap-2">
+                                @svg('heroicon-o-user', 'w-4 h-4')
+                                {{ $task->userInCharge->fullname ?? $task->userInCharge->name }}
+                            </span>
+                        @endif
                         @if($task->due_date)
                             <span class="flex items-center gap-2">
                                 @svg('heroicon-o-calendar', 'w-4 h-4')
@@ -110,6 +116,18 @@
                         :nullable="true"
                         nullLabel="– Story Points auswählen –"
                         wire:model.live="task.story_points"
+                    />
+                </div>
+                <div>
+                    <x-ui-input-select
+                        name="task.user_in_charge_id"
+                        label="Verantwortlicher"
+                        :options="$teamUsers"
+                        optionValue="id"
+                        optionLabel="name"
+                        :nullable="true"
+                        nullLabel="– Verantwortlichen auswählen –"
+                        wire:model.live="task.user_in_charge_id"
                     />
                 </div>
             </x-ui-form-grid>
@@ -221,6 +239,12 @@
                     <div>
                         <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-4">Metriken</h3>
                         <div class="space-y-3">
+                            @if($task->userInCharge)
+                                <div class="py-3 px-4 bg-[var(--ui-info-5)] rounded-lg border-l-4 border-[var(--ui-info)]">
+                                    <div class="text-xs text-[var(--ui-info)] font-medium uppercase tracking-wide">Verantwortlicher</div>
+                                    <div class="text-lg font-bold text-[var(--ui-info)]">{{ $task->userInCharge->fullname ?? $task->userInCharge->name }}</div>
+                                </div>
+                            @endif
                             <div class="py-3 px-4 bg-[var(--ui-primary-5)] rounded-lg border-l-4 border-[var(--ui-primary)]">
                                 <div class="text-xs text-[var(--ui-primary)] font-medium uppercase tracking-wide">Offen seit</div>
                                 <div class="text-lg font-bold text-[var(--ui-primary)]">{{ optional($task->created_at)->diffForHumans(null, true) }}</div>

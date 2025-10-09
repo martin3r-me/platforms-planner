@@ -158,10 +158,25 @@ class Task extends Component
             $groups   = $printing->listPrinterGroups();
         }
 
+        // Team-Mitglieder für Assignee-Auswahl laden
+        $teamUsers = Auth::user()
+            ->currentTeam
+            ->users()
+            ->orderBy('name')
+            ->get()
+            ->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->fullname ?? $user->name,
+                    'email' => $user->email,
+                ];
+            });
+
         return view('planner::livewire.task', [
             'printers' => $printers,
             'printerGroups' => $groups,
             'printingAvailable' => $this->printingAvailable,
+            'teamUsers' => $teamUsers,
         ])->layout('platform::layouts.app');
     }
 }
