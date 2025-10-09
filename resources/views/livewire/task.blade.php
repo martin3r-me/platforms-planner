@@ -98,13 +98,13 @@
                 </div>
                 <div>
                     <x-ui-input-datetime
-                        name="task.due_date"
+                        name="dueDateInput"
                         label="Fälligkeitsdatum"
-                        :value="$task->due_date"
-                        wire:model.live.debounce.500ms="task.due_date"
+                        :value="$dueDateInput"
+                        wire:model.live.debounce.500ms="dueDateInput"
                         placeholder="Fälligkeitsdatum auswählen..."
                         :nullable="true"
-                        :errorKey="'task.due_date'"
+                        :errorKey="'dueDateInput'"
                     />
                 </div>
                 <div>
