@@ -29,140 +29,145 @@
         </x-ui-page-navbar>
     </x-slot>
 
-    <div class="flex-1 overflow-y-auto p-4 min-w-0 space-y-6">
-        <x-ui-form-container title="Aufgaben-Details">
-            <x-ui-form-grid cols="2">
-                <x-ui-input-text
-                    name="task.title"
-                    label="Titel"
-                    wire:model.live.debounce.500ms="task.title"
-                    placeholder="Aufgabentitel eingeben..."
-                    required
-                    :errorKey="'task.title'"
-                />
-                <x-ui-input-select
-                    name="task.priority"
-                    label="Priorität"
-                    :options="\Platform\Planner\Enums\TaskPriority::cases()"
-                    optionValue="value"
-                    optionLabel="label"
-                    :nullable="false"
-                    wire:model.live="task.priority"
-                />
-                <x-ui-input-date
-                    name="task.due_date"
-                    label="Fälligkeitsdatum"
-                    wire:model.live.debounce.500ms="task.due_date"
-                    placeholder="Fälligkeitsdatum (optional)"
-                    :nullable="true"
-                    :errorKey="'task.due_date'"
-                />
-                <x-ui-input-select
-                    name="task.story_points"
-                    label="Story Points"
-                    :options="\Platform\Planner\Enums\TaskStoryPoints::cases()"
-                    optionValue="value"
-                    optionLabel="label"
-                    :nullable="true"
-                    nullLabel="– Story Points auswählen –"
-                    wire:model.live="task.story_points"
-                />
-                <div class="col-span-2">
-                    <x-ui-input-textarea
-                        name="task.description"
-                        label="Beschreibung"
-                        wire:model.live.debounce.500ms="task.description"
-                        placeholder="Aufgabenbeschreibung (optional)"
-                        rows="4"
-                        :errorKey="'task.description'"
+    <div class="flex-1 overflow-y-auto p-6 min-w-0 space-y-8">
+        <div class="space-y-6">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Aufgaben-Details</h2>
+                <x-ui-form-grid cols="2">
+                    <x-ui-input-text
+                        name="task.title"
+                        label="Titel"
+                        wire:model.live.debounce.500ms="task.title"
+                        placeholder="Aufgabentitel eingeben..."
+                        required
+                        :errorKey="'task.title'"
                     />
-                </div>
-            </x-ui-form-grid>
-        </x-ui-form-container>
+                    <x-ui-input-select
+                        name="task.priority"
+                        label="Priorität"
+                        :options="\Platform\Planner\Enums\TaskPriority::cases()"
+                        optionValue="value"
+                        optionLabel="label"
+                        :nullable="false"
+                        wire:model.live="task.priority"
+                    />
+                    <x-ui-input-date
+                        name="task.due_date"
+                        label="Fälligkeitsdatum"
+                        wire:model.live.debounce.500ms="task.due_date"
+                        placeholder="Fälligkeitsdatum (optional)"
+                        :nullable="true"
+                        :errorKey="'task.due_date'"
+                    />
+                    <x-ui-input-select
+                        name="task.story_points"
+                        label="Story Points"
+                        :options="\Platform\Planner\Enums\TaskStoryPoints::cases()"
+                        optionValue="value"
+                        optionLabel="label"
+                        :nullable="true"
+                        nullLabel="– Story Points auswählen –"
+                        wire:model.live="task.story_points"
+                    />
+                    <div class="col-span-2">
+                        <x-ui-input-textarea
+                            name="task.description"
+                            label="Beschreibung"
+                            wire:model.live.debounce.500ms="task.description"
+                            placeholder="Aufgabenbeschreibung (optional)"
+                            rows="4"
+                            :errorKey="'task.description'"
+                        />
+                    </div>
+                </x-ui-form-grid>
+            </div>
 
-        <x-ui-form-container title="Status & Zuweisung">
-            <x-ui-form-grid cols="2">
-                <x-ui-input-checkbox
-                    model="task.is_done"
-                    checked-label="Erledigt"
-                    unchecked-label="Als erledigt markieren"
-                    size="md"
-                    block="true"
-                />
-                <x-ui-input-checkbox
-                    model="task.is_frog"
-                    checked-label="Frosch (wichtig & unangenehm)"
-                    unchecked-label="Als Frosch markieren"
-                    size="md"
-                    block="true"
-                />
-            </x-ui-form-grid>
-        </x-ui-form-container>
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Status & Zuweisung</h2>
+                <x-ui-form-grid cols="2">
+                    <x-ui-input-checkbox
+                        model="task.is_done"
+                        checked-label="Erledigt"
+                        unchecked-label="Als erledigt markieren"
+                        size="md"
+                        block="true"
+                    />
+                    <x-ui-input-checkbox
+                        model="task.is_frog"
+                        checked-label="Frosch (wichtig & unangenehm)"
+                        unchecked-label="Als Frosch markieren"
+                        size="md"
+                        block="true"
+                    />
+                </x-ui-form-grid>
+            </div>
+        </div>
     </div>
 
     <x-slot name="sidebar">
         <x-ui-page-sidebar title="Details" width="w-80" :defaultOpen="true">
             <div class="p-4 space-y-4">
                 {{-- Navigation --}}
-                <x-ui-form-container>
-                    <div class="flex flex-col gap-2">
-                        @if($task->project)
-                            <x-ui-button
-                                variant="secondary-outline"
-                                size="md"
-                                :href="route('planner.projects.show', ['plannerProject' => $task->project->id])"
-                                wire:navigate
-                                class="w-full"
-                            >
-                                <span class="flex items-center gap-2">
-                                    @svg('heroicon-o-arrow-left', 'w-4 h-4')
-                                    Zum Projekt
-                                </span>
-                            </x-ui-button>
-                        @endif
+                <div class="space-y-2">
+                    @if($task->project)
                         <x-ui-button
                             variant="secondary-outline"
                             size="md"
-                            :href="route('planner.my-tasks')"
+                            :href="route('planner.projects.show', ['plannerProject' => $task->project->id])"
                             wire:navigate
                             class="w-full"
                         >
                             <span class="flex items-center gap-2">
                                 @svg('heroicon-o-arrow-left', 'w-4 h-4')
-                                Zu meinen Aufgaben
+                                Zum Projekt
                             </span>
                         </x-ui-button>
-                    </div>
-                </x-ui-form-container>
+                    @endif
+                    <x-ui-button
+                        variant="secondary-outline"
+                        size="md"
+                        :href="route('planner.my-tasks')"
+                        wire:navigate
+                        class="w-full"
+                    >
+                        <span class="flex items-center gap-2">
+                            @svg('heroicon-o-arrow-left', 'w-4 h-4')
+                            Zu meinen Aufgaben
+                        </span>
+                    </x-ui-button>
+                </div>
 
                 {{-- Übersicht --}}
-                <x-ui-form-container title="Übersicht">
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-900 mb-3">Übersicht</h3>
                     <div class="space-y-2 text-sm">
-                        <div class="flex justify-between"><span class="text-[var(--ui-muted)]">Titel</span><span class="text-[var(--ui-secondary)] font-medium truncate max-w-[12rem] text-right">{{ $task->title }}</span></div>
+                        <div class="flex justify-between"><span class="text-gray-500">Titel</span><span class="text-gray-900 font-medium truncate max-w-[12rem] text-right">{{ $task->title }}</span></div>
                         @if($task->project)
-                            <div class="flex justify-between"><span class="text-[var(--ui-muted)]">Projekt</span><span class="text-[var(--ui-secondary)] font-medium truncate max-w-[12rem] text-right">{{ $task->project->name }}</span></div>
+                            <div class="flex justify-between"><span class="text-gray-500">Projekt</span><span class="text-gray-900 font-medium truncate max-w-[12rem] text-right">{{ $task->project->name }}</span></div>
                         @endif
-                        <div class="flex justify-between"><span class="text-[var(--ui-muted)]">Fälligkeit</span><span class="text-[var(--ui-secondary)] font-medium">{{ $task->due_date ? $task->due_date->format('d.m.Y') : '—' }}</span></div>
-                        <div class="flex justify-between"><span class="text-[var(--ui-muted)]">Story Points</span><span class="text-[var(--ui-secondary)] font-medium">{{ $task->story_points ?? '—' }}</span></div>
+                        <div class="flex justify-between"><span class="text-gray-500">Fälligkeit</span><span class="text-gray-900 font-medium">{{ $task->due_date ? $task->due_date->format('d.m.Y') : '—' }}</span></div>
+                        <div class="flex justify-between"><span class="text-gray-500">Story Points</span><span class="text-gray-900 font-medium">{{ $task->story_points ?? '—' }}</span></div>
                     </div>
-                </x-ui-form-container>
+                </div>
 
                 {{-- KPIs --}}
-                <x-ui-form-container title="KPIs">
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-900 mb-3">KPIs</h3>
                     <div class="space-y-2">
-                        <div class="flex items-center justify-between py-2 px-3 rounded-md bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
-                            <span class="text-sm text-[var(--ui-secondary)]">Offen seit</span>
-                            <span class="text-sm font-semibold text-[var(--ui-warning)]">{{ optional($task->created_at)->diffForHumans(null, true) }}</span>
+                        <div class="flex items-center justify-between py-2 px-3 rounded-md bg-gray-50 border border-gray-200">
+                            <span class="text-sm text-gray-600">Offen seit</span>
+                            <span class="text-sm font-semibold text-amber-600">{{ optional($task->created_at)->diffForHumans(null, true) }}</span>
                         </div>
-                        <div class="flex items-center justify-between py-2 px-3 rounded-md bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
-                            <span class="text-sm text-[var(--ui-secondary)]">Kommentare</span>
-                            <span class="text-sm font-semibold text-[var(--ui-secondary)]">—</span>
+                        <div class="flex items-center justify-between py-2 px-3 rounded-md bg-gray-50 border border-gray-200">
+                            <span class="text-sm text-gray-600">Kommentare</span>
+                            <span class="text-sm font-semibold text-gray-900">—</span>
                         </div>
                     </div>
-                </x-ui-form-container>
+                </div>
 
                 {{-- Status --}}
-                <x-ui-form-container title="Status">
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-900 mb-3">Status</h3>
                     <x-ui-input-checkbox
                         model="task.is_done"
                         checked-label="Aufgabe erledigt"
@@ -170,10 +175,11 @@
                         size="md"
                         block="true"
                     />
-                </x-ui-form-container>
+                </div>
 
                 {{-- Aktionen --}}
-                <x-ui-form-container title="Aktionen">
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-900 mb-3">Aktionen</h3>
                     <div class="space-y-2">
                         @can('delete', $task)
                             <x-ui-confirm-button
@@ -186,7 +192,7 @@
                             />
                         @endcan
                     </div>
-                </x-ui-form-container>
+                </div>
             </div>
         </x-ui-page-sidebar>
     </x-slot>
