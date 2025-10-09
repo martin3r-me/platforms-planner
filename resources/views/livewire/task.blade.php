@@ -97,7 +97,7 @@
                     />
                 </div>
                 <div>
-                    <x-ui-input-date
+                    <x-ui-input-datetime
                         name="task.due_date"
                         label="Fälligkeitsdatum"
                         :value="$task->due_date"

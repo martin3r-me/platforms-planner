@@ -64,7 +64,7 @@ class Task extends Component
                     if (preg_match('/^\d{4}$/', $value)) {
                         $this->task->due_date = null; // Ungültiges Format ignorieren
                     } else {
-                        // Parse das Date-Format (YYYY-MM-DD)
+                        // Parse das Date-Format (YYYY-MM-DD oder YYYY-MM-DD HH:MM)
                         $this->task->due_date = \Carbon\Carbon::parse($value);
                     }
                 } catch (\Exception $e) {
