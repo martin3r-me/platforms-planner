@@ -17,8 +17,7 @@
         </x-ui-page-navbar>
     </x-slot>
 
-    <div class="flex-1 overflow-y-auto bg-gray-50/30">
-        <div class="max-w-7xl mx-auto px-8 py-8 space-y-8">
+    <x-ui-page-container>
             {{-- Info Banner --}}
             @if($perspective === 'personal')
                 <x-ui-info-banner 
@@ -101,8 +100,7 @@
             <x-ui-panel title="Meine aktiven Projekte" subtitle="Top 5 Projekte nach offenen Aufgaben">
                 <x-ui-project-list :projects="$activeProjectsList" projectRoute="planner.projects.show" />
             </x-ui-panel>
-        </div>
-    </div>
+    </x-ui-page-container>
 
     <x-slot name="sidebar">
         <x-ui-page-sidebar title="Schnellzugriff" width="w-80" :defaultOpen="true">

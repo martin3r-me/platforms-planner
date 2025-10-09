@@ -29,7 +29,7 @@
         </x-ui-page-navbar>
     </x-slot>
 
-    <div class="flex-1 overflow-y-auto bg-gray-50/30">
+    <x-ui-page-container maxWidth="max-w-4xl" spacing="space-y-12">
         {{-- Bauhaus-Style Header --}}
         <div class="bg-white border-b border-gray-100 px-8 py-6">
             <div class="max-w-4xl">
@@ -56,9 +56,6 @@
                 </div>
             </div>
         </div>
-
-        {{-- Main Content --}}
-        <div class="max-w-4xl mx-auto px-8 py-8 space-y-12">
             {{-- Form Section --}}
             <div class="bg-white rounded-lg border border-gray-100 p-8">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -142,8 +139,7 @@
                     />
                 </div>
             </div>
-        </div>
-    </div>
+    </x-ui-page-container>
 
     <x-slot name="sidebar">
         <x-ui-page-sidebar title="Details" width="w-80" :defaultOpen="true">
