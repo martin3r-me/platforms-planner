@@ -10,6 +10,7 @@ use Livewire\Attributes\On;
 
 class MyTasks extends Component
 {
+
     #[On('updateDashboard')] 
     public function updateDashboard()
     {
