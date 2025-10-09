@@ -103,9 +103,6 @@
                     />
                 </div>
             </div>
-        </div>
-        <!-- Aktivitäten unten -->
-        
     </div>
 
     <x-slot name="sidebar">
