@@ -73,47 +73,34 @@
             </div>
 
             {{-- Detail Stats --}}
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {{-- Aufgaben-Übersicht --}}
-                <div class="bg-white rounded-lg border border-gray-100 p-6">
+            <x-ui-detail-stats-grid cols="2" gap="6">
+                <x-slot:left>
                     <h3 class="text-lg font-semibold text-[var(--ui-secondary)] mb-4">Aufgaben-Übersicht</h3>
-                    <div class="grid grid-cols-2 gap-4">
+                    <x-ui-form-grid :cols="2" :gap="3">
                         <x-ui-dashboard-tile title="Frösche" :count="$frogTasks" icon="exclamation-triangle" variant="danger" size="sm" />
                         <x-ui-dashboard-tile title="Überfällig" :count="$overdueTasks" icon="exclamation-circle" variant="danger" size="sm" />
                         <x-ui-dashboard-tile title="Erstellt (Monat)" :count="$monthlyCreatedTasks" icon="plus-circle" variant="neutral" size="sm" />
                         <x-ui-dashboard-tile title="Erledigt (Monat)" :count="$monthlyCompletedTasks" icon="check-circle" variant="success" size="sm" />
-                    </div>
-                </div>
-
-                {{-- Story Points Performance --}}
-                <div class="bg-white rounded-lg border border-gray-100 p-6">
+                    </x-ui-form-grid>
+                </x-slot:left>
+                <x-slot:right>
                     <h3 class="text-lg font-semibold text-[var(--ui-secondary)] mb-4">Story Points Performance</h3>
-                    <div class="grid grid-cols-2 gap-4">
+                    <x-ui-form-grid :cols="2" :gap="3">
                         <x-ui-dashboard-tile title="Offen" :count="$openStoryPoints" icon="clock" variant="warning" size="sm" />
                         <x-ui-dashboard-tile title="Erledigt" :count="$completedStoryPoints" icon="check-circle" variant="success" size="sm" />
                         <x-ui-dashboard-tile title="Erstellt (Monat)" :count="$monthlyCreatedPoints" icon="plus-circle" variant="neutral" size="sm" />
                         <x-ui-dashboard-tile title="Erledigt (Monat)" :count="$monthlyCompletedPoints" icon="check-circle" variant="success" size="sm" />
-                    </div>
-                </div>
-            </div>
+                    </x-ui-form-grid>
+                </x-slot:right>
+            </x-ui-detail-stats-grid>
 
-            {{-- Team Members --}}
-            <div class="bg-white rounded-lg border border-gray-100 p-6">
-                <div class="mb-4">
-                    <h3 class="text-lg font-semibold text-[var(--ui-secondary)]">Team-Mitglieder Übersicht</h3>
-                    <p class="text-sm text-[var(--ui-muted)]">Aufgaben und Story Points pro Team-Mitglied</p>
-                </div>
+            <x-ui-panel class="mb-8" title="Team-Mitglieder Übersicht" subtitle="Aufgaben und Story Points pro Team-Mitglied">
                 <x-ui-team-members-list :members="$teamMembers" />
-            </div>
+            </x-ui-panel>
 
-            {{-- Active Projects --}}
-            <div class="bg-white rounded-lg border border-gray-100 p-6">
-                <div class="mb-4">
-                    <h3 class="text-lg font-semibold text-[var(--ui-secondary)]">Meine aktiven Projekte</h3>
-                    <p class="text-sm text-[var(--ui-muted)]">Top 5 Projekte nach offenen Aufgaben</p>
-                </div>
+            <x-ui-panel title="Meine aktiven Projekte" subtitle="Top 5 Projekte nach offenen Aufgaben">
                 <x-ui-project-list :projects="$activeProjectsList" projectRoute="planner.projects.show" />
-            </div>
+            </x-ui-panel>
         </div>
     </div>
 
@@ -137,31 +124,35 @@
                 <div>
                     <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-3">Schnellstatistiken</h3>
                     <div class="space-y-3">
-                        <div class="flex items-center justify-between py-2 px-3 bg-[var(--ui-muted-5)] rounded-lg">
-                            <span class="text-sm text-[var(--ui-secondary)]">Heute erstellt</span>
-                            <span class="text-sm font-semibold text-[var(--ui-primary)]">{{ $todayCreatedTasks ?? 0 }}</span>
+                        <div class="p-3 bg-[var(--ui-muted-5)] rounded-lg border border-[var(--ui-border)]/40">
+                            <div class="text-xs text-[var(--ui-muted)]">Heute erstellt</div>
+                            <div class="text-lg font-bold text-[var(--ui-secondary)]">{{ $todayCreatedTasks ?? 0 }} Aufgaben</div>
                         </div>
-                        <div class="flex items-center justify-between py-2 px-3 bg-[var(--ui-muted-5)] rounded-lg">
-                            <span class="text-sm text-[var(--ui-secondary)]">Heute erledigt</span>
-                            <span class="text-sm font-semibold text-[var(--ui-success)]">{{ $todayCompletedTasks ?? 0 }}</span>
+                        <div class="p-3 bg-[var(--ui-muted-5)] rounded-lg border border-[var(--ui-border)]/40">
+                            <div class="text-xs text-[var(--ui-muted)]">Heute erledigt</div>
+                            <div class="text-lg font-bold text-[var(--ui-secondary)]">{{ $todayCompletedTasks ?? 0 }} Aufgaben</div>
                         </div>
-                        <div class="flex items-center justify-between py-2 px-3 bg-[var(--ui-muted-5)] rounded-lg">
-                            <span class="text-sm text-[var(--ui-secondary)]">Offene Frösche</span>
-                            <span class="text-sm font-semibold text-[var(--ui-danger)]">{{ $frogTasks }}</span>
+                        <div class="p-3 bg-[var(--ui-muted-5)] rounded-lg border border-[var(--ui-border)]/40">
+                            <div class="text-xs text-[var(--ui-muted)]">Offene Frösche</div>
+                            <div class="text-lg font-bold text-[var(--ui-secondary)]">{{ $frogTasks }} Aufgaben</div>
                         </div>
                     </div>
                 </div>
 
-                {{-- Recent Activity --}}
+                {{-- Recent Activity (Dummy) --}}
                 <div>
                     <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-3">Letzte Aktivitäten</h3>
                     <div class="space-y-2 text-sm">
-                        <div class="p-2 bg-[var(--ui-muted-5)] rounded border border-[var(--ui-border)]/40">
-                            <div class="font-medium text-[var(--ui-secondary)]">Aufgabe erstellt</div>
+                        <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
+                            <div class="font-medium text-[var(--ui-secondary)] truncate">Dashboard geladen</div>
+                            <div class="text-[var(--ui-muted)] text-xs">vor 1 Minute</div>
+                        </div>
+                        <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
+                            <div class="font-medium text-[var(--ui-secondary)] truncate">Aufgabe erstellt</div>
                             <div class="text-[var(--ui-muted)] text-xs">vor 2 Stunden</div>
                         </div>
-                        <div class="p-2 bg-[var(--ui-muted-5)] rounded border border-[var(--ui-border)]/40">
-                            <div class="font-medium text-[var(--ui-secondary)]">Projekt aktualisiert</div>
+                        <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
+                            <div class="font-medium text-[var(--ui-secondary)] truncate">Projekt aktualisiert</div>
                             <div class="text-[var(--ui-muted)] text-xs">vor 4 Stunden</div>
                         </div>
                     </div>
