@@ -18,7 +18,11 @@
                 @if($backlog)
                     <x-ui-kanban-column :title="($backlog->label ?? 'Backlog')" :sortable-id="null" :scrollable="true" :muted="true">
                         @foreach($backlog->tasks as $task)
-                            @livewire(\Platform\Planner\Livewire\TaskPreviewCard::class, ['task' => $task], key('task-'.$task->id))
+                            <x-ui-kanban-card :title="$task->title" :sortable-id="$task->id" :href="route('planner.embedded.task', $task)" wire:key="task-{{ $task->id }}">
+                                @if($task->due_date)
+                                    <div class="text-xs text-[var(--ui-muted)]">{{ $task->due_date->format('d.m.Y') }}</div>
+                                @endif
+                            </x-ui-kanban-card>
                         @endforeach
                     </x-ui-kanban-column>
                 @endif
@@ -37,7 +41,11 @@
                         </x-slot>
 
                         @foreach($column->tasks as $task)
-                            @livewire(\Platform\Planner\Livewire\TaskPreviewCard::class, ['task' => $task], key('task-'.$task->id))
+                            <x-ui-kanban-card :title="$task->title" :sortable-id="$task->id" :href="route('planner.embedded.task', $task)" wire:key="task-{{ $task->id }}">
+                                @if($task->due_date)
+                                    <div class="text-xs text-[var(--ui-muted)]">{{ $task->due_date->format('d.m.Y') }}</div>
+                                @endif
+                            </x-ui-kanban-card>
                         @endforeach
                     </x-ui-kanban-column>
                 @endforeach
@@ -47,7 +55,11 @@
                 @if($done)
                     <x-ui-kanban-column :title="($done->label ?? 'Erledigt')" :sortable-id="null" :scrollable="true" :muted="true">
                         @foreach($done->tasks as $task)
-                            @livewire(\Platform\Planner\Livewire\TaskPreviewCard::class, ['task' => $task], key('task-'.$task->id))
+                            <x-ui-kanban-card :title="$task->title" :sortable-id="$task->id" :href="route('planner.embedded.task', $task)" wire:key="task-{{ $task->id }}">
+                                @if($task->due_date)
+                                    <div class="text-xs text-[var(--ui-muted)]">{{ $task->due_date->format('d.m.Y') }}</div>
+                                @endif
+                            </x-ui-kanban-card>
                         @endforeach
                     </x-ui-kanban-column>
                 @endif
