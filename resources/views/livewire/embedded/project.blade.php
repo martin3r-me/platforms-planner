@@ -14,7 +14,7 @@
                 </x-ui-page-navbar>
             </x-slot>
 
-            <x-ui-page-container spacing="space-y-4">
+            <x-ui-page-container spacing="space-y-2 md:space-y-4" class="px-2 md:px-4">
                 <x-ui-kanban-container sortable="updateTaskGroupOrder" sortable-group="updateTaskOrder">
                     {{-- Backlog (nicht sortierbar als Gruppe) --}}
                     @php $backlog = $groups->first(fn($g) => ($g->isBacklog ?? false)); @endphp

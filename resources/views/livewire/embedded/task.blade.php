@@ -10,8 +10,8 @@
             </x-ui-page-navbar>
         </x-slot>
 
-        <x-ui-page-container spacing="space-y-8">
-            <div class="bg-white rounded-lg border border-[var(--ui-border)]/60 p-4 md:p-8">
+        <x-ui-page-container spacing="space-y-4 md:space-y-8" class="px-2 md:px-4">
+            <div class="bg-white rounded-lg border border-[var(--ui-border)]/60 p-3 md:p-8">
                 <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                     <div class="flex-1 min-w-0">
                         <h1 class="text-2xl md:text-3xl font-bold text-[var(--ui-secondary)] mb-4 tracking-tight">{{ $task->title }}</h1>
@@ -53,7 +53,7 @@
                 </div>
             </div>
 
-            <div class="bg-white rounded-lg border border-[var(--ui-border)]/60 p-4 md:p-8">
+            <div class="bg-white rounded-lg border border-[var(--ui-border)]/60 p-3 md:p-8">
                 <x-ui-form-grid :cols="1" :gap="4" class="md:grid-cols-2 md:gap-6">
                     <div>
                         <x-ui-input-text
