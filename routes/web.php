@@ -25,12 +25,17 @@ Route::get('/embedded/planner/projects/{plannerProject}', function (PlannerProje
     return $response;
 })->withoutMiddleware([FrameGuard::class, 'auth', 'detect.module.guard', 'check.module.permission'])->name('planner.embedded.project');
 
-// Embedded Test: Teams Tab Konfigurations-Check
-Route::get('/embedded/planner/teams/config', function () {
+// Embedded Test: Teams Tab Konfigurations-Check (neue, saubere URL)
+Route::get('/embedded/teams/config', function () {
     $response = response()->view('planner::embedded.teams-config');
     $response->headers->set('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
     return $response;
 })->withoutMiddleware([FrameGuard::class, 'auth', 'detect.module.guard', 'check.module.permission'])->name('planner.embedded.teams.config');
+
+// Rückwärtskompatibel: alte URL auf die neue weiterleiten
+Route::get('/embedded/planner/teams/config', function () {
+    return redirect()->route('planner.embedded.teams.config');
+});
 
 // Öffentliche Einbettungsprobe ohne Auth – isolierter Test, ob Teams im Tab bleibt
 Route::get('/embedded/test', function () {
