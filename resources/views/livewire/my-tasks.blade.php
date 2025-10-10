@@ -14,7 +14,7 @@
                 </span>
             </x-ui-button>
             <x-ui-button variant="secondary-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="Alpine.store('page').activityOpen = !Alpine.store('page').activityOpen" title="Aktivitäten">
-                @svg('heroicon-o-bell-alert','w-6 h-6')
+                @svg('heroicon-o-bell-alert','w-4 h-4')
             </x-ui-button>
         </x-ui-page-navbar>
     </x-slot>
@@ -99,14 +99,14 @@
                             class="text-[var(--ui-muted)] hover:text-[var(--ui-primary)] transition-colors"
                             title="Neue Aufgabe"
                         >
-                            @svg('heroicon-o-plus-circle', 'w-5 h-5')
+                            @svg('heroicon-o-plus-circle', 'w-4 h-4')
                         </button>
                         <button 
                             @click="$dispatch('open-modal-project-slot-settings', { projectSlotId: '{{ $column->id ?? 'unknown' }}' })"
                             class="text-[var(--ui-muted)] hover:text-[var(--ui-primary)] transition-colors"
                             title="Einstellungen"
                         >
-                            @svg('heroicon-o-cog-6-tooth', 'w-5 h-5')
+                            @svg('heroicon-o-cog-6-tooth', 'w-4 h-4')
                         </button>
                     </x-slot>
                     @foreach(($column->tasks ?? []) as $task)

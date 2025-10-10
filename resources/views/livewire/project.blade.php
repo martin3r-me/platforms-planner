@@ -92,7 +92,7 @@
             <x-ui-page-navbar :title="$project->name" icon="heroicon-o-clipboard-document-list">
                 <x-slot name="titleActions">
                     <x-ui-button variant="secondary-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })" title="Einstellungen">
-                        @svg('heroicon-o-cog-6-tooth','w-6 h-6')
+                        @svg('heroicon-o-cog-6-tooth','w-4 h-4')
                     </x-ui-button>
                 </x-slot>
                     <x-ui-button variant="secondary" size="sm" wire:click="createProjectSlot">
@@ -109,7 +109,7 @@
                     </x-ui-button>
                 @if(($project->project_type?->value ?? $project->project_type) === 'customer')
                     <x-ui-button variant="secondary-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-customer-project', { projectId: {{ $project->id }} })">
-                        @svg('heroicon-o-user-group','w-6 h-6')
+                        @svg('heroicon-o-user-group','w-4 h-4')
                     </x-ui-button>
                 @endif
             </x-ui-page-navbar>
