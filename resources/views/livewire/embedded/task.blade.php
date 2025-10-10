@@ -7,9 +7,11 @@
                     @php
                         $breadcrumbItems = [
                             ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
-                            ['label' => $task->project->name, 'href' => route('planner.embedded.project', $task->project), 'icon' => 'folder'],
-                            ['label' => $task->title, 'href' => null, 'icon' => 'clipboard-document-check']
                         ];
+                        if($task->project) {
+                            $breadcrumbItems[] = ['label' => $task->project->name, 'href' => route('planner.embedded.project', $task->project), 'icon' => 'folder'];
+                        }
+                        $breadcrumbItems[] = ['label' => $task->title, 'href' => null, 'icon' => 'clipboard-document-check'];
                     @endphp
                     <x-ui-breadcrumb :items="$breadcrumbItems" />
                 </div>
