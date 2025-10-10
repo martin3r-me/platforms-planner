@@ -277,7 +277,7 @@
                         <div class="space-y-2">
                             @can('delete', $task)
                                 <x-ui-confirm-button
-                                    action="delete"
+                                    wire:click="deleteTask"
                                     text="Aufgabe löschen"
                                     confirmText="Wirklich löschen?"
                                     variant="danger-outline"
