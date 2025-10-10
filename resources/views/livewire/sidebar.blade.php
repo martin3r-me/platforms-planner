@@ -21,6 +21,21 @@
         </x-ui-sidebar-item>
     </x-ui-sidebar-list>
 
+    {{-- Collapsed: Icons-only für Allgemein --}}
+    <div x-show="collapsed" class="px-2 py-2 border-b border-[var(--ui-border)]">
+        <div class="flex flex-col gap-2">
+            <a href="{{ route('planner.dashboard') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]">
+                @svg('heroicon-o-home', 'w-5 h-5')
+            </a>
+            <a href="{{ route('planner.my-tasks') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]">
+                @svg('heroicon-o-clipboard-document-check', 'w-5 h-5')
+            </a>
+            <button type="button" wire:click="createProject" class="flex items-center justify-center p-2 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]">
+                @svg('heroicon-o-plus-circle', 'w-5 h-5')
+            </button>
+        </div>
+    </div>
+
     {{-- Abschnitt: Projekte --}}
     <div>
         <div class="mt-2" x-show="!collapsed">
