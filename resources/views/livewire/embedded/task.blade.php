@@ -2,18 +2,13 @@
     <x-ui-page>
         <x-slot name="navbar">
             <x-ui-page-navbar :title="$task->title" icon="heroicon-o-clipboard-document-check">
-                {{-- Breadcrumbs für Embedded --}}
+                {{-- Simple Navigation für Embedded --}}
                 <div class="flex items-center space-x-2">
-                    @php
-                        $breadcrumbItems = [
-                            ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
-                        ];
-                        if($task->project) {
-                            $breadcrumbItems[] = ['label' => $task->project->name, 'href' => route('planner.embedded.project', $task->project), 'icon' => 'folder'];
-                        }
-                        $breadcrumbItems[] = ['label' => $task->title, 'href' => null, 'icon' => 'clipboard-document-check'];
-                    @endphp
-                    <x-ui-breadcrumb :items="$breadcrumbItems" />
+                    @if($task->project)
+                        <a href="{{ route('planner.embedded.project', $task->project) }}" class="text-sm underline text-[var(--ui-secondary)] hover:text-[var(--ui-primary)]">
+                            Zurück zum Projekt
+                        </a>
+                    @endif
                 </div>
                 
                 @if($printingAvailable)

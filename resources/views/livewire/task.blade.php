@@ -9,16 +9,33 @@
                 @endcan
             </x-slot>
             
-            {{-- Simple Navigation --}}
+            {{-- Breadcrumbs --}}
             <div class="flex items-center space-x-2">
-                @if($task->project)
-                    <a href="{{ route('planner.projects.show', $task->project) }}" class="text-sm underline text-[var(--ui-secondary)] hover:text-[var(--ui-primary)]">
-                        Projekt: {{ $task->project->name }}
-                    </a>
+                @php($embedded = request()->is('*/embedded/*') || request()->boolean('embedded', false))
+                @if($embedded)
+                    @php
+                        $embeddedBreadcrumbItems = [
+                            ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
+                        ];
+                        if($task->project) {
+                            $embeddedBreadcrumbItems[] = ['label' => $task->project->name, 'href' => route('planner.embedded.project', $task->project), 'icon' => 'folder'];
+                        }
+                        $embeddedBreadcrumbItems[] = ['label' => $task->title, 'href' => null, 'icon' => 'clipboard-document-check'];
+                    @endphp
+                    <x-ui-breadcrumb :items="$embeddedBreadcrumbItems" />
+                @else
+                    @php
+                        $breadcrumbItems = [
+                            ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
+                            ['label' => 'Meine Aufgaben', 'href' => route('planner.my-tasks'), 'icon' => 'clipboard-document-list'],
+                        ];
+                        if($task->project) {
+                            $breadcrumbItems[] = ['label' => $task->project->name, 'href' => route('planner.projects.show', $task->project), 'icon' => 'folder'];
+                        }
+                        $breadcrumbItems[] = ['label' => $task->title, 'href' => null, 'icon' => 'clipboard-document-check'];
+                    @endphp
+                    <x-ui-breadcrumb :items="$breadcrumbItems" />
                 @endif
-                <a href="{{ route('planner.my-tasks') }}" class="text-sm underline text-[var(--ui-secondary)] hover:text-[var(--ui-primary)]">
-                    Meine Aufgaben
-                </a>
             </div>
             
             @can('update', $task)
@@ -181,8 +198,41 @@
     </x-ui-page-container>
 
     <x-slot name="sidebar">
-        <x-ui-page-sidebar title="Details & Aktionen" width="w-80" :defaultOpen="true">
+        <x-ui-page-sidebar title="Navigation & Details" width="w-80" :defaultOpen="true">
             <div class="p-6 space-y-6">
+                {{-- Navigation --}}
+                <div>
+                    <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-4">Navigation</h3>
+                    <div class="space-y-2">
+                        @if($task->project)
+                            <x-ui-button
+                                variant="secondary-outline"
+                                size="sm"
+                                :href="route('planner.projects.show', ['plannerProject' => $task->project->id])"
+                                wire:navigate
+                                class="w-full"
+                            >
+                                <span class="flex items-center gap-2">
+                                    @svg('heroicon-o-folder', 'w-4 h-4')
+                                    Zum Projekt
+                                </span>
+                            </x-ui-button>
+                        @endif
+                        <x-ui-button
+                            variant="secondary-outline"
+                            size="sm"
+                            :href="route('planner.my-tasks')"
+                            wire:navigate
+                            class="w-full"
+                        >
+                            <span class="flex items-center gap-2">
+                                @svg('heroicon-o-clipboard-document-list', 'w-4 h-4')
+                                Zu meinen Aufgaben
+                            </span>
+                        </x-ui-button>
+                    </div>
+                </div>
+
                 {{-- Quick Stats --}}
                 <div>
                     <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-4">Status</h3>
