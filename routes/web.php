@@ -37,7 +37,7 @@ Route::get('/embedded/teams/config', function () {
     $response = response()->view('planner::embedded.teams-config');
     $response->headers->set('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
     return $response;
-})->withoutMiddleware([FrameGuard::class, 'auth', 'detect.module.guard', 'check.module.permission'])->name('planner.embedded.teams.config');
+})->middleware(['teams.sso'])->withoutMiddleware([FrameGuard::class, 'detect.module.guard', 'check.module.permission'])->name('planner.embedded.teams.config');
 
 // Rückwärtskompatibel: alte URL auf die neue weiterleiten
 Route::get('/embedded/planner/teams/config', function () {
