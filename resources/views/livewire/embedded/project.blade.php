@@ -2,7 +2,7 @@
     <x-ui-page>
         <x-slot name="navbar">
             <x-ui-page-navbar :title="$project->name" icon="heroicon-o-clipboard-document-list">
-                <x-ui-button variant="success" size="sm" wire:click="createTask()">
+                <x-ui-button variant="secondary" size="sm" wire:click="createTask()">
                     <span class="inline-flex items-center gap-2">
                         @svg('heroicon-o-plus','w-4 h-4')
                         <span class="hidden sm:inline">Aufgabe</span>
@@ -33,7 +33,7 @@
                         <x-slot name="headerActions">
                             <button 
                                 wire:click="createTask('{{ $column->id }}')" 
-                                class="text-green-600 hover:opacity-80 transition-opacity"
+                                class="text-[var(--ui-muted)] hover:text-[var(--ui-primary)] transition-colors"
                                 title="Neue Aufgabe"
                             >
                                 @svg('heroicon-o-plus-circle', 'w-4 h-4')

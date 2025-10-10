@@ -95,18 +95,18 @@
                         @svg('heroicon-o-cog-6-tooth','w-6 h-6')
                     </x-ui-button>
                 </x-slot>
-                <x-ui-button variant="primary" size="sm" wire:click="createProjectSlot">
-                    <span class="inline-flex items-center gap-2">
-                        @svg('heroicon-o-square-2-stack','w-4 h-4')
-                        <span class="hidden sm:inline">Spalte</span>
-                    </span>
-                </x-ui-button>
-                <x-ui-button variant="success" size="sm" wire:click="createTask()">
-                    <span class="inline-flex items-center gap-2">
-                        @svg('heroicon-o-plus','w-4 h-4')
-                        <span class="hidden sm:inline">Aufgabe</span>
-                    </span>
-                </x-ui-button>
+                    <x-ui-button variant="secondary" size="sm" wire:click="createProjectSlot">
+                        <span class="inline-flex items-center gap-2">
+                            @svg('heroicon-o-square-2-stack','w-4 h-4')
+                            <span class="hidden sm:inline">Spalte</span>
+                        </span>
+                    </x-ui-button>
+                    <x-ui-button variant="secondary" size="sm" wire:click="createTask()">
+                        <span class="inline-flex items-center gap-2">
+                            @svg('heroicon-o-plus','w-4 h-4')
+                            <span class="hidden sm:inline">Aufgabe</span>
+                        </span>
+                    </x-ui-button>
                 @if(($project->project_type?->value ?? $project->project_type) === 'customer')
                     <x-ui-button variant="secondary-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-customer-project', { projectId: {{ $project->id }} })">
                         @svg('heroicon-o-user-group','w-6 h-6')

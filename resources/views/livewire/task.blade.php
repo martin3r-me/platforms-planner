@@ -27,7 +27,7 @@
                 @endif
             @endif
             @can('update', $task)
-                <x-ui-button variant="primary" size="sm" wire:click="save">
+                <x-ui-button variant="secondary" size="sm" wire:click="save">
                     <span class="inline-flex items-center gap-2">
                         @svg('heroicon-o-check', 'w-4 h-4')
                         <span class="hidden sm:inline">Speichern</span>
