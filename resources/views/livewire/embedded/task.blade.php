@@ -2,13 +2,24 @@
     <x-ui-page>
         <x-slot name="navbar">
             <x-ui-page-navbar :title="$task->title" icon="heroicon-o-clipboard-document-check">
-                {{-- Simple Navigation für Embedded --}}
-                <div class="flex items-center space-x-2">
+                {{-- Simple Breadcrumbs für Embedded --}}
+                <div class="flex items-center space-x-2 text-sm">
+                    <a href="{{ route('planner.dashboard') }}" class="text-[var(--ui-secondary)] hover:text-[var(--ui-primary)] flex items-center gap-1">
+                        @svg('heroicon-o-home', 'w-4 h-4')
+                        Dashboard
+                    </a>
                     @if($task->project)
-                        <a href="{{ route('planner.embedded.project', $task->project) }}" class="text-sm underline text-[var(--ui-secondary)] hover:text-[var(--ui-primary)]">
-                            Zurück zum Projekt
+                        <span class="text-[var(--ui-muted)]">›</span>
+                        <a href="{{ route('planner.embedded.project', $task->project) }}" class="text-[var(--ui-secondary)] hover:text-[var(--ui-primary)] flex items-center gap-1">
+                            @svg('heroicon-o-folder', 'w-4 h-4')
+                            {{ $task->project->name }}
                         </a>
                     @endif
+                    <span class="text-[var(--ui-muted)]">›</span>
+                    <span class="text-[var(--ui-muted)] flex items-center gap-1">
+                        @svg('heroicon-o-clipboard-document-check', 'w-4 h-4')
+                        {{ $task->title }}
+                    </span>
                 </div>
                 
                 @if($printingAvailable)
