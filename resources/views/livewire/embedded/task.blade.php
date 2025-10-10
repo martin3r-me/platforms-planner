@@ -14,16 +14,12 @@
                     </x-ui-button>
                 @endif
                 <x-ui-confirm-button 
-                    variant="danger" 
-                    size="sm" 
-                    wire:click="deleteTaskAndReturnToProject"
-                    confirm-title="Aufgabe löschen?"
-                    confirm-text="Möchten Sie diese Aufgabe wirklich löschen?"
-                    confirm-button="Löschen"
-                    cancel-button="Abbrechen"
-                >
-                    Löschen
-                </x-ui-confirm-button>
+                    action="deleteTaskAndReturnToProject" 
+                    text="Löschen" 
+                    confirmText="Wirklich löschen?" 
+                    variant="danger"
+                    :icon="@svg('heroicon-o-trash', 'w-4 h-4')->toHtml()"
+                />
             </x-ui-page-navbar>
         </x-slot>
 

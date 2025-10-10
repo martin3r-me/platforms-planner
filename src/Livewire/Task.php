@@ -84,8 +84,16 @@ class Task extends Component
 
     public function deleteTask()
     {
+        $this->authorize('delete', $this->task);
+        
+        if (!$this->task->project) {
+            // Fallback zu MyTasks wenn kein Projekt vorhanden
+            $this->task->delete();
+            return $this->redirect(route('planner.my-tasks'), navigate: true);
+        }
+        
         $this->task->delete();
-        return $this->redirect('/', navigate: true);
+        return $this->redirect(route('planner.projects.show', $this->task->project), navigate: true);
     }
 
     public function deleteTaskAndReturnToDashboard()
