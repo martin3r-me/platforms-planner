@@ -11,11 +11,11 @@
         </x-slot>
 
         <x-ui-page-container spacing="space-y-8">
-            <div class="bg-white rounded-lg border border-[var(--ui-border)]/60 p-8">
-                <div class="flex items-start justify-between">
+            <div class="bg-white rounded-lg border border-[var(--ui-border)]/60 p-4 md:p-8">
+                <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                     <div class="flex-1 min-w-0">
-                        <h1 class="text-3xl font-bold text-[var(--ui-secondary)] mb-4 tracking-tight">{{ $task->title }}</h1>
-                        <div class="flex items-center gap-6 text-sm text-[var(--ui-muted)]">
+                        <h1 class="text-2xl md:text-3xl font-bold text-[var(--ui-secondary)] mb-4 tracking-tight">{{ $task->title }}</h1>
+                        <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm text-[var(--ui-muted)]">
                             @if($task->project)
                                 <span class="flex items-center gap-2">
                                     @svg('heroicon-o-folder', 'w-4 h-4')
@@ -42,7 +42,7 @@
                             @endif
                         </div>
                     </div>
-                    <div class="flex items-center gap-3">
+                    <div class="flex flex-wrap items-center gap-3">
                         @if($task->is_done)
                             <x-ui-badge variant="success" size="lg">Erledigt</x-ui-badge>
                         @endif
@@ -53,8 +53,8 @@
                 </div>
             </div>
 
-            <div class="bg-white rounded-lg border border-[var(--ui-border)]/60 p-8">
-                <x-ui-form-grid :cols="2" :gap="6">
+            <div class="bg-white rounded-lg border border-[var(--ui-border)]/60 p-4 md:p-8">
+                <x-ui-form-grid :cols="1" :gap="4" class="md:grid-cols-2 md:gap-6">
                     <div>
                         <x-ui-input-text
                             name="task.title"
@@ -113,8 +113,8 @@
                     </div>
                 </x-ui-form-grid>
 
-                <div class="mt-8 pt-8 border-t border-[var(--ui-border)]/60">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="mt-6 md:mt-8 pt-6 md:pt-8 border-t border-[var(--ui-border)]/60">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                         <x-ui-panel class="bg-gray-50 rounded-lg">
                             <x-ui-input-checkbox
                                 model="task.is_done"
@@ -136,7 +136,7 @@
                     </div>
                 </div>
 
-                <div class="mt-8 pt-8 border-t border-[var(--ui-border)]/60">
+                <div class="mt-6 md:mt-8 pt-6 md:pt-8 border-t border-[var(--ui-border)]/60">
                     <x-ui-input-textarea
                         name="task.description"
                         label="Beschreibung"

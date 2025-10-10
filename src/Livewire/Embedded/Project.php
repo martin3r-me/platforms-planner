@@ -45,8 +45,13 @@ class Project extends BaseProject
             'timestamp' => now()
         ]);
 
-        // Direkte Weiterleitung zur embedded Task-Route OHNE mount()
-        return $this->redirect(route('planner.embedded.task', $task), navigate: true);
+        // State neu laden, damit die neue Aufgabe im Board erscheint
+        $this->mount($this->project);
+        
+        // JavaScript-Weiterleitung für embedded Kontext
+        $this->dispatch('redirect-to-task', [
+            'url' => route('planner.embedded.task', $task)
+        ]);
     }
 
     public function render()
