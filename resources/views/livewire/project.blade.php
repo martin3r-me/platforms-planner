@@ -95,15 +95,15 @@
                         @svg('heroicon-o-cog-6-tooth','w-6 h-6')
                     </x-ui-button>
                 </x-slot>
-                <x-ui-button variant="primary" size="sm" rounded="full" wire:click="createProjectSlot">
+                <x-ui-button variant="primary" size="sm" wire:click="createProjectSlot">
                     <span class="inline-flex items-center gap-2">
-                        @svg('heroicon-o-square-2-stack','w-4 h-4 inline-block align-middle')
+                        @svg('heroicon-o-square-2-stack','w-4 h-4')
                         <span class="hidden sm:inline">Spalte</span>
                     </span>
                 </x-ui-button>
-                <x-ui-button variant="success" size="sm" rounded="full" wire:click="createTask()">
+                <x-ui-button variant="success" size="sm" wire:click="createTask()">
                     <span class="inline-flex items-center gap-2">
-                        @svg('heroicon-o-plus','w-4 h-4 inline-block align-middle')
+                        @svg('heroicon-o-plus','w-4 h-4')
                         <span class="hidden sm:inline">Aufgabe</span>
                     </span>
                 </x-ui-button>

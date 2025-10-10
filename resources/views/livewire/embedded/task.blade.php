@@ -7,54 +7,29 @@
                         Zurück zum Projekt
                     </a>
                 @endif
+                @if($printingAvailable)
+                    <x-ui-button variant="secondary" size="sm" wire:click="printTask()">
+                        @svg('heroicon-o-printer', 'w-4 h-4')
+                        <span class="hidden sm:inline ml-1">Drucken</span>
+                    </x-ui-button>
+                @endif
+                <x-ui-confirm-button 
+                    variant="danger" 
+                    size="sm" 
+                    wire:click="deleteTaskAndReturnToProject"
+                    confirm-title="Aufgabe löschen?"
+                    confirm-text="Möchten Sie diese Aufgabe wirklich löschen?"
+                    confirm-button="Löschen"
+                    cancel-button="Abbrechen"
+                >
+                    Löschen
+                </x-ui-confirm-button>
             </x-ui-page-navbar>
         </x-slot>
 
-        <x-ui-page-container spacing="space-y-4 md:space-y-8" class="px-2 md:px-4">
-            <div class="bg-white rounded-lg border border-[var(--ui-border)]/60 p-3 md:p-8">
-                <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                    <div class="flex-1 min-w-0">
-                        <h1 class="text-2xl md:text-3xl font-bold text-[var(--ui-secondary)] mb-4 tracking-tight">{{ $task->title }}</h1>
-                        <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm text-[var(--ui-muted)]">
-                            @if($task->project)
-                                <span class="flex items-center gap-2">
-                                    @svg('heroicon-o-folder', 'w-4 h-4')
-                                    {{ $task->project->name }}
-                                </span>
-                            @endif
-                            @if($task->userInCharge)
-                                <span class="flex items-center gap-2">
-                                    @svg('heroicon-o-user', 'w-4 h-4')
-                                    {{ $task->userInCharge->fullname ?? $task->userInCharge->name }}
-                                </span>
-                            @endif
-                            @if($task->due_date)
-                                <span class="flex items-center gap-2">
-                                    @svg('heroicon-o-calendar', 'w-4 h-4')
-                                    {{ $task->due_date->format('d.m.Y H:i') }}
-                                </span>
-                            @endif
-                            @if($task->story_points)
-                                <span class="flex items-center gap-2">
-                                    @svg('heroicon-o-sparkles', 'w-4 h-4')
-                                    {{ $task->story_points->points() }} SP
-                                </span>
-                            @endif
-                        </div>
-                    </div>
-                    <div class="flex flex-wrap items-center gap-3">
-                        @if($task->is_done)
-                            <x-ui-badge variant="success" size="lg">Erledigt</x-ui-badge>
-                        @endif
-                        @if($task->is_frog)
-                            <x-ui-badge variant="danger" size="lg">Frosch</x-ui-badge>
-                        @endif
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-lg border border-[var(--ui-border)]/60 p-3 md:p-8">
-                <x-ui-form-grid :cols="1" :gap="4" class="md:grid-cols-2 md:gap-6">
+        <x-ui-page-container spacing="space-y-4" class="p-4">
+            <div class="bg-white rounded-lg border p-4">
+                <x-ui-form-grid :cols="1" :gap="4" class="md:grid-cols-2">
                     <div>
                         <x-ui-input-text
                             name="task.title"
@@ -89,18 +64,6 @@
                     </div>
                     <div>
                         <x-ui-input-select
-                            name="task.story_points"
-                            label="Story Points"
-                            :options="\Platform\Planner\Enums\TaskStoryPoints::cases()"
-                            optionValue="value"
-                            optionLabel="label"
-                            :nullable="true"
-                            nullLabel="– Story Points auswählen –"
-                            wire:model.live="task.story_points"
-                        />
-                    </div>
-                    <div>
-                        <x-ui-input-select
                             name="task.user_in_charge_id"
                             label="Verantwortlicher"
                             :options="($teamUsers ?? collect([]))"
@@ -113,42 +76,94 @@
                     </div>
                 </x-ui-form-grid>
 
-                <div class="mt-6 md:mt-8 pt-6 md:pt-8 border-t border-[var(--ui-border)]/60">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                        <x-ui-panel class="bg-gray-50 rounded-lg">
-                            <x-ui-input-checkbox
-                                model="task.is_done"
-                                checked-label="Erledigt"
-                                unchecked-label="Als erledigt markieren"
-                                size="md"
-                                block="true"
-                            />
-                        </x-ui-panel>
-                        <x-ui-panel class="bg-gray-50 rounded-lg">
-                            <x-ui-input-checkbox
-                                model="task.is_frog"
-                                checked-label="Frosch (wichtig & unangenehm)"
-                                unchecked-label="Als Frosch markieren"
-                                size="md"
-                                block="true"
-                            />
-                        </x-ui-panel>
+                <div class="mt-6 pt-6 border-t">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <x-ui-input-checkbox
+                            model="task.is_done"
+                            checked-label="Erledigt"
+                            unchecked-label="Als erledigt markieren"
+                            size="md"
+                            block="true"
+                        />
+                        <x-ui-input-checkbox
+                            model="task.is_frog"
+                            checked-label="Frosch (wichtig & unangenehm)"
+                            unchecked-label="Als Frosch markieren"
+                            size="md"
+                            block="true"
+                        />
                     </div>
                 </div>
 
-                <div class="mt-6 md:mt-8 pt-6 md:pt-8 border-t border-[var(--ui-border)]/60">
+                <div class="mt-6 pt-6 border-t">
                     <x-ui-input-textarea
                         name="task.description"
                         label="Beschreibung"
                         wire:model.live.debounce.500ms="task.description"
                         placeholder="Aufgabenbeschreibung (optional)"
-                        rows="4"
+                        rows="3"
                         :errorKey="'task.description'"
                     />
                 </div>
             </div>
         </x-ui-page-container>
     </x-ui-page>
+
+    {{-- Print Modal --}}
+    @if($printingAvailable && $printModalShow)
+        <x-ui-modal wire:model="printModalShow" title="Aufgabe drucken">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Druckziel auswählen</label>
+                    <div class="space-y-2">
+                        <label class="flex items-center">
+                            <input type="radio" wire:model="printTarget" value="printer" class="mr-2">
+                            <span>Einzelner Drucker</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" wire:model="printTarget" value="group" class="mr-2">
+                            <span>Druckergruppe</span>
+                        </label>
+                    </div>
+                </div>
+
+                @if($printTarget === 'printer')
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Drucker auswählen</label>
+                        <select wire:model="selectedPrinterId" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                            <option value="">-- Drucker auswählen --</option>
+                            @foreach($printers as $printer)
+                                <option value="{{ $printer->id }}">{{ $printer->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                @endif
+
+                @if($printTarget === 'group')
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Druckergruppe auswählen</label>
+                        <select wire:model="selectedPrinterGroupId" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                            <option value="">-- Gruppe auswählen --</option>
+                            @foreach($printerGroups as $group)
+                                <option value="{{ $group->id }}">{{ $group->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                @endif
+            </div>
+
+            <x-slot name="footer">
+                <x-ui-button variant="secondary" wire:click="closePrintModal">Abbrechen</x-ui-button>
+                <x-ui-button 
+                    variant="primary" 
+                    wire:click="printTaskConfirm"
+                    :disabled="($printTarget === 'printer' && !$selectedPrinterId) || ($printTarget === 'group' && !$selectedPrinterGroupId)"
+                >
+                    Drucken
+                </x-ui-button>
+            </x-slot>
+        </x-ui-modal>
+    @endif
 </div>
 
 

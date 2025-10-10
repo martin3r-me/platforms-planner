@@ -27,13 +27,19 @@
                 @endif
             @endif
             @can('update', $task)
-                <x-ui-button variant="primary" size="sm" rounded="full" wire:click="save">
+                <x-ui-button variant="primary" size="sm" wire:click="save">
                     <span class="inline-flex items-center gap-2">
                         @svg('heroicon-o-check', 'w-4 h-4')
                         <span class="hidden sm:inline">Speichern</span>
                     </span>
                 </x-ui-button>
             @endcan
+            @if($printingAvailable)
+                <x-ui-button variant="secondary" size="sm" wire:click="printTask()">
+                    @svg('heroicon-o-printer', 'w-4 h-4')
+                    <span class="hidden sm:inline ml-1">Drucken</span>
+                </x-ui-button>
+            @endif
         </x-ui-page-navbar>
     </x-slot>
 
