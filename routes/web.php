@@ -34,9 +34,8 @@ Route::get('/embedded/planner/tasks/{plannerTask}', function (\Platform\Planner\
 
 // Embedded Test: Teams Tab Konfigurations-Check (neue, saubere URL)
 Route::get('/embedded/teams/config', function () {
-    $response = response()->view('planner::embedded.teams-config');
-    $response->headers->set('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
-    return $response;
+    return response('<!DOCTYPE html><html><head><title>Teams Config Test</title></head><body><h1>Teams Config Test</h1><p>User: ' . (auth()->user() ? auth()->user()->name : 'Nicht eingeloggt') . '</p><p>Diese Seite sollte keine Redirects haben.</p></body></html>')
+        ->header('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
 })->withoutMiddleware([FrameGuard::class, 'auth', 'detect.module.guard', 'check.module.permission', 'teams.sso'])->name('planner.embedded.teams.config');
 
 // Rückwärtskompatibel: alte URL auf die neue weiterleiten
