@@ -4,11 +4,14 @@
             <x-ui-page-navbar :title="$task->title" icon="heroicon-o-clipboard-document-check">
                 {{-- Breadcrumbs für Embedded --}}
                 <div class="flex items-center space-x-2">
-                    <x-ui-breadcrumb :items="[
-                        ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
-                        ['label' => $task->project->name, 'href' => route('planner.embedded.project', $task->project), 'icon' => 'folder'],
-                        ['label' => $task->title, 'href' => null, 'icon' => 'clipboard-document-check']
-                    ]" />
+                    @php
+                        $breadcrumbItems = [
+                            ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
+                            ['label' => $task->project->name, 'href' => route('planner.embedded.project', $task->project), 'icon' => 'folder'],
+                            ['label' => $task->title, 'href' => null, 'icon' => 'clipboard-document-check']
+                        ];
+                    @endphp
+                    <x-ui-breadcrumb :items="$breadcrumbItems" />
                 </div>
                 
                 @if($printingAvailable)

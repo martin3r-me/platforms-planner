@@ -19,14 +19,17 @@
                         ['label' => $task->title, 'href' => null, 'icon' => 'clipboard-document-check']
                     ]" />
                 @else
-                    <x-ui-breadcrumb :items="[
-                        ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
-                        ['label' => 'Meine Aufgaben', 'href' => route('planner.my-tasks'), 'icon' => 'clipboard-document-list'],
-                        @if($task->project)
-                            ['label' => $task->project->name, 'href' => route('planner.projects.show', $task->project), 'icon' => 'folder'],
-                        @endif
-                        ['label' => $task->title, 'href' => null, 'icon' => 'clipboard-document-check']
-                    ]" />
+                    @php
+                        $breadcrumbItems = [
+                            ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
+                            ['label' => 'Meine Aufgaben', 'href' => route('planner.my-tasks'), 'icon' => 'clipboard-document-list'],
+                        ];
+                        if($task->project) {
+                            $breadcrumbItems[] = ['label' => $task->project->name, 'href' => route('planner.projects.show', $task->project), 'icon' => 'folder'];
+                        }
+                        $breadcrumbItems[] = ['label' => $task->title, 'href' => null, 'icon' => 'clipboard-document-check'];
+                    @endphp
+                    <x-ui-breadcrumb :items="$breadcrumbItems" />
                 @endif
             </div>
             
