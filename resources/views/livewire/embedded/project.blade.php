@@ -1,7 +1,7 @@
 @extends('platform::layouts.embedded')
 
 @section('content')
-    <div class="h-full" x-data @redirect-to-task.window="window.location.href = $event.detail.url">
+    <div class="h-full">
         <x-ui-page>
             <x-slot name="navbar">
                 <x-ui-page-navbar :title="$project->name" icon="heroicon-o-clipboard-document-list">

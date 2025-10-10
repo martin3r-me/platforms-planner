@@ -48,10 +48,28 @@ class Project extends BaseProject
         // State neu laden, damit die neue Aufgabe im Board erscheint
         $this->mount($this->project);
         
-        // JavaScript-Weiterleitung für embedded Kontext
-        $this->dispatch('redirect-to-task', [
-            'url' => route('planner.embedded.task', $task)
+        // Einfache Weiterleitung ohne JavaScript
+        return $this->redirect(route('planner.embedded.task', $task), navigate: true);
+    }
+
+    public function updateTaskOrder($groups)
+    {
+        \Log::info("🔍 EMBEDDED UPDATE TASK ORDER:", [
+            'groups' => $groups,
+            'timestamp' => now()
         ]);
+        
+        return parent::updateTaskOrder($groups);
+    }
+
+    public function updateTaskGroupOrder($groups)
+    {
+        \Log::info("🔍 EMBEDDED UPDATE TASK GROUP ORDER:", [
+            'groups' => $groups,
+            'timestamp' => now()
+        ]);
+        
+        return parent::updateTaskGroupOrder($groups);
     }
 
     public function render()
