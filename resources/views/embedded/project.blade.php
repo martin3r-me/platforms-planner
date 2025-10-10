@@ -2,12 +2,8 @@
 
 @section('content')
     <div class="h-full">
-        {{-- Embedded: eigenes Rendering, Karten verlinken zur Embedded-Task-Route, Board als Liste --}}
-        @php
-            $component = \Livewire\Livewire::mount('planner.project', ['plannerProject' => $plannerProject]);
-            $view = $component->html();
-        @endphp
-        {!! $view !!}
+        {{-- Embedded: bestehende Projekt-Komponente rendern --}}
+        @livewire('planner.project', ['plannerProject' => $plannerProject])
         <script>
             // Nach dem Rendern alle Task-Karten-Links auf embedded umbiegen
             document.addEventListener('DOMContentLoaded', function(){
