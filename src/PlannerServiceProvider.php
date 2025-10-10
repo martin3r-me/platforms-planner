@@ -73,6 +73,10 @@ class PlannerServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'planner');
         $this->registerLivewireComponents();
+        
+        // Embedded Komponenten manuell registrieren
+        Livewire::component('planner.embedded.project', \Platform\Planner\Livewire\Embedded\Project::class);
+        Livewire::component('planner.embedded.task', \Platform\Planner\Livewire\Embedded\Task::class);
 
         // Policies mit standardisierter Registrierung
         $this->registerPolicies();
