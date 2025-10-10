@@ -1,6 +1,6 @@
 <x-ui-kanban-card :title="$task->title" :sortable-id="$task->id" :href="route('planner.tasks.show', $task)">
     <!-- Meta Row: Projekt • Verantwortlicher • Story Points / Priority -->
-    <div class="flex items-center justify-between mb-1">
+    <div class="flex items-center justify-between mb-2">
         <div class="flex items-center gap-2 text-[var(--ui-secondary)] text-xs min-w-0">
             @if($task->project)
                 <span class="inline-flex items-center gap-1 min-w-0">
@@ -31,24 +31,38 @@
         </div>
     </div>
 
+    <!-- Description (truncated) -->
+    @if($task->description)
+        <div class="text-xs text-[var(--ui-muted)] mb-2 line-clamp-2">
+            {{ Str::limit($task->description, 80) }}
+        </div>
+    @endif
+
     <!-- Due date / Flags -->
     <div class="text-xs text-[var(--ui-muted)] flex items-center gap-2">
-        @svg('heroicon-o-calendar', 'w-3.5 h-3.5')
         @if($task->due_date)
-            <span>Fällig: {{ $task->due_date->format('d.m.Y') }}</span>
+            <span class="inline-flex items-center gap-1">
+                @svg('heroicon-o-calendar','w-3 h-3')
+                {{ $task->due_date->format('d.m.Y') }}
+            </span>
         @else
-            <span>Keine Fälligkeit</span>
+            <span class="inline-flex items-center gap-1">
+                @svg('heroicon-o-calendar','w-3 h-3')
+                Keine Fälligkeit
+            </span>
         @endif
 
-        @if(($task->is_frog ?? false))
-            <span class="ml-auto inline-flex items-center gap-1 text-[10px] text-[var(--ui-warning)]">
-                @svg('heroicon-o-exclamation-triangle','w-3.5 h-3.5') Frosch
-            </span>
-        @endif
-        @if(($task->is_done ?? false))
-            <span class="ml-auto inline-flex items-center gap-1 text-[10px] text-[var(--ui-success)]">
-                @svg('heroicon-o-check-circle','w-3.5 h-3.5') Erledigt
-            </span>
-        @endif
+        <div class="flex items-center gap-1 ml-auto">
+            @if(($task->is_frog ?? false))
+                <span class="inline-flex items-center gap-1 text-[10px] text-[var(--ui-warning)]">
+                    @svg('heroicon-o-exclamation-triangle','w-3 h-3') Frosch
+                </span>
+            @endif
+            @if(($task->is_done ?? false))
+                <span class="inline-flex items-center gap-1 text-[10px] text-[var(--ui-success)]">
+                    @svg('heroicon-o-check-circle','w-3 h-3') Erledigt
+                </span>
+            @endif
+        </div>
     </div>
 </x-ui-kanban-card>
