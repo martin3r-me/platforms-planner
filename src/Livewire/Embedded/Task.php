@@ -10,13 +10,29 @@ class Task extends BaseTask
     {
         $this->authorize('delete', $this->task);
         
+        $taskTitle = $this->task->title;
+        
         if (!$this->task->project) {
             // Fallback zu MyTasks wenn kein Projekt vorhanden
             $this->task->delete();
+            
+            $this->dispatch('notifications:store', [
+                'notice_type' => 'info',
+                'title' => 'Aufgabe gelöscht',
+                'message' => "Die Aufgabe '{$taskTitle}' wurde gelöscht.",
+            ]);
+            
             return $this->redirect(route('planner.my-tasks'), navigate: true);
         }
         
         $this->task->delete();
+        
+        $this->dispatch('notifications:store', [
+            'notice_type' => 'info',
+            'title' => 'Aufgabe gelöscht',
+            'message' => "Die Aufgabe '{$taskTitle}' wurde gelöscht.",
+        ]);
+        
         return $this->redirect(route('planner.embedded.project', $this->task->project), navigate: true);
     }
 

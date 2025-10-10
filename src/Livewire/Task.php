@@ -79,8 +79,12 @@ class Task extends Component
     public function updatedTask($property, $value)
     {
         $this->validateOnly("task.$property");
-        $this->task->save();
-        // Auto-Save läuft still im Hintergrund
+        
+        // Nur speichern wenn sich wirklich was geändert hat
+        if ($this->task->isDirty($property)) {
+            $this->task->save();
+            // Auto-Save läuft still im Hintergrund
+        }
     }
 
     public function save()
@@ -98,20 +102,47 @@ class Task extends Component
         
         $this->task->save();
         
-        $this->dispatch('task-saved');
+        // Toast-Notification über das Notification-System
+        $this->dispatch('notifications:store', [
+            'notice_type' => 'success',
+            'title' => 'Aufgabe gespeichert',
+            'message' => 'Die Aufgabe wurde erfolgreich gespeichert.',
+            'properties' => [
+                'task_id' => $this->task->id,
+                'task_title' => $this->task->title,
+            ],
+            'noticable_type' => get_class($this->task),
+            'noticable_id' => $this->task->id,
+        ]);
     }
 
     public function deleteTask()
     {
         $this->authorize('delete', $this->task);
         
+        $taskTitle = $this->task->title;
+        
         if (!$this->task->project) {
             // Fallback zu MyTasks wenn kein Projekt vorhanden
             $this->task->delete();
+            
+            $this->dispatch('notifications:store', [
+                'notice_type' => 'info',
+                'title' => 'Aufgabe gelöscht',
+                'message' => "Die Aufgabe '{$taskTitle}' wurde gelöscht.",
+            ]);
+            
             return $this->redirect(route('planner.my-tasks'), navigate: true);
         }
         
         $this->task->delete();
+        
+        $this->dispatch('notifications:store', [
+            'notice_type' => 'info',
+            'title' => 'Aufgabe gelöscht',
+            'message' => "Die Aufgabe '{$taskTitle}' wurde gelöscht.",
+        ]);
+        
         return $this->redirect(route('planner.projects.show', $this->task->project), navigate: true);
     }
 

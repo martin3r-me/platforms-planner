@@ -45,7 +45,7 @@
                         <x-ui-input-text
                             name="task.title"
                             label="Titel"
-                            wire:model.live.debounce.500ms="task.title"
+                            wire:model.live.debounce.1000ms="task.title"
                             placeholder="Aufgabentitel eingeben..."
                             required
                             :errorKey="'task.title'"
@@ -110,7 +110,7 @@
                     <x-ui-input-textarea
                         name="task.description"
                         label="Beschreibung"
-                        wire:model.live.debounce.500ms="task.description"
+                        wire:model.live.debounce.1000ms="task.description"
                         placeholder="Aufgabenbeschreibung (optional)"
                         rows="3"
                         :errorKey="'task.description'"

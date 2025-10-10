@@ -55,32 +55,12 @@
             </div>
             
             @can('update', $task)
-                <div class="flex items-center gap-2">
-                    {{-- Diskrete Auto-Save Status --}}
-                    <div class="flex items-center gap-1 text-xs text-[var(--ui-muted)]" x-data="{ 
-                        showSaved: false,
-                        init() {
-                            // Nur Manual Save Status anzeigen
-                            this.$wire.on('task-saved', () => {
-                                this.showSaved = true;
-                                setTimeout(() => this.showSaved = false, 1500);
-                            });
-                        }
-                    }">
-                        <div x-show="showSaved" class="flex items-center gap-1 text-[var(--ui-primary)]">
-                            @svg('heroicon-o-check-circle', 'w-3 h-3')
-                            <span>Gespeichert</span>
-                        </div>
-                    </div>
-                    
-                    {{-- Manual Save Button --}}
-                    <x-ui-button variant="secondary" size="sm" wire:click="save">
-                        <span class="inline-flex items-center gap-2">
-                            @svg('heroicon-o-check', 'w-4 h-4')
-                            <span class="hidden sm:inline">Speichern</span>
-                        </span>
-                    </x-ui-button>
-                </div>
+                <x-ui-button variant="secondary" size="sm" wire:click="save">
+                    <span class="inline-flex items-center gap-2">
+                        @svg('heroicon-o-check', 'w-4 h-4')
+                        <span class="hidden sm:inline">Speichern</span>
+                    </span>
+                </x-ui-button>
             @endcan
             @if($printingAvailable)
                 <x-ui-button variant="secondary" size="sm" wire:click="printTask()">
@@ -138,14 +118,14 @@
         <div class="bg-white rounded-lg border border-[var(--ui-border)]/60 p-8">
             <x-ui-form-grid :cols="2" :gap="6">
                 <div>
-                    <x-ui-input-text
-                        name="task.title"
-                        label="Titel"
-                        wire:model.live.debounce.500ms="task.title"
-                        placeholder="Aufgabentitel eingeben..."
-                        required
-                        :errorKey="'task.title'"
-                    />
+                        <x-ui-input-text
+                            name="task.title"
+                            label="Titel"
+                            wire:model.live.debounce.1000ms="task.title"
+                            placeholder="Aufgabentitel eingeben..."
+                            required
+                            :errorKey="'task.title'"
+                        />
                 </div>
                 <div>
                     <x-ui-input-select
@@ -221,14 +201,14 @@
 
             {{-- Description --}}
             <div class="mt-8 pt-8 border-t border-[var(--ui-border)]/60">
-                <x-ui-input-textarea
-                    name="task.description"
-                    label="Beschreibung"
-                    wire:model.live.debounce.500ms="task.description"
-                    placeholder="Aufgabenbeschreibung (optional)"
-                    rows="4"
-                    :errorKey="'task.description'"
-                />
+                    <x-ui-input-textarea
+                        name="task.description"
+                        label="Beschreibung"
+                        wire:model.live.debounce.1000ms="task.description"
+                        placeholder="Aufgabenbeschreibung (optional)"
+                        rows="4"
+                        :errorKey="'task.description'"
+                    />
             </div>
         </div>
     </x-ui-page-container>
