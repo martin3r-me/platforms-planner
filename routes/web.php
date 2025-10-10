@@ -19,10 +19,14 @@ Route::get('/tasks/{plannerTask}', Task::class)
 
 // Embedded (Teams/iframe) – Auth via Core Middleware-Kette (global)
 Route::get('/embedded/planner/projects/{plannerProject}', function (PlannerProject $plannerProject) {
-    return view('planner::embedded.project', compact('plannerProject'));
+    $response = response()->view('planner::embedded.project', compact('plannerProject'));
+    $response->headers->set('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
+    return $response;
 })->name('planner.embedded.project');
 
 // Embedded Test: Teams Tab Konfigurations-Check
 Route::get('/embedded/planner/teams/config', function () {
-    return view('planner::embedded.teams-config');
+    $response = response()->view('planner::embedded.teams-config');
+    $response->headers->set('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
+    return $response;
 })->name('planner.embedded.teams.config');
