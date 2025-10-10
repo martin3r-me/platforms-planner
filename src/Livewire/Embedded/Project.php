@@ -10,6 +10,13 @@ class Project extends BaseProject
 {
     public function createTask($projectSlotId = null)
     {
+        // DEBUG: Log dass die embedded createTask aufgerufen wird
+        \Log::info("🔍 EMBEDDED CREATE TASK CALLED:", [
+            'project_id' => $this->project->id,
+            'project_slot_id' => $projectSlotId,
+            'timestamp' => now()
+        ]);
+
         $user = Auth::user();
 
         $lowestOrder = PlannerTask::where('user_id', $user->id)
@@ -30,6 +37,12 @@ class Project extends BaseProject
             'story_points'   => null,
             'team_id'        => $user->currentTeam->id,
             'order'          => $order,
+        ]);
+
+        \Log::info("🔍 EMBEDDED TASK CREATED:", [
+            'task_id' => $task->id,
+            'redirect_to' => route('planner.embedded.task', $task),
+            'timestamp' => now()
         ]);
 
         // Direkte Weiterleitung zur embedded Task-Route OHNE mount()
