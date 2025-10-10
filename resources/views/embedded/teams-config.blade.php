@@ -9,7 +9,12 @@
             SDK: wird geprüft…
         </div>
 
-        <div class="mt-6">
+        <div class="mt-6 space-y-3">
+            <label class="block text-sm text-[var(--ui-secondary)]">Projekt wählen</label>
+            <select id="projectSelect" class="w-full rounded-md border border-[var(--ui-border)] bg-white px-3 py-2 text-sm">
+                <option value="">– Bitte wählen –</option>
+            </select>
+
             <button id="saveBtn" type="button" class="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-md border border-[var(--ui-border)] bg-white hover:bg-[var(--ui-muted-5)] text-[var(--ui-secondary)]">Speichern</button>
         </div>
 
@@ -33,10 +38,17 @@
 
                                     // OnSave: einfache Test-Content-URL setzen (später Projekt-URL)
                                     window.microsoftTeams.pages.config.registerOnSaveHandler(function (saveEvent) {
-                                        const contentUrl = 'https://office.martin3r.me/planner/embedded/test';
+                                        const select = document.getElementById('projectSelect');
+                                        const projectId = select ? select.value : '';
+                                        if (!projectId) {
+                                            saveEvent.notifyFailure('Bitte ein Projekt wählen');
+                                            return;
+                                        }
+
+                                        const contentUrl = 'https://office.martin3r.me/planner/embedded/planner/projects/' + encodeURIComponent(projectId);
                                         const websiteUrl = contentUrl;
-                                        const entityId = 'planner-embedded-test';
-                                        const displayName = 'Planner (Embedded)';
+                                        const entityId = 'planner-project-' + projectId;
+                                        const displayName = 'Planner Projekt ' + projectId;
 
                                         window.microsoftTeams.pages.config.setConfig({
                                             contentUrl: contentUrl,
@@ -62,6 +74,24 @@
                                 } catch (e) {
                                     // ignore config errors in non-Teams context
                                 }
+                            }
+
+                            // Projekte laden (optional gefiltert nach Team aus dem Context)
+                            if (window.microsoftTeams.app.getContext) {
+                                window.microsoftTeams.app.getContext().then(function(ctx){
+                                    const teamId = ctx?.team?.groupId || '';
+                                    const url = '/planner/embedded/planner/api/projects' + (teamId ? ('?teamId=' + encodeURIComponent(teamId)) : '');
+                                    fetch(url).then(r => r.json()).then(function(json){
+                                        const sel = document.getElementById('projectSelect');
+                                        if (!sel) return;
+                                        (json?.data || []).forEach(function(p){
+                                            const opt = document.createElement('option');
+                                            opt.value = p.id;
+                                            opt.textContent = p.name;
+                                            sel.appendChild(opt);
+                                        });
+                                    }).catch(function(){ /* ignore */ });
+                                });
                             }
                         }).catch(() => {
                             const el = document.getElementById('sdkStatus');

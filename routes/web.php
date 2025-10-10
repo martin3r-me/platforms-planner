@@ -43,3 +43,15 @@ Route::get('/embedded/test', function () {
     $response->headers->set('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
     return $response;
 })->withoutMiddleware([FrameGuard::class, 'auth', 'detect.module.guard', 'check.module.permission'])->name('embedded.test');
+
+// API: Projekte für Teams-Konfiguration (minimal, JSON)
+Route::get('/embedded/planner/api/projects', function () {
+    $teamId = request()->query('teamId');
+    $query = PlannerProject::query()->select(['id', 'name', 'team_id'])->orderBy('name');
+    if ($teamId) {
+        $query->where('team_id', $teamId);
+    }
+    return response()->json([
+        'data' => $query->limit(200)->get(),
+    ])->header('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
+})->withoutMiddleware([FrameGuard::class, 'auth', 'detect.module.guard', 'check.module.permission'])->name('planner.embedded.api.projects');
