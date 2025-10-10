@@ -276,18 +276,14 @@
                         <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-4">Aktionen</h3>
                         <div class="space-y-2">
                             @can('delete', $task)
-                                <x-ui-button
-                                    wire:click="deleteTask"
-                                    variant="danger-outline"
+                                <x-ui-confirm-button 
+                                    action="deleteTask" 
+                                    text="Löschen" 
+                                    confirmText="Wirklich löschen?" 
+                                    variant="danger"
+                                    :icon="@svg('heroicon-o-trash', 'w-4 h-4')->toHtml()"
                                     class="w-full"
-                                    x-data
-                                    @click="if(!confirm('Wirklich löschen?')) $event.preventDefault()"
-                                >
-                                    <span class="flex items-center gap-2">
-                                        @svg('heroicon-o-trash', 'w-4 h-4')
-                                        Löschen
-                                    </span>
-                                </x-ui-button>
+                                />
                             @endcan
                         </div>
                     </div>
