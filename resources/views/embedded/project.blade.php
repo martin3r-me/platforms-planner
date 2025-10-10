@@ -1,4 +1,4 @@
-@extends('core::layouts.embedded')
+@extends('platform::layouts.embedded')
 
 @section('content')
     <div class="min-h-screen">
