@@ -9,33 +9,16 @@
                 @endcan
             </x-slot>
             
-            {{-- Breadcrumbs --}}
+            {{-- Simple Navigation --}}
             <div class="flex items-center space-x-2">
-                @php($embedded = request()->is('*/embedded/*') || request()->boolean('embedded', false))
-                @if($embedded)
-                    @php
-                        $embeddedBreadcrumbItems = [
-                            ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
-                        ];
-                        if($task->project) {
-                            $embeddedBreadcrumbItems[] = ['label' => $task->project->name, 'href' => route('planner.embedded.project', $task->project), 'icon' => 'folder'];
-                        }
-                        $embeddedBreadcrumbItems[] = ['label' => $task->title, 'href' => null, 'icon' => 'clipboard-document-check'];
-                    @endphp
-                    <x-ui-breadcrumb :items="$embeddedBreadcrumbItems" />
-                @else
-                    @php
-                        $breadcrumbItems = [
-                            ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
-                            ['label' => 'Meine Aufgaben', 'href' => route('planner.my-tasks'), 'icon' => 'clipboard-document-list'],
-                        ];
-                        if($task->project) {
-                            $breadcrumbItems[] = ['label' => $task->project->name, 'href' => route('planner.projects.show', $task->project), 'icon' => 'folder'];
-                        }
-                        $breadcrumbItems[] = ['label' => $task->title, 'href' => null, 'icon' => 'clipboard-document-check'];
-                    @endphp
-                    <x-ui-breadcrumb :items="$breadcrumbItems" />
+                @if($task->project)
+                    <a href="{{ route('planner.projects.show', $task->project) }}" class="text-sm underline text-[var(--ui-secondary)] hover:text-[var(--ui-primary)]">
+                        Projekt: {{ $task->project->name }}
+                    </a>
                 @endif
+                <a href="{{ route('planner.my-tasks') }}" class="text-sm underline text-[var(--ui-secondary)] hover:text-[var(--ui-primary)]">
+                    Meine Aufgaben
+                </a>
             </div>
             
             @can('update', $task)
