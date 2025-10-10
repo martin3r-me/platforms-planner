@@ -242,9 +242,9 @@
                                     @if($task->story_points)
                                         <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] bg-[var(--ui-muted-5)] text-[var(--ui-secondary)]">SP {{ is_object($task->story_points) ? ($task->story_points->points() ?? $task->story_points) : $task->story_points }}</span>
                                     @endif
-                                    @if($task->priority)
-                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] bg-[var(--ui-muted-5)] text-[var(--ui-secondary)]">{{ strtoupper($task->priority) }}</span>
-                                    @endif
+                                        @if($task->priority)
+                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] bg-[var(--ui-muted-5)] text-[var(--ui-secondary)]">{{ strtoupper($task->priority->value) }}</span>
+                                        @endif
                                 </div>
                             </div>
 
