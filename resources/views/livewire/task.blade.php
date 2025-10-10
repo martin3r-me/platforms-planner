@@ -278,9 +278,9 @@
                             @can('delete', $task)
                                 <x-ui-confirm-button
                                     wire:click="deleteTask"
-                                    text="Aufgabe löschen"
+                                    text="Löschen"
                                     confirm-title="Aufgabe löschen?"
-                                    confirm-text="Möchten Sie diese Aufgabe wirklich löschen?"
+                                    confirm-text="Wirklich löschen?"
                                     confirm-button="Löschen"
                                     cancel-button="Abbrechen"
                                     variant="danger-outline"
