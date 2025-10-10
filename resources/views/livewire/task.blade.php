@@ -9,15 +9,23 @@
                 @endcan
             </x-slot>
             @if($task->project)
-                <a href="{{ auth()->user()->can('view', $task->project) ? route('planner.projects.show', $task->project) : '#' }}"
-                   @if(auth()->user()->can('view', $task->project)) wire:navigate @endif
-                   class="hidden md:inline text-sm underline text-[var(--ui-secondary)] hover:text-[var(--ui-primary)] mr-2">
-                    Projekt: {{ $task->project->name }}
-                </a>
+                @php($embedded = request()->is('*/embedded/*') || request()->boolean('embedded', false))
+                @if($embedded)
+                    <a href="{{ route('planner.embedded.project', ['plannerProject' => $task->project->id]) }}"
+                       class="text-sm underline text-[var(--ui-secondary)] hover:text-[var(--ui-primary)] mr-2">
+                        Zurück zum Projekt
+                    </a>
+                @else
+                    <a href="{{ auth()->user()->can('view', $task->project) ? route('planner.projects.show', $task->project) : '#' }}"
+                       @if(auth()->user()->can('view', $task->project)) wire:navigate @endif
+                       class="hidden md:inline text-sm underline text-[var(--ui-secondary)] hover:text-[var(--ui-primary)] mr-2">
+                        Projekt: {{ $task->project->name }}
+                    </a>
+                    <a href="{{ route('planner.my-tasks') }}" wire:navigate class="hidden md:inline text-sm underline text-[var(--ui-secondary)] hover:text-[var(--ui-primary)] mr-2">
+                        Meine Aufgaben
+                    </a>
+                @endif
             @endif
-            <a href="{{ route('planner.my-tasks') }}" wire:navigate class="hidden md:inline text-sm underline text-[var(--ui-secondary)] hover:text-[var(--ui-primary)] mr-2">
-                Meine Aufgaben
-            </a>
             @can('update', $task)
                 <x-ui-button variant="primary" size="sm" rounded="full" wire:click="save">
                     <span class="inline-flex items-center gap-2">
