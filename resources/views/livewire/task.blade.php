@@ -55,12 +55,32 @@
             </div>
             
             @can('update', $task)
-                <x-ui-button variant="secondary" size="sm" wire:click="save">
-                    <span class="inline-flex items-center gap-2">
-                        @svg('heroicon-o-check', 'w-4 h-4')
-                        <span class="hidden sm:inline">Speichern</span>
-                    </span>
-                </x-ui-button>
+                <div class="flex items-center gap-2">
+                    {{-- Diskrete Auto-Save Status --}}
+                    <div class="flex items-center gap-1 text-xs text-[var(--ui-muted)]" x-data="{ 
+                        showSaved: false,
+                        init() {
+                            // Nur Manual Save Status anzeigen
+                            this.$wire.on('task-saved', () => {
+                                this.showSaved = true;
+                                setTimeout(() => this.showSaved = false, 1500);
+                            });
+                        }
+                    }">
+                        <div x-show="showSaved" class="flex items-center gap-1 text-[var(--ui-primary)]">
+                            @svg('heroicon-o-check-circle', 'w-3 h-3')
+                            <span>Gespeichert</span>
+                        </div>
+                    </div>
+                    
+                    {{-- Manual Save Button --}}
+                    <x-ui-button variant="secondary" size="sm" wire:click="save">
+                        <span class="inline-flex items-center gap-2">
+                            @svg('heroicon-o-check', 'w-4 h-4')
+                            <span class="hidden sm:inline">Speichern</span>
+                        </span>
+                    </x-ui-button>
+                </div>
             @endcan
             @if($printingAvailable)
                 <x-ui-button variant="secondary" size="sm" wire:click="printTask()">

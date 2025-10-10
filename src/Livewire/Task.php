@@ -80,6 +80,25 @@ class Task extends Component
     {
         $this->validateOnly("task.$property");
         $this->task->save();
+        // Auto-Save läuft still im Hintergrund
+    }
+
+    public function save()
+    {
+        $this->authorize('update', $this->task);
+        
+        $this->validate();
+        
+        // Datum konvertieren
+        if ($this->dueDateInput) {
+            $this->task->due_date = \Carbon\Carbon::createFromFormat('Y-m-d H:i', $this->dueDateInput);
+        } else {
+            $this->task->due_date = null;
+        }
+        
+        $this->task->save();
+        
+        $this->dispatch('task-saved');
     }
 
     public function deleteTask()
