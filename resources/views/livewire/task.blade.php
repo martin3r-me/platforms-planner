@@ -279,7 +279,10 @@
                                 <x-ui-confirm-button
                                     wire:click="deleteTask"
                                     text="Aufgabe löschen"
-                                    confirmText="Wirklich löschen?"
+                                    confirm-title="Aufgabe löschen?"
+                                    confirm-text="Möchten Sie diese Aufgabe wirklich löschen?"
+                                    confirm-button="Löschen"
+                                    cancel-button="Abbrechen"
                                     variant="danger-outline"
                                     :icon="@svg('heroicon-o-trash', 'w-4 h-4')->toHtml()"
                                     class="w-full"
