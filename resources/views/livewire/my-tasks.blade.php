@@ -77,7 +77,7 @@
             @if($backlog)
                 <x-ui-kanban-column :title="($backlog->label ?? 'Posteingang')" :sortable-id="null" :scrollable="true" :muted="true">
                     @foreach(($backlog->tasks ?? []) as $task)
-                        <livewire:planner.task-preview-card :task="$task" :key="'task-'.$task->id" />
+                        @livewire(\Platform\Planner\Livewire\TaskPreviewCard::class, ['task' => $task], key('task-'.$task->id))
                     @endforeach
                 </x-ui-kanban-column>
             @endif
@@ -102,7 +102,7 @@
                         </button>
                     </x-slot>
                     @foreach(($column->tasks ?? []) as $task)
-                        <livewire:planner.task-preview-card :task="$task" :key="'task-'.$task->id" />
+                        @livewire(\Platform\Planner\Livewire\TaskPreviewCard::class, ['task' => $task], key('task-'.$task->id))
                     @endforeach
                 </x-ui-kanban-column>
             @endforeach
@@ -112,7 +112,7 @@
             @if($done)
                 <x-ui-kanban-column :title="($done->label ?? 'Erledigt')" :sortable-id="null" :scrollable="true" :muted="true">
                     @foreach(($done->tasks ?? []) as $task)
-                        <livewire:planner.task-preview-card :task="$task" :key="'task-'.$task->id" />
+                        @livewire(\Platform\Planner\Livewire\TaskPreviewCard::class, ['task' => $task], key('task-'.$task->id))
                     @endforeach
                 </x-ui-kanban-column>
             @endif
