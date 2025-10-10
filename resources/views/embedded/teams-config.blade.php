@@ -45,18 +45,26 @@
                                     window.microsoftTeams.pages.config.setValidityState(true);
 
                                     // OnSave: einfache Test-Content-URL setzen (später Projekt-URL)
-                                    window.microsoftTeams.pages.config.registerOnSaveHandler(function (saveEvent) {
+                                    window.microsoftTeams.pages.config.registerOnSaveHandler(async function (saveEvent) {
                                         const select = document.getElementById('projectSelect');
                                         const projectId = select ? select.value : '';
                                         if (!projectId) {
                                             saveEvent.notifyFailure('Bitte ein Projekt wählen');
                                             return;
                                         }
+                                        // Optional Team-Kontext an URL anhängen
+                                        let teamIdQuery = '';
+                                        try {
+                                            const ctx = await window.microsoftTeams.app.getContext();
+                                            const gid = ctx?.team?.groupId || '';
+                                            if (gid) teamIdQuery = '?teamId=' + encodeURIComponent(gid);
+                                        } catch(_) {}
 
-                                        const contentUrl = 'https://office.martin3r.me/planner/embedded/planner/projects/' + encodeURIComponent(projectId);
+                                        const contentUrl = 'https://office.martin3r.me/planner/embedded/planner/projects/' + encodeURIComponent(projectId) + teamIdQuery;
                                         const websiteUrl = contentUrl;
                                         const entityId = 'planner-project-' + projectId;
-                                        const displayName = 'Planner Projekt ' + projectId;
+                                        const projectName = (select && select.options[select.selectedIndex]) ? select.options[select.selectedIndex].textContent : ('Projekt ' + projectId);
+                                        const displayName = 'PLANNER · ' + projectName;
 
                                         window.microsoftTeams.pages.config.setConfig({
                                             contentUrl: contentUrl,
