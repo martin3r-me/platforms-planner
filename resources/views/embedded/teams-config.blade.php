@@ -3,7 +3,15 @@
 @section('content')
     <div class="p-6">
         <h1 class="text-xl font-semibold text-[var(--ui-secondary)] mb-2">Teams Tab Konfiguration – Test</h1>
-        <p class="text-sm text-[var(--ui-muted)] mb-4">Prüft die Einbettung und die Teams SDK-Initialisierung.</p>
+        <p class="text-sm text-[var(--ui-muted)] mb-1">Prüft die Einbettung und die Teams SDK-Initialisierung.</p>
+        <p class="text-sm text-[var(--ui-secondary)] mb-4">
+            @php($u = auth()->user())
+            @if($u)
+                Hallo, {{ $u->name ?? $u->email ?? 'User' }}
+            @else
+                Nicht eingeloggt
+            @endif
+        </p>
 
         <div id="sdkStatus" class="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-md border border-[var(--ui-border)] bg-[var(--ui-muted-5)] text-[var(--ui-secondary)]">
             SDK: wird geprüft…
@@ -80,7 +88,8 @@
                             if (window.microsoftTeams.app.getContext) {
                                 window.microsoftTeams.app.getContext().then(function(ctx){
                                     const teamId = ctx?.team?.groupId || '';
-                                    const url = '/planner/embedded/planner/api/projects' + (teamId ? ('?teamId=' + encodeURIComponent(teamId)) : '');
+                                    // echte, auth-basierte Liste der Projekte
+                                    const url = '/planner/embedded/planner/api/my-projects';
                                     fetch(url).then(r => r.json()).then(function(json){
                                         const sel = document.getElementById('projectSelect');
                                         if (!sel) return;

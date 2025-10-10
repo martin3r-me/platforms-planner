@@ -55,3 +55,33 @@ Route::get('/embedded/planner/api/projects', function () {
         'data' => $query->limit(200)->get(),
     ])->header('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
 })->withoutMiddleware([FrameGuard::class, 'auth', 'detect.module.guard', 'check.module.permission'])->name('planner.embedded.api.projects');
+
+// Auth-API: Projekte des eingeloggten Nutzers (für echte Konfiguration)
+Route::get('/embedded/planner/api/my-projects', function () {
+    $user = auth()->user();
+
+    $teamIds = collect([]);
+    if ($user && method_exists($user, 'teams')) {
+        try {
+            $teamIds = $teamIds->merge($user->teams()->pluck('teams.id'));
+        } catch (\Throwable $e) {
+            // ignore
+        }
+    }
+    if ($user && property_exists($user, 'currentTeam') && $user->currentTeam) {
+        $teamIds->push($user->currentTeam->id);
+    } elseif ($user && method_exists($user, 'currentTeam')) {
+        try { $teamIds->push(optional($user->currentTeam())->id); } catch (\Throwable $e) {}
+    }
+    $teamIds = $teamIds->filter()->unique();
+
+    $query = PlannerProject::query()->select(['id', 'name', 'team_id'])->orderBy('name');
+    if ($teamIds->isNotEmpty()) {
+        $query->whereIn('team_id', $teamIds);
+    } else {
+        $query->whereRaw('1=0');
+    }
+
+    return response()->json(['data' => $query->limit(200)->get()])
+        ->header('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
+})->name('planner.embedded.api.my-projects');
