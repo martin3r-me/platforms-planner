@@ -21,3 +21,8 @@ Route::get('/tasks/{plannerTask}', Task::class)
 Route::get('/embedded/planner/projects/{plannerProject}', function (PlannerProject $plannerProject) {
     return view('planner::embedded.project', compact('plannerProject'));
 })->name('planner.embedded.project');
+
+// Embedded Test: Teams Tab Konfigurations-Check
+Route::get('/embedded/planner/teams/config', function () {
+    return view('planner::embedded.teams-config');
+})->name('planner.embedded.teams.config');
