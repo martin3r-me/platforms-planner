@@ -2,11 +2,15 @@
     <x-ui-page>
         <x-slot name="navbar">
             <x-ui-page-navbar :title="$task->title" icon="heroicon-o-clipboard-document-check">
-                @if($task->project)
-                    <a href="{{ route('planner.embedded.project', ['plannerProject' => $task->project->id]) }}" class="text-sm underline text-[var(--ui-secondary)] hover:text-[var(--ui-primary)] mr-2">
-                        Zurück zum Projekt
-                    </a>
-                @endif
+                {{-- Breadcrumbs für Embedded --}}
+                <div class="flex items-center space-x-2">
+                    <x-ui-breadcrumb :items="[
+                        ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
+                        ['label' => $task->project->name, 'href' => route('planner.embedded.project', $task->project), 'icon' => 'folder'],
+                        ['label' => $task->title, 'href' => null, 'icon' => 'clipboard-document-check']
+                    ]" />
+                </div>
+                
                 @if($printingAvailable)
                     <x-ui-button variant="secondary" size="sm" wire:click="printTask()">
                         @svg('heroicon-o-printer', 'w-4 h-4')
@@ -74,19 +78,19 @@
 
                 <div class="mt-6 pt-6 border-t">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <x-ui-input-checkbox
+                        <x-ui-status-toggle
                             model="task.is_done"
-                            checked-label="Erledigt"
-                            unchecked-label="Als erledigt markieren"
-                            size="md"
-                            block="true"
+                            label="Erledigt"
+                            variant="success"
+                            icon="check-circle"
+                            description="Aufgabe als erledigt markieren"
                         />
-                        <x-ui-input-checkbox
+                        <x-ui-status-toggle
                             model="task.is_frog"
-                            checked-label="Frosch (wichtig & unangenehm)"
-                            unchecked-label="Als Frosch markieren"
-                            size="md"
-                            block="true"
+                            label="Frosch"
+                            variant="danger"
+                            icon="exclamation-triangle"
+                            description="Wichtig & unangenehm - zuerst erledigen"
                         />
                     </div>
                 </div>

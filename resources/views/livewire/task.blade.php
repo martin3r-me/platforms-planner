@@ -8,24 +8,28 @@
                     </x-ui-button>
                 @endcan
             </x-slot>
-            @if($task->project)
+            
+            {{-- Breadcrumbs --}}
+            <div class="flex items-center space-x-2">
                 @php($embedded = request()->is('*/embedded/*') || request()->boolean('embedded', false))
                 @if($embedded)
-                    <a href="{{ route('planner.embedded.project', ['plannerProject' => $task->project->id]) }}"
-                       class="text-sm underline text-[var(--ui-secondary)] hover:text-[var(--ui-primary)] mr-2">
-                        Zurück zum Projekt
-                    </a>
+                    <x-ui-breadcrumb :items="[
+                        ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
+                        ['label' => $task->project->name, 'href' => route('planner.embedded.project', $task->project), 'icon' => 'folder'],
+                        ['label' => $task->title, 'href' => null, 'icon' => 'clipboard-document-check']
+                    ]" />
                 @else
-                    <a href="{{ auth()->user()->can('view', $task->project) ? route('planner.projects.show', $task->project) : '#' }}"
-                       @if(auth()->user()->can('view', $task->project)) wire:navigate @endif
-                       class="hidden md:inline text-sm underline text-[var(--ui-secondary)] hover:text-[var(--ui-primary)] mr-2">
-                        Projekt: {{ $task->project->name }}
-                    </a>
-                    <a href="{{ route('planner.my-tasks') }}" wire:navigate class="hidden md:inline text-sm underline text-[var(--ui-secondary)] hover:text-[var(--ui-primary)] mr-2">
-                        Meine Aufgaben
-                    </a>
+                    <x-ui-breadcrumb :items="[
+                        ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
+                        ['label' => 'Meine Aufgaben', 'href' => route('planner.my-tasks'), 'icon' => 'clipboard-document-list'],
+                        @if($task->project)
+                            ['label' => $task->project->name, 'href' => route('planner.projects.show', $task->project), 'icon' => 'folder'],
+                        @endif
+                        ['label' => $task->title, 'href' => null, 'icon' => 'clipboard-document-check']
+                    ]" />
                 @endif
-            @endif
+            </div>
+            
             @can('update', $task)
                 <x-ui-button variant="secondary" size="sm" wire:click="save">
                     <span class="inline-flex items-center gap-2">
@@ -147,27 +151,23 @@
                 </div>
             </x-ui-form-grid>
 
-            {{-- Status Checkboxes --}}
+            {{-- Status Toggles --}}
             <div class="mt-8 pt-8 border-t border-[var(--ui-border)]/60">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <x-ui-panel class="bg-gray-50 rounded-lg">
-                        <x-ui-input-checkbox
-                            model="task.is_done"
-                            checked-label="Erledigt"
-                            unchecked-label="Als erledigt markieren"
-                            size="md"
-                            block="true"
-                        />
-                    </x-ui-panel>
-                    <x-ui-panel class="bg-gray-50 rounded-lg">
-                        <x-ui-input-checkbox
-                            model="task.is_frog"
-                            checked-label="Frosch (wichtig & unangenehm)"
-                            unchecked-label="Als Frosch markieren"
-                            size="md"
-                            block="true"
-                        />
-                    </x-ui-panel>
+                    <x-ui-status-toggle
+                        model="task.is_done"
+                        label="Erledigt"
+                        variant="success"
+                        icon="check-circle"
+                        description="Aufgabe als erledigt markieren"
+                    />
+                    <x-ui-status-toggle
+                        model="task.is_frog"
+                        label="Frosch"
+                        variant="danger"
+                        icon="exclamation-triangle"
+                        description="Wichtig & unangenehm - zuerst erledigen"
+                    />
                 </div>
             </div>
 
@@ -186,106 +186,70 @@
     </x-ui-page-container>
 
     <x-slot name="sidebar">
-        <x-ui-page-sidebar title="Navigation & Details" width="w-80" :defaultOpen="true">
-            <div class="p-6 space-y-8">
-                {{-- Navigation --}}
+        <x-ui-page-sidebar title="Details & Aktionen" width="w-80" :defaultOpen="true">
+            <div class="p-6 space-y-6">
+                {{-- Quick Stats --}}
                 <div>
-                    <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-4">Navigation</h3>
-                    <div class="space-y-2">
-                        @if($task->project)
-                            <x-ui-button
-                                variant="secondary-outline"
+                    <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-4">Status</h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between py-3 px-4 bg-[var(--ui-muted-5)] rounded-lg border border-[var(--ui-border)]/40">
+                            <span class="text-sm font-medium text-[var(--ui-secondary)]">Erledigt</span>
+                            <x-ui-input-checkbox
+                                model="task.is_done"
+                                checked-label=""
+                                unchecked-label=""
                                 size="sm"
-                                :href="route('planner.projects.show', ['plannerProject' => $task->project->id])"
-                                wire:navigate
-                                class="w-full"
-                            >
-                                <span class="flex items-center gap-2">
-                                    @svg('heroicon-o-folder', 'w-4 h-4')
-                                    Zum Projekt
-                                </span>
-                            </x-ui-button>
-                        @endif
-                        <x-ui-button
-                            variant="secondary-outline"
-                            size="sm"
-                            :href="route('planner.my-tasks')"
-                            wire:navigate
-                            class="w-full"
-                        >
-                            <span class="flex items-center gap-2">
-                                @svg('heroicon-o-clipboard-document-list', 'w-4 h-4')
-                                Zu meinen Aufgaben
-                            </span>
-                        </x-ui-button>
+                                block="false"
+                            />
+                        </div>
+                        <div class="flex items-center justify-between py-3 px-4 bg-[var(--ui-muted-5)] rounded-lg border border-[var(--ui-border)]/40">
+                            <span class="text-sm font-medium text-[var(--ui-secondary)]">Frosch</span>
+                            <x-ui-input-checkbox
+                                model="task.is_frog"
+                                checked-label=""
+                                unchecked-label=""
+                                size="sm"
+                                block="false"
+                            />
+                        </div>
                     </div>
                 </div>
 
-                {{-- Status & Details --}}
-                <div class="space-y-6">
-                    {{-- Quick Stats --}}
-                    <div>
-                        <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-4">Status</h3>
-                        <div class="space-y-3">
-                            <div class="flex items-center justify-between py-3 px-4 bg-[var(--ui-muted-5)] rounded-lg border border-[var(--ui-border)]/40">
-                                <span class="text-sm font-medium text-[var(--ui-secondary)]">Erledigt</span>
-                                <x-ui-input-checkbox
-                                    model="task.is_done"
-                                    checked-label=""
-                                    unchecked-label=""
-                                    size="sm"
-                                    block="false"
-                                />
+                {{-- Metrics --}}
+                <div>
+                    <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-4">Metriken</h3>
+                    <div class="space-y-3">
+                        @if($task->userInCharge)
+                            <div class="py-3 px-4 bg-[var(--ui-info-5)] rounded-lg border-l-4 border-[var(--ui-info)]">
+                                <div class="text-xs text-[var(--ui-info)] font-medium uppercase tracking-wide">Verantwortlicher</div>
+                                <div class="text-lg font-bold text-[var(--ui-info)]">{{ $task->userInCharge->fullname ?? $task->userInCharge->name }}</div>
                             </div>
-                            <div class="flex items-center justify-between py-3 px-4 bg-[var(--ui-muted-5)] rounded-lg border border-[var(--ui-border)]/40">
-                                <span class="text-sm font-medium text-[var(--ui-secondary)]">Frosch</span>
-                                <x-ui-input-checkbox
-                                    model="task.is_frog"
-                                    checked-label=""
-                                    unchecked-label=""
-                                    size="sm"
-                                    block="false"
-                                />
-                            </div>
+                        @endif
+                        <div class="py-3 px-4 bg-[var(--ui-primary-5)] rounded-lg border-l-4 border-[var(--ui-primary)]">
+                            <div class="text-xs text-[var(--ui-primary)] font-medium uppercase tracking-wide">Offen seit</div>
+                            <div class="text-lg font-bold text-[var(--ui-primary)]">{{ optional($task->created_at)->diffForHumans(null, true) }}</div>
+                        </div>
+                        <div class="py-3 px-4 bg-[var(--ui-muted-5)] rounded-lg border border-[var(--ui-border)]/40">
+                            <div class="text-xs text-[var(--ui-muted)] font-medium uppercase tracking-wide">Kommentare</div>
+                            <div class="text-lg font-bold text-[var(--ui-secondary)]">0</div>
                         </div>
                     </div>
+                </div>
 
-                    {{-- Metrics --}}
-                    <div>
-                        <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-4">Metriken</h3>
-                        <div class="space-y-3">
-                            @if($task->userInCharge)
-                                <div class="py-3 px-4 bg-[var(--ui-info-5)] rounded-lg border-l-4 border-[var(--ui-info)]">
-                                    <div class="text-xs text-[var(--ui-info)] font-medium uppercase tracking-wide">Verantwortlicher</div>
-                                    <div class="text-lg font-bold text-[var(--ui-info)]">{{ $task->userInCharge->fullname ?? $task->userInCharge->name }}</div>
-                                </div>
-                            @endif
-                            <div class="py-3 px-4 bg-[var(--ui-primary-5)] rounded-lg border-l-4 border-[var(--ui-primary)]">
-                                <div class="text-xs text-[var(--ui-primary)] font-medium uppercase tracking-wide">Offen seit</div>
-                                <div class="text-lg font-bold text-[var(--ui-primary)]">{{ optional($task->created_at)->diffForHumans(null, true) }}</div>
-                            </div>
-                            <div class="py-3 px-4 bg-[var(--ui-muted-5)] rounded-lg border border-[var(--ui-border)]/40">
-                                <div class="text-xs text-[var(--ui-muted)] font-medium uppercase tracking-wide">Kommentare</div>
-                                <div class="text-lg font-bold text-[var(--ui-secondary)]">0</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- Actions --}}
-                    <div>
-                        <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-4">Aktionen</h3>
-                        <div class="space-y-2">
-                            @can('delete', $task)
-                                <x-ui-confirm-button 
-                                    action="deleteTask" 
-                                    text="Löschen" 
-                                    confirmText="Wirklich löschen?" 
-                                    variant="danger"
-                                    :icon="@svg('heroicon-o-trash', 'w-4 h-4')->toHtml()"
-                                    class="w-full"
-                                />
-                            @endcan
-                        </div>
+                {{-- Actions --}}
+                <div>
+                    <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-4">Aktionen</h3>
+                    <div class="space-y-2">
+                        @can('delete', $task)
+                            <x-ui-confirm-button 
+                                action="deleteTask" 
+                                text="Löschen" 
+                                confirmText="Wirklich löschen?" 
+                                variant="danger"
+                                :icon="@svg('heroicon-o-trash', 'w-4 h-4')->toHtml()"
+                                class="w-full"
+                            />
+                        @endcan
                     </div>
                 </div>
             </div>
