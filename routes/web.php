@@ -18,19 +18,19 @@ Route::get('/projects/{plannerProject}', Project::class)
 Route::get('/tasks/{plannerTask}', Task::class)
     ->name('planner.tasks.show');
 
-// Embedded (Teams/iframe) – Auth via Core Middleware-Kette (global)
+// Embedded (Teams/iframe) – Teams SSO für automatische Anmeldung
 Route::get('/embedded/planner/projects/{plannerProject}', function (PlannerProject $plannerProject) {
     $response = response()->view('planner::embedded.project', compact('plannerProject'));
     $response->headers->set('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
     return $response;
-})->withoutMiddleware([FrameGuard::class])->name('planner.embedded.project');
+})->middleware(['teams.sso'])->withoutMiddleware([FrameGuard::class])->name('planner.embedded.project');
 
-// Embedded Task-Ansicht (Teams)
+// Embedded Task-Ansicht (Teams) – Teams SSO für automatische Anmeldung
 Route::get('/embedded/planner/tasks/{plannerTask}', function (\Platform\Planner\Models\PlannerTask $plannerTask) {
     $response = response()->view('planner::embedded.task', compact('plannerTask'));
     $response->headers->set('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
     return $response;
-})->withoutMiddleware([FrameGuard::class])->name('planner.embedded.task');
+})->middleware(['teams.sso'])->withoutMiddleware([FrameGuard::class])->name('planner.embedded.task');
 
 // Embedded Test: Teams Tab Konfigurations-Check (neue, saubere URL)
 Route::get('/embedded/teams/config', function () {
