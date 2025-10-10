@@ -2,7 +2,7 @@
 
 @section('content')
     <div class="h-full">
-        @livewire('planner.embedded.task', ['plannerTask' => $plannerTask])
+        @livewire(\Platform\Planner\Livewire\Embedded\Task::class, ['plannerTask' => $plannerTask])
     </div>
 @endsection
 
