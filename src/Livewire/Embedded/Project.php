@@ -51,7 +51,14 @@ class Project extends BaseProject
 
     public function render()
     {
-        return view('planner::livewire.embedded.project');
+        // Basis-Komponente render() aufrufen, aber embedded View verwenden
+        $data = parent::render();
+        
+        // Die Daten aus der Basis-Komponente extrahieren
+        $viewData = $data->getData();
+        
+        // Embedded View mit den gleichen Daten rendern
+        return view('planner::livewire.embedded.project', $viewData);
     }
 }
 
