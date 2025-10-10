@@ -32,10 +32,7 @@ class Project extends BaseProject
             'order'          => $order,
         ]);
 
-        // Optional: State neu laden, falls Tasks direkt im UI erscheinen sollen
-        $this->mount($this->project);
-        
-        // Weiterleitung zur embedded Task-Route
+        // Direkte Weiterleitung zur embedded Task-Route OHNE mount()
         return $this->redirect(route('planner.embedded.task', $task), navigate: true);
     }
 
