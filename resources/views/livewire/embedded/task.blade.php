@@ -103,7 +103,7 @@
                         <x-ui-input-select
                             name="task.user_in_charge_id"
                             label="Verantwortlicher"
-                            :options="$teamUsers"
+                            :options="($teamUsers ?? collect([]))"
                             optionValue="id"
                             optionLabel="name"
                             :nullable="true"
