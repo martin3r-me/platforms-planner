@@ -9,7 +9,7 @@
                         ['value' => 'personal', 'label' => 'Persönlich', 'icon' => 'heroicon-o-user'],
                         ['value' => 'team', 'label' => 'Team', 'icon' => 'heroicon-o-users'],
                     ]"
-                    active-variant="success"
+                    active-variant="secondary"
                     size="sm"
                 />
             </x-slot>
@@ -24,14 +24,14 @@
                     icon="heroicon-o-user"
                     title="Persönliche Übersicht"
                     message="Deine persönlichen Aufgaben und zuständigen Projektaufgaben im aktuellen Sprint."
-                    variant="info"
+                    variant="secondary"
                 />
             @else
                 <x-ui-info-banner 
                     icon="heroicon-o-users"
                     title="Team-Übersicht"
                     message="Alle Aufgaben des Teams in aktiven Projekten und Sprints."
-                    variant="success"
+                    variant="secondary"
                 />
             @endif
 
@@ -42,7 +42,7 @@
                     :count="$activeProjects"
                     subtitle="von {{ $totalProjects }}"
                     icon="folder"
-                    variant="primary"
+                    variant="secondary"
                     size="lg"
                 />
                 <x-ui-dashboard-tile
@@ -50,7 +50,7 @@
                     :count="$openTasks"
                     subtitle="von {{ $totalTasks }}"
                     icon="clock"
-                    variant="warning"
+                    variant="secondary"
                     size="lg"
                 />
                 <x-ui-dashboard-tile
@@ -58,7 +58,7 @@
                     :count="$completedTasks"
                     subtitle="diesen Monat: {{ $monthlyCompletedTasks }}"
                     icon="check-circle"
-                    variant="success"
+                    variant="secondary"
                     size="lg"
                 />
                 <x-ui-dashboard-tile
@@ -66,7 +66,7 @@
                     :count="$openStoryPoints"
                     subtitle="erledigt: {{ $completedStoryPoints }}"
                     icon="chart-bar"
-                    variant="info"
+                    variant="secondary"
                     size="lg"
                 />
             </div>

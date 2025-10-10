@@ -3,7 +3,7 @@
         <x-ui-page-navbar :title="$task->title" icon="heroicon-o-clipboard-document-check">
             <x-slot name="titleActions">
                 @can('update', $task)
-                    <x-ui-button variant="info-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-task-settings', { taskId: {{ $task->id }} })" title="Einstellungen">
+                    <x-ui-button variant="secondary-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-task-settings', { taskId: {{ $task->id }} })" title="Einstellungen">
                         @svg('heroicon-o-cog-6-tooth','w-6 h-6')
                     </x-ui-button>
                 @endcan

@@ -91,7 +91,7 @@
         <x-slot name="navbar">
             <x-ui-page-navbar :title="$project->name" icon="heroicon-o-clipboard-document-list">
                 <x-slot name="titleActions">
-                    <x-ui-button variant="info-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })" title="Einstellungen">
+                    <x-ui-button variant="secondary-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })" title="Einstellungen">
                         @svg('heroicon-o-cog-6-tooth','w-6 h-6')
                     </x-ui-button>
                 </x-slot>

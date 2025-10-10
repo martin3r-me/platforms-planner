@@ -1,13 +1,13 @@
 <x-ui-page>
     <x-slot name="navbar">
         <x-ui-page-navbar title="Meine Aufgaben" icon="heroicon-o-clipboard-document-check">
-            <x-ui-button variant="primary" size="sm" rounded="full" wire:click="createTaskGroup">
+            <x-ui-button variant="secondary" size="sm" wire:click="createTaskGroup">
                 <span class="inline-flex items-center gap-2">
                     @svg('heroicon-o-square-2-stack','w-4 h-4 inline-block align-middle')
                     <span class="hidden sm:inline">Spalte</span>
                 </span>
             </x-ui-button>
-            <x-ui-button variant="success" size="sm" rounded="full" wire:click="createTask()">
+            <x-ui-button variant="secondary" size="sm" wire:click="createTask()">
                 <span class="inline-flex items-center gap-2">
                     @svg('heroicon-o-plus','w-4 h-4 inline-block align-middle')
                     <span class="hidden sm:inline">Aufgabe</span>
@@ -96,14 +96,14 @@
                     <x-slot name="headerActions">
                         <button 
                             wire:click="createTask('{{ $column->id }}')" 
-                            class="text-green-600 hover:opacity-80 transition-opacity"
+                            class="text-[var(--ui-muted)] hover:text-[var(--ui-primary)] transition-colors"
                             title="Neue Aufgabe"
                         >
                             @svg('heroicon-o-plus-circle', 'w-5 h-5')
                         </button>
                         <button 
                             @click="$dispatch('open-modal-project-slot-settings', { projectSlotId: '{{ $column->id ?? 'unknown' }}' })"
-                            class="text-gray-500 hover:text-blue-600 transition-colors"
+                            class="text-[var(--ui-muted)] hover:text-[var(--ui-primary)] transition-colors"
                             title="Einstellungen"
                         >
                             @svg('heroicon-o-cog-6-tooth', 'w-5 h-5')
