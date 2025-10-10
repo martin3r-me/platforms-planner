@@ -159,23 +159,27 @@
                 </div>
             </x-ui-form-grid>
 
-            {{-- Status Toggles --}}
+            {{-- Status Checkboxes --}}
             <div class="mt-8 pt-8 border-t border-[var(--ui-border)]/60">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <x-ui-status-toggle
-                        model="task.is_done"
-                        label="Erledigt"
-                        variant="success"
-                        icon="check-circle"
-                        description="Aufgabe als erledigt markieren"
-                    />
-                    <x-ui-status-toggle
-                        model="task.is_frog"
-                        label="Frosch"
-                        variant="danger"
-                        icon="exclamation-triangle"
-                        description="Wichtig & unangenehm - zuerst erledigen"
-                    />
+                    <x-ui-panel class="bg-gray-50 rounded-lg">
+                        <x-ui-input-checkbox
+                            model="task.is_done"
+                            checked-label="Erledigt"
+                            unchecked-label="Als erledigt markieren"
+                            size="md"
+                            block="true"
+                        />
+                    </x-ui-panel>
+                    <x-ui-panel class="bg-gray-50 rounded-lg">
+                        <x-ui-input-checkbox
+                            model="task.is_frog"
+                            checked-label="Frosch (wichtig & unangenehm)"
+                            unchecked-label="Als Frosch markieren"
+                            size="md"
+                            block="true"
+                        />
+                    </x-ui-panel>
                 </div>
             </div>
 

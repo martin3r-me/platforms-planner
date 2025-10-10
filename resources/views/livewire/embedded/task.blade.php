@@ -83,19 +83,19 @@
 
                 <div class="mt-6 pt-6 border-t">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <x-ui-status-toggle
+                        <x-ui-input-checkbox
                             model="task.is_done"
-                            label="Erledigt"
-                            variant="success"
-                            icon="check-circle"
-                            description="Aufgabe als erledigt markieren"
+                            checked-label="Erledigt"
+                            unchecked-label="Als erledigt markieren"
+                            size="md"
+                            block="true"
                         />
-                        <x-ui-status-toggle
+                        <x-ui-input-checkbox
                             model="task.is_frog"
-                            label="Frosch"
-                            variant="danger"
-                            icon="exclamation-triangle"
-                            description="Wichtig & unangenehm - zuerst erledigen"
+                            checked-label="Frosch (wichtig & unangenehm)"
+                            unchecked-label="Als Frosch markieren"
+                            size="md"
+                            block="true"
                         />
                     </div>
                 </div>
