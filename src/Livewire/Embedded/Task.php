@@ -113,7 +113,7 @@ class Task extends BaseTask
         return view('planner::livewire.embedded.task', [
             'teamUsers' => $teamUsers,
             'task' => $this->task,
-        ]);
+        ])->layout('platform::layouts.embedded');
     }
 
     public function deleteTaskAndReturnToProject()
