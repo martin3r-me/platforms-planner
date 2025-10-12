@@ -50,7 +50,7 @@
                     updateDebugInfo('teams-sdk-auth-token', '🔍 Authentifiziere User...');
                     
                     // Einfacher fetch um User zu authentifizieren
-                    fetch('/embedded/teams/auth', {
+                    fetch('/planner/embedded/teams/auth', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -63,13 +63,20 @@
                             channel: context.channel?.displayName
                         })
                     }).then(response => {
+                        console.log('🔍 Auth Response Status:', response.status);
+                        console.log('🔍 Auth Response Headers:', response.headers);
+                        
                         if (response.ok) {
                             console.log('✅ User erfolgreich authentifiziert');
                             updateDebugInfo('teams-sdk-auth-token', '✅ User authentifiziert - Lade Seite neu...');
                             // Seite neu laden um Auth zu aktivieren
                             window.location.reload();
                         } else {
-                            updateDebugInfo('teams-sdk-auth-token', '❌ Authentication fehlgeschlagen');
+                            // Response-Text für Details abrufen
+                            response.text().then(text => {
+                                console.error('❌ Auth Response Error:', text);
+                                updateDebugInfo('teams-sdk-auth-token', `❌ Authentication fehlgeschlagen (${response.status}): ${text}`);
+                            });
                         }
                     }).catch(error => {
                         console.error('❌ Authentication Fehler:', error);
