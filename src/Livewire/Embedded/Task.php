@@ -227,13 +227,15 @@ class Task extends BaseTask
             }
         }
         
-        // 3. Fallback: Demo User für embedded Kontext
-        \Log::info("Kein Teams User gefunden, verwende Demo User");
-        $user = $this->getOrCreateDemoUser();
-        if ($user) {
-            \Auth::login($user);
-            return $user;
-        }
+        // 3. Kein Fallback - Teams User ist erforderlich
+        \Log::error("Kein Teams User oder SSO gefunden - Teams Authentication erforderlich!");
+        $this->dispatch('notifications:store', [
+            'notice_type' => 'error',
+            'title' => 'Teams Authentication Fehler',
+            'message' => 'Kein Teams User gefunden. Bitte stellen Sie sicher, dass Sie über Microsoft Teams auf die Anwendung zugreifen.',
+            'noticable_type' => 'Platform\\Planner\\Models\\PlannerTask',
+            'noticable_id' => $this->task->id ?? null,
+        ]);
         
         return null;
     }
@@ -316,26 +318,6 @@ class Task extends BaseTask
         return $user;
     }
     
-    /**
-     * Demo User für embedded Kontext
-     */
-    private function getOrCreateDemoUser()
-    {
-        $userModelClass = config('auth.providers.users.model');
-        $user = $userModelClass::where('email', 'teams-demo@embedded.local')->first();
-        
-        if (!$user) {
-            $user = new $userModelClass();
-            $user->email = 'teams-demo@embedded.local';
-            $user->name = 'Teams Demo User';
-            $user->save();
-            
-            // Personal Team erstellen
-            \Platform\Core\PlatformCore::createPersonalTeamFor($user);
-        }
-        
-        return $user;
-    }
 }
 
 
