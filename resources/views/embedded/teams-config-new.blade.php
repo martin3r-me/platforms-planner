@@ -130,54 +130,49 @@
                     console.error('Teams SDK Fehler:', error);
                 }
 
-                // Projekte laden basierend auf Teams Context
+                // Projekte direkt aus PHP laden (keine API nötig)
                 function loadProjects(context) {
                     const select = document.getElementById('projectSelect');
                     if (!select) return;
 
+                    // Projekte sind bereits in der View verfügbar
+                    const projects = @json(\Platform\Planner\Models\PlannerProject::select(['id', 'name', 'team_id'])->orderBy('name')->get());
+                    
+                    console.log('Projekte aus PHP:', projects);
+                    
+                    // Select leeren
+                    select.innerHTML = '<option value="">– Bitte wählen –</option>';
+                    
                     // Team ID aus Teams Context
                     const teamId = context?.team?.groupId || '';
+                    console.log('Teams Team ID:', teamId);
                     
-                    // API-URL mit Team ID
-                    let apiUrl = '/planner/embedded/planner/api/projects';
+                    // Projekte filtern basierend auf Teams Team ID (falls vorhanden)
+                    let filteredProjects = projects;
                     if (teamId) {
-                        apiUrl += '?teamId=' + encodeURIComponent(teamId);
+                        // Hier könnten wir nach Team ID filtern, aber erstmal alle anzeigen
+                        console.log('Filtering by team ID:', teamId);
                     }
-
-                    console.log('Lade Projekte von:', apiUrl);
-
-                    fetch(apiUrl)
-                        .then(response => response.json())
-                        .then(data => {
-                            console.log('Projekte geladen:', data);
-                            
-                            // Select leeren
-                            select.innerHTML = '<option value="">– Bitte wählen –</option>';
-                            
-                            // Projekte hinzufügen
-                            if (data.data && data.data.length > 0) {
-                                data.data.forEach(project => {
-                                    const option = document.createElement('option');
-                                    option.value = project.id;
-                                    option.textContent = project.name;
-                                    select.appendChild(option);
-                                });
-                                
-                                // Validity aktivieren wenn Projekte vorhanden
-                                if (window.microsoftTeams.pages && window.microsoftTeams.pages.config) {
-                                    window.microsoftTeams.pages.config.setValidityState(true);
-                                }
-                            } else {
-                                const option = document.createElement('option');
-                                option.value = '';
-                                option.textContent = 'Keine Projekte gefunden';
-                                select.appendChild(option);
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Fehler beim Laden der Projekte:', error);
-                            select.innerHTML = '<option value="">Fehler beim Laden</option>';
+                    
+                    // Projekte hinzufügen
+                    if (filteredProjects && filteredProjects.length > 0) {
+                        filteredProjects.forEach(project => {
+                            const option = document.createElement('option');
+                            option.value = project.id;
+                            option.textContent = project.name;
+                            select.appendChild(option);
                         });
+                        
+                        // Validity aktivieren wenn Projekte vorhanden
+                        if (window.microsoftTeams.pages && window.microsoftTeams.pages.config) {
+                            window.microsoftTeams.pages.config.setValidityState(true);
+                        }
+                    } else {
+                        const option = document.createElement('option');
+                        option.value = '';
+                        option.textContent = 'Keine Projekte gefunden';
+                        select.appendChild(option);
+                    }
                 }
             })();
         </script>

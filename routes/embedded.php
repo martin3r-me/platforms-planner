@@ -63,15 +63,56 @@ Route::get('/embedded/debug', function () {
     return $response;
 })->withoutMiddleware([FrameGuard::class])->name('embedded.debug');
 
+// Debug: Alle Projekte in der Datenbank anzeigen
+Route::get('/embedded/debug-projects', function () {
+    $allProjects = PlannerProject::all();
+    $projectsByTeam = PlannerProject::select('team_id', \DB::raw('count(*) as count'))
+        ->groupBy('team_id')
+        ->get();
+    
+    $debug = [
+        'total_projects' => $allProjects->count(),
+        'all_projects' => $allProjects->toArray(),
+        'projects_by_team' => $projectsByTeam->toArray(),
+        'teams_table_exists' => \Schema::hasTable('teams'),
+        'planner_projects_table_exists' => \Schema::hasTable('planner_projects'),
+    ];
+    
+    return response()->json($debug, 200, [
+        'Content-Security-Policy' => "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com"
+    ]);
+})->withoutMiddleware([FrameGuard::class])->name('embedded.debug.projects');
+
 // API: Projekte für Teams-Konfiguration (minimal, JSON)
 Route::get('/embedded/planner/api/projects', function () {
     $teamId = request()->query('teamId');
+    
+    // Debug: Log die Anfrage
+    \Log::info('Teams API Projects Request', [
+        'teamId' => $teamId,
+        'query' => request()->query->all()
+    ]);
+    
     $query = PlannerProject::query()->select(['id', 'name', 'team_id'])->orderBy('name');
     if ($teamId) {
         $query->where('team_id', $teamId);
     }
+    
+    $projects = $query->limit(200)->get();
+    
+    // Debug: Log die Ergebnisse
+    \Log::info('Teams API Projects Response', [
+        'count' => $projects->count(),
+        'projects' => $projects->toArray()
+    ]);
+    
     return response()->json([
-        'data' => $query->limit(200)->get(),
+        'data' => $projects,
+        'debug' => [
+            'teamId' => $teamId,
+            'count' => $projects->count(),
+            'query' => request()->query->all()
+        ]
     ])->header('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
 })->withoutMiddleware([FrameGuard::class])->name('planner.embedded.api.projects');
 
