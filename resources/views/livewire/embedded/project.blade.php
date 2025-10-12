@@ -135,6 +135,64 @@
         <x-slot name="sidebar">
             <x-ui-page-sidebar title="Projekt-Übersicht" width="w-80" :defaultOpen="true">
                 <div class="p-4 space-y-4">
+                    <!-- DEBUG: Teams SDK Status -->
+                    <div>
+                        <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">🔍 Debug</h3>
+                        <div class="space-y-2">
+                            @php
+                                $teamsUser = \Platform\Core\Helpers\TeamsAuthHelper::getTeamsUser(request());
+                                $teamsContext = \Platform\Core\Helpers\TeamsAuthHelper::getTeamsContext(request());
+                                $authUser = auth()->user();
+                            @endphp
+                            
+                            <!-- Teams User Status -->
+                            <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
+                                <div class="text-xs font-medium text-[var(--ui-secondary)]">Teams User</div>
+                                <div class="text-xs text-[var(--ui-muted)]">
+                                    @if($teamsUser)
+                                        ✅ {{ $teamsUser['email'] ?? 'Keine Email' }}
+                                    @else
+                                        ❌ Nicht gefunden
+                                    @endif
+                                </div>
+                            </div>
+                            
+                            <!-- Teams Context Status -->
+                            <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
+                                <div class="text-xs font-medium text-[var(--ui-secondary)]">Teams Context</div>
+                                <div class="text-xs text-[var(--ui-muted)]">
+                                    @if($teamsContext)
+                                        ✅ Verfügbar
+                                    @else
+                                        ❌ Nicht verfügbar
+                                    @endif
+                                </div>
+                            </div>
+                            
+                            <!-- Laravel Auth Status -->
+                            <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
+                                <div class="text-xs font-medium text-[var(--ui-secondary)]">Laravel Auth</div>
+                                <div class="text-xs text-[var(--ui-muted)]">
+                                    @if($authUser)
+                                        ✅ {{ $authUser->email }}
+                                    @else
+                                        ❌ Nicht angemeldet
+                                    @endif
+                                </div>
+                            </div>
+                            
+                            <!-- Request Info -->
+                            <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
+                                <div class="text-xs font-medium text-[var(--ui-secondary)]">Request</div>
+                                <div class="text-xs text-[var(--ui-muted)]">
+                                    Path: {{ request()->getPathInfo() }}<br>
+                                    Method: {{ request()->getMethod() }}<br>
+                                    Referer: {{ request()->header('referer', 'Kein Referer') }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Projekt-Statistiken -->
                     <div>
                         <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Statistiken</h3>

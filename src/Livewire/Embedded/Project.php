@@ -22,8 +22,19 @@ class Project extends BaseProject
         $request = request();
         $teamsUser = TeamsAuthHelper::getTeamsUser($request);
         
+        \Log::info("🔍 TEAMS USER DEBUG:", [
+            'teamsUser' => $teamsUser,
+            'request_attributes' => $request->attributes->all(),
+            'headers' => $request->headers->all()
+        ]);
+        
         if (!$teamsUser) {
             \Log::warning("Teams User not found in embedded context");
+            $this->dispatch('notifications:store', [
+                'notice_type' => 'error',
+                'title' => 'Teams Auth Fehler',
+                'message' => 'Teams User nicht gefunden. Bitte Seite neu laden.',
+            ]);
             return;
         }
 
@@ -32,6 +43,11 @@ class Project extends BaseProject
         
         if (!$user) {
             \Log::warning("Could not find or create user from Teams context");
+            $this->dispatch('notifications:store', [
+                'notice_type' => 'error',
+                'title' => 'User Fehler',
+                'message' => 'User konnte nicht aus Teams Context erstellt werden.',
+            ]);
             return;
         }
 
@@ -118,12 +134,27 @@ class Project extends BaseProject
 
     public function createProjectSlot()
     {
+        \Log::info("🔍 EMBEDDED CREATE PROJECT SLOT CALLED:", [
+            'project_id' => $this->project->id,
+            'timestamp' => now()
+        ]);
+
         // Teams User-Info aus Request holen (ohne Laravel Auth)
         $request = request();
         $teamsUser = TeamsAuthHelper::getTeamsUser($request);
         
+        \Log::info("🔍 TEAMS USER DEBUG (SLOT):", [
+            'teamsUser' => $teamsUser,
+            'request_attributes' => $request->attributes->all()
+        ]);
+        
         if (!$teamsUser) {
             \Log::warning("Teams User not found for project slot creation");
+            $this->dispatch('notifications:store', [
+                'notice_type' => 'error',
+                'title' => 'Teams Auth Fehler',
+                'message' => 'Teams User nicht gefunden für Spalte-Erstellung.',
+            ]);
             return;
         }
 
@@ -132,6 +163,11 @@ class Project extends BaseProject
         
         if (!$user) {
             \Log::warning("Could not find or create user for project slot creation");
+            $this->dispatch('notifications:store', [
+                'notice_type' => 'error',
+                'title' => 'User Fehler',
+                'message' => 'User konnte nicht für Spalte-Erstellung erstellt werden.',
+            ]);
             return;
         }
 
