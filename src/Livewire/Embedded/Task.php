@@ -25,6 +25,28 @@ class Task extends BaseTask
         $this->dueDateInput = $plannerTask->due_date ? $plannerTask->due_date->format('Y-m-d H:i') : '';
     }
 
+    public function updatedDueDateInput($value)
+    {
+        if (empty($value)) {
+            $this->task->due_date = null;
+        } else {
+            try {
+                // Prüfe ob es nur ein Jahr ist (z.B. "2025")
+                if (preg_match('/^\d{4}$/', $value)) {
+                    $this->task->due_date = null; // Ungültiges Format ignorieren
+                } else {
+                    // Parse das Date-Format (YYYY-MM-DD oder YYYY-MM-DD HH:MM)
+                    $this->task->due_date = \Carbon\Carbon::parse($value);
+                }
+            } catch (\Exception $e) {
+                // Bei ungültigem Datum auf null setzen
+                $this->task->due_date = null;
+            }
+        }
+        
+        $this->task->save();
+    }
+
     public function updatedTask($property, $value)
     {
         $this->validateOnly("task.$property");

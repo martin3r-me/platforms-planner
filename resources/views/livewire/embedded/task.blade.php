@@ -286,6 +286,15 @@
                                     Due Date Field: {{ $dueDateInput ? '✅ Set' : '❌ Not Set' }}
                                 </div>
                             </div>
+                            <div class="py-2 px-3 bg-[var(--ui-muted-5)] rounded border">
+                                <div class="font-medium text-[var(--ui-secondary)]">Wire Model Test:</div>
+                                <div class="text-[var(--ui-muted)]">
+                                    Task Title Value: "{{ $task->title }}"<br>
+                                    Task Description Value: "{{ $task->description }}"<br>
+                                    Task Priority Value: "{{ $task->priority }}"<br>
+                                    Due Date Input Value: "{{ $dueDateInput }}"
+                                </div>
+                            </div>
                         </div>
                     </div>
 
