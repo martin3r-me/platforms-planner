@@ -1,7 +1,5 @@
 <div class="h-full">
-    <x-ui-page>
-        <x-slot name="navbar">
-            <x-ui-page-navbar title="Aufgabe" icon="heroicon-o-clipboard-document-check">
+    <x-ui-page-navbar title="Aufgabe" icon="heroicon-o-clipboard-document-check">
                 {{-- Simple Breadcrumbs für Embedded --}}
                 <div class="flex items-center space-x-2 text-sm">
                     <span class="text-[var(--ui-muted)] flex items-center gap-1">
@@ -36,7 +34,6 @@
                     :icon="@svg('heroicon-o-trash', 'w-4 h-4')->toHtml()"
                 />
             </x-ui-page-navbar>
-        </x-slot>
 
         <x-ui-page-container spacing="space-y-4" class="p-4">
             <div class="bg-white rounded-lg border p-4">
@@ -354,7 +351,6 @@
                     </div>
                 </div>
             </x-ui-page-sidebar>
-        </x-slot>
 
         {{-- Rechte Sidebar --}}
         <x-slot name="activity">
@@ -374,7 +370,6 @@
                 </div>
             </x-ui-page-sidebar>
         </x-slot>
-    </x-ui-page>
 
     {{-- Print Modal --}}
     @if($printingAvailable && $printModalShow)
