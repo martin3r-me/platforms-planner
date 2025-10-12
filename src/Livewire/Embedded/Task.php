@@ -3,6 +3,7 @@
 namespace Platform\Planner\Livewire\Embedded;
 
 use Platform\Planner\Livewire\Task as BaseTask;
+use Illuminate\Support\Facades\Auth;
 
 class Task extends BaseTask
 {

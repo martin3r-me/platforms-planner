@@ -6,6 +6,7 @@ use Platform\Planner\Livewire\Project as BaseProject;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Core\Helpers\TeamsAuthHelper;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class Project extends BaseProject
 {
