@@ -38,6 +38,11 @@
     <x-ui-page>
         <x-slot name="navbar">
             <x-ui-page-navbar :title="$project->name" icon="heroicon-o-clipboard-document-list">
+                <x-slot name="titleActions">
+                    <x-ui-button variant="secondary-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })" title="Einstellungen">
+                        @svg('heroicon-o-cog-6-tooth','w-4 h-4')
+                    </x-ui-button>
+                </x-slot>
                 <x-ui-button variant="secondary" size="sm" wire:click="createProjectSlot">
                     <span class="inline-flex items-center gap-2">
                         @svg('heroicon-o-square-2-stack','w-4 h-4')
@@ -76,15 +81,22 @@
                 {{-- Mittlere Spalten (sortierbar) --}}
                 @foreach($groups->filter(fn ($g) => !($g->isDoneGroup ?? false) && !($g->isBacklog ?? false)) as $column)
                     <x-ui-kanban-column :title="($column->label ?? $column->name ?? 'Spalte')" :sortable-id="$column->id" :scrollable="true" wire:key="column-{{ $column->id }}">
-                        <x-slot name="headerActions">
-                            <button 
-                                wire:click="createTask('{{ $column->id }}')" 
-                                class="text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] transition-colors"
-                                title="Neue Aufgabe"
-                            >
-                                @svg('heroicon-o-plus-circle', 'w-4 h-4')
-                            </button>
-                        </x-slot>
+                    <x-slot name="headerActions">
+                        <button 
+                            wire:click="createTask('{{ $column->id }}')" 
+                            class="text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] transition-colors"
+                            title="Neue Aufgabe"
+                        >
+                            @svg('heroicon-o-plus-circle', 'w-4 h-4')
+                        </button>
+                        <button 
+                            @click="$dispatch('open-modal-project-slot-settings', { projectSlotId: {{ $column->id }} })"
+                            class="text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] transition-colors"
+                            title="Einstellungen"
+                        >
+                            @svg('heroicon-o-cog-6-tooth', 'w-4 h-4')
+                        </button>
+                    </x-slot>
 
                         @foreach($column->tasks as $task)
                             <x-ui-kanban-card :title="$task->title" :sortable-id="$task->id" :href="route('planner.embedded.task', $task)" wire:key="task-{{ $task->id }}">
@@ -193,6 +205,11 @@
             </x-ui-page-sidebar>
         </x-slot>
     </x-ui-page>
+
+    {{-- Modals für embedded Projekt-View --}}
+    <livewire:planner.project-settings-modal/>
+    <livewire:planner.project-slot-settings-modal/>
+    <livewire:planner.customer-project-settings-modal/>
 </div>
 
 

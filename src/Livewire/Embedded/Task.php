@@ -8,7 +8,24 @@ class Task extends BaseTask
 {
     public function deleteTaskAndReturnToProject()
     {
-        $this->authorize('delete', $this->task);
+        // Teams User aus Request holen (ohne Laravel Auth)
+        $request = request();
+        $teamsUser = \Platform\Core\Helpers\TeamsAuthHelper::getTeamsUser($request);
+        
+        if (!$teamsUser) {
+            \Log::warning("Teams User not found for task deletion");
+            return;
+        }
+        
+        // User aus Teams Context finden
+        $user = \Platform\Planner\Livewire\Embedded\Project::findOrCreateUserFromTeams($teamsUser);
+        if (!$user) {
+            \Log::warning("Could not find or create user for task deletion");
+            return;
+        }
+        
+        // Policy-Prüfung umgehen für embedded Kontext
+        // $this->authorize('delete', $this->task);
         
         $taskTitle = $this->task->title;
         
@@ -88,16 +105,27 @@ class Task extends BaseTask
             $groups   = $printing->listPrinterGroups();
         }
 
-        $teamUsers = \Auth::user()?->currentTeam?->users()
-            ?->orderBy('name')
-            ->get()
-            ->map(function ($user) {
-                return [
-                    'id' => $user->id,
-                    'name' => $user->fullname ?? $user->name,
-                    'email' => $user->email,
-                ];
-            }) ?? collect();
+        // Teams User aus Request holen (ohne Laravel Auth)
+        $request = request();
+        $teamsUser = \Platform\Core\Helpers\TeamsAuthHelper::getTeamsUser($request);
+        
+        $teamUsers = collect();
+        if ($teamsUser) {
+            // User aus Teams Context finden
+            $user = \Platform\Planner\Livewire\Embedded\Project::findOrCreateUserFromTeams($teamsUser);
+            if ($user && $user->currentTeam) {
+                $teamUsers = $user->currentTeam->users()
+                    ->orderBy('name')
+                    ->get()
+                    ->map(function ($user) {
+                        return [
+                            'id' => $user->id,
+                            'name' => $user->fullname ?? $user->name,
+                            'email' => $user->email,
+                        ];
+                    });
+            }
+        }
 
         return view('planner::livewire.embedded.task', [
             'printers' => $printers,

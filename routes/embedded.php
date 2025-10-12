@@ -12,14 +12,14 @@ Route::get('/embedded/planner/projects/{plannerProject}', function (PlannerProje
     $response = response()->view('planner::embedded.project', compact('plannerProject'));
     $response->headers->set('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
     return $response;
-})->withoutMiddleware([FrameGuard::class])->name('planner.embedded.project');
+})->withoutMiddleware([FrameGuard::class, 'auth', 'detect.module.guard', 'check.module.permission', 'teams.sdk.auth'])->name('planner.embedded.project');
 
 // Embedded Task-Ansicht (Teams)
 Route::get('/embedded/planner/tasks/{plannerTask}', function (PlannerTask $plannerTask) {
     $response = response()->view('planner::embedded.task', compact('plannerTask'));
     $response->headers->set('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
     return $response;
-})->withoutMiddleware([FrameGuard::class])->name('planner.embedded.task');
+})->withoutMiddleware([FrameGuard::class, 'auth', 'detect.module.guard', 'check.module.permission', 'teams.sdk.auth'])->name('planner.embedded.task');
 
 // Embedded Test: Teams Tab Konfigurations-Check
 Route::get('/embedded/teams/config', function () {
