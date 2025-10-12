@@ -3,6 +3,12 @@
 (function() {
     console.log('🔍 Teams Authentication - Vereinfacht');
     
+    // Prüfen ob bereits authentifiziert
+    if (sessionStorage.getItem('teams-auth-completed') === 'true') {
+        console.log('✅ Teams Auth bereits abgeschlossen - überspringe');
+        return;
+    }
+    
     // Debug-Update-Funktion
     function updateDebugInfo(elementId, content) {
         const element = document.getElementById(elementId);
@@ -69,6 +75,8 @@
                         if (response.ok) {
                             console.log('✅ User erfolgreich authentifiziert');
                             updateDebugInfo('teams-sdk-auth-token', '✅ User authentifiziert - Lade Seite neu...');
+                            // Session markieren als abgeschlossen
+                            sessionStorage.setItem('teams-auth-completed', 'true');
                             // Seite neu laden um Auth zu aktivieren
                             window.location.reload();
                         } else {
