@@ -1,20 +1,21 @@
-@if(!$task)
-    <div class="h-full flex items-center justify-center">
-        <div class="text-center">
-            <div class="text-lg font-semibold text-red-600">Fehler: Aufgabe nicht gefunden</div>
-            <div class="text-sm text-gray-600 mt-2">Die angeforderte Aufgabe konnte nicht geladen werden.</div>
-        </div>
-    </div>
-@else
-<div class="h-full">
-    <x-ui-page-navbar title="Aufgabe" icon="heroicon-o-clipboard-document-check">
-                {{-- Simple Breadcrumbs für Embedded --}}
+    <x-ui-page>
+        <x-slot name="navbar">
+            <x-ui-page-navbar :title="$task->title" icon="heroicon-o-clipboard-document-check">
+            <x-slot name="titleActions">
+                @can('update', $task)
+                    <x-ui-button variant="secondary-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-task-settings', { taskId: {{ $task->id }} })" title="Einstellungen">
+                        @svg('heroicon-o-cog-6-tooth','w-4 h-4')
+                    </x-ui-button>
+                @endcan
+            </x-slot>
+            
+            {{-- Teams Breadcrumbs --}}
                 <div class="flex items-center space-x-2 text-sm">
                     <span class="text-[var(--ui-muted)] flex items-center gap-1">
                         @svg('heroicon-o-home', 'w-4 h-4')
                         Teams
                     </span>
-                    @if($task && $task->project)
+                    @if($task->project)
                         <span class="text-[var(--ui-muted)]">›</span>
                         <a href="{{ route('planner.embedded.project', $task->project) }}" class="text-[var(--ui-secondary)] hover:text-[var(--ui-primary)] flex items-center gap-1">
                             @svg('heroicon-o-folder', 'w-4 h-4')
@@ -24,7 +25,7 @@
                     <span class="text-[var(--ui-muted)]">›</span>
                     <span class="text-[var(--ui-muted)] flex items-center gap-1">
                         @svg('heroicon-o-clipboard-document-check', 'w-4 h-4')
-                        {{ $task ? $task->title : 'Aufgabe' }}
+                        {{ $task->title }}
                     </span>
                 </div>
                 
@@ -42,6 +43,7 @@
                     :icon="@svg('heroicon-o-trash', 'w-4 h-4')->toHtml()"
                 />
             </x-ui-page-navbar>
+        </x-slot>
 
         <x-ui-page-container spacing="space-y-4" class="p-4">
             <div class="bg-white rounded-lg border p-4">
@@ -554,5 +556,5 @@
     }
 })();
 </script>
-@endif
+</x-ui-page>
 

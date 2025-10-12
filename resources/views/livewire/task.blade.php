@@ -11,47 +11,27 @@
             
             {{-- Simple Breadcrumbs --}}
             <div class="flex items-center space-x-2 text-sm">
-                @php($embedded = request()->is('*/embedded/*') || request()->boolean('embedded', false))
-                @if($embedded)
-                    <a href="{{ route('planner.dashboard') }}" class="text-[var(--ui-secondary)] hover:text-[var(--ui-primary)] flex items-center gap-1">
-                        @svg('heroicon-o-home', 'w-4 h-4')
-                        Dashboard
-                    </a>
-                    @if($task->project)
-                        <span class="text-[var(--ui-muted)]">›</span>
-                        <a href="{{ route('planner.embedded.project', $task->project) }}" class="text-[var(--ui-secondary)] hover:text-[var(--ui-primary)] flex items-center gap-1">
-                            @svg('heroicon-o-folder', 'w-4 h-4')
-                            {{ $task->project->name }}
-                        </a>
-                    @endif
+                <a href="{{ route('planner.dashboard') }}" class="text-[var(--ui-secondary)] hover:text-[var(--ui-primary)] flex items-center gap-1">
+                    @svg('heroicon-o-home', 'w-4 h-4')
+                    Dashboard
+                </a>
+                <span class="text-[var(--ui-muted)]">›</span>
+                <a href="{{ route('planner.my-tasks') }}" class="text-[var(--ui-secondary)] hover:text-[var(--ui-primary)] flex items-center gap-1">
+                    @svg('heroicon-o-clipboard-document-list', 'w-4 h-4')
+                    Meine Aufgaben
+                </a>
+                @if($task->project)
                     <span class="text-[var(--ui-muted)]">›</span>
-                    <span class="text-[var(--ui-muted)] flex items-center gap-1">
-                        @svg('heroicon-o-clipboard-document-check', 'w-4 h-4')
-                        {{ $task->title }}
-                    </span>
-                @else
-                    <a href="{{ route('planner.dashboard') }}" class="text-[var(--ui-secondary)] hover:text-[var(--ui-primary)] flex items-center gap-1">
-                        @svg('heroicon-o-home', 'w-4 h-4')
-                        Dashboard
+                    <a href="{{ route('planner.projects.show', $task->project) }}" class="text-[var(--ui-secondary)] hover:text-[var(--ui-primary)] flex items-center gap-1">
+                        @svg('heroicon-o-folder', 'w-4 h-4')
+                        {{ $task->project->name }}
                     </a>
-                    <span class="text-[var(--ui-muted)]">›</span>
-                    <a href="{{ route('planner.my-tasks') }}" class="text-[var(--ui-secondary)] hover:text-[var(--ui-primary)] flex items-center gap-1">
-                        @svg('heroicon-o-clipboard-document-list', 'w-4 h-4')
-                        Meine Aufgaben
-                    </a>
-                    @if($task->project)
-                        <span class="text-[var(--ui-muted)]">›</span>
-                        <a href="{{ route('planner.projects.show', $task->project) }}" class="text-[var(--ui-secondary)] hover:text-[var(--ui-primary)] flex items-center gap-1">
-                            @svg('heroicon-o-folder', 'w-4 h-4')
-                            {{ $task->project->name }}
-                        </a>
-                    @endif
-                    <span class="text-[var(--ui-muted)]">›</span>
-                    <span class="text-[var(--ui-muted)] flex items-center gap-1">
-                        @svg('heroicon-o-clipboard-document-check', 'w-4 h-4')
-                        {{ $task->title }}
-                    </span>
                 @endif
+                <span class="text-[var(--ui-muted)]">›</span>
+                <span class="text-[var(--ui-muted)] flex items-center gap-1">
+                    @svg('heroicon-o-clipboard-document-check', 'w-4 h-4')
+                    {{ $task->title }}
+                </span>
             </div>
             
             @can('update', $task)
