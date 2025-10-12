@@ -116,16 +116,66 @@ class Project extends BaseProject
         return parent::updateTaskGroupOrder($groups);
     }
 
+    public function createProjectSlot()
+    {
+        // Teams User-Info aus Request holen (ohne Laravel Auth)
+        $request = request();
+        $teamsUser = TeamsAuthHelper::getTeamsUser($request);
+        
+        if (!$teamsUser) {
+            \Log::warning("Teams User not found for project slot creation");
+            return;
+        }
+
+        // User aus Teams Context finden oder erstellen
+        $user = $this->findOrCreateUserFromTeams($teamsUser);
+        
+        if (!$user) {
+            \Log::warning("Could not find or create user for project slot creation");
+            return;
+        }
+
+        $maxOrder = $this->project->projectSlots()->max('order') ?? 0;
+
+        $this->project->projectSlots()->create([
+            'name' => 'Neuer Slot',
+            'order' => $maxOrder + 1,
+            'user_id' => $user->id,
+            'team_id' => $user->currentTeam->id,
+        ]);
+
+        // Slots/State neu laden (Livewire 3 Way)
+        $this->mount($this->project);
+    }
+
     public function render()
     {
-        // Basis-Komponente render() aufrufen, aber embedded View verwenden
-        $data = parent::render();
+        // Teams User aus Request holen (ohne Laravel Auth)
+        $request = request();
+        $teamsUser = TeamsAuthHelper::getTeamsUser($request);
         
-        // Die Daten aus der Basis-Komponente extrahieren
-        $viewData = $data->getData();
-        
-        // Embedded View mit den gleichen Daten rendern
-        return view('planner::livewire.embedded.project', $viewData);
+        $teamUsers = collect();
+        if ($teamsUser) {
+            // User aus Teams Context finden
+            $user = $this->findOrCreateUserFromTeams($teamsUser);
+            if ($user && $user->currentTeam) {
+                $teamUsers = $user->currentTeam->users()
+                    ->orderBy('name')
+                    ->get()
+                    ->map(function ($user) {
+                        return [
+                            'id' => $user->id,
+                            'name' => $user->fullname ?? $user->name,
+                            'email' => $user->email,
+                        ];
+                    });
+            }
+        }
+
+        // Embedded View verwenden
+        return view('planner::livewire.embedded.project', [
+            'teamUsers' => $teamUsers,
+        ]);
     }
 }
 
