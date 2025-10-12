@@ -1,113 +1,3 @@
-<script>
-// Einfache Teams Authentication mit Debug-Info
-(function() {
-    console.log('🔍 Teams Authentication - Vereinfacht');
-    
-    // Prüfen ob bereits authentifiziert
-    if (sessionStorage.getItem('teams-auth-completed') === 'true') {
-        console.log('✅ Teams Auth bereits abgeschlossen - überspringe');
-        return;
-    }
-    
-    // Debug-Update-Funktion
-    function updateDebugInfo(elementId, content) {
-        const element = document.getElementById(elementId);
-        if (element) {
-            element.innerHTML = content;
-            console.log(`🔍 Debug Update: ${elementId}`, content);
-        } else {
-            console.warn(`⚠️ Element nicht gefunden: ${elementId}`);
-        }
-    }
-    
-    // Sofortige Debug-Info setzen
-    updateDebugInfo('teams-sdk-status', '🔍 Initialisiere...');
-    updateDebugInfo('teams-sdk-context', '🔍 Initialisiere...');
-    updateDebugInfo('teams-sdk-user', '🔍 Initialisiere...');
-    updateDebugInfo('teams-sdk-auth-token', '🔍 Initialisiere...');
-    
-    // Teams SDK initialisieren und User einloggen
-    if (window.microsoftTeams) {
-        updateDebugInfo('teams-sdk-status', '✅ Teams SDK verfügbar');
-        
-        window.microsoftTeams.app.initialize().then(function() {
-            console.log('✅ Teams SDK initialisiert');
-            updateDebugInfo('teams-sdk-status', '✅ Teams SDK initialisiert');
-            
-            // Teams Context abrufen
-            window.microsoftTeams.app.getContext().then(function(context) {
-                console.log('🔍 Teams Context:', context);
-                updateDebugInfo('teams-sdk-context', 
-                    `✅ Context verfügbar<br>
-                    User: ${context.user?.userPrincipalName || 'Unbekannt'}<br>
-                    Team: ${context.team?.displayName || 'Unbekannt'}<br>
-                    Channel: ${context.channel?.displayName || 'Unbekannt'}`
-                );
-                
-                // User über Teams Context einloggen
-                if (context.user?.userPrincipalName) {
-                    console.log('🔍 User gefunden:', context.user.userPrincipalName);
-                    updateDebugInfo('teams-sdk-user', 
-                        `✅ User verfügbar<br>
-                        Email: ${context.user.userPrincipalName}<br>
-                        Name: ${context.user.displayName || context.user.userPrincipalName}`
-                    );
-                    
-                    updateDebugInfo('teams-sdk-auth-token', '🔍 Authentifiziere User...');
-                    
-                    // Einfacher fetch um User zu authentifizieren
-                    fetch('/planner/embedded/teams/auth', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
-                        },
-                        body: JSON.stringify({
-                            email: context.user.userPrincipalName,
-                            name: context.user.displayName || context.user.userPrincipalName,
-                            team: context.team?.displayName,
-                            channel: context.channel?.displayName
-                        })
-                    }).then(response => {
-                        console.log('🔍 Auth Response Status:', response.status);
-                        console.log('🔍 Auth Response Headers:', response.headers);
-                        
-                        if (response.ok) {
-                            console.log('✅ User erfolgreich authentifiziert');
-                            updateDebugInfo('teams-sdk-auth-token', '✅ User authentifiziert - Lade Seite neu...');
-                            // Session markieren als abgeschlossen
-                            sessionStorage.setItem('teams-auth-completed', 'true');
-                            // Seite neu laden um Auth zu aktivieren
-                            window.location.reload();
-                        } else {
-                            // Response-Text für Details abrufen
-                            response.text().then(text => {
-                                console.error('❌ Auth Response Error:', text);
-                                updateDebugInfo('teams-sdk-auth-token', `❌ Authentication fehlgeschlagen (${response.status}): ${text}`);
-                            });
-                        }
-                    }).catch(error => {
-                        console.error('❌ Authentication Fehler:', error);
-                        updateDebugInfo('teams-sdk-auth-token', `❌ Authentication Fehler: ${error.message}`);
-                    });
-                } else {
-                    updateDebugInfo('teams-sdk-user', '❌ Kein User im Context gefunden');
-                }
-            }).catch(function(error) {
-                console.error('❌ Teams Context Fehler:', error);
-                updateDebugInfo('teams-sdk-context', `❌ Context Fehler: ${error.message}`);
-            });
-        }).catch(function(error) {
-            console.error('❌ Teams SDK Initialisierung Fehler:', error);
-            updateDebugInfo('teams-sdk-status', `❌ SDK Initialisierung Fehler: ${error.message}`);
-        });
-    } else {
-        updateDebugInfo('teams-sdk-status', '❌ Teams SDK nicht verfügbar');
-        console.warn('⚠️ Microsoft Teams SDK nicht verfügbar');
-    }
-})();
-</script>
-
 <div class="h-full">
     <x-ui-page>
         <x-slot name="navbar">
@@ -542,4 +432,123 @@
         </x-ui-modal>
     @endif
 </div>
+
+<script>
+// Einfache Teams Authentication mit Debug-Info
+(function() {
+    console.log('🔍 Teams Authentication - Vereinfacht');
+    
+    // Prüfen ob bereits authentifiziert
+    if (sessionStorage.getItem('teams-auth-completed') === 'true') {
+        console.log('✅ Teams Auth bereits abgeschlossen - überspringe');
+        return;
+    }
+    
+    // Debug-Update-Funktion
+    function updateDebugInfo(elementId, content) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.innerHTML = content;
+            console.log(`🔍 Debug Update: ${elementId}`, content);
+        } else {
+            console.warn(`⚠️ Element nicht gefunden: ${elementId}`);
+        }
+    }
+    
+    // Sofortige Debug-Updates
+    updateDebugInfo('teams-sdk-status', '🔄 Initialisiere...');
+    updateDebugInfo('teams-context-status', '🔄 Lade...');
+    updateDebugInfo('teams-user-status', '🔄 Lade...');
+    updateDebugInfo('teams-token-status', '🔄 Lade...');
+    updateDebugInfo('auth-status', '🔄 Lade...');
+    
+    // Teams SDK prüfen und initialisieren
+    if (window.microsoftTeams) {
+        console.log('✅ Microsoft Teams SDK gefunden');
+        updateDebugInfo('teams-sdk-status', '✅ SDK verfügbar');
+        
+        // Teams SDK initialisieren
+        window.microsoftTeams.app.initialize().then(function() {
+            console.log('✅ Teams SDK initialisiert');
+            updateDebugInfo('teams-sdk-status', '✅ SDK initialisiert');
+            
+            // Teams Context abrufen
+            window.microsoftTeams.app.getContext().then(function(context) {
+                console.log('✅ Teams Context erhalten:', context);
+                updateDebugInfo('teams-context-status', `✅ Context verfügbar<br>Team: ${context.team?.displayName || 'N/A'}<br>Channel: ${context.channel?.displayName || 'N/A'}`);
+                
+                // Teams User abrufen
+                window.microsoftTeams.authentication.getUser().then(function(user) {
+                    console.log('✅ Teams User erhalten:', user);
+                    updateDebugInfo('teams-user-status', `✅ User verfügbar<br>Name: ${user.displayName || 'N/A'}<br>Email: ${user.userPrincipalName || 'N/A'}`);
+                    
+                    // Auth Token abrufen
+                    window.microsoftTeams.authentication.getAuthToken().then(function(token) {
+                        console.log('✅ Teams Token erhalten');
+                        updateDebugInfo('teams-token-status', '✅ Token verfügbar');
+                        
+                        // Authentication an Backend senden
+                        fetch('/planner/embedded/teams/auth', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            },
+                            body: JSON.stringify({
+                                email: user.userPrincipalName,
+                                name: user.displayName
+                            })
+                        }).then(function(response) {
+                            console.log('🔍 Auth Response Status:', response.status);
+                            console.log('🔍 Auth Response Headers:', response.headers);
+                            
+                            if (response.ok) {
+                                console.log('✅ Authentication erfolgreich');
+                                updateDebugInfo('auth-status', '✅ Authentication erfolgreich');
+                                
+                                // Session Storage setzen
+                                sessionStorage.setItem('teams-auth-completed', 'true');
+                                
+                                // Seite neu laden
+                                console.log('🔄 Seite wird neu geladen...');
+                                window.location.reload();
+                            } else {
+                                console.error('❌ Authentication fehlgeschlagen:', response.status);
+                                updateDebugInfo('auth-status', `❌ Authentication fehlgeschlagen: ${response.status}`);
+                                
+                                return response.text().then(function(text) {
+                                    console.error('❌ Auth Error Response:', text);
+                                    updateDebugInfo('auth-status', `❌ Auth Error: ${text}`);
+                                });
+                            }
+                        }).catch(function(error) {
+                            console.error('❌ Auth Request Fehler:', error);
+                            updateDebugInfo('auth-status', `❌ Auth Request Fehler: ${error.message}`);
+                        });
+                        
+                    }).catch(function(error) {
+                        console.error('❌ Teams Token Fehler:', error);
+                        updateDebugInfo('teams-token-status', `❌ Token Fehler: ${error.message}`);
+                    });
+                    
+                }).catch(function(error) {
+                    console.error('❌ Teams User Fehler:', error);
+                    updateDebugInfo('teams-user-status', `❌ User Fehler: ${error.message}`);
+                });
+                
+            }).catch(function(error) {
+                console.error('❌ Teams Context Fehler:', error);
+                updateDebugInfo('teams-context-status', `❌ Context Fehler: ${error.message}`);
+            });
+            
+        }).catch(function(error) {
+            console.error('❌ Teams SDK Initialisierung Fehler:', error);
+            updateDebugInfo('teams-sdk-status', `❌ SDK Initialisierung Fehler: ${error.message}`);
+        });
+    } else {
+        updateDebugInfo('teams-sdk-status', '❌ Teams SDK nicht verfügbar');
+        console.warn('⚠️ Microsoft Teams SDK nicht verfügbar');
+    }
+})();
+</script>
 
