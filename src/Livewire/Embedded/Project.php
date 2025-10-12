@@ -120,7 +120,7 @@ class Project extends BaseProject
         // Embedded View verwenden
         return view('planner::livewire.embedded.project', [
             'groups' => $groups,
-        ]);
+        ])->layout('platform::layouts.embedded');
     }
 
     /**
