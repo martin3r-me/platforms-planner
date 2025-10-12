@@ -64,7 +64,7 @@ class PlannerServiceProvider extends ServiceProvider
 
             // Embedded Routes OHNE Modul-Routing (keine Auth-Middleware)
             Route::domain(parse_url(config('app.url'), PHP_URL_HOST))
-                ->middleware('web') // Nur web middleware, keine auth
+                ->middleware(['web', 'teams.sdk.auth']) // Teams SDK Auth hinzufügen
                 ->prefix('planner')
                 ->group(__DIR__.'/../routes/embedded.php');
         }
