@@ -1,3 +1,11 @@
+@if(!$task)
+    <div class="h-full flex items-center justify-center">
+        <div class="text-center">
+            <div class="text-lg font-semibold text-red-600">Fehler: Aufgabe nicht gefunden</div>
+            <div class="text-sm text-gray-600 mt-2">Die angeforderte Aufgabe konnte nicht geladen werden.</div>
+        </div>
+    </div>
+@else
 <div class="h-full">
     <x-ui-page-navbar title="Aufgabe" icon="heroicon-o-clipboard-document-check">
                 {{-- Simple Breadcrumbs für Embedded --}}
@@ -6,7 +14,7 @@
                         @svg('heroicon-o-home', 'w-4 h-4')
                         Teams
                     </span>
-                    @if($task->project)
+                    @if($task && $task->project)
                         <span class="text-[var(--ui-muted)]">›</span>
                         <a href="{{ route('planner.embedded.project', $task->project) }}" class="text-[var(--ui-secondary)] hover:text-[var(--ui-primary)] flex items-center gap-1">
                             @svg('heroicon-o-folder', 'w-4 h-4')
@@ -16,7 +24,7 @@
                     <span class="text-[var(--ui-muted)]">›</span>
                     <span class="text-[var(--ui-muted)] flex items-center gap-1">
                         @svg('heroicon-o-clipboard-document-check', 'w-4 h-4')
-                        {{ $task->title }}
+                        {{ $task ? $task->title : 'Aufgabe' }}
                     </span>
                 </div>
                 
@@ -546,4 +554,5 @@
     }
 })();
 </script>
+@endif
 

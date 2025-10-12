@@ -21,12 +21,25 @@ class Task extends BaseTask
 
     public function mount($plannerTask)
     {
+        \Log::info('🔍 EMBEDDED TASK MOUNT:', [
+            'plannerTask' => $plannerTask,
+            'type' => gettype($plannerTask),
+            'is_string' => is_string($plannerTask),
+            'is_numeric' => is_numeric($plannerTask)
+        ]);
+        
         // Wenn $plannerTask ein String ist (ID), dann das Model laden
         if (is_string($plannerTask) || is_numeric($plannerTask)) {
             $this->task = \Platform\Planner\Models\PlannerTask::findOrFail($plannerTask);
         } else {
             $this->task = $plannerTask;
         }
+        
+        \Log::info('🔍 EMBEDDED TASK AFTER LOAD:', [
+            'task_id' => $this->task->id ?? 'NULL',
+            'task_title' => $this->task->title ?? 'NULL',
+            'task_type' => gettype($this->task)
+        ]);
         
         $this->dueDateInput = $this->task->due_date ? $this->task->due_date->format('Y-m-d H:i') : '';
     }
