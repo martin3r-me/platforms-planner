@@ -1,4 +1,4 @@
-<div class="h-full">
+<div class="h-screen flex flex-col">
     @php 
         $completedTasks = $groups->filter(fn($g) => $g->isDoneGroup ?? false)->flatMap(fn($g) => $g->tasks);
         $stats = [
@@ -35,7 +35,7 @@
         ];
     @endphp
 
-    <x-ui-page>
+    <x-ui-page class="h-full">
         <x-slot name="navbar">
             <x-ui-page-navbar :title="$project->name" icon="heroicon-o-clipboard-document-list">
                 <x-ui-button variant="secondary" size="sm" wire:click="createProjectSlot">
