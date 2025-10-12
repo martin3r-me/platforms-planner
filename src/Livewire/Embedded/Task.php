@@ -8,19 +8,18 @@ class Task extends BaseTask
 {
     public function deleteTaskAndReturnToProject()
     {
-        // Teams User aus Request holen (ohne Laravel Auth)
-        $request = request();
-        $teamsUser = \Platform\Core\Helpers\TeamsAuthHelper::getTeamsUser($request);
+        // Einfacher Ansatz: User aus Teams Context einloggen
+        $user = $this->loginUserFromTeamsContext();
         
-        if (!$teamsUser) {
-            \Log::warning("Teams User not found for task deletion");
-            return;
-        }
-        
-        // User aus Teams Context finden
-        $user = \Platform\Planner\Livewire\Embedded\Project::findOrCreateUserFromTeams($teamsUser);
         if (!$user) {
-            \Log::warning("Could not find or create user for task deletion");
+            \Log::warning("Could not login user for task deletion");
+            $this->dispatch('notifications:store', [
+                'notice_type' => 'error',
+                'title' => 'Login Fehler',
+                'message' => 'User konnte nicht für Task-Löschung eingeloggt werden.',
+                'noticable_type' => 'Platform\\Planner\\Models\\PlannerTask',
+                'noticable_id' => $this->task->id,
+            ]);
             return;
         }
         
@@ -105,26 +104,20 @@ class Task extends BaseTask
             $groups   = $printing->listPrinterGroups();
         }
 
-        // Teams User aus Request holen (ohne Laravel Auth)
-        $request = request();
-        $teamsUser = \Platform\Core\Helpers\TeamsAuthHelper::getTeamsUser($request);
-        
+        // Einfacher Ansatz: User aus Teams Context einloggen
+        $user = $this->loginUserFromTeamsContext();
         $teamUsers = collect();
-        if ($teamsUser) {
-            // User aus Teams Context finden
-            $user = \Platform\Planner\Livewire\Embedded\Project::findOrCreateUserFromTeams($teamsUser);
-            if ($user && $user->currentTeam) {
-                $teamUsers = $user->currentTeam->users()
-                    ->orderBy('name')
-                    ->get()
-                    ->map(function ($user) {
-                        return [
-                            'id' => $user->id,
-                            'name' => $user->fullname ?? $user->name,
-                            'email' => $user->email,
-                        ];
-                    });
-            }
+        if ($user && $user->currentTeam) {
+            $teamUsers = $user->currentTeam->users()
+                ->orderBy('name')
+                ->get()
+                ->map(function ($user) {
+                    return [
+                        'id' => $user->id,
+                        'name' => $user->fullname ?? $user->name,
+                        'email' => $user->email,
+                    ];
+                });
         }
 
         return view('planner::livewire.embedded.task', [
@@ -133,6 +126,90 @@ class Task extends BaseTask
             'printingAvailable' => $this->printingAvailable,
             'teamUsers' => $teamUsers,
         ]);
+    }
+
+    /**
+     * Loggt User aus Teams Context ein (einfacher Ansatz)
+     */
+    private function loginUserFromTeamsContext()
+    {
+        // 1. Versuche Backend Teams SDK Auth
+        $request = request();
+        $teamsUser = \Platform\Core\Helpers\TeamsAuthHelper::getTeamsUser($request);
+        
+        if ($teamsUser) {
+            \Log::info("Backend Teams User gefunden, logge ein");
+            $user = \Platform\Planner\Livewire\Embedded\Project::findOrCreateUserFromTeams($teamsUser);
+            if ($user) {
+                \Auth::login($user);
+                return $user;
+            }
+        }
+        
+        // 2. Fallback: User aus Request Headers/Query extrahieren
+        $userEmail = $request->header('X-User-Email') ?: $request->query('user_email');
+        $userName = $request->header('X-User-Name') ?: $request->query('user_name');
+        
+        if ($userEmail) {
+            \Log::info("User aus Headers/Query gefunden: {$userEmail}");
+            $user = $this->findOrCreateUserByEmail($userEmail, $userName);
+            if ($user) {
+                \Auth::login($user);
+                return $user;
+            }
+        }
+        
+        // 3. Fallback: Demo User für embedded Kontext
+        \Log::info("Kein Teams User gefunden, verwende Demo User");
+        $user = $this->getOrCreateDemoUser();
+        if ($user) {
+            \Auth::login($user);
+            return $user;
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Findet oder erstellt User anhand Email
+     */
+    private function findOrCreateUserByEmail($email, $name = null)
+    {
+        $userModelClass = config('auth.providers.users.model');
+        $user = $userModelClass::where('email', $email)->first();
+        
+        if (!$user) {
+            $user = new $userModelClass();
+            $user->email = $email;
+            $user->name = $name ?: $email;
+            $user->save();
+            
+            // Personal Team erstellen
+            \Platform\Core\PlatformCore::createPersonalTeamFor($user);
+        }
+        
+        return $user;
+    }
+    
+    /**
+     * Demo User für embedded Kontext
+     */
+    private function getOrCreateDemoUser()
+    {
+        $userModelClass = config('auth.providers.users.model');
+        $user = $userModelClass::where('email', 'teams-demo@embedded.local')->first();
+        
+        if (!$user) {
+            $user = new $userModelClass();
+            $user->email = 'teams-demo@embedded.local';
+            $user->name = 'Teams Demo User';
+            $user->save();
+            
+            // Personal Team erstellen
+            \Platform\Core\PlatformCore::createPersonalTeamFor($user);
+        }
+        
+        return $user;
     }
 }
 

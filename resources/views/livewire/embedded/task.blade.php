@@ -118,6 +118,137 @@
                 </div>
             </div>
         </x-ui-page-container>
+
+        {{-- Linke Sidebar --}}
+        <x-slot name="sidebar">
+            <x-ui-page-sidebar title="Navigation & Details" width="w-80" :defaultOpen="true">
+                <div class="p-6 space-y-6">
+                    {{-- Navigation --}}
+                    <div>
+                        <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-4">Navigation</h3>
+                        <div class="space-y-2">
+                            @if($task->project)
+                                <x-ui-button
+                                    variant="secondary-outline"
+                                    size="sm"
+                                    :href="route('planner.embedded.project', $task->project)"
+                                    wire:navigate
+                                    class="w-full"
+                                >
+                                    <span class="flex items-center gap-2">
+                                        @svg('heroicon-o-folder', 'w-4 h-4')
+                                        Zum Projekt
+                                    </span>
+                                </x-ui-button>
+                            @endif
+                        </div>
+                    </div>
+
+                    {{-- Quick Stats --}}
+                    <div>
+                        <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-4">Status</h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between py-3 px-4 bg-[var(--ui-muted-5)] rounded-lg border border-[var(--ui-border)]/40">
+                                <span class="text-sm font-medium text-[var(--ui-secondary)]">Erledigt</span>
+                                <x-ui-input-checkbox
+                                    model="task.is_done"
+                                    checked-label=""
+                                    unchecked-label=""
+                                    size="sm"
+                                    block="false"
+                                />
+                            </div>
+                            <div class="flex items-center justify-between py-3 px-4 bg-[var(--ui-muted-5)] rounded-lg border border-[var(--ui-border)]/40">
+                                <span class="text-sm font-medium text-[var(--ui-secondary)]">Frosch</span>
+                                <x-ui-input-checkbox
+                                    model="task.is_frog"
+                                    checked-label=""
+                                    unchecked-label=""
+                                    size="sm"
+                                    block="false"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Metrics --}}
+                    <div>
+                        <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-4">Metriken</h3>
+                        <div class="space-y-3">
+                            @if($task->userInCharge)
+                                <div class="py-3 px-4 bg-[var(--ui-info-5)] rounded-lg border-l-4 border-[var(--ui-info)]">
+                                    <div class="text-xs text-[var(--ui-info)] font-medium uppercase tracking-wide">Verantwortlicher</div>
+                                    <div class="text-lg font-bold text-[var(--ui-info)]">{{ $task->userInCharge->fullname ?? $task->userInCharge->name }}</div>
+                                </div>
+                            @endif
+                            <div class="py-3 px-4 bg-[var(--ui-primary-5)] rounded-lg border-l-4 border-[var(--ui-primary)]">
+                                <div class="text-xs text-[var(--ui-primary)] font-medium uppercase tracking-wide">Priorität</div>
+                                <div class="text-lg font-bold text-[var(--ui-primary)]">{{ $task->priority?->label ?? 'Nicht gesetzt' }}</div>
+                            </div>
+                            @if($task->due_date)
+                                <div class="py-3 px-4 bg-[var(--ui-warning-5)] rounded-lg border-l-4 border-[var(--ui-warning)]">
+                                    <div class="text-xs text-[var(--ui-warning)] font-medium uppercase tracking-wide">Fälligkeitsdatum</div>
+                                    <div class="text-lg font-bold text-[var(--ui-warning)]">{{ $task->due_date->format('d.m.Y') }}</div>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+
+                    {{-- Debug Info für Teams --}}
+                    <div>
+                        <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-4">🔍 Debug</h3>
+                        <div class="space-y-2">
+                            @php
+                                $teamsUser = \Platform\Core\Helpers\TeamsAuthHelper::getTeamsUser(request());
+                                $teamsContext = \Platform\Core\Helpers\TeamsAuthHelper::getTeamsContext(request());
+                                $authUser = auth()->user();
+                            @endphp
+                            
+                            <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
+                                <div class="text-xs font-medium text-[var(--ui-secondary)]">Teams User</div>
+                                <div class="text-xs text-[var(--ui-muted)]">
+                                    @if($teamsUser)
+                                        ✅ {{ $teamsUser['email'] ?? 'Keine Email' }}
+                                    @else
+                                        ❌ Nicht gefunden
+                                    @endif
+                                </div>
+                            </div>
+                            
+                            <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
+                                <div class="text-xs font-medium text-[var(--ui-secondary)]">Laravel Auth</div>
+                                <div class="text-xs text-[var(--ui-muted)]">
+                                    @if($authUser)
+                                        ✅ {{ $authUser->email }}
+                                    @else
+                                        ❌ Nicht angemeldet
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </x-ui-page-sidebar>
+        </x-slot>
+
+        {{-- Rechte Sidebar --}}
+        <x-slot name="activity">
+            <x-ui-page-sidebar title="Aktivitäten" width="w-80" :defaultOpen="false" storeKey="activityOpen" side="right">
+                <div class="p-4 space-y-4">
+                    <div class="text-sm text-[var(--ui-muted)]">Letzte Aktivitäten</div>
+                    <div class="space-y-3 text-sm">
+                        <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
+                            <div class="font-medium text-[var(--ui-secondary)] truncate">Aufgabe geöffnet</div>
+                            <div class="text-[var(--ui-muted)]">Gerade eben</div>
+                        </div>
+                        <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
+                            <div class="font-medium text-[var(--ui-secondary)] truncate">Teams Tab erstellt</div>
+                            <div class="text-[var(--ui-muted)]">Vor 5 Minuten</div>
+                        </div>
+                    </div>
+                </div>
+            </x-ui-page-sidebar>
+        </x-slot>
     </x-ui-page>
 
     {{-- Print Modal --}}
