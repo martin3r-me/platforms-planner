@@ -8,34 +8,14 @@ class Task extends BaseTask
 {
     public function mount($plannerTask)
     {
-        // Policy-Prüfung umgehen für embedded Kontext
-        // $this->authorize('view', $plannerTask);
-        
         $this->task = $plannerTask;
         $this->dueDateInput = $plannerTask->due_date ? $plannerTask->due_date->format('Y-m-d H:i') : '';
-        
-        // User aus Teams Context einloggen
-        $this->loginUserFromTeamsContext();
     }
 
     public function save()
     {
         // Policy-Prüfung umgehen für embedded Kontext
         // $this->authorize('update', $this->task);
-        
-        // User aus Teams Context einloggen (falls noch nicht eingeloggt)
-        $user = $this->loginUserFromTeamsContext();
-        if (!$user) {
-            \Log::warning("Could not login user for task save");
-            $this->dispatch('notifications:store', [
-                'notice_type' => 'error',
-                'title' => 'Login Fehler',
-                'message' => 'User konnte nicht für Task-Speicherung eingeloggt werden.',
-                'noticable_type' => 'Platform\\Planner\\Models\\PlannerTask',
-                'noticable_id' => $this->task->id,
-            ]);
-            return;
-        }
         
         $this->validate();
         

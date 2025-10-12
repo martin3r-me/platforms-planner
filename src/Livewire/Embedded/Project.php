@@ -11,27 +11,7 @@ class Project extends BaseProject
 {
     public function createTask($projectSlotId = null)
     {
-        // DEBUG: Log dass die embedded createTask aufgerufen wird
-        \Log::info("🔍 EMBEDDED CREATE TASK CALLED:", [
-            'project_id' => $this->project->id,
-            'project_slot_id' => $projectSlotId,
-            'timestamp' => now()
-        ]);
-
-        // Einfacher Ansatz: User aus Teams Context einloggen
-        $user = $this->loginUserFromTeamsContext();
-        
-        if (!$user) {
-            \Log::warning("Could not login user from Teams context");
-            $this->dispatch('notifications:store', [
-                'notice_type' => 'error',
-                'title' => 'Login Fehler',
-                'message' => 'User konnte nicht aus Teams Context eingeloggt werden.',
-                'noticable_type' => 'Platform\\Planner\\Models\\PlannerProject',
-                'noticable_id' => $this->project->id,
-            ]);
-            return;
-        }
+        $user = Auth::user();
 
         $lowestOrder = PlannerTask::where('user_id', $user->id)
             ->where('team_id', $user->currentTeam->id)
@@ -116,25 +96,7 @@ class Project extends BaseProject
 
     public function createProjectSlot()
     {
-        \Log::info("🔍 EMBEDDED CREATE PROJECT SLOT CALLED:", [
-            'project_id' => $this->project->id,
-            'timestamp' => now()
-        ]);
-
-        // Einfacher Ansatz: User aus Teams Context einloggen
-        $user = $this->loginUserFromTeamsContext();
-        
-        if (!$user) {
-            \Log::warning("Could not login user for project slot creation");
-            $this->dispatch('notifications:store', [
-                'notice_type' => 'error',
-                'title' => 'Login Fehler',
-                'message' => 'User konnte nicht für Spalte-Erstellung eingeloggt werden.',
-                'noticable_type' => 'Platform\\Planner\\Models\\PlannerProject',
-                'noticable_id' => $this->project->id,
-            ]);
-            return;
-        }
+        $user = Auth::user();
 
         $maxOrder = $this->project->projectSlots()->max('order') ?? 0;
 
@@ -151,34 +113,11 @@ class Project extends BaseProject
 
     public function render()
     {
-        // Teams User aus Request holen (ohne Laravel Auth)
-        $request = request();
-        $teamsUser = TeamsAuthHelper::getTeamsUser($request);
-        
-        $teamUsers = collect();
-        if ($teamsUser) {
-            // User aus Teams Context finden
-            $user = $this->findOrCreateUserFromTeams($teamsUser);
-            if ($user && $user->currentTeam) {
-                $teamUsers = $user->currentTeam->users()
-                    ->orderBy('name')
-                    ->get()
-                    ->map(function ($user) {
-                        return [
-                            'id' => $user->id,
-                            'name' => $user->fullname ?? $user->name,
-                            'email' => $user->email,
-                        ];
-                    });
-            }
-        }
-
         // Groups wie in der Basis-Klasse erstellen
         $groups = $this->buildGroups();
 
         // Embedded View verwenden
         return view('planner::livewire.embedded.project', [
-            'teamUsers' => $teamUsers,
             'groups' => $groups,
         ]);
     }
