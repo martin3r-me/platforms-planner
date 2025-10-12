@@ -6,6 +6,48 @@ use Platform\Planner\Livewire\Task as BaseTask;
 
 class Task extends BaseTask
 {
+    public function mount($plannerTask)
+    {
+        // Policy-Prüfung umgehen für embedded Kontext
+        // $this->authorize('view', $plannerTask);
+        
+        $this->task = $plannerTask;
+        $this->dueDateInput = $plannerTask->due_date ? $plannerTask->due_date->format('Y-m-d H:i') : '';
+        
+        // User aus Teams Context einloggen
+        $this->loginUserFromTeamsContext();
+    }
+
+    public function save()
+    {
+        // Policy-Prüfung umgehen für embedded Kontext
+        // $this->authorize('update', $this->task);
+        
+        $this->validate();
+        
+        // Datum konvertieren
+        if ($this->dueDateInput) {
+            $this->task->due_date = \Carbon\Carbon::createFromFormat('Y-m-d H:i', $this->dueDateInput);
+        } else {
+            $this->task->due_date = null;
+        }
+        
+        $this->task->save();
+        
+        // Toast-Notification über das Notification-System
+        $this->dispatch('notifications:store', [
+            'notice_type' => 'success',
+            'title' => 'Aufgabe gespeichert',
+            'message' => 'Die Aufgabe wurde erfolgreich gespeichert.',
+            'properties' => [
+                'task_id' => $this->task->id,
+                'task_title' => $this->task->title,
+            ],
+            'noticable_type' => get_class($this->task),
+            'noticable_id' => $this->task->id,
+        ]);
+    }
+
     public function deleteTaskAndReturnToProject()
     {
         // Einfacher Ansatz: User aus Teams Context einloggen
