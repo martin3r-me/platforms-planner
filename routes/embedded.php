@@ -23,7 +23,7 @@ Route::get('/embedded/planner/tasks/{plannerTask}', function (PlannerTask $plann
 
 // Embedded Test: Teams Tab Konfigurations-Check
 Route::get('/embedded/teams/config', function () {
-    $response = response()->view('planner::embedded.teams-config');
+    $response = response()->view('planner::embedded.teams-config-new');
     $response->headers->set('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
     return $response;
 })->withoutMiddleware([FrameGuard::class])->name('planner.embedded.teams.config');
