@@ -476,79 +476,103 @@
         }
     }
     
+    // Teams SDK initialisieren und verwenden
+    function initializeTeamsSdk() {
+        console.log('🔍 Initialisiere Teams SDK...');
+        
+        try {
+            // Teams SDK initialisieren
+            window.microsoftTeams.app.initialize().then(function() {
+                console.log('✅ Teams SDK erfolgreich initialisiert');
+                updateDebugInfo('teams-sdk-status', '✅ Teams SDK initialisiert');
+                
+                // Nach Initialisierung: Context und User abrufen
+                getTeamsContext();
+                getTeamsUser();
+                
+                // Teams Authentication Token abrufen
+                window.microsoftTeams.authentication.getAuthToken({
+                    resources: [window.location.origin],
+                    silent: true
+                }).then(function(token) {
+                    console.log('🔍 Teams JWT Token erhalten:', token ? 'Ja' : 'Nein');
+                    console.log('🔍 Token Preview:', token ? token.substring(0, 50) + '...' : 'Kein Token');
+                    
+                    updateDebugInfo('teams-sdk-auth-token', 
+                        token ? 
+                        `✅ Token verfügbar<br>Preview: ${token.substring(0, 30)}...<br>Länge: ${token.length} Zeichen` : 
+                        '❌ Kein Token erhalten'
+                    );
+                    
+                    if (token) {
+                        // Token an alle nachfolgenden Requests anhängen
+                        const originalFetch = window.fetch;
+                        window.fetch = function(url, options = {}) {
+                            options.headers = options.headers || {};
+                            options.headers['Authorization'] = `Bearer ${token}`;
+                            options.headers['X-Teams-Token'] = token;
+                            console.log('🔍 Fetch Request mit Token:', url);
+                            return originalFetch(url, options);
+                        };
+                        
+                        // Livewire Requests mit Token versehen
+                        if (window.Livewire) {
+                            window.Livewire.hook('request', ({ fail, succeed, payload, component }) => {
+                                payload.headers = payload.headers || {};
+                                payload.headers['Authorization'] = `Bearer ${token}`;
+                                payload.headers['X-Teams-Token'] = token;
+                                console.log('🔍 Livewire Request mit Token:', payload);
+                            });
+                        }
+                        
+                        // Sofortige Token-Übertragung für aktuelle Seite
+                        console.log('🔍 Sende Token sofort an Backend...');
+                        fetch(window.location.href, {
+                            method: 'GET',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'X-Teams-Token': token,
+                                'X-Teams-Embedded': 'true'
+                            }
+                        }).then(response => {
+                            console.log('🔍 Token-Request Response:', response.status);
+                            if (response.ok) {
+                                console.log('✅ Token erfolgreich an Backend gesendet');
+                                // Seite neu laden um Auth zu aktivieren
+                                setTimeout(() => {
+                                    console.log('🔄 Lade Seite neu für Auth-Aktivierung...');
+                                    window.location.reload();
+                                }, 1000);
+                            }
+                        }).catch(error => {
+                            console.error('❌ Token-Request Fehler:', error);
+                        });
+                        
+                        console.log('✅ Teams JWT Token für alle Requests konfiguriert');
+                    } else {
+                        console.warn('⚠️ Kein Teams JWT Token erhalten');
+                    }
+                }).catch(function(error) {
+                    console.error('❌ Teams JWT Token Fehler:', error);
+                    updateDebugInfo('teams-sdk-auth-token', `❌ Token Fehler: ${error.message}`);
+                });
+                
+            }).catch(function(error) {
+                console.error('❌ Teams SDK Initialisierung Fehler:', error);
+                updateDebugInfo('teams-sdk-status', `❌ SDK Initialisierung Fehler: ${error.message}`);
+            });
+            
+        } catch (error) {
+            console.error('❌ Teams SDK Exception:', error);
+            updateDebugInfo('teams-sdk-status', `❌ SDK Exception: ${error.message}`);
+        }
+    }
+    
     // Teams SDK JWT Token an Backend senden
     try {
         if (checkTeamsSdkAvailability()) {
-            // Context und User abrufen
-            getTeamsContext();
-            getTeamsUser();
-            
-            // Teams Authentication Token abrufen
-            window.microsoftTeams.authentication.getAuthToken({
-                resources: [window.location.origin],
-                silent: true
-            }).then(function(token) {
-                console.log('🔍 Teams JWT Token erhalten:', token ? 'Ja' : 'Nein');
-                console.log('🔍 Token Preview:', token ? token.substring(0, 50) + '...' : 'Kein Token');
-                
-                updateDebugInfo('teams-sdk-auth-token', 
-                    token ? 
-                    `✅ Token verfügbar<br>Preview: ${token.substring(0, 30)}...<br>Länge: ${token.length} Zeichen` : 
-                    '❌ Kein Token erhalten'
-                );
-                
-                if (token) {
-                    // Token an alle nachfolgenden Requests anhängen
-                    const originalFetch = window.fetch;
-                    window.fetch = function(url, options = {}) {
-                        options.headers = options.headers || {};
-                        options.headers['Authorization'] = `Bearer ${token}`;
-                        options.headers['X-Teams-Token'] = token;
-                        console.log('🔍 Fetch Request mit Token:', url);
-                        return originalFetch(url, options);
-                    };
-                    
-                    // Livewire Requests mit Token versehen
-                    if (window.Livewire) {
-                        window.Livewire.hook('request', ({ fail, succeed, payload, component }) => {
-                            payload.headers = payload.headers || {};
-                            payload.headers['Authorization'] = `Bearer ${token}`;
-                            payload.headers['X-Teams-Token'] = token;
-                            console.log('🔍 Livewire Request mit Token:', payload);
-                        });
-                    }
-                    
-                    // Sofortige Token-Übertragung für aktuelle Seite
-                    console.log('🔍 Sende Token sofort an Backend...');
-                    fetch(window.location.href, {
-                        method: 'GET',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'X-Teams-Token': token,
-                            'X-Teams-Embedded': 'true'
-                        }
-                    }).then(response => {
-                        console.log('🔍 Token-Request Response:', response.status);
-                        if (response.ok) {
-                            console.log('✅ Token erfolgreich an Backend gesendet');
-                            // Seite neu laden um Auth zu aktivieren
-                            setTimeout(() => {
-                                console.log('🔄 Lade Seite neu für Auth-Aktivierung...');
-                                window.location.reload();
-                            }, 1000);
-                        }
-                    }).catch(error => {
-                        console.error('❌ Token-Request Fehler:', error);
-                    });
-                    
-                    console.log('✅ Teams JWT Token für alle Requests konfiguriert');
-                } else {
-                    console.warn('⚠️ Kein Teams JWT Token erhalten');
-                }
-            }).catch(function(error) {
-                console.error('❌ Teams JWT Token Fehler:', error);
-                updateDebugInfo('teams-sdk-auth-token', `❌ Token Fehler: ${error.message}`);
-            });
+            // Teams SDK initialisieren
+            initializeTeamsSdk();
         }
     } catch (error) {
         console.error('❌ Teams SDK Fehler:', error);
