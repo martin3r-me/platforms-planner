@@ -25,6 +25,17 @@ class Task extends BaseTask
         $this->dueDateInput = $plannerTask->due_date ? $plannerTask->due_date->format('Y-m-d H:i') : '';
     }
 
+    public function updatedTask($property, $value)
+    {
+        $this->validateOnly("task.$property");
+        
+        // Nur speichern wenn sich wirklich was geändert hat
+        if ($this->task->isDirty($property)) {
+            $this->task->save();
+            // Auto-Save läuft still im Hintergrund
+        }
+    }
+
     public function save()
     {
         // Policy-Prüfung umgehen für embedded Kontext
