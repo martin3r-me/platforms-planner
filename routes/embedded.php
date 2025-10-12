@@ -7,12 +7,10 @@ use Illuminate\Http\Middleware\FrameGuard;
 // Embedded Routes für Microsoft Teams Tab Apps
 // Diese Routes laufen OHNE Laravel Auth-Middleware
 
-// Embedded (Teams/iframe) – Projekt-Ansicht
-Route::get('/embedded/planner/projects/{plannerProject}', function (PlannerProject $plannerProject) {
-    $response = response()->view('planner::embedded.project', compact('plannerProject'));
-    $response->headers->set('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
-    return $response;
-})->withoutMiddleware([FrameGuard::class])->name('planner.embedded.project');
+// Embedded (Teams/iframe) – Projekt-Ansicht - Livewire Komponente
+Route::get('/embedded/planner/projects/{plannerProject}', \Platform\Planner\Livewire\Embedded\Project::class)
+    ->withoutMiddleware([FrameGuard::class])
+    ->name('planner.embedded.project');
 
 // Embedded Task-Ansicht (Teams) - Livewire Komponente
 Route::get('/embedded/planner/tasks/{plannerTask}', \Platform\Planner\Livewire\Embedded\Task::class)
