@@ -29,12 +29,6 @@ class Task extends BaseTask
         
         $this->task->save();
         
-        \Log::info("Task erfolgreich gespeichert", [
-            'task_id' => $this->task->id,
-            'user_id' => $user->id,
-            'title' => $this->task->title
-        ]);
-        
         // Toast-Notification über das Notification-System
         $this->dispatch('notifications:store', [
             'notice_type' => 'success',
@@ -49,23 +43,29 @@ class Task extends BaseTask
         ]);
     }
 
+    public function render()
+    {
+        // Team-Mitglieder für Assignee-Auswahl laden
+        $teamUsers = Auth::user()
+            ->currentTeam
+            ->users()
+            ->orderBy('name')
+            ->get()
+            ->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->fullname ?? $user->name,
+                    'email' => $user->email,
+                ];
+            });
+
+        return view('planner::livewire.embedded.task', [
+            'teamUsers' => $teamUsers,
+        ]);
+    }
+
     public function deleteTaskAndReturnToProject()
     {
-        // Einfacher Ansatz: User aus Teams Context einloggen
-        $user = $this->loginUserFromTeamsContext();
-        
-        if (!$user) {
-            \Log::warning("Could not login user for task deletion");
-            $this->dispatch('notifications:store', [
-                'notice_type' => 'error',
-                'title' => 'Login Fehler',
-                'message' => 'User konnte nicht für Task-Löschung eingeloggt werden.',
-                'noticable_type' => 'Platform\\Planner\\Models\\PlannerTask',
-                'noticable_id' => $this->task->id,
-            ]);
-            return;
-        }
-        
         // Policy-Prüfung umgehen für embedded Kontext
         // $this->authorize('delete', $this->task);
         
