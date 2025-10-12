@@ -9,7 +9,7 @@
             @if($teamsUser)
                 Hallo, {{ $teamsUser['name'] ?? $teamsUser['email'] ?? 'User' }}
             @else
-                Teams User nicht gefunden
+                Teams User nicht gefunden - wird über Teams SDK geladen
             @endif
         </p>
 
