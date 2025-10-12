@@ -23,6 +23,20 @@ class Task extends BaseTask
         // Policy-Prüfung umgehen für embedded Kontext
         // $this->authorize('update', $this->task);
         
+        // User aus Teams Context einloggen (falls noch nicht eingeloggt)
+        $user = $this->loginUserFromTeamsContext();
+        if (!$user) {
+            \Log::warning("Could not login user for task save");
+            $this->dispatch('notifications:store', [
+                'notice_type' => 'error',
+                'title' => 'Login Fehler',
+                'message' => 'User konnte nicht für Task-Speicherung eingeloggt werden.',
+                'noticable_type' => 'Platform\\Planner\\Models\\PlannerTask',
+                'noticable_id' => $this->task->id,
+            ]);
+            return;
+        }
+        
         $this->validate();
         
         // Datum konvertieren
@@ -33,6 +47,12 @@ class Task extends BaseTask
         }
         
         $this->task->save();
+        
+        \Log::info("Task erfolgreich gespeichert", [
+            'task_id' => $this->task->id,
+            'user_id' => $user->id,
+            'title' => $this->task->title
+        ]);
         
         // Toast-Notification über das Notification-System
         $this->dispatch('notifications:store', [
@@ -180,10 +200,16 @@ class Task extends BaseTask
         $teamsUser = \Platform\Core\Helpers\TeamsAuthHelper::getTeamsUser($request);
         
         if ($teamsUser) {
-            \Log::info("Backend Teams User gefunden, logge ein");
-            $user = \Platform\Planner\Livewire\Embedded\Project::findOrCreateUserFromTeams($teamsUser);
+            \Log::info("Backend Teams User gefunden, logge ein", [
+                'email' => $teamsUser['email'] ?? 'Keine Email',
+                'name' => $teamsUser['name'] ?? 'Kein Name',
+                'id' => $teamsUser['id'] ?? 'Keine ID'
+            ]);
+            
+            $user = $this->findOrCreateUserFromTeams($teamsUser);
             if ($user) {
                 \Auth::login($user);
+                \Log::info("User erfolgreich eingeloggt", ['user_id' => $user->id, 'email' => $user->email]);
                 return $user;
             }
         }
@@ -213,6 +239,52 @@ class Task extends BaseTask
     }
     
     /**
+     * Findet oder erstellt User aus Teams Context
+     */
+    private function findOrCreateUserFromTeams(array $teamsUser)
+    {
+        $userModelClass = config('auth.providers.users.model');
+        
+        // Versuche zuerst über Email zu finden
+        $user = $userModelClass::query()
+            ->where('email', $teamsUser['email'])
+            ->first();
+            
+        if (!$user) {
+            // Versuche über Azure ID zu finden
+            $user = $userModelClass::query()
+                ->where('azure_id', $teamsUser['id'])
+                ->first();
+        }
+        
+        if (!$user) {
+            // User erstellen
+            \Log::info("Erstelle neuen User aus Teams Context", [
+                'email' => $teamsUser['email'],
+                'name' => $teamsUser['name'] ?? $teamsUser['email'],
+                'azure_id' => $teamsUser['id'] ?? null
+            ]);
+            
+            $user = new $userModelClass();
+            $user->email = $teamsUser['email'];
+            $user->name = $teamsUser['name'] ?? $teamsUser['email'];
+            $user->azure_id = $teamsUser['id'] ?? null;
+            $user->save();
+            
+            // Personal Team erstellen
+            \Platform\Core\PlatformCore::createPersonalTeamFor($user);
+            
+            \Log::info("User erfolgreich erstellt", [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'team_id' => $user->currentTeam?->id
+            ]);
+        }
+        
+        return $user;
+    }
+
+    /**
      * Findet oder erstellt User anhand Email
      */
     private function findOrCreateUserByEmail($email, $name = null)
@@ -221,6 +293,11 @@ class Task extends BaseTask
         $user = $userModelClass::where('email', $email)->first();
         
         if (!$user) {
+            \Log::info("Erstelle neuen User aus SSO", [
+                'email' => $email,
+                'name' => $name ?: $email
+            ]);
+            
             $user = new $userModelClass();
             $user->email = $email;
             $user->name = $name ?: $email;
@@ -228,6 +305,12 @@ class Task extends BaseTask
             
             // Personal Team erstellen
             \Platform\Core\PlatformCore::createPersonalTeamFor($user);
+            
+            \Log::info("SSO User erfolgreich erstellt", [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'team_id' => $user->currentTeam?->id
+            ]);
         }
         
         return $user;
