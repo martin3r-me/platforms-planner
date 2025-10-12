@@ -406,11 +406,20 @@
                 );
             }).catch(function(error) {
                 console.error('❌ Teams User Fehler:', error);
-                updateDebugInfo('teams-sdk-user', `❌ User Fehler: ${error.message}`);
+                console.error('❌ Teams User Fehler Details:', JSON.stringify(error, null, 2));
+                updateDebugInfo('teams-sdk-user', 
+                    `❌ User Fehler: ${error.message || 'Unbekannter Fehler'}<br>
+                    Code: ${error.code || 'N/A'}<br>
+                    Type: ${error.type || 'N/A'}`
+                );
             });
         } catch (error) {
             console.error('❌ Teams User Exception:', error);
-            updateDebugInfo('teams-sdk-user', `❌ User Exception: ${error.message}`);
+            console.error('❌ Teams User Exception Details:', JSON.stringify(error, null, 2));
+            updateDebugInfo('teams-sdk-user', 
+                `❌ User Exception: ${error.message || 'Unbekannter Fehler'}<br>
+                Stack: ${error.stack ? error.stack.substring(0, 100) + '...' : 'N/A'}`
+            );
         }
     }
     
@@ -492,7 +501,13 @@
                     }
                 }).catch(function(error) {
                     console.error('❌ Teams JWT Token Fehler:', error);
-                    updateDebugInfo('teams-sdk-auth-token', `❌ Token Fehler: ${error.message}`);
+                    console.error('❌ Teams JWT Token Fehler Details:', JSON.stringify(error, null, 2));
+                    updateDebugInfo('teams-sdk-auth-token', 
+                        `❌ Token Fehler: ${error.message || 'Unbekannter Fehler'}<br>
+                        Code: ${error.code || 'N/A'}<br>
+                        Type: ${error.type || 'N/A'}<br>
+                        <strong>Hinweis:</strong> Teams App Manifest muss webApplicationInfo definieren`
+                    );
                 });
                 
             }).catch(function(error) {
