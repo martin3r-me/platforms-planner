@@ -21,8 +21,14 @@ class Task extends BaseTask
 
     public function mount($plannerTask)
     {
-        $this->task = $plannerTask;
-        $this->dueDateInput = $plannerTask->due_date ? $plannerTask->due_date->format('Y-m-d H:i') : '';
+        // Wenn $plannerTask ein String ist (ID), dann das Model laden
+        if (is_string($plannerTask) || is_numeric($plannerTask)) {
+            $this->task = \Platform\Planner\Models\PlannerTask::findOrFail($plannerTask);
+        } else {
+            $this->task = $plannerTask;
+        }
+        
+        $this->dueDateInput = $this->task->due_date ? $this->task->due_date->format('Y-m-d H:i') : '';
     }
 
     public function updatedDueDateInput($value)
