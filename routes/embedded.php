@@ -14,12 +14,10 @@ Route::get('/embedded/planner/projects/{plannerProject}', function (PlannerProje
     return $response;
 })->withoutMiddleware([FrameGuard::class])->name('planner.embedded.project');
 
-// Embedded Task-Ansicht (Teams)
-Route::get('/embedded/planner/tasks/{plannerTask}', function (PlannerTask $plannerTask) {
-    $response = response()->view('planner::embedded.task', compact('plannerTask'));
-    $response->headers->set('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
-    return $response;
-})->withoutMiddleware([FrameGuard::class])->name('planner.embedded.task');
+// Embedded Task-Ansicht (Teams) - Livewire Komponente
+Route::get('/embedded/planner/tasks/{plannerTask}', \Platform\Planner\Livewire\Embedded\Task::class)
+    ->withoutMiddleware([FrameGuard::class])
+    ->name('planner.embedded.task');
 
 // Teams Authentication Route
 Route::post('/embedded/teams/auth', function (Illuminate\Http\Request $request) {
