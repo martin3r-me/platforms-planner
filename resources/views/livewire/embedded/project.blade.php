@@ -439,6 +439,19 @@
                 
                 // Teams Context für Backend senden (ohne JWT Token)
                 console.log('🔍 Sende Teams Context an Backend...');
+                
+                // Prüfen ob bereits Context gesendet wurde
+                if (sessionStorage.getItem('teams-context-sent')) {
+                    console.log('✅ Teams Context bereits gesendet, überspringe Reload');
+                    updateDebugInfo('teams-sdk-auth-token', 
+                        `✅ Context bereits gesendet<br>
+                        <strong>Authentication aktiv</strong><br>
+                        User: m.erren@martin3r.me<br>
+                        Team: sovra.digital.bridge`
+                    );
+                    return;
+                }
+                
                 fetch(window.location.href, {
                     method: 'GET',
                     headers: {
@@ -452,7 +465,10 @@
                     console.log('🔍 Context-Request Response:', response.status);
                     if (response.ok) {
                         console.log('✅ Teams Context erfolgreich an Backend gesendet');
-                        // Seite neu laden um Auth zu aktivieren
+                        // Markiere als gesendet
+                        sessionStorage.setItem('teams-context-sent', 'true');
+                        
+                        // Seite neu laden um Auth zu aktivieren (nur einmal)
                         setTimeout(() => {
                             console.log('🔄 Lade Seite neu für Auth-Aktivierung...');
                             window.location.reload();
