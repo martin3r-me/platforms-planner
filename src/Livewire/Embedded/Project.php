@@ -9,8 +9,6 @@ use Illuminate\Http\Request;
 
 class Project extends BaseProject
 {
-    public $viewMode = 'board'; // Board oder List View
-
     public function createTask($projectSlotId = null)
     {
         // DEBUG: Log dass die embedded createTask aufgerufen wird
