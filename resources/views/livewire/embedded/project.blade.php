@@ -95,7 +95,7 @@
                             title="Einstellungen"
                         >
                             @svg('heroicon-o-cog-6-tooth', 'w-4 h-4')
-                        </button>
+                            </button>
                         </x-slot>
 
                         @foreach($column->tasks as $task)
@@ -329,15 +329,24 @@
 
 <script>
 (function() {
-    console.log('🔍 Teams SDK Debug - Initialisierung');
+    console.log('🔍 Teams SDK Debug - Initialisierung (Project View)');
     
     // Debug-Update-Funktion
     function updateDebugInfo(elementId, content) {
         const element = document.getElementById(elementId);
         if (element) {
             element.innerHTML = content;
+            console.log(`🔍 Debug Update: ${elementId}`, content);
+        } else {
+            console.warn(`⚠️ Element nicht gefunden: ${elementId}`);
         }
     }
+    
+    // Sofortige Debug-Info setzen
+    updateDebugInfo('teams-sdk-status', '🔍 Initialisiere...');
+    updateDebugInfo('teams-sdk-context', '🔍 Initialisiere...');
+    updateDebugInfo('teams-sdk-user', '🔍 Initialisiere...');
+    updateDebugInfo('teams-sdk-auth-token', '🔍 Initialisiere...');
     
     // Teams SDK Verfügbarkeit prüfen
     function checkTeamsSdkAvailability() {

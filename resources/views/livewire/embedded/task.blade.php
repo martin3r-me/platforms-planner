@@ -391,15 +391,24 @@
 
 <script>
 (function() {
-    console.log('🔍 Teams SDK Debug - Initialisierung');
+    console.log('🔍 Teams SDK Debug - Initialisierung (Task View)');
     
     // Debug-Update-Funktion
     function updateDebugInfo(elementId, content) {
         const element = document.getElementById(elementId);
         if (element) {
             element.innerHTML = content;
+            console.log(`🔍 Debug Update: ${elementId}`, content);
+        } else {
+            console.warn(`⚠️ Element nicht gefunden: ${elementId}`);
         }
     }
+    
+    // Sofortige Debug-Info setzen
+    updateDebugInfo('teams-sdk-status', '🔍 Initialisiere...');
+    updateDebugInfo('teams-sdk-context', '🔍 Initialisiere...');
+    updateDebugInfo('teams-sdk-user', '🔍 Initialisiere...');
+    updateDebugInfo('teams-sdk-auth-token', '🔍 Initialisiere...');
     
     // Teams SDK Verfügbarkeit prüfen
     function checkTeamsSdkAvailability() {
