@@ -328,22 +328,55 @@
 </div>
 
 <script>
-// Einfache Teams Authentication
+// Einfache Teams Authentication mit Debug-Info
 (function() {
     console.log('🔍 Teams Authentication - Vereinfacht');
     
+    // Debug-Update-Funktion
+    function updateDebugInfo(elementId, content) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.innerHTML = content;
+            console.log(`🔍 Debug Update: ${elementId}`, content);
+        } else {
+            console.warn(`⚠️ Element nicht gefunden: ${elementId}`);
+        }
+    }
+    
+    // Sofortige Debug-Info setzen
+    updateDebugInfo('teams-sdk-status', '🔍 Initialisiere...');
+    updateDebugInfo('teams-sdk-context', '🔍 Initialisiere...');
+    updateDebugInfo('teams-sdk-user', '🔍 Initialisiere...');
+    updateDebugInfo('teams-sdk-auth-token', '🔍 Initialisiere...');
+    
     // Teams SDK initialisieren und User einloggen
     if (window.microsoftTeams) {
+        updateDebugInfo('teams-sdk-status', '✅ Teams SDK verfügbar');
+        
         window.microsoftTeams.app.initialize().then(function() {
             console.log('✅ Teams SDK initialisiert');
+            updateDebugInfo('teams-sdk-status', '✅ Teams SDK initialisiert');
             
             // Teams Context abrufen
             window.microsoftTeams.app.getContext().then(function(context) {
                 console.log('🔍 Teams Context:', context);
+                updateDebugInfo('teams-sdk-context', 
+                    `✅ Context verfügbar<br>
+                    User: ${context.user?.userPrincipalName || 'Unbekannt'}<br>
+                    Team: ${context.team?.displayName || 'Unbekannt'}<br>
+                    Channel: ${context.channel?.displayName || 'Unbekannt'}`
+                );
                 
                 // User über Teams Context einloggen
                 if (context.user?.userPrincipalName) {
                     console.log('🔍 User gefunden:', context.user.userPrincipalName);
+                    updateDebugInfo('teams-sdk-user', 
+                        `✅ User verfügbar<br>
+                        Email: ${context.user.userPrincipalName}<br>
+                        Name: ${context.user.displayName || context.user.userPrincipalName}`
+                    );
+                    
+                    updateDebugInfo('teams-sdk-auth-token', '🔍 Authentifiziere User...');
                     
                     // Einfacher fetch um User zu authentifizieren
                     fetch('/embedded/teams/auth', {
@@ -361,15 +394,30 @@
                     }).then(response => {
                         if (response.ok) {
                             console.log('✅ User erfolgreich authentifiziert');
+                            updateDebugInfo('teams-sdk-auth-token', '✅ User authentifiziert - Lade Seite neu...');
                             // Seite neu laden um Auth zu aktivieren
                             window.location.reload();
+                        } else {
+                            updateDebugInfo('teams-sdk-auth-token', '❌ Authentication fehlgeschlagen');
                         }
                     }).catch(error => {
                         console.error('❌ Authentication Fehler:', error);
+                        updateDebugInfo('teams-sdk-auth-token', `❌ Authentication Fehler: ${error.message}`);
                     });
+                } else {
+                    updateDebugInfo('teams-sdk-user', '❌ Kein User im Context gefunden');
                 }
+            }).catch(function(error) {
+                console.error('❌ Teams Context Fehler:', error);
+                updateDebugInfo('teams-sdk-context', `❌ Context Fehler: ${error.message}`);
             });
+        }).catch(function(error) {
+            console.error('❌ Teams SDK Initialisierung Fehler:', error);
+            updateDebugInfo('teams-sdk-status', `❌ SDK Initialisierung Fehler: ${error.message}`);
         });
+    } else {
+        updateDebugInfo('teams-sdk-status', '❌ Teams SDK nicht verfügbar');
+        console.warn('⚠️ Microsoft Teams SDK nicht verfügbar');
     }
 })();
 </script>
