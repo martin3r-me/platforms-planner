@@ -135,63 +135,109 @@
         <x-slot name="sidebar">
             <x-ui-page-sidebar title="Projekt-Übersicht" width="w-80" :defaultOpen="true">
                 <div class="p-4 space-y-4">
-                    <!-- DEBUG: Teams SDK Status -->
-                    <div>
-                        <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">🔍 Debug</h3>
-                        <div class="space-y-2">
-                            @php
-                                $teamsUser = \Platform\Core\Helpers\TeamsAuthHelper::getTeamsUser(request());
-                                $teamsContext = \Platform\Core\Helpers\TeamsAuthHelper::getTeamsContext(request());
-                                $authUser = auth()->user();
-                            @endphp
-                            
-                            <!-- Teams User Status -->
-                            <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
-                                <div class="text-xs font-medium text-[var(--ui-secondary)]">Teams User</div>
-                                <div class="text-xs text-[var(--ui-muted)]">
-                                    @if($teamsUser)
-                                        ✅ {{ $teamsUser['email'] ?? 'Keine Email' }}
-                                    @else
-                                        ❌ Nicht gefunden
-                                    @endif
+                            <!-- DEBUG: Detailliertes Teams SDK Debugging -->
+                            <div>
+                                <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">🔍 Detailliertes Debug</h3>
+                                <div class="space-y-2">
+                                    @php
+                                        $teamsUser = \Platform\Core\Helpers\TeamsAuthHelper::getTeamsUser(request());
+                                        $teamsContext = \Platform\Core\Helpers\TeamsAuthHelper::getTeamsContext(request());
+                                        $authUser = auth()->user();
+                                        $request = request();
+                                    @endphp
+                                    
+                                    <!-- Teams User Details -->
+                                    <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
+                                        <div class="text-xs font-medium text-[var(--ui-secondary)]">Teams User (Backend)</div>
+                                        <div class="text-xs text-[var(--ui-muted)]">
+                                            @if($teamsUser)
+                                                ✅ <strong>{{ $teamsUser['email'] ?? 'Keine Email' }}</strong><br>
+                                                Name: {{ $teamsUser['name'] ?? 'Kein Name' }}<br>
+                                                ID: {{ $teamsUser['id'] ?? 'Keine ID' }}<br>
+                                                Tenant: {{ $teamsUser['tenant_id'] ?? 'Kein Tenant' }}
+                                            @else
+                                                ❌ Nicht gefunden
+                                            @endif
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Teams Context Details -->
+                                    <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
+                                        <div class="text-xs font-medium text-[var(--ui-secondary)]">Teams Context</div>
+                                        <div class="text-xs text-[var(--ui-muted)]">
+                                            @if($teamsContext)
+                                                ✅ Verfügbar<br>
+                                                Keys: {{ implode(', ', array_keys($teamsContext)) }}<br>
+                                                User: {{ isset($teamsContext['user']) ? 'Ja' : 'Nein' }}
+                                            @else
+                                                ❌ Nicht verfügbar
+                                            @endif
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Laravel Auth Details -->
+                                    <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
+                                        <div class="text-xs font-medium text-[var(--ui-secondary)]">Laravel Auth</div>
+                                        <div class="text-xs text-[var(--ui-muted)]">
+                                            @if($authUser)
+                                                ✅ <strong>{{ $authUser->email }}</strong><br>
+                                                ID: {{ $authUser->id }}<br>
+                                                Name: {{ $authUser->name }}<br>
+                                                Team: {{ $authUser->currentTeam?->name ?? 'Kein Team' }}
+                                            @else
+                                                ❌ Nicht angemeldet
+                                            @endif
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Request Headers -->
+                                    <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
+                                        <div class="text-xs font-medium text-[var(--ui-secondary)]">Request Headers</div>
+                                        <div class="text-xs text-[var(--ui-muted)]">
+                                            Authorization: {{ $request->header('Authorization') ? 'Ja' : 'Nein' }}<br>
+                                            X-Teams-Token: {{ $request->header('X-Teams-Token') ? 'Ja' : 'Nein' }}<br>
+                                            X-User-Email: {{ $request->header('X-User-Email') ?: 'Nein' }}<br>
+                                            X-User-Name: {{ $request->header('X-User-Name') ?: 'Nein' }}<br>
+                                            X-Teams-Embedded: {{ $request->header('X-Teams-Embedded') ?: 'Nein' }}
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Request Details -->
+                                    <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
+                                        <div class="text-xs font-medium text-[var(--ui-secondary)]">Request Info</div>
+                                        <div class="text-xs text-[var(--ui-muted)]">
+                                            Path: {{ $request->getPathInfo() }}<br>
+                                            Method: {{ $request->getMethod() }}<br>
+                                            Referer: {{ $request->header('referer', 'Kein Referer') }}<br>
+                                            User-Agent: {{ substr($request->header('user-agent', ''), 0, 50) }}...
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Query Parameters -->
+                                    <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
+                                        <div class="text-xs font-medium text-[var(--ui-secondary)]">Query Params</div>
+                                        <div class="text-xs text-[var(--ui-muted)]">
+                                            @if($request->query->count() > 0)
+                                                @foreach($request->query->all() as $key => $value)
+                                                    {{ $key }}: {{ is_string($value) ? $value : 'Array' }}<br>
+                                                @endforeach
+                                            @else
+                                                Keine Query Parameter
+                                            @endif
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Middleware Status -->
+                                    <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
+                                        <div class="text-xs font-medium text-[var(--ui-secondary)]">Middleware</div>
+                                        <div class="text-xs text-[var(--ui-muted)]">
+                                            Route: {{ $request->route()?->getName() ?? 'Unbekannt' }}<br>
+                                            Middleware: {{ implode(', ', $request->route()?->middleware() ?? []) }}<br>
+                                            Teams Request: {{ str_contains($request->getPathInfo(), '/embedded/') ? 'Ja' : 'Nein' }}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            
-                            <!-- Teams Context Status -->
-                            <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
-                                <div class="text-xs font-medium text-[var(--ui-secondary)]">Teams Context</div>
-                                <div class="text-xs text-[var(--ui-muted)]">
-                                    @if($teamsContext)
-                                        ✅ Verfügbar
-                                    @else
-                                        ❌ Nicht verfügbar
-                                    @endif
-                                </div>
-                            </div>
-                            
-                            <!-- Laravel Auth Status -->
-                            <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
-                                <div class="text-xs font-medium text-[var(--ui-secondary)]">Laravel Auth</div>
-                                <div class="text-xs text-[var(--ui-muted)]">
-                                    @if($authUser)
-                                        ✅ {{ $authUser->email }}
-                                    @else
-                                        ❌ Nicht angemeldet
-                                    @endif
-                                </div>
-                            </div>
-                            
-                            <!-- Request Info -->
-                            <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
-                                <div class="text-xs font-medium text-[var(--ui-secondary)]">Request</div>
-                                <div class="text-xs text-[var(--ui-muted)]">
-                                    Path: {{ request()->getPathInfo() }}<br>
-                                    Method: {{ request()->getMethod() }}<br>
-                                    Referer: {{ request()->header('referer', 'Kein Referer') }}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
 
                     <!-- Projekt-Statistiken -->
                     <div>
