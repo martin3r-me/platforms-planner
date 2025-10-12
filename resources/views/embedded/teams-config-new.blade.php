@@ -1,25 +1,80 @@
 @extends('platform::layouts.embedded')
 
 @section('content')
-    <div class="p-6">
-        <h1 class="text-xl font-semibold text-[var(--ui-secondary)] mb-2">Teams Tab Konfiguration – Test</h1>
-        <p class="text-sm text-[var(--ui-muted)] mb-1">Prüft die Einbettung und die Teams SDK-Initialisierung.</p>
-        <p class="text-sm text-[var(--ui-secondary)] mb-4" id="userInfo">
-            Teams User wird geladen...
-        </p>
+    <div class="min-h-full bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div class="max-w-2xl mx-auto p-8">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4">
+                    @svg('heroicon-o-clipboard-document-list', 'w-8 h-8 text-white')
+                </div>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">Planner Tab einrichten</h1>
+                <p class="text-gray-600">Wählen Sie ein Projekt aus, das als Teams Tab hinzugefügt werden soll</p>
+            </div>
 
-        <div id="sdkStatus" class="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-md border border-[var(--ui-border)] bg-[var(--ui-muted-5)] text-[var(--ui-secondary)]">
-            SDK: wird geprüft…
+            <!-- Status Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                <!-- SDK Status -->
+                <div class="bg-white rounded-lg p-4 shadow-sm border">
+                    <div class="flex items-center gap-3">
+                        <div class="w-2 h-2 bg-gray-400 rounded-full" id="sdkIndicator"></div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-900">Teams SDK</p>
+                            <p class="text-xs text-gray-500" id="sdkStatus">wird geprüft...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- User Info -->
+                <div class="bg-white rounded-lg p-4 shadow-sm border">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                            @svg('heroicon-o-user', 'w-4 h-4 text-blue-600')
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-900">Angemeldet als</p>
+                            <p class="text-xs text-gray-500" id="userInfo">wird geladen...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Project Selection -->
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-900 mb-2">Projekt auswählen</label>
+                    <p class="text-sm text-gray-500 mb-4">Wählen Sie das Projekt aus, das als Teams Tab hinzugefügt werden soll</p>
+                </div>
+
+                <div class="space-y-4">
+                    <select id="projectSelect" class="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">– Projekte werden geladen –</option>
+                    </select>
+
+                    <div class="flex items-center justify-between pt-4">
+                        <div class="text-sm text-gray-500">
+                            <span id="projectCount">0</span> Projekte verfügbar
+                        </div>
+                        <button id="saveBtn" type="button" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
+                            @svg('heroicon-o-check', 'w-4 h-4')
+                            Tab hinzufügen
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info Box -->
+            <div class="mt-6 bg-blue-50 rounded-lg p-4">
+                <div class="flex items-start gap-3">
+                    @svg('heroicon-o-information-circle', 'w-5 h-5 text-blue-600 mt-0.5')
+                    <div>
+                        <p class="text-sm font-medium text-blue-900">Was passiert als nächstes?</p>
+                        <p class="text-sm text-blue-700 mt-1">Nach der Auswahl wird der Planner Tab zu Ihrem Teams Kanal hinzugefügt und Sie können direkt mit der Projektarbeit beginnen.</p>
+                    </div>
+                </div>
+            </div>
         </div>
-
-        <div class="mt-6 space-y-3">
-            <label class="block text-sm text-[var(--ui-secondary)]">Projekt wählen</label>
-            <select id="projectSelect" class="w-full rounded-md border border-[var(--ui-border)] bg-white px-3 py-2 text-sm">
-                <option value="">– Projekte werden geladen –</option>
-            </select>
-
-            <button id="saveBtn" type="button" class="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-md border border-[var(--ui-border)] bg-white hover:bg-[var(--ui-muted-5)] text-[var(--ui-secondary)]">Speichern</button>
-        </div>
+    </div>
 
         <script>
             (function(){
@@ -29,10 +84,13 @@
                 try {
                     if (window.microsoftTeams && window.microsoftTeams.app) {
                         window.microsoftTeams.app.initialize().then(() => {
-                            const el = document.getElementById('sdkStatus');
-                            if (el) {
-                                el.textContent = 'SDK: bereit';
-                                el.className = 'inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-md border border-green-200 bg-green-50 text-green-700';
+                            const statusEl = document.getElementById('sdkStatus');
+                            const indicatorEl = document.getElementById('sdkIndicator');
+                            if (statusEl) {
+                                statusEl.textContent = 'bereit';
+                            }
+                            if (indicatorEl) {
+                                indicatorEl.className = 'w-2 h-2 bg-green-500 rounded-full';
                             }
 
                             // Teams Context abrufen
@@ -131,18 +189,24 @@
                             }
                         }).catch(function (error) {
                             console.error('Teams SDK Initialisierung fehlgeschlagen:', error);
-                            const el = document.getElementById('sdkStatus');
-                            if (el) {
-                                el.textContent = 'SDK: Fehler';
-                                el.className = 'inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-md border border-red-200 bg-red-50 text-red-700';
+                            const statusEl = document.getElementById('sdkStatus');
+                            const indicatorEl = document.getElementById('sdkIndicator');
+                            if (statusEl) {
+                                statusEl.textContent = 'Fehler';
+                            }
+                            if (indicatorEl) {
+                                indicatorEl.className = 'w-2 h-2 bg-red-500 rounded-full';
                             }
                         });
                     } else {
                         console.warn('Microsoft Teams SDK nicht verfügbar');
-                        const el = document.getElementById('sdkStatus');
-                        if (el) {
-                            el.textContent = 'SDK: nicht verfügbar';
-                            el.className = 'inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-md border border-yellow-200 bg-yellow-50 text-yellow-700';
+                        const statusEl = document.getElementById('sdkStatus');
+                        const indicatorEl = document.getElementById('sdkIndicator');
+                        if (statusEl) {
+                            statusEl.textContent = 'nicht verfügbar';
+                        }
+                        if (indicatorEl) {
+                            indicatorEl.className = 'w-2 h-2 bg-yellow-500 rounded-full';
                         }
                     }
                 } catch (error) {
@@ -200,6 +264,7 @@
                     
                     // Projekte in Select hinzufügen, gruppiert nach Teams
                     if (Object.keys(projectsByTeam).length > 0) {
+                        let totalProjects = 0;
                         Object.keys(projectsByTeam).forEach(teamKey => {
                             // Team-Header hinzufügen
                             const teamOption = document.createElement('option');
@@ -215,8 +280,15 @@
                                 option.value = project.id;
                                 option.textContent = `  ${project.name}`;
                                 select.appendChild(option);
+                                totalProjects++;
                             });
                         });
+                        
+                        // Projekt-Counter aktualisieren
+                        const projectCountEl = document.getElementById('projectCount');
+                        if (projectCountEl) {
+                            projectCountEl.textContent = totalProjects;
+                        }
                         
                         // Validity aktivieren wenn Projekte vorhanden
                         if (window.microsoftTeams.pages && window.microsoftTeams.pages.config) {
@@ -227,6 +299,12 @@
                         option.value = '';
                         option.textContent = 'Keine Projekte gefunden';
                         select.appendChild(option);
+                        
+                        // Projekt-Counter auf 0 setzen
+                        const projectCountEl = document.getElementById('projectCount');
+                        if (projectCountEl) {
+                            projectCountEl.textContent = '0';
+                        }
                     }
                 }
             })();
