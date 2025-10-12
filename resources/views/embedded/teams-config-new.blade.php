@@ -72,10 +72,6 @@
                                             if (gid) teamIdQuery = '?teamId=' + encodeURIComponent(gid);
                                         } catch(_) {}
 
-                                        const contentUrl = 'https://office.martin3r.me/planner/embedded/planner/projects/' + encodeURIComponent(projectId) + teamIdQuery;
-                                        const websiteUrl = contentUrl;
-                                        const entityId = 'planner-project-' + projectId;
-                                        
                                         // Projektname aus den Projektdaten holen (sauberer)
                                         let projectName = 'Projekt ' + projectId;
                                         const selectedProject = allProjects.find(p => p.id == projectId);
@@ -83,13 +79,29 @@
                                             projectName = selectedProject.name;
                                         }
                                         
+                                        // Projektname in URL setzen für bessere Identifikation
+                                        const projectNameForUrl = projectName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+                                        const contentUrl = 'https://office.martin3r.me/planner/embedded/planner/projects/' + encodeURIComponent(projectId) + '?name=' + encodeURIComponent(projectName) + teamIdQuery;
+                                        const websiteUrl = contentUrl;
+                                        const entityId = 'planner-project-' + projectId;
+                                        
                                         const displayName = 'PLANNER - ' + projectName;
 
-                                        window.microsoftTeams.pages.config.setConfig({
+                                        // Teams Tab-Namen werden aus der App-Registrierung genommen
+                                        // displayName funktioniert nicht für Tab-Namen
+                                        // Wir müssen den Tab-Namen in der App-Registrierung dynamisch setzen
+                                        console.log('Tab wird erstellt mit:', {
                                             contentUrl: contentUrl,
                                             websiteUrl: websiteUrl,
                                             entityId: entityId,
                                             displayName: displayName
+                                        });
+                                        
+                                        window.microsoftTeams.pages.config.setConfig({
+                                            contentUrl: contentUrl,
+                                            websiteUrl: websiteUrl,
+                                            entityId: entityId
+                                            // displayName wird ignoriert für Tab-Namen
                                         }).then(function () {
                                             saveEvent.notifySuccess();
                                         }).catch(function () {
