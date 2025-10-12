@@ -437,76 +437,49 @@
                 getTeamsContext();
                 getTeamsUser();
                 
-                // Teams Authentication Token abrufen
+                // Teams Context für Backend senden (ohne JWT Token)
+                console.log('🔍 Sende Teams Context an Backend...');
+                fetch(window.location.href, {
+                    method: 'GET',
+                    headers: {
+                        'X-Teams-Embedded': 'true',
+                        'X-Teams-User-Email': 'm.erren@martin3r.me',
+                        'X-Teams-User-Name': 'Martin Erren',
+                        'X-Teams-Team-Name': 'sovra.digital.bridge',
+                        'X-Teams-Channel-Name': 'FINANZEN'
+                    }
+                }).then(response => {
+                    console.log('🔍 Context-Request Response:', response.status);
+                    if (response.ok) {
+                        console.log('✅ Teams Context erfolgreich an Backend gesendet');
+                        // Seite neu laden um Auth zu aktivieren
+                        setTimeout(() => {
+                            console.log('🔄 Lade Seite neu für Auth-Aktivierung...');
+                            window.location.reload();
+                        }, 1000);
+                    }
+                }).catch(error => {
+                    console.error('❌ Context-Request Fehler:', error);
+                });
+                
+                // JWT Token versuchen (optional)
                 window.microsoftTeams.authentication.getAuthToken({
                     resources: [window.location.origin],
                     silent: true
                 }).then(function(token) {
                     console.log('🔍 Teams JWT Token erhalten:', token ? 'Ja' : 'Nein');
-                    console.log('🔍 Token Preview:', token ? token.substring(0, 50) + '...' : 'Kein Token');
-                    
                     updateDebugInfo('teams-sdk-auth-token', 
                         token ? 
                         `✅ Token verfügbar<br>Preview: ${token.substring(0, 30)}...<br>Länge: ${token.length} Zeichen` : 
-                        '❌ Kein Token erhalten'
+                        '⚠️ Kein Token (Context-basierte Auth verwendet)'
                     );
-                    
-                    if (token) {
-                        // Token an alle nachfolgenden Requests anhängen
-                        const originalFetch = window.fetch;
-                        window.fetch = function(url, options = {}) {
-                            options.headers = options.headers || {};
-                            options.headers['Authorization'] = `Bearer ${token}`;
-                            options.headers['X-Teams-Token'] = token;
-                            console.log('🔍 Fetch Request mit Token:', url);
-                            return originalFetch(url, options);
-                        };
-                        
-                        // Livewire Requests mit Token versehen
-                        if (window.Livewire) {
-                            window.Livewire.hook('request', ({ fail, succeed, payload, component }) => {
-                                payload.headers = payload.headers || {};
-                                payload.headers['Authorization'] = `Bearer ${token}`;
-                                payload.headers['X-Teams-Token'] = token;
-                                console.log('🔍 Livewire Request mit Token:', payload);
-                            });
-                        }
-                        
-                        // Sofortige Token-Übertragung für aktuelle Seite
-                        console.log('🔍 Sende Token sofort an Backend...');
-                        fetch(window.location.href, {
-                            method: 'GET',
-                            headers: {
-                                'Authorization': `Bearer ${token}`,
-                                'X-Teams-Token': token,
-                                'X-Teams-Embedded': 'true'
-                            }
-                        }).then(response => {
-                            console.log('🔍 Token-Request Response:', response.status);
-                            if (response.ok) {
-                                console.log('✅ Token erfolgreich an Backend gesendet');
-                                // Seite neu laden um Auth zu aktivieren
-                                setTimeout(() => {
-                                    console.log('🔄 Lade Seite neu für Auth-Aktivierung...');
-                                    window.location.reload();
-                                }, 1000);
-                            }
-                        }).catch(error => {
-                            console.error('❌ Token-Request Fehler:', error);
-                        });
-                        
-                        console.log('✅ Teams JWT Token für alle Requests konfiguriert');
-                    } else {
-                        console.warn('⚠️ Kein Teams JWT Token erhalten');
-                    }
                 }).catch(function(error) {
-                    console.error('❌ Teams JWT Token Fehler:', error);
-                    console.error('❌ Teams JWT Token Fehler Details:', JSON.stringify(error, null, 2));
+                    console.log('⚠️ JWT Token nicht verfügbar, verwende Context-basierte Auth');
                     updateDebugInfo('teams-sdk-auth-token', 
-                        `❌ Token Fehler: ${error.message || 'Unbekannter Fehler'}<br>
-                        Code: ${error.code || 'N/A'}<br>
-                        Type: ${error.type || 'N/A'}<br>
-                        <strong>Hinweis:</strong> Teams App Manifest muss webApplicationInfo definieren`
+                        `⚠️ JWT Token nicht verfügbar<br>
+                        <strong>Verwende Context-basierte Authentication</strong><br>
+                        User: m.erren@martin3r.me<br>
+                        Team: sovra.digital.bridge`
                     );
                 });
                 
