@@ -254,6 +254,41 @@
                         </div>
                     </div>
 
+                    {{-- Debug Info --}}
+                    <div>
+                        <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-4">🔍 Debug Info</h3>
+                        <div class="space-y-3 text-xs">
+                            <div class="py-2 px-3 bg-[var(--ui-muted-5)] rounded border">
+                                <div class="font-medium text-[var(--ui-secondary)]">Task Data:</div>
+                                <div class="text-[var(--ui-muted)]">
+                                    ID: {{ $task->id ?? 'NULL' }}<br>
+                                    Title: "{{ $task->title ?? 'NULL' }}"<br>
+                                    Description: "{{ $task->description ?? 'NULL' }}"<br>
+                                    Priority: {{ $task->priority ?? 'NULL' }}<br>
+                                    User: {{ $task->user_in_charge_id ?? 'NULL' }}
+                                </div>
+                            </div>
+                            <div class="py-2 px-3 bg-[var(--ui-muted-5)] rounded border">
+                                <div class="font-medium text-[var(--ui-secondary)]">Livewire State:</div>
+                                <div class="text-[var(--ui-muted)]">
+                                    Task Object: {{ $task ? '✅' : '❌' }}<br>
+                                    Task Title: "{{ $task->title ?? 'NULL' }}"<br>
+                                    Due Date Input: "{{ $dueDateInput ?? 'NULL' }}"<br>
+                                    Auth User: {{ Auth::user()?->email ?? 'NULL' }}
+                                </div>
+                            </div>
+                            <div class="py-2 px-3 bg-[var(--ui-muted-5)] rounded border">
+                                <div class="font-medium text-[var(--ui-secondary)]">Form Fields:</div>
+                                <div class="text-[var(--ui-muted)]">
+                                    Title Field: {{ $task->title ? '✅ Filled' : '❌ Empty' }}<br>
+                                    Description Field: {{ $task->description ? '✅ Filled' : '❌ Empty' }}<br>
+                                    Priority Field: {{ $task->priority ? '✅ Set' : '❌ Not Set' }}<br>
+                                    Due Date Field: {{ $dueDateInput ? '✅ Set' : '❌ Not Set' }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     {{-- Quick Stats --}}
                     <div>
                         <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-4">Status</h3>
