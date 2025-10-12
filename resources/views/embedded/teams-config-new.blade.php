@@ -1,19 +1,19 @@
 @extends('platform::layouts.embedded')
 
 @section('content')
-    <div class="min-h-full bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div class="max-w-2xl mx-auto p-8">
+    <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div class="max-w-2xl mx-auto p-6">
             <!-- Header -->
-            <div class="text-center mb-8">
-                <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4">
-                    @svg('heroicon-o-clipboard-document-list', 'w-8 h-8 text-white')
+            <div class="text-center mb-6">
+                <div class="inline-flex items-center justify-center w-12 h-12 bg-blue-600 rounded-full mb-3">
+                    @svg('heroicon-o-clipboard-document-list', 'w-6 h-6 text-white')
                 </div>
-                <h1 class="text-3xl font-bold text-gray-900 mb-2">Planner Tab einrichten</h1>
-                <p class="text-gray-600">Wählen Sie ein Projekt aus, das als Teams Tab hinzugefügt werden soll</p>
+                <h1 class="text-2xl font-bold text-gray-900 mb-2">Planner Tab einrichten</h1>
+                <p class="text-gray-600 text-sm">Wählen Sie ein Projekt aus, das als Teams Tab hinzugefügt werden soll</p>
             </div>
 
             <!-- Status Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
                 <!-- SDK Status -->
                 <div class="bg-white rounded-lg p-4 shadow-sm border">
                     <div class="flex items-center gap-3">
@@ -40,10 +40,10 @@
             </div>
 
             <!-- Project Selection -->
-            <div class="bg-white rounded-lg shadow-sm border p-6">
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-900 mb-2">Projekt auswählen</label>
-                    <p class="text-sm text-gray-500 mb-4">Wählen Sie das Projekt aus, das als Teams Tab hinzugefügt werden soll</p>
+            <div class="bg-white rounded-lg shadow-sm border p-4">
+                <div class="mb-3">
+                    <label class="block text-sm font-medium text-gray-900 mb-1">Projekt auswählen</label>
+                    <p class="text-xs text-gray-500">Wählen Sie das Projekt aus, das als Teams Tab hinzugefügt werden soll</p>
                 </div>
 
                 <div class="space-y-4">
@@ -64,12 +64,12 @@
             </div>
 
             <!-- Info Box -->
-            <div class="mt-6 bg-blue-50 rounded-lg p-4">
-                <div class="flex items-start gap-3">
-                    @svg('heroicon-o-information-circle', 'w-5 h-5 text-blue-600 mt-0.5')
+            <div class="mt-4 bg-blue-50 rounded-lg p-3">
+                <div class="flex items-start gap-2">
+                    @svg('heroicon-o-information-circle', 'w-4 h-4 text-blue-600 mt-0.5')
                     <div>
-                        <p class="text-sm font-medium text-blue-900">Was passiert als nächstes?</p>
-                        <p class="text-sm text-blue-700 mt-1">Nach der Auswahl wird der Planner Tab zu Ihrem Teams Kanal hinzugefügt und Sie können direkt mit der Projektarbeit beginnen.</p>
+                        <p class="text-xs font-medium text-blue-900">Was passiert als nächstes?</p>
+                        <p class="text-xs text-blue-700 mt-1">Nach der Auswahl wird der Planner Tab zu Ihrem Teams Kanal hinzugefügt.</p>
                     </div>
                 </div>
             </div>
