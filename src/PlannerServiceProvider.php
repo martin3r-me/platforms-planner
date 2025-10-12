@@ -5,6 +5,7 @@ namespace Platform\Planner;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Platform\Core\PlatformCore;
@@ -60,6 +61,12 @@ class PlannerServiceProvider extends ServiceProvider
             ModuleRouter::group('planner', function () {
                 $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
             });
+
+            // Embedded Routes OHNE Modul-Routing (keine Auth-Middleware)
+            Route::domain(parse_url(config('app.url'), PHP_URL_HOST))
+                ->middleware('web') // Nur web middleware, keine auth
+                ->prefix('planner')
+                ->group(__DIR__.'/../routes/embedded.php');
         }
 
         // Config veröffentlichen & zusammenführen
