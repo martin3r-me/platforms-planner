@@ -1,7 +1,7 @@
 <div class="h-full">
     <x-ui-page>
         <x-slot name="navbar">
-            <x-ui-page-navbar :title="$task->title" icon="heroicon-o-clipboard-document-check">
+            <x-ui-page-navbar title="Aufgabe" icon="heroicon-o-clipboard-document-check">
                 {{-- Simple Breadcrumbs für Embedded --}}
                 <div class="flex items-center space-x-2 text-sm">
                     <span class="text-[var(--ui-muted)] flex items-center gap-1">
