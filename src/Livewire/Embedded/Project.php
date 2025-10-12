@@ -172,10 +172,77 @@ class Project extends BaseProject
             }
         }
 
+        // Groups wie in der Basis-Klasse erstellen
+        $groups = $this->buildGroups();
+
         // Embedded View verwenden
         return view('planner::livewire.embedded.project', [
             'teamUsers' => $teamUsers,
+            'groups' => $groups,
         ]);
+    }
+
+    /**
+     * Erstellt die Groups für das Kanban Board (aus Basis-Klasse kopiert)
+     */
+    private function buildGroups()
+    {
+        // === 1. BACKLOG ===
+        $backlogTasks = \Platform\Planner\Models\PlannerTask::where('project_id', $this->project->id)
+            ->whereNull('project_slot_id')
+            ->where('is_done', false)
+            ->orderBy('project_slot_order')
+            ->get();
+
+        $backlog = (object) [
+            'id' => null,
+            'label' => 'Backlog',
+            'isBacklog' => true,
+            'tasks' => $backlogTasks,
+            'open_count' => $backlogTasks->count(),
+            'open_points' => $backlogTasks->sum(
+                fn ($task) => $task->story_points instanceof \Platform\Planner\Enums\StoryPoints
+                    ? $task->story_points->points()
+                    : 1
+            ),
+        ];
+
+        // === 2. PROJECT-SLOTS ===
+        $slots = \Platform\Planner\Models\PlannerProjectSlot::with(['tasks' => function ($q) {
+                $q->where('is_done', false)->orderBy('project_slot_order');
+            }])
+            ->where('project_id', $this->project->id)
+            ->orderBy('order')
+            ->get()
+            ->map(fn ($slot) => (object) [
+                'id' => $slot->id,
+                'label' => $slot->name,
+                'isBacklog' => false,
+                'tasks' => $slot->tasks,
+                'open_count' => $slot->tasks->count(),
+                'open_points' => $slot->tasks->sum(
+                    fn ($task) => $task->story_points instanceof \Platform\Planner\Enums\StoryPoints
+                        ? $task->story_points->points()
+                        : 1
+                ),
+            ]);
+
+        // === 3. ERLEDIGTE AUFGABEN ===
+        $doneTasks = \Platform\Planner\Models\PlannerTask::where('project_id', $this->project->id)
+            ->where('is_done', true)
+            ->orderByDesc('done_at')
+            ->get();
+
+        $completedGroup = (object) [
+            'id' => 'done',
+            'label' => 'Erledigt',
+            'isDoneGroup' => true,
+            'isBacklog' => false,
+            'tasks' => $doneTasks,
+        ];
+
+        // === BOARD-GRUPPEN ZUSAMMENSTELLEN ===
+        return collect([$backlog])->concat($slots)->push($completedGroup);
     }
 }
 
