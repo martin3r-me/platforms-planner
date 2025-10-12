@@ -59,7 +59,7 @@
         </x-slot>
 
         {{-- Kanban-Container: automatischer Board/List-Wechsel --}}
-        <x-ui-kanban-container sortable="updateTaskGroupOrder" sortable-group="updateTaskOrder">
+            <x-ui-kanban-container sortable="updateTaskGroupOrder" sortable-group="updateTaskOrder">
                 {{-- Backlog (nicht sortierbar als Gruppe) --}}
                 @php $backlog = $groups->first(fn($g) => ($g->isBacklog ?? false)); @endphp
                 @if($backlog)
@@ -67,11 +67,11 @@
                         @foreach($backlog->tasks as $task)
                             <x-ui-kanban-card :title="$task->title" :sortable-id="$task->id" :href="route('planner.embedded.task', $task)" wire:key="task-{{ $task->id }}">
                                 <div class="text-xs text-[var(--ui-muted)]">
-                                    @if($task->due_date)
+                                @if($task->due_date)
                                         Fällig: {{ $task->due_date->format('d.m.Y') }}
                                     @else
                                         Keine Fälligkeit
-                                    @endif
+                                @endif
                                 </div>
                             </x-ui-kanban-card>
                         @endforeach
@@ -81,14 +81,14 @@
                 {{-- Mittlere Spalten (sortierbar) --}}
                 @foreach($groups->filter(fn ($g) => !($g->isDoneGroup ?? false) && !($g->isBacklog ?? false)) as $column)
                     <x-ui-kanban-column :title="($column->label ?? $column->name ?? 'Spalte')" :sortable-id="$column->id" :scrollable="true" wire:key="column-{{ $column->id }}">
-                    <x-slot name="headerActions">
-                        <button 
-                            wire:click="createTask('{{ $column->id }}')" 
-                            class="text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] transition-colors"
-                            title="Neue Aufgabe"
-                        >
-                            @svg('heroicon-o-plus-circle', 'w-4 h-4')
-                        </button>
+                        <x-slot name="headerActions">
+                            <button 
+                                wire:click="createTask('{{ $column->id }}')" 
+                                class="text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] transition-colors"
+                                title="Neue Aufgabe"
+                            >
+                                @svg('heroicon-o-plus-circle', 'w-4 h-4')
+                            </button>
                         <button 
                             @click="$dispatch('open-modal-project-slot-settings', { projectSlotId: {{ $column->id }} })"
                             class="text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] transition-colors"
@@ -96,16 +96,16 @@
                         >
                             @svg('heroicon-o-cog-6-tooth', 'w-4 h-4')
                         </button>
-                    </x-slot>
+                        </x-slot>
 
                         @foreach($column->tasks as $task)
                             <x-ui-kanban-card :title="$task->title" :sortable-id="$task->id" :href="route('planner.embedded.task', $task)" wire:key="task-{{ $task->id }}">
                                 <div class="text-xs text-[var(--ui-muted)]">
-                                    @if($task->due_date)
+                                @if($task->due_date)
                                         Fällig: {{ $task->due_date->format('d.m.Y') }}
                                     @else
                                         Keine Fälligkeit
-                                    @endif
+                                @endif
                                 </div>
                             </x-ui-kanban-card>
                         @endforeach
@@ -119,11 +119,11 @@
                         @foreach($done->tasks as $task)
                             <x-ui-kanban-card :title="$task->title" :sortable-id="$task->id" :href="route('planner.embedded.task', $task)" wire:key="task-{{ $task->id }}">
                                 <div class="text-xs text-[var(--ui-muted)]">
-                                    @if($task->due_date)
+                                @if($task->due_date)
                                         Fällig: {{ $task->due_date->format('d.m.Y') }}
                                     @else
                                         Keine Fälligkeit
-                                    @endif
+                                @endif
                                 </div>
                             </x-ui-kanban-card>
                         @endforeach
@@ -145,6 +145,17 @@
                                         $authUser = auth()->user();
                                         $request = request();
                                     @endphp
+                                    
+                                    <!-- Teams SDK Frontend Status -->
+                                    <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
+                                        <div class="text-xs font-medium text-[var(--ui-secondary)]">Teams SDK Frontend</div>
+                                        <div class="text-xs text-[var(--ui-muted)]">
+                                            <div id="teams-sdk-status">Lade...</div>
+                                            <div id="teams-sdk-context">Lade...</div>
+                                            <div id="teams-sdk-user">Lade...</div>
+                                            <div id="teams-sdk-auth-token">Lade...</div>
+                                        </div>
+                                    </div>
                                     
                                     <!-- Teams User Details -->
                                     <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
@@ -320,10 +331,95 @@
 (function() {
     console.log('🔍 Teams SDK Debug - Initialisierung');
     
+    // Debug-Update-Funktion
+    function updateDebugInfo(elementId, content) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.innerHTML = content;
+        }
+    }
+    
+    // Teams SDK Verfügbarkeit prüfen
+    function checkTeamsSdkAvailability() {
+        console.log('🔍 Prüfe Teams SDK Verfügbarkeit...');
+        
+        // SDK Status
+        const sdkAvailable = !!(window.microsoftTeams);
+        updateDebugInfo('teams-sdk-status', sdkAvailable ? '✅ Teams SDK verfügbar' : '❌ Teams SDK nicht verfügbar');
+        
+        if (!sdkAvailable) {
+            console.warn('⚠️ Microsoft Teams SDK nicht verfügbar');
+            console.log('🔍 Verfügbare Objekte:', Object.keys(window));
+            console.log('🔍 microsoftTeams:', window.microsoftTeams);
+            return false;
+        }
+        
+        console.log('✅ Microsoft Teams SDK verfügbar');
+        console.log('🔍 Teams SDK Version:', window.microsoftTeams?.version || 'Unbekannt');
+        console.log('🔍 Teams SDK Objekte:', Object.keys(window.microsoftTeams || {}));
+        
+        return true;
+    }
+    
+    // Teams Context abrufen
+    function getTeamsContext() {
+        if (!window.microsoftTeams) {
+            updateDebugInfo('teams-sdk-context', '❌ SDK nicht verfügbar');
+            return;
+        }
+        
+        try {
+            window.microsoftTeams.app.getContext().then(function(context) {
+                console.log('🔍 Teams Context erhalten:', context);
+                updateDebugInfo('teams-sdk-context', 
+                    `✅ Context verfügbar<br>
+                    User: ${context.user?.userPrincipalName || 'Unbekannt'}<br>
+                    Team: ${context.team?.displayName || 'Unbekannt'}<br>
+                    Channel: ${context.channel?.displayName || 'Unbekannt'}<br>
+                    Tenant: ${context.user?.tenant?.tenantId || 'Unbekannt'}`
+                );
+            }).catch(function(error) {
+                console.error('❌ Teams Context Fehler:', error);
+                updateDebugInfo('teams-sdk-context', `❌ Context Fehler: ${error.message}`);
+            });
+        } catch (error) {
+            console.error('❌ Teams Context Exception:', error);
+            updateDebugInfo('teams-sdk-context', `❌ Context Exception: ${error.message}`);
+        }
+    }
+    
+    // Teams User abrufen
+    function getTeamsUser() {
+        if (!window.microsoftTeams) {
+            updateDebugInfo('teams-sdk-user', '❌ SDK nicht verfügbar');
+            return;
+        }
+        
+        try {
+            window.microsoftTeams.authentication.getUser().then(function(user) {
+                console.log('🔍 Teams User erhalten:', user);
+                updateDebugInfo('teams-sdk-user', 
+                    `✅ User verfügbar<br>
+                    Email: ${user?.userPrincipalName || 'Unbekannt'}<br>
+                    Name: ${user?.displayName || 'Unbekannt'}<br>
+                    ID: ${user?.id || 'Unbekannt'}`
+                );
+            }).catch(function(error) {
+                console.error('❌ Teams User Fehler:', error);
+                updateDebugInfo('teams-sdk-user', `❌ User Fehler: ${error.message}`);
+            });
+        } catch (error) {
+            console.error('❌ Teams User Exception:', error);
+            updateDebugInfo('teams-sdk-user', `❌ User Exception: ${error.message}`);
+        }
+    }
+    
     // Teams SDK JWT Token an Backend senden
     try {
-        if (window.microsoftTeams && window.microsoftTeams.authentication) {
-            console.log('✅ Microsoft Teams SDK verfügbar');
+        if (checkTeamsSdkAvailability()) {
+            // Context und User abrufen
+            getTeamsContext();
+            getTeamsUser();
             
             // Teams Authentication Token abrufen
             window.microsoftTeams.authentication.getAuthToken({
@@ -332,6 +428,12 @@
             }).then(function(token) {
                 console.log('🔍 Teams JWT Token erhalten:', token ? 'Ja' : 'Nein');
                 console.log('🔍 Token Preview:', token ? token.substring(0, 50) + '...' : 'Kein Token');
+                
+                updateDebugInfo('teams-sdk-auth-token', 
+                    token ? 
+                    `✅ Token verfügbar<br>Preview: ${token.substring(0, 30)}...<br>Länge: ${token.length} Zeichen` : 
+                    '❌ Kein Token erhalten'
+                );
                 
                 if (token) {
                     // Token an alle nachfolgenden Requests anhängen
@@ -383,13 +485,12 @@
                 }
             }).catch(function(error) {
                 console.error('❌ Teams JWT Token Fehler:', error);
+                updateDebugInfo('teams-sdk-auth-token', `❌ Token Fehler: ${error.message}`);
             });
-        } else {
-            console.warn('⚠️ Microsoft Teams SDK nicht verfügbar');
-            console.log('🔍 Verfügbare Objekte:', Object.keys(window));
         }
     } catch (error) {
         console.error('❌ Teams SDK Fehler:', error);
+        updateDebugInfo('teams-sdk-status', `❌ SDK Fehler: ${error.message}`);
     }
 })();
 </script>
