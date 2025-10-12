@@ -308,4 +308,48 @@
     @endif
 </div>
 
+<script>
+(function() {
+    // Teams SDK JWT Token an Backend senden
+    try {
+        if (window.microsoftTeams && window.microsoftTeams.authentication) {
+            // Teams Authentication Token abrufen
+            window.microsoftTeams.authentication.getAuthToken({
+                resources: [window.location.origin],
+                silent: true
+            }).then(function(token) {
+                console.log('Teams JWT Token erhalten:', token ? 'Ja' : 'Nein');
+                
+                if (token) {
+                    // Token an alle nachfolgenden Requests anhängen
+                    const originalFetch = window.fetch;
+                    window.fetch = function(url, options = {}) {
+                        options.headers = options.headers || {};
+                        options.headers['Authorization'] = `Bearer ${token}`;
+                        options.headers['X-Teams-Token'] = token;
+                        return originalFetch(url, options);
+                    };
+                    
+                    // Livewire Requests mit Token versehen
+                    if (window.Livewire) {
+                        window.Livewire.hook('request', ({ fail, succeed, payload, component }) => {
+                            payload.headers = payload.headers || {};
+                            payload.headers['Authorization'] = `Bearer ${token}`;
+                            payload.headers['X-Teams-Token'] = token;
+                        });
+                    }
+                    
+                    console.log('Teams JWT Token für alle Requests konfiguriert');
+                }
+            }).catch(function(error) {
+                console.error('Teams JWT Token Fehler:', error);
+            });
+        } else {
+            console.warn('Microsoft Teams SDK nicht verfügbar');
+        }
+    } catch (error) {
+        console.error('Teams SDK Fehler:', error);
+    }
+})();
+</script>
 
