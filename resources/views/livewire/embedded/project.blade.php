@@ -53,12 +53,8 @@
             </x-ui-page-navbar>
         </x-slot>
 
-        <x-ui-page-container class="p-2">
-            {{-- Stats --}}
-            <x-ui-detail-stats-grid :stats="$stats" class="mb-6" />
-
-            {{-- Kanban-Container: automatischer Board/List-Wechsel --}}
-            <x-ui-kanban-container sortable="updateTaskGroupOrder" sortable-group="updateTaskOrder">
+        {{-- Kanban-Container: automatischer Board/List-Wechsel --}}
+        <x-ui-kanban-container sortable="updateTaskGroupOrder" sortable-group="updateTaskOrder">
                 {{-- Backlog (nicht sortierbar als Gruppe) --}}
                 @php $backlog = $groups->first(fn($g) => ($g->isBacklog ?? false)); @endphp
                 @if($backlog)
@@ -122,7 +118,6 @@
                     </x-ui-kanban-column>
                 @endif
             </x-ui-kanban-container>
-        </x-ui-page-container>
 
         {{-- Sidebar --}}
         <x-slot name="sidebar">
