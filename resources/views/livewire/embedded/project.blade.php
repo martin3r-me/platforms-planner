@@ -147,21 +147,13 @@
                             
                             <!-- Teams User Status -->
                             <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
-                                <div class="text-xs font-medium text-[var(--ui-secondary)]">Teams User (Backend)</div>
+                                <div class="text-xs font-medium text-[var(--ui-secondary)]">Teams User</div>
                                 <div class="text-xs text-[var(--ui-muted)]">
                                     @if($teamsUser)
                                         ✅ {{ $teamsUser['email'] ?? 'Keine Email' }}
                                     @else
                                         ❌ Nicht gefunden
                                     @endif
-                                </div>
-                            </div>
-                            
-                            <!-- Teams User Status (Frontend) -->
-                            <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
-                                <div class="text-xs font-medium text-[var(--ui-secondary)]">Teams User (Frontend)</div>
-                                <div class="text-xs text-[var(--ui-muted)]" id="frontendTeamsUser">
-                                    Wird geprüft...
                                 </div>
                             </div>
                             
@@ -278,80 +270,5 @@
     <livewire:planner.customer-project-settings-modal/>
 </div>
 
-<script>
-// Teams SDK Frontend Integration (wie in teams-config-new.blade.php)
-(function(){
-    let teamsContext = null;
-    
-    // Teams SDK ist im Embedded-Layout eingebunden
-    try {
-        if (window.microsoftTeams && window.microsoftTeams.app) {
-            window.microsoftTeams.app.initialize().then(() => {
-                console.log('Teams SDK initialized in embedded project view');
-                
-                // Teams Context abrufen
-                window.microsoftTeams.app.getContext().then(context => {
-                    teamsContext = context;
-                    console.log('Teams Context in embedded project:', context);
-                    
-                    // Frontend Teams User anzeigen
-                    const frontendUserEl = document.getElementById('frontendTeamsUser');
-                    if (frontendUserEl && context.user) {
-                        frontendUserEl.innerHTML = `✅ ${context.user.displayName || context.user.userPrincipalName || 'Teams User'}`;
-                    }
-                    
-                    // Teams Context für Livewire verfügbar machen
-                    window.teamsContext = context;
-                    
-                    // Livewire Event Listener für Frontend Teams SDK
-                    window.addEventListener('create-task-with-teams', function(event) {
-                        console.log('Frontend Teams SDK: Creating task', event.detail);
-                        createTaskWithTeamsSDK(event.detail);
-                    });
-                }).catch(error => {
-                    console.error('Teams Context Error:', error);
-                    const frontendUserEl = document.getElementById('frontendTeamsUser');
-                    if (frontendUserEl) {
-                        frontendUserEl.innerHTML = '❌ Context Fehler';
-                    }
-                });
-            }).catch(function (error) {
-                console.error('Teams SDK Initialisierung fehlgeschlagen:', error);
-                const frontendUserEl = document.getElementById('frontendTeamsUser');
-                if (frontendUserEl) {
-                    frontendUserEl.innerHTML = '❌ SDK Fehler';
-                }
-            });
-        } else {
-            console.warn('Microsoft Teams SDK nicht verfügbar');
-            const frontendUserEl = document.getElementById('frontendTeamsUser');
-            if (frontendUserEl) {
-                frontendUserEl.innerHTML = '❌ SDK nicht verfügbar';
-            }
-        }
-    } catch (error) {
-        console.error('Teams SDK Fehler:', error);
-        const frontendUserEl = document.getElementById('frontendTeamsUser');
-        if (frontendUserEl) {
-            frontendUserEl.innerHTML = '❌ SDK Fehler';
-        }
-    }
-    
-    // Funktion zum Erstellen von Tasks mit Frontend Teams SDK
-    function createTaskWithTeamsSDK(data) {
-        if (!window.teamsContext || !window.teamsContext.user) {
-            console.error('Teams Context nicht verfügbar');
-            return;
-        }
-        
-        const user = window.teamsContext.user;
-        console.log('Creating task with Teams user:', user);
-        
-        // Hier würden wir normalerweise eine API-Anfrage machen
-        // Für jetzt zeigen wir nur eine Notification
-        alert(`Task wird erstellt für: ${user.displayName || user.userPrincipalName}`);
-    }
-})();
-</script>
 
 

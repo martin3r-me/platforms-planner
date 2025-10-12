@@ -18,40 +18,15 @@ class Project extends BaseProject
             'timestamp' => now()
         ]);
 
-        // Teams User-Info aus Request holen (ohne Laravel Auth)
-        $request = request();
-        $teamsUser = TeamsAuthHelper::getTeamsUser($request);
-        
-        \Log::info("🔍 TEAMS USER DEBUG:", [
-            'teamsUser' => $teamsUser,
-            'request_attributes' => $request->attributes->all(),
-            'headers' => $request->headers->all()
-        ]);
-        
-        // Fallback: Frontend Teams SDK verwenden wenn Backend nicht funktioniert
-        if (!$teamsUser) {
-            \Log::info("Backend Teams User nicht gefunden, verwende Frontend Teams SDK");
-            $this->dispatch('notifications:store', [
-                'notice_type' => 'info',
-                'title' => 'Teams SDK',
-                'message' => 'Verwende Frontend Teams SDK für Authentifizierung...',
-                'noticable_type' => 'Platform\\Planner\\Models\\PlannerProject',
-                'noticable_id' => $this->project->id,
-            ]);
-            
-            // Frontend Teams SDK verwenden
-            return $this->createTaskWithFrontendTeams($projectSlotId);
-        }
-
-        // User aus Teams Context finden oder erstellen
-        $user = $this->findOrCreateUserFromTeams($teamsUser);
+        // Einfacher Ansatz: User aus Teams Context einloggen
+        $user = $this->loginUserFromTeamsContext();
         
         if (!$user) {
-            \Log::warning("Could not find or create user from Teams context");
+            \Log::warning("Could not login user from Teams context");
             $this->dispatch('notifications:store', [
                 'notice_type' => 'error',
-                'title' => 'User Fehler',
-                'message' => 'User konnte nicht aus Teams Context erstellt werden.',
+                'title' => 'Login Fehler',
+                'message' => 'User konnte nicht aus Teams Context eingeloggt werden.',
                 'noticable_type' => 'Platform\\Planner\\Models\\PlannerProject',
                 'noticable_id' => $this->project->id,
             ]);
@@ -146,36 +121,15 @@ class Project extends BaseProject
             'timestamp' => now()
         ]);
 
-        // Teams User-Info aus Request holen (ohne Laravel Auth)
-        $request = request();
-        $teamsUser = TeamsAuthHelper::getTeamsUser($request);
-        
-        \Log::info("🔍 TEAMS USER DEBUG (SLOT):", [
-            'teamsUser' => $teamsUser,
-            'request_attributes' => $request->attributes->all()
-        ]);
-        
-        if (!$teamsUser) {
-            \Log::warning("Teams User not found for project slot creation");
-            $this->dispatch('notifications:store', [
-                'notice_type' => 'error',
-                'title' => 'Teams Auth Fehler',
-                'message' => 'Teams User nicht gefunden für Spalte-Erstellung.',
-                'noticable_type' => 'Platform\\Planner\\Models\\PlannerProject',
-                'noticable_id' => $this->project->id,
-            ]);
-            return;
-        }
-
-        // User aus Teams Context finden oder erstellen
-        $user = $this->findOrCreateUserFromTeams($teamsUser);
+        // Einfacher Ansatz: User aus Teams Context einloggen
+        $user = $this->loginUserFromTeamsContext();
         
         if (!$user) {
-            \Log::warning("Could not find or create user for project slot creation");
+            \Log::warning("Could not login user for project slot creation");
             $this->dispatch('notifications:store', [
                 'notice_type' => 'error',
-                'title' => 'User Fehler',
-                'message' => 'User konnte nicht für Spalte-Erstellung erstellt werden.',
+                'title' => 'Login Fehler',
+                'message' => 'User konnte nicht für Spalte-Erstellung eingeloggt werden.',
                 'noticable_type' => 'Platform\\Planner\\Models\\PlannerProject',
                 'noticable_id' => $this->project->id,
             ]);
@@ -293,17 +247,87 @@ class Project extends BaseProject
     }
 
     /**
-     * Erstellt eine Aufgabe mit Frontend Teams SDK (Fallback)
+     * Loggt User aus Teams Context ein (einfacher Ansatz)
      */
-    private function createTaskWithFrontendTeams($projectSlotId = null)
+    private function loginUserFromTeamsContext()
     {
-        \Log::info("🔍 CREATE TASK WITH FRONTEND TEAMS SDK");
+        // 1. Versuche Backend Teams SDK Auth
+        $request = request();
+        $teamsUser = TeamsAuthHelper::getTeamsUser($request);
         
-        // JavaScript Event dispatch für Frontend Teams SDK
-        $this->dispatch('create-task-with-teams', [
-            'projectId' => $this->project->id,
-            'projectSlotId' => $projectSlotId
-        ]);
+        if ($teamsUser) {
+            \Log::info("Backend Teams User gefunden, logge ein");
+            $user = $this->findOrCreateUserFromTeams($teamsUser);
+            if ($user) {
+                \Auth::login($user);
+                return $user;
+            }
+        }
+        
+        // 2. Fallback: User aus Request Headers/Query extrahieren
+        $userEmail = $request->header('X-User-Email') ?: $request->query('user_email');
+        $userName = $request->header('X-User-Name') ?: $request->query('user_name');
+        
+        if ($userEmail) {
+            \Log::info("User aus Headers/Query gefunden: {$userEmail}");
+            $user = $this->findOrCreateUserByEmail($userEmail, $userName);
+            if ($user) {
+                \Auth::login($user);
+                return $user;
+            }
+        }
+        
+        // 3. Fallback: Demo User für embedded Kontext
+        \Log::info("Kein Teams User gefunden, verwende Demo User");
+        $user = $this->getOrCreateDemoUser();
+        if ($user) {
+            \Auth::login($user);
+            return $user;
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Findet oder erstellt User anhand Email
+     */
+    private function findOrCreateUserByEmail($email, $name = null)
+    {
+        $userModelClass = config('auth.providers.users.model');
+        $user = $userModelClass::where('email', $email)->first();
+        
+        if (!$user) {
+            $user = new $userModelClass();
+            $user->email = $email;
+            $user->name = $name ?: $email;
+            $user->save();
+            
+            // Personal Team erstellen
+            \Platform\Core\PlatformCore::createPersonalTeamFor($user);
+        }
+        
+        return $user;
+    }
+    
+    /**
+     * Demo User für embedded Kontext
+     */
+    private function getOrCreateDemoUser()
+    {
+        $userModelClass = config('auth.providers.users.model');
+        $user = $userModelClass::where('email', 'teams-demo@embedded.local')->first();
+        
+        if (!$user) {
+            $user = new $userModelClass();
+            $user->email = 'teams-demo@embedded.local';
+            $user->name = 'Teams Demo User';
+            $user->save();
+            
+            // Personal Team erstellen
+            \Platform\Core\PlatformCore::createPersonalTeamFor($user);
+        }
+        
+        return $user;
     }
 }
 
