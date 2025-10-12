@@ -12,14 +12,43 @@ Route::get('/embedded/planner/projects/{plannerProject}', function (PlannerProje
     $response = response()->view('planner::embedded.project', compact('plannerProject'));
     $response->headers->set('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
     return $response;
-})->withoutMiddleware([FrameGuard::class, 'auth', 'detect.module.guard', 'check.module.permission'])->name('planner.embedded.project');
+})->withoutMiddleware([FrameGuard::class])->name('planner.embedded.project');
 
 // Embedded Task-Ansicht (Teams)
 Route::get('/embedded/planner/tasks/{plannerTask}', function (PlannerTask $plannerTask) {
     $response = response()->view('planner::embedded.task', compact('plannerTask'));
     $response->headers->set('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
     return $response;
-})->withoutMiddleware([FrameGuard::class, 'auth', 'detect.module.guard', 'check.module.permission'])->name('planner.embedded.task');
+})->withoutMiddleware([FrameGuard::class])->name('planner.embedded.task');
+
+// Teams Authentication Route
+Route::post('/embedded/teams/auth', function (Illuminate\Http\Request $request) {
+    $email = $request->input('email');
+    $name = $request->input('name');
+    
+    if (!$email) {
+        return response()->json(['error' => 'No email provided'], 400);
+    }
+    
+    // User finden oder erstellen
+    $userModelClass = config('auth.providers.users.model');
+    $user = $userModelClass::where('email', $email)->first();
+    
+    if (!$user) {
+        $user = new $userModelClass();
+        $user->email = $email;
+        $user->name = $name ?: $email;
+        $user->save();
+        
+        // Personal Team erstellen
+        \Platform\Core\PlatformCore::createPersonalTeamFor($user);
+    }
+    
+    // User einloggen
+    \Auth::login($user);
+    
+    return response()->json(['success' => true, 'user' => $user->email]);
+})->withoutMiddleware([FrameGuard::class])->name('planner.embedded.teams.auth');
 
 // Embedded Test: Teams Tab Konfigurations-Check
 Route::get('/embedded/teams/config', function () {
