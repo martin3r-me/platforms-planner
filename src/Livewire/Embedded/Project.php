@@ -28,14 +28,19 @@ class Project extends BaseProject
             'headers' => $request->headers->all()
         ]);
         
+        // Fallback: Frontend Teams SDK verwenden wenn Backend nicht funktioniert
         if (!$teamsUser) {
-            \Log::warning("Teams User not found in embedded context");
+            \Log::info("Backend Teams User nicht gefunden, verwende Frontend Teams SDK");
             $this->dispatch('notifications:store', [
-                'notice_type' => 'error',
-                'title' => 'Teams Auth Fehler',
-                'message' => 'Teams User nicht gefunden. Bitte Seite neu laden.',
+                'notice_type' => 'info',
+                'title' => 'Teams SDK',
+                'message' => 'Verwende Frontend Teams SDK für Authentifizierung...',
+                'noticable_type' => 'Platform\\Planner\\Models\\PlannerProject',
+                'noticable_id' => $this->project->id,
             ]);
-            return;
+            
+            // Frontend Teams SDK verwenden
+            return $this->createTaskWithFrontendTeams($projectSlotId);
         }
 
         // User aus Teams Context finden oder erstellen
@@ -47,6 +52,8 @@ class Project extends BaseProject
                 'notice_type' => 'error',
                 'title' => 'User Fehler',
                 'message' => 'User konnte nicht aus Teams Context erstellt werden.',
+                'noticable_type' => 'Platform\\Planner\\Models\\PlannerProject',
+                'noticable_id' => $this->project->id,
             ]);
             return;
         }
@@ -154,6 +161,8 @@ class Project extends BaseProject
                 'notice_type' => 'error',
                 'title' => 'Teams Auth Fehler',
                 'message' => 'Teams User nicht gefunden für Spalte-Erstellung.',
+                'noticable_type' => 'Platform\\Planner\\Models\\PlannerProject',
+                'noticable_id' => $this->project->id,
             ]);
             return;
         }
@@ -167,6 +176,8 @@ class Project extends BaseProject
                 'notice_type' => 'error',
                 'title' => 'User Fehler',
                 'message' => 'User konnte nicht für Spalte-Erstellung erstellt werden.',
+                'noticable_type' => 'Platform\\Planner\\Models\\PlannerProject',
+                'noticable_id' => $this->project->id,
             ]);
             return;
         }
@@ -279,6 +290,20 @@ class Project extends BaseProject
 
         // === BOARD-GRUPPEN ZUSAMMENSTELLEN ===
         return collect([$backlog])->concat($slots)->push($completedGroup);
+    }
+
+    /**
+     * Erstellt eine Aufgabe mit Frontend Teams SDK (Fallback)
+     */
+    private function createTaskWithFrontendTeams($projectSlotId = null)
+    {
+        \Log::info("🔍 CREATE TASK WITH FRONTEND TEAMS SDK");
+        
+        // JavaScript Event dispatch für Frontend Teams SDK
+        $this->dispatch('create-task-with-teams', [
+            'projectId' => $this->project->id,
+            'projectSlotId' => $projectSlotId
+        ]);
     }
 }
 
