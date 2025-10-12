@@ -119,13 +119,42 @@
                 @endif
             </x-ui-kanban-container>
 
-        {{-- Sidebar --}}
+        {{-- Linke Sidebar --}}
         <x-slot name="sidebar">
             <x-ui-page-sidebar title="Projekt-Übersicht" width="w-80" :defaultOpen="true">
-                <div class="p-6 space-y-6">
-                    {{-- Quick Actions --}}
+                <div class="p-4 space-y-4">
+                    <!-- Projekt-Statistiken -->
                     <div>
-                        <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-3">Aktionen</h3>
+                        <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Statistiken</h3>
+                        <div class="space-y-2">
+                            @foreach($stats as $stat)
+                                <div class="flex items-center justify-between py-2 px-3 rounded-lg bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
+                                    <div class="flex items-center gap-2">
+                                        @svg('heroicon-o-' . $stat['icon'], 'w-4 h-4 text-[var(--ui-' . $stat['variant'] . ')]')
+                                        <span class="text-sm text-[var(--ui-secondary)]">{{ $stat['title'] }}</span>
+                                    </div>
+                                    <span class="text-sm font-semibold text-[var(--ui-' . $stat['variant'] . ')]">
+                                        {{ $stat['count'] }}
+                                    </span>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <!-- Projekt-Details -->
+                    <div>
+                        <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Projekt</h3>
+                        <div class="space-y-2">
+                            <div class="p-3 rounded-lg bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
+                                <div class="text-sm font-medium text-[var(--ui-secondary)]">{{ $project->name }}</div>
+                                <div class="text-xs text-[var(--ui-muted)]">{{ $project->project_type?->value ?? 'Intern' }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div>
+                        <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Aktionen</h3>
                         <div class="space-y-2">
                             <x-ui-button variant="secondary-outline" size="sm" wire:click="createTask()" class="w-full">
                                 <span class="flex items-center gap-2">
@@ -141,14 +170,23 @@
                             </x-ui-button>
                         </div>
                     </div>
+                </div>
+            </x-ui-page-sidebar>
+        </x-slot>
 
-                    {{-- Projekt-Info --}}
-                    <div>
-                        <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-3">Projekt</h3>
-                        <div class="text-sm text-[var(--ui-muted)]">
-                            <p><strong>Name:</strong> {{ $project->name }}</p>
-                            <p><strong>Typ:</strong> {{ $project->project_type?->value ?? 'Intern' }}</p>
-                            <p><strong>Erstellt:</strong> {{ $project->created_at->format('d.m.Y') }}</p>
+        {{-- Rechte Sidebar --}}
+        <x-slot name="activity">
+            <x-ui-page-sidebar title="Aktivitäten" width="w-80" :defaultOpen="false" storeKey="activityOpen" side="right">
+                <div class="p-4 space-y-4">
+                    <div class="text-sm text-[var(--ui-muted)]">Letzte Aktivitäten</div>
+                    <div class="space-y-3 text-sm">
+                        <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
+                            <div class="font-medium text-[var(--ui-secondary)] truncate">Projekt geöffnet</div>
+                            <div class="text-[var(--ui-muted)]">Gerade eben</div>
+                        </div>
+                        <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
+                            <div class="font-medium text-[var(--ui-secondary)] truncate">Teams Tab erstellt</div>
+                            <div class="text-[var(--ui-muted)]">Vor 5 Minuten</div>
                         </div>
                     </div>
                 </div>
