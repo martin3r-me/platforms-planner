@@ -436,9 +436,8 @@
             </x-slot>
         </x-ui-modal>
     @endif
-</div>
 
-<script>
+    <script>
 // Einfache Teams Authentication mit Debug-Info
 (function() {
     console.log('🔍 Teams Authentication - Vereinfacht');
@@ -556,5 +555,5 @@
     }
 })();
 </script>
-</x-ui-page>
+    </x-ui-page>
 
