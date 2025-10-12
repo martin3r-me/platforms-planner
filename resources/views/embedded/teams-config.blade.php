@@ -5,11 +5,11 @@
         <h1 class="text-xl font-semibold text-[var(--ui-secondary)] mb-2">Teams Tab Konfiguration – Test</h1>
         <p class="text-sm text-[var(--ui-muted)] mb-1">Prüft die Einbettung und die Teams SDK-Initialisierung.</p>
         <p class="text-sm text-[var(--ui-secondary)] mb-4">
-            @php($u = auth()->user())
-            @if($u)
-                Hallo, {{ $u->name ?? $u->email ?? 'User' }}
+            @php($teamsUser = \Platform\Core\Helpers\TeamsAuthHelper::getTeamsUser(request()))
+            @if($teamsUser)
+                Hallo, {{ $teamsUser['name'] ?? $teamsUser['email'] ?? 'User' }}
             @else
-                Nicht eingeloggt
+                Teams User nicht gefunden
             @endif
         </p>
 

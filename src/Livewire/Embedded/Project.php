@@ -4,7 +4,8 @@ namespace Platform\Planner\Livewire\Embedded;
 
 use Platform\Planner\Livewire\Project as BaseProject;
 use Platform\Planner\Models\PlannerTask;
-use Illuminate\Support\Facades\Auth;
+use Platform\Core\Helpers\TeamsAuthHelper;
+use Illuminate\Http\Request;
 
 class Project extends BaseProject
 {
@@ -17,7 +18,22 @@ class Project extends BaseProject
             'timestamp' => now()
         ]);
 
-        $user = Auth::user();
+        // Teams User-Info aus Request holen (ohne Laravel Auth)
+        $request = request();
+        $teamsUser = TeamsAuthHelper::getTeamsUser($request);
+        
+        if (!$teamsUser) {
+            \Log::warning("Teams User not found in embedded context");
+            return;
+        }
+
+        // User aus Teams Context finden oder erstellen
+        $user = $this->findOrCreateUserFromTeams($teamsUser);
+        
+        if (!$user) {
+            \Log::warning("Could not find or create user from Teams context");
+            return;
+        }
 
         $lowestOrder = PlannerTask::where('user_id', $user->id)
             ->where('team_id', $user->currentTeam->id)
@@ -50,6 +66,34 @@ class Project extends BaseProject
         
         // Einfache Weiterleitung ohne JavaScript
         return $this->redirect(route('planner.embedded.task', $task), navigate: true);
+    }
+
+    /**
+     * Findet oder erstellt einen User basierend auf Teams Context
+     */
+    public static function findOrCreateUserFromTeams(array $teamsUser)
+    {
+        $userModelClass = config('auth.providers.users.model');
+        
+        // User anhand Email oder Azure ID finden
+        $user = $userModelClass::query()
+            ->where('email', $teamsUser['email'])
+            ->orWhere('azure_id', $teamsUser['id'])
+            ->first();
+
+        if (!$user) {
+            // User erstellen
+            $user = new $userModelClass();
+            $user->email = $teamsUser['email'];
+            $user->name = $teamsUser['name'] ?? $teamsUser['email'];
+            $user->azure_id = $teamsUser['id'] ?? null;
+            $user->save();
+            
+            // Personal Team erstellen
+            \Platform\Core\PlatformCore::createPersonalTeamFor($user);
+        }
+
+        return $user;
     }
 
     public function updateTaskOrder($groups)

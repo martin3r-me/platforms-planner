@@ -18,26 +18,26 @@ Route::get('/projects/{plannerProject}', Project::class)
 Route::get('/tasks/{plannerTask}', Task::class)
     ->name('planner.tasks.show');
 
-// Embedded (Teams/iframe) – Teams SSO für automatische Anmeldung
+// Embedded (Teams/iframe) – Teams SDK Auth ohne Laravel Auth
 Route::get('/embedded/planner/projects/{plannerProject}', function (PlannerProject $plannerProject) {
     $response = response()->view('planner::embedded.project', compact('plannerProject'));
     $response->headers->set('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
     return $response;
-})->middleware(['teams.sso'])->withoutMiddleware([FrameGuard::class])->name('planner.embedded.project');
+})->middleware(['teams.sdk.auth'])->withoutMiddleware([FrameGuard::class, 'auth', 'detect.module.guard', 'check.module.permission'])->name('planner.embedded.project');
 
-// Embedded Task-Ansicht (Teams) – Teams SSO für automatische Anmeldung
+// Embedded Task-Ansicht (Teams) – Teams SDK Auth ohne Laravel Auth
 Route::get('/embedded/planner/tasks/{plannerTask}', function (\Platform\Planner\Models\PlannerTask $plannerTask) {
     $response = response()->view('planner::embedded.task', compact('plannerTask'));
     $response->headers->set('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
     return $response;
-})->middleware(['teams.sso'])->withoutMiddleware([FrameGuard::class])->name('planner.embedded.task');
+})->middleware(['teams.sdk.auth'])->withoutMiddleware([FrameGuard::class, 'auth', 'detect.module.guard', 'check.module.permission'])->name('planner.embedded.task');
 
 // Embedded Test: Teams Tab Konfigurations-Check (neue, saubere URL)
 Route::get('/embedded/teams/config', function () {
     $response = response()->view('planner::embedded.teams-config');
     $response->headers->set('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
     return $response;
-})->withoutMiddleware([FrameGuard::class, 'auth', 'detect.module.guard', 'check.module.permission', 'teams.sso'])->name('planner.embedded.teams.config');
+})->middleware(['teams.sdk.auth'])->withoutMiddleware([FrameGuard::class, 'auth', 'detect.module.guard', 'check.module.permission'])->name('planner.embedded.teams.config');
 
 // Rückwärtskompatibel: alte URL auf die neue weiterleiten
 Route::get('/embedded/planner/teams/config', function () {
@@ -61,11 +61,25 @@ Route::get('/embedded/planner/api/projects', function () {
     return response()->json([
         'data' => $query->limit(200)->get(),
     ])->header('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
-})->withoutMiddleware([FrameGuard::class, 'auth', 'detect.module.guard', 'check.module.permission'])->name('planner.embedded.api.projects');
+})->middleware(['teams.sdk.auth'])->withoutMiddleware([FrameGuard::class, 'auth', 'detect.module.guard', 'check.module.permission'])->name('planner.embedded.api.projects');
 
 // Auth-API: Projekte des eingeloggten Nutzers (für echte Konfiguration)
 Route::get('/embedded/planner/api/my-projects', function () {
-    $user = auth()->user();
+    // Teams User-Info aus Request holen (ohne Laravel Auth)
+    $teamsUser = \Platform\Core\Helpers\TeamsAuthHelper::getTeamsUser(request());
+    
+    if (!$teamsUser) {
+        return response()->json(['data' => []])
+            ->header('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
+    }
+
+    // User aus Teams Context finden oder erstellen
+    $user = \Platform\Planner\Livewire\Embedded\Project::findOrCreateUserFromTeams($teamsUser);
+    
+    if (!$user) {
+        return response()->json(['data' => []])
+            ->header('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
+    }
 
     $teamIds = collect([]);
     if ($user && method_exists($user, 'teams')) {
@@ -91,4 +105,4 @@ Route::get('/embedded/planner/api/my-projects', function () {
 
     return response()->json(['data' => $query->limit(200)->get()])
         ->header('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
-})->name('planner.embedded.api.my-projects');
+})->middleware(['teams.sdk.auth'])->withoutMiddleware([FrameGuard::class, 'auth', 'detect.module.guard', 'check.module.permission'])->name('planner.embedded.api.my-projects');
