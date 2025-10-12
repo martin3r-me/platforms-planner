@@ -435,7 +435,6 @@
                 </x-ui-button>
             </x-slot>
         </x-ui-modal>
-    @endif
 
     <script>
 // Einfache Teams Authentication mit Debug-Info
@@ -555,5 +554,6 @@
     }
 })();
 </script>
+    @endif
     </x-ui-page>
 
