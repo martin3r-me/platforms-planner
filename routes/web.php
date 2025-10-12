@@ -23,21 +23,21 @@ Route::get('/embedded/planner/projects/{plannerProject}', function (PlannerProje
     $response = response()->view('planner::embedded.project', compact('plannerProject'));
     $response->headers->set('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
     return $response;
-})->middleware(['teams.sdk.auth'])->withoutMiddleware([FrameGuard::class, 'auth', 'detect.module.guard', 'check.module.permission'])->name('planner.embedded.project');
+})->withoutMiddleware([FrameGuard::class, 'auth', 'detect.module.guard', 'check.module.permission', 'teams.sdk.auth'])->name('planner.embedded.project');
 
 // Embedded Task-Ansicht (Teams) – Teams SDK Auth ohne Laravel Auth
 Route::get('/embedded/planner/tasks/{plannerTask}', function (\Platform\Planner\Models\PlannerTask $plannerTask) {
     $response = response()->view('planner::embedded.task', compact('plannerTask'));
     $response->headers->set('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
     return $response;
-})->middleware(['teams.sdk.auth'])->withoutMiddleware([FrameGuard::class, 'auth', 'detect.module.guard', 'check.module.permission'])->name('planner.embedded.task');
+})->withoutMiddleware([FrameGuard::class, 'auth', 'detect.module.guard', 'check.module.permission', 'teams.sdk.auth'])->name('planner.embedded.task');
 
 // Embedded Test: Teams Tab Konfigurations-Check (neue, saubere URL)
 Route::get('/embedded/teams/config', function () {
     $response = response()->view('planner::embedded.teams-config');
     $response->headers->set('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
     return $response;
-})->middleware(['teams.sdk.auth'])->withoutMiddleware([FrameGuard::class, 'auth', 'detect.module.guard', 'check.module.permission'])->name('planner.embedded.teams.config');
+})->withoutMiddleware([FrameGuard::class, 'auth', 'detect.module.guard', 'check.module.permission', 'teams.sdk.auth'])->name('planner.embedded.teams.config');
 
 // Rückwärtskompatibel: alte URL auf die neue weiterleiten
 Route::get('/embedded/planner/teams/config', function () {
@@ -49,7 +49,30 @@ Route::get('/embedded/test', function () {
     $response = response('<!doctype html><html><body style="font-family:system-ui;padding:16px">Embedded Test OK</body></html>');
     $response->headers->set('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
     return $response;
-})->withoutMiddleware([FrameGuard::class, 'auth', 'detect.module.guard', 'check.module.permission'])->name('embedded.test');
+})->withoutMiddleware([FrameGuard::class, 'auth', 'detect.module.guard', 'check.module.permission', 'teams.sdk.auth'])->name('embedded.test');
+
+// Teams Debug Route - zeigt alle Request-Informationen
+Route::get('/embedded/debug', function () {
+    $request = request();
+    $debug = [
+        'path' => $request->getPathInfo(),
+        'method' => $request->getMethod(),
+        'headers' => $request->headers->all(),
+        'query' => $request->query->all(),
+        'post' => $request->post(),
+        'cookies' => $request->cookies->all(),
+        'user_agent' => $request->userAgent(),
+        'ip' => $request->ip(),
+        'referer' => $request->header('referer'),
+        'x_teams_embedded' => $request->header('X-Teams-Embedded'),
+        'teams_context' => $request->query('teams_context'),
+    ];
+    
+    $response = response()->json($debug, 200, [
+        'Content-Security-Policy' => "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com"
+    ]);
+    return $response;
+})->withoutMiddleware([FrameGuard::class, 'auth', 'detect.module.guard', 'check.module.permission', 'teams.sdk.auth'])->name('embedded.debug');
 
 // API: Projekte für Teams-Konfiguration (minimal, JSON)
 Route::get('/embedded/planner/api/projects', function () {
