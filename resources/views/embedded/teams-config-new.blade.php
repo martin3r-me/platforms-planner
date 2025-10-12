@@ -75,8 +75,15 @@
                                         const contentUrl = 'https://office.martin3r.me/planner/embedded/planner/projects/' + encodeURIComponent(projectId) + teamIdQuery;
                                         const websiteUrl = contentUrl;
                                         const entityId = 'planner-project-' + projectId;
-                                        const projectName = (select && select.options[select.selectedIndex]) ? select.options[select.selectedIndex].textContent : ('Projekt ' + projectId);
-                                        const displayName = 'PLANNER · ' + projectName;
+                                        
+                                        // Projektname aus den Projektdaten holen (sauberer)
+                                        let projectName = 'Projekt ' + projectId;
+                                        const selectedProject = allProjects.find(p => p.id == projectId);
+                                        if (selectedProject) {
+                                            projectName = selectedProject.name;
+                                        }
+                                        
+                                        const displayName = 'PLANNER - ' + projectName;
 
                                         window.microsoftTeams.pages.config.setConfig({
                                             contentUrl: contentUrl,
@@ -131,14 +138,20 @@
                 }
 
                 // Projekte direkt aus PHP laden (keine API nötig)
+                let allProjects = []; // Globale Variable für Projekte
+                
                 function loadProjects(context) {
                     const select = document.getElementById('projectSelect');
                     if (!select) return;
 
-                    // Projekte sind bereits in der View verfügbar
-                    const projects = @json(\Platform\Planner\Models\PlannerProject::select(['id', 'name', 'team_id'])->orderBy('name')->get());
+                    // Projekte sind bereits in der View verfügbar (aus der Route)
+                    allProjects = @json($projects);
                     
-                    console.log('Projekte aus PHP:', projects);
+                    // Teams User-Info für Berechtigung
+                    const teamsUser = context?.user;
+                    console.log('Teams User für Berechtigung:', teamsUser);
+                    
+                    console.log('Projekte aus PHP:', allProjects);
                     
                     // Select leeren
                     select.innerHTML = '<option value="">– Bitte wählen –</option>';
@@ -147,20 +160,50 @@
                     const teamId = context?.team?.groupId || '';
                     console.log('Teams Team ID:', teamId);
                     
-                    // Projekte filtern basierend auf Teams Team ID (falls vorhanden)
-                    let filteredProjects = projects;
+                    // Projekte nach Teams clustern und filtern
+                    let filteredProjects = allProjects;
+                    
                     if (teamId) {
-                        // Hier könnten wir nach Team ID filtern, aber erstmal alle anzeigen
-                        console.log('Filtering by team ID:', teamId);
+                        // Nach Teams Team ID filtern
+                        filteredProjects = allProjects.filter(project => {
+                            // Hier müssten wir die Teams Team ID mit unserer DB Team ID abgleichen
+                            // Das ist ein Mapping-Problem zwischen Teams und unserer DB
+                            console.log('Project team_id:', project.team_id, 'Teams teamId:', teamId);
+                            return true; // Erstmal alle anzeigen, später filtern
+                        });
+                        console.log('Gefilterte Projekte für Team:', filteredProjects);
                     }
                     
-                    // Projekte hinzufügen
-                    if (filteredProjects && filteredProjects.length > 0) {
-                        filteredProjects.forEach(project => {
-                            const option = document.createElement('option');
-                            option.value = project.id;
-                            option.textContent = project.name;
-                            select.appendChild(option);
+                    // Projekte nach Teams gruppieren
+                    const projectsByTeam = {};
+                    filteredProjects.forEach(project => {
+                        const teamKey = project.team_id || 'Kein Team';
+                        if (!projectsByTeam[teamKey]) {
+                            projectsByTeam[teamKey] = [];
+                        }
+                        projectsByTeam[teamKey].push(project);
+                    });
+                    
+                    console.log('Projekte nach Teams gruppiert:', projectsByTeam);
+                    
+                    // Projekte in Select hinzufügen, gruppiert nach Teams
+                    if (Object.keys(projectsByTeam).length > 0) {
+                        Object.keys(projectsByTeam).forEach(teamKey => {
+                            // Team-Header hinzufügen
+                            const teamOption = document.createElement('option');
+                            teamOption.value = '';
+                            teamOption.textContent = `--- ${teamKey} ---`;
+                            teamOption.disabled = true;
+                            teamOption.style.fontWeight = 'bold';
+                            select.appendChild(teamOption);
+                            
+                            // Projekte des Teams hinzufügen
+                            projectsByTeam[teamKey].forEach(project => {
+                                const option = document.createElement('option');
+                                option.value = project.id;
+                                option.textContent = `  ${project.name}`;
+                                select.appendChild(option);
+                            });
                         });
                         
                         // Validity aktivieren wenn Projekte vorhanden

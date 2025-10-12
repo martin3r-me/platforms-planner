@@ -23,7 +23,14 @@ Route::get('/embedded/planner/tasks/{plannerTask}', function (PlannerTask $plann
 
 // Embedded Test: Teams Tab Konfigurations-Check
 Route::get('/embedded/teams/config', function () {
-    $response = response()->view('planner::embedded.teams-config-new');
+    // Projekte für die Teams Config laden
+    // TODO: Hier sollten wir nur Projekte laden, auf die der User Zugriff hat
+    // Für jetzt laden wir alle Projekte, später filtern wir nach Teams User
+    $projects = \Platform\Planner\Models\PlannerProject::select(['id', 'name', 'team_id'])
+        ->orderBy('name')
+        ->get();
+    
+    $response = response()->view('planner::embedded.teams-config-new', compact('projects'));
     $response->headers->set('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
     return $response;
 })->withoutMiddleware([FrameGuard::class])->name('planner.embedded.teams.config');
