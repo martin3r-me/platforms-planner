@@ -77,6 +77,38 @@
     </div>
 
         <script>
+            // Schlanker Auth-Bootstrap wie in embedded Projekt/Task
+            (function(){
+                try {
+                    if (sessionStorage.getItem('teams-auth-completed') === 'true') {
+                        return; // bereits authentifiziert in dieser Session
+                    }
+                    if (window.microsoftTeams?.app) {
+                        window.microsoftTeams.app.initialize().then(function(){
+                            return window.microsoftTeams.app.getContext();
+                        }).then(function(ctx){
+                            const email = ctx?.user?.userPrincipalName || '';
+                            const name = ctx?.user?.displayName || '';
+                            if (!email) return; // kein User im Kontext
+                            return fetch('/planner/embedded/teams/auth', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                                },
+                                body: JSON.stringify({ email: email, name: name })
+                            }).then(function(res){
+                                if (res.ok) {
+                                    sessionStorage.setItem('teams-auth-completed', 'true');
+                                    location.reload();
+                                }
+                            }).catch(function(){ /* ignore */ });
+                        }).catch(function(){ /* ignore */ });
+                    }
+                } catch (_) { /* ignore */ }
+            })();
+        </script>
+        <script>
             (function(){
                 let teamsContext = null;
                 
