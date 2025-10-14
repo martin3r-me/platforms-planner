@@ -32,6 +32,19 @@
                     </x-ui-button>
                 @endif
                 <div class="text-[var(--ui-muted)]">Task-ID: {{ $task->id }}</div>
+                
+                {{-- Debug Box --}}
+                <div class="mt-4 p-3 bg-gray-50 rounded border text-xs">
+                    <div class="font-bold mb-2">🔍 Debug Info</div>
+                    <div id="teams-sdk-status">Teams SDK: Lade...</div>
+                    <div id="teams-context-status">Teams Context: Lade...</div>
+                    <div id="teams-user-status">Teams User: Lade...</div>
+                    <div id="auth-status">Laravel Auth: Lade...</div>
+                    <div class="mt-2">
+                        <div>Laravel Auth: {{ auth()->check() ? '✅ Angemeldet' : '❌ Nicht angemeldet' }}</div>
+                        <div>User: {{ auth()->user() ? auth()->user()->email : 'Kein User' }}</div>
+                    </div>
+                </div>
             </div>
         </x-ui-page-sidebar>
     </x-slot>
@@ -118,5 +131,75 @@
             />
         </div>
     </div>
+
+    @push('scripts')
+    <script>
+    (function() {
+        function updateDebugInfo(id, content) {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = content;
+        }
+
+        function debugAuth() {
+            console.log('🔍 Debug Auth Status:');
+            console.log('- window.__laravelAuthed:', window.__laravelAuthed);
+            console.log('- sessionStorage teams-auth-running:', sessionStorage.getItem('teams-auth-running'));
+            console.log('- sessionStorage teams-auth-completed:', sessionStorage.getItem('teams-auth-completed'));
+            console.log('- sessionStorage teams-auth-retries:', sessionStorage.getItem('teams-auth-retries'));
+            
+            // Teams SDK Status
+            if (window.microsoftTeams && window.microsoftTeams.app) {
+                updateDebugInfo('teams-sdk-status', 'Teams SDK: ✅ Verfügbar');
+                
+                // Versuche Context zu bekommen
+                window.microsoftTeams.app.getContext().then(function(context) {
+                    updateDebugInfo('teams-context-status', 'Teams Context: ✅ Verfügbar<br>Team: ' + (context.team?.displayName || 'N/A'));
+                    
+                    const email = context.user?.userPrincipalName || context.user?.loginHint;
+                    const name = context.user?.displayName;
+                    
+                    if (email) {
+                        updateDebugInfo('teams-user-status', 'Teams User: ✅ ' + email + '<br>Name: ' + (name || 'N/A'));
+                        
+                        // Versuche Auth manuell
+                        fetch('/planner/embedded/teams/auth', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            },
+                            body: JSON.stringify({ email: email, name: name || '' })
+                        }).then(function(response) {
+                            console.log('Auth Response:', response.status);
+                            if (response.ok) {
+                                updateDebugInfo('auth-status', 'Laravel Auth: ✅ Authentifiziert');
+                                setTimeout(() => location.reload(), 100);
+                            } else {
+                                response.text().then(text => {
+                                    updateDebugInfo('auth-status', 'Laravel Auth: ❌ Fehler (' + response.status + '): ' + text);
+                                });
+                            }
+                        }).catch(function(error) {
+                            updateDebugInfo('auth-status', 'Laravel Auth: ❌ Request Fehler: ' + error.message);
+                        });
+                    } else {
+                        updateDebugInfo('teams-user-status', 'Teams User: ❌ Kein Email im Context');
+                    }
+                }).catch(function(error) {
+                    updateDebugInfo('teams-context-status', 'Teams Context: ❌ Fehler: ' + error.message);
+                });
+            } else {
+                updateDebugInfo('teams-sdk-status', 'Teams SDK: ❌ Nicht verfügbar');
+            }
+        }
+
+        // Sofort debuggen
+        debugAuth();
+        
+        // Alle 2 Sekunden erneut prüfen
+        setInterval(debugAuth, 2000);
+    })();
+    </script>
+    @endpush
 </x-ui-page>
 
