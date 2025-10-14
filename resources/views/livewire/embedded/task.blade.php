@@ -70,6 +70,17 @@
                 wire:model.live="task.priority"
             />
         </div>
+        <div class="bg-white rounded-lg border p-4">
+            <x-ui-input-datetime
+                name="dueDateInput"
+                label="Fälligkeitsdatum"
+                :value="$dueDateInput"
+                wire:model="dueDateInput"
+                placeholder="Fälligkeitsdatum auswählen..."
+                :nullable="true"
+                :errorKey="'dueDateInput'"
+            />
+        </div>
     </div>
 </x-ui-page>
 
