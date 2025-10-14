@@ -67,6 +67,18 @@ class Task extends BaseTask
         }
     }
 
+    // Fängt alle Änderungen ab (z. B. bei wire:model auf task.*)
+    public function updated($name, $value)
+    {
+        if (str_starts_with($name, 'task.')) {
+            $attribute = substr($name, 5);
+            $this->validateOnly("task.$attribute");
+            if ($this->task->isDirty($attribute)) {
+                $this->task->save();
+            }
+        }
+    }
+
     public function save()
     {
         // Policy-Prüfung umgehen für embedded Kontext
