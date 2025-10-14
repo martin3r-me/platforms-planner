@@ -441,11 +441,16 @@
 (function() {
     console.log('🔍 Teams Authentication - Vereinfacht');
     
-    // Prüfen ob bereits authentifiziert
-    if (sessionStorage.getItem('teams-auth-completed') === 'true') {
-        console.log('✅ Teams Auth bereits abgeschlossen - überspringe');
+    // Guards gegen Endlosschleifen & bereits eingeloggte Session
+    if (window.__laravelAuthed === true) {
+        console.log('✅ Laravel bereits authentifiziert - überspringe Auth');
         return;
     }
+    if (sessionStorage.getItem('teams-auth-running') === 'true') {
+        console.log('⏳ Teams Auth läuft bereits - überspringe');
+        return;
+    }
+    sessionStorage.setItem('teams-auth-running', 'true');
     
     // Debug-Update-Funktion
     function updateDebugInfo(elementId, content) {
@@ -508,16 +513,12 @@
                             if (response.ok) {
                                 console.log('✅ Authentication erfolgreich');
                                 updateDebugInfo('auth-status', '✅ Authentication erfolgreich');
-                                
-                                // Session Storage setzen
-                                sessionStorage.setItem('teams-auth-completed', 'true');
-                                
-                                // Seite neu laden
-                                console.log('🔄 Seite wird neu geladen...');
-                                window.location.reload();
+                                // kurze Verzögerung, damit Session persistiert
+                                setTimeout(function(){ window.location.reload(); }, 100);
                             } else {
                                 console.error('❌ Authentication fehlgeschlagen:', response.status);
                                 updateDebugInfo('auth-status', `❌ Authentication fehlgeschlagen: ${response.status}`);
+                                sessionStorage.removeItem('teams-auth-running');
                                 
                                 return response.text().then(function(text) {
                                     console.error('❌ Auth Error Response:', text);
@@ -526,6 +527,7 @@
                             }
                         }).catch(function(error) {
                             console.error('❌ Auth Request Fehler:', error);
+                            sessionStorage.removeItem('teams-auth-running');
                             updateDebugInfo('auth-status', `❌ Auth Request Fehler: ${error.message}`);
                         });
                         

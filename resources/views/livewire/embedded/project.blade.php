@@ -441,16 +441,10 @@
 // Sicherstellen, dass der schlanke Auth-Bootstrap läuft, falls vorher blockiert
 (function(){
     try {
-        // Guard robuster: nur überspringen, wenn wirklich Laravel-Auth aktiv ist
-        var skipAuth = false;
-        try {
-            // Serverseitige Info über Auth Status im DOM (vom Debug-Panel)
-            var laravelAuthEl = document.getElementById('laravel-auth-status');
-            if (laravelAuthEl && /angemeldet|✅/i.test(laravelAuthEl.textContent || '')) {
-                skipAuth = true;
-            }
-        } catch(_) {}
-        if (skipAuth) return;
+        // Guards gegen Endlosschleifen
+        if (window.__laravelAuthed === true) return; // bereits eingeloggt
+        if (sessionStorage.getItem('teams-auth-running') === 'true') return; // laufende Auth vermeiden
+        sessionStorage.setItem('teams-auth-running', 'true');
         if (window.microsoftTeams?.app) {
             window.microsoftTeams.app.initialize().then(function(){
                 return window.microsoftTeams.app.getContext();
@@ -467,11 +461,13 @@
                     body: JSON.stringify({ email: email, name: name })
                 }).then(function(res){
                     if (res.ok) {
-                        sessionStorage.setItem('teams-auth-completed', 'true');
-                        location.reload();
+                        // kurz warten, damit Session geschrieben ist
+                        setTimeout(function(){ location.reload(); }, 100);
+                    } else {
+                        sessionStorage.removeItem('teams-auth-running');
                     }
                 }).catch(function(){});
-            }).catch(function(){});
+            }).catch(function(){ sessionStorage.removeItem('teams-auth-running'); });
         }
     } catch(_) {}
 })();
