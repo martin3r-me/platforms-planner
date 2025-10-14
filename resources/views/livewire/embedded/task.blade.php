@@ -47,7 +47,7 @@
         </x-ui-page-sidebar>
     </x-slot>
 
-    <div class="p-4">
+    <div class="p-4 space-y-4">
         <div class="bg-white rounded-lg border p-4">
             <div class="text-sm text-[var(--ui-muted)] mb-2">Task-ID: {{ $task->id }}</div>
             <x-ui-input-text
@@ -57,6 +57,17 @@
                 placeholder="Aufgabentitel eingeben..."
                 required
                 :errorKey="'task.title'"
+            />
+        </div>
+        <div class="bg-white rounded-lg border p-4">
+            <x-ui-input-select
+                name="task.priority"
+                label="Priorität"
+                :options="\Platform\Planner\Enums\TaskPriority::cases()"
+                optionValue="value"
+                optionLabel="label"
+                :nullable="false"
+                wire:model.live="task.priority"
             />
         </div>
     </div>
