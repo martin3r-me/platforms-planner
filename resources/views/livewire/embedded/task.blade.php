@@ -94,6 +94,30 @@
                 </div>
             </div>
         </div>
+        <div class="bg-white rounded-lg border p-4">
+            <x-ui-input-select
+                name="task.story_points"
+                label="Story Points"
+                :options="\Platform\Planner\Enums\TaskStoryPoints::cases()"
+                optionValue="value"
+                optionLabel="label"
+                :nullable="true"
+                nullLabel="– Story Points auswählen –"
+                wire:model.live="task.story_points"
+            />
+        </div>
+        <div class="bg-white rounded-lg border p-4">
+            <x-ui-input-select
+                name="task.user_in_charge_id"
+                label="Verantwortlicher"
+                :options="$teamUsers"
+                optionValue="id"
+                optionLabel="name"
+                :nullable="true"
+                nullLabel="– Verantwortlichen auswählen –"
+                wire:model.live="task.user_in_charge_id"
+            />
+        </div>
     </div>
 </x-ui-page>
 
