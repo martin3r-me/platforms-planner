@@ -135,118 +135,16 @@
         <x-slot name="sidebar">
             <x-ui-page-sidebar title="Projekt-Übersicht" width="w-80" :defaultOpen="true">
                 <div class="p-4 space-y-4">
-                            <!-- DEBUG: Detailliertes Teams SDK Debugging -->
-                            <div>
-                                <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">🔍 Detailliertes Debug</h3>
-                                <div class="space-y-2">
-                                    @php
-                                        $teamsUser = \Platform\Core\Helpers\TeamsAuthHelper::getTeamsUser(request());
-                                        $teamsContext = \Platform\Core\Helpers\TeamsAuthHelper::getTeamsContext(request());
-                                        $authUser = auth()->user();
-                                        $request = request();
-                                    @endphp
-                                    
-                                    <!-- Teams SDK Frontend Status -->
-                                    <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
-                                        <div class="text-xs font-medium text-[var(--ui-secondary)]">Teams SDK Frontend</div>
-                                        <div class="text-xs text-[var(--ui-muted)]">
-                                            <div id="teams-sdk-status">Lade...</div>
-                                            <div id="teams-sdk-context">Lade...</div>
-                                            <div id="teams-sdk-user">Lade...</div>
-                                            <div id="teams-sdk-auth-token">Lade...</div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Teams User Details -->
-                                    <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
-                                        <div class="text-xs font-medium text-[var(--ui-secondary)]">Teams User (Backend)</div>
-                                        <div class="text-xs text-[var(--ui-muted)]">
-                                            @if($teamsUser)
-                                                ✅ <strong>{{ $teamsUser['email'] ?? 'Keine Email' }}</strong><br>
-                                                Name: {{ $teamsUser['name'] ?? 'Kein Name' }}<br>
-                                                ID: {{ $teamsUser['id'] ?? 'Keine ID' }}<br>
-                                                Tenant: {{ $teamsUser['tenant_id'] ?? 'Kein Tenant' }}
-                                            @else
-                                                ❌ Nicht gefunden
-                                            @endif
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Teams Context Details -->
-                                    <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
-                                        <div class="text-xs font-medium text-[var(--ui-secondary)]">Teams Context</div>
-                                        <div class="text-xs text-[var(--ui-muted)]">
-                                            @if($teamsContext)
-                                                ✅ Verfügbar<br>
-                                                Keys: {{ implode(', ', array_keys($teamsContext)) }}<br>
-                                                User: {{ isset($teamsContext['user']) ? 'Ja' : 'Nein' }}
-                                            @else
-                                                ❌ Nicht verfügbar
-                                            @endif
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Laravel Auth Details -->
-                                    <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
-                                        <div class="text-xs font-medium text-[var(--ui-secondary)]">Laravel Auth</div>
-                                        <div class="text-xs text-[var(--ui-muted)]">
-                                            @if($authUser)
-                                                ✅ <strong>{{ $authUser->email }}</strong><br>
-                                                ID: {{ $authUser->id }}<br>
-                                                Name: {{ $authUser->name }}<br>
-                                                Team: {{ $authUser->currentTeam?->name ?? 'Kein Team' }}
-                                            @else
-                                                ❌ Nicht angemeldet
-                                            @endif
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Request Headers -->
-                                    <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
-                                        <div class="text-xs font-medium text-[var(--ui-secondary)]">Request Headers</div>
-                                        <div class="text-xs text-[var(--ui-muted)]">
-                                            Authorization: {{ $request->header('Authorization') ? 'Ja' : 'Nein' }}<br>
-                                            X-Teams-Token: {{ $request->header('X-Teams-Token') ? 'Ja' : 'Nein' }}<br>
-                                            X-User-Email: {{ $request->header('X-User-Email') ?: 'Nein' }}<br>
-                                            X-User-Name: {{ $request->header('X-User-Name') ?: 'Nein' }}<br>
-                                            X-Teams-Embedded: {{ $request->header('X-Teams-Embedded') ?: 'Nein' }}
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Request Details -->
-                                    <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
-                                        <div class="text-xs font-medium text-[var(--ui-secondary)]">Request Info</div>
-                                        <div class="text-xs text-[var(--ui-muted)]">
-                                            Path: {{ $request->getPathInfo() }}<br>
-                                            Method: {{ $request->getMethod() }}<br>
-                                            Referer: {{ $request->header('referer', 'Kein Referer') }}<br>
-                                            User-Agent: {{ substr($request->header('user-agent', ''), 0, 50) }}...
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Query Parameters -->
-                                    <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
-                                        <div class="text-xs font-medium text-[var(--ui-secondary)]">Query Params</div>
-                                        <div class="text-xs text-[var(--ui-muted)]">
-                                            @if($request->query->count() > 0)
-                                                @foreach($request->query->all() as $key => $value)
-                                                    {{ $key }}: {{ is_string($value) ? $value : 'Array' }}<br>
-                                                @endforeach
-                                            @else
-                                                Keine Query Parameter
-                                            @endif
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Middleware Status -->
-                                    <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
-                                        <div class="text-xs font-medium text-[var(--ui-secondary)]">Middleware</div>
-                                        <div class="text-xs text-[var(--ui-muted)]">
-                                            Route: {{ $request->route()?->getName() ?? 'Unbekannt' }}<br>
-                                            Middleware: {{ implode(', ', $request->route()?->middleware() ?? []) }}<br>
-                                            Teams Request: {{ str_contains($request->getPathInfo(), '/embedded/') ? 'Ja' : 'Nein' }}
-                                        </div>
-                                    </div>
+                            {{-- Debug Box --}}
+                            <div class="mt-4 p-3 bg-gray-50 rounded border text-xs">
+                                <div class="font-bold mb-2">🔍 Debug Info</div>
+                                <div id="teams-sdk-status">Teams SDK: Lade...</div>
+                                <div id="teams-context-status">Teams Context: Lade...</div>
+                                <div id="teams-user-status">Teams User: Lade...</div>
+                                <div id="auth-status">Laravel Auth: Lade...</div>
+                                <div class="mt-2">
+                                    <div>Laravel Auth: {{ auth()->check() ? '✅ Angemeldet' : '❌ Nicht angemeldet' }}</div>
+                                    <div>User: {{ auth()->user() ? auth()->user()->email : 'Kein User' }}</div>
                                 </div>
                             </div>
 
@@ -327,149 +225,72 @@
     <livewire:planner.customer-project-settings-modal/>
 </div>
 
-<script>
-// Einfache Teams Authentication mit Debug-Info
-(function() {
-    console.log('🔍 Teams Authentication - Vereinfacht');
-    
-    // Prüfen ob bereits authentifiziert
-    if (sessionStorage.getItem('teams-auth-completed') === 'true') {
-        console.log('✅ Teams Auth bereits abgeschlossen - überspringe');
-        return;
-    }
-    
-    // Debug-Update-Funktion
-    function updateDebugInfo(elementId, content) {
-        const element = document.getElementById(elementId);
-        if (element) {
-            element.innerHTML = content;
-            console.log(`🔍 Debug Update: ${elementId}`, content);
-        } else {
-            console.warn(`⚠️ Element nicht gefunden: ${elementId}`);
+    @push('scripts')
+    <script>
+    (function() {
+        function updateDebugInfo(id, content) {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = content;
         }
-    }
-    
-    // Sofortige Debug-Info setzen
-    updateDebugInfo('teams-sdk-status', '🔍 Initialisiere...');
-    updateDebugInfo('teams-sdk-context', '🔍 Initialisiere...');
-    updateDebugInfo('teams-sdk-user', '🔍 Initialisiere...');
-    updateDebugInfo('teams-sdk-auth-token', '🔍 Initialisiere...');
-    
-    // Teams SDK initialisieren und User einloggen
-    if (window.microsoftTeams) {
-        updateDebugInfo('teams-sdk-status', '✅ Teams SDK verfügbar');
-        
-        window.microsoftTeams.app.initialize().then(function() {
-            console.log('✅ Teams SDK initialisiert');
-            updateDebugInfo('teams-sdk-status', '✅ Teams SDK initialisiert');
+
+        function debugAuth() {
+            console.log('🔍 Debug Auth Status:');
+            console.log('- window.__laravelAuthed:', window.__laravelAuthed);
+            console.log('- sessionStorage teams-auth-running:', sessionStorage.getItem('teams-auth-running'));
+            console.log('- sessionStorage teams-auth-completed:', sessionStorage.getItem('teams-auth-completed'));
+            console.log('- sessionStorage teams-auth-retries:', sessionStorage.getItem('teams-auth-retries'));
             
-            // Teams Context abrufen
-            window.microsoftTeams.app.getContext().then(function(context) {
-                console.log('🔍 Teams Context:', context);
-                updateDebugInfo('teams-sdk-context', 
-                    `✅ Context verfügbar<br>
-                    User: ${context.user?.userPrincipalName || 'Unbekannt'}<br>
-                    Team: ${context.team?.displayName || 'Unbekannt'}<br>
-                    Channel: ${context.channel?.displayName || 'Unbekannt'}`
-                );
+            // Teams SDK Status
+            if (window.microsoftTeams && window.microsoftTeams.app) {
+                updateDebugInfo('teams-sdk-status', 'Teams SDK: ✅ Verfügbar');
                 
-                // User über Teams Context einloggen
-                if (context.user?.userPrincipalName) {
-                    console.log('🔍 User gefunden:', context.user.userPrincipalName);
-                    updateDebugInfo('teams-sdk-user', 
-                        `✅ User verfügbar<br>
-                        Email: ${context.user.userPrincipalName}<br>
-                        Name: ${context.user.displayName || context.user.userPrincipalName}`
-                    );
+                // Versuche Context zu bekommen
+                window.microsoftTeams.app.getContext().then(function(context) {
+                    updateDebugInfo('teams-context-status', 'Teams Context: ✅ Verfügbar<br>Team: ' + (context.team?.displayName || 'N/A'));
                     
-                    updateDebugInfo('teams-sdk-auth-token', '🔍 Authentifiziere User...');
+                    const email = context.user?.userPrincipalName || context.user?.loginHint;
+                    const name = context.user?.displayName;
                     
-                    // Einfacher fetch um User zu authentifizieren
-                    fetch('/planner/embedded/teams/auth', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
-                        },
-                        body: JSON.stringify({
-                            email: context.user.userPrincipalName,
-                            name: context.user.displayName || context.user.userPrincipalName,
-                            team: context.team?.displayName,
-                            channel: context.channel?.displayName
-                        })
-                    }).then(response => {
-                        console.log('🔍 Auth Response Status:', response.status);
-                        console.log('🔍 Auth Response Headers:', response.headers);
+                    if (email) {
+                        updateDebugInfo('teams-user-status', 'Teams User: ✅ ' + email + '<br>Name: ' + (name || 'N/A'));
                         
-                        if (response.ok) {
-                            console.log('✅ User erfolgreich authentifiziert');
-                            updateDebugInfo('teams-sdk-auth-token', '✅ User authentifiziert - Lade Seite neu...');
-                            // Session markieren als abgeschlossen
-                            sessionStorage.setItem('teams-auth-completed', 'true');
-                            // Seite neu laden um Auth zu aktivieren
-                            window.location.reload();
-                        } else {
-                            // Response-Text für Details abrufen
-                            response.text().then(text => {
-                                console.error('❌ Auth Response Error:', text);
-                                updateDebugInfo('teams-sdk-auth-token', `❌ Authentication fehlgeschlagen (${response.status}): ${text}`);
-                            });
-                        }
-                    }).catch(error => {
-                        console.error('❌ Authentication Fehler:', error);
-                        updateDebugInfo('teams-sdk-auth-token', `❌ Authentication Fehler: ${error.message}`);
-                    });
-                } else {
-                    updateDebugInfo('teams-sdk-user', '❌ Kein User im Context gefunden');
-                }
-            }).catch(function(error) {
-                console.error('❌ Teams Context Fehler:', error);
-                updateDebugInfo('teams-sdk-context', `❌ Context Fehler: ${error.message}`);
-            });
-        }).catch(function(error) {
-            console.error('❌ Teams SDK Initialisierung Fehler:', error);
-            updateDebugInfo('teams-sdk-status', `❌ SDK Initialisierung Fehler: ${error.message}`);
-        });
-    } else {
-        updateDebugInfo('teams-sdk-status', '❌ Teams SDK nicht verfügbar');
-        console.warn('⚠️ Microsoft Teams SDK nicht verfügbar');
-    }
-})();
-</script>
-@push('scripts')
-<script>
-// Sicherstellen, dass der schlanke Auth-Bootstrap läuft, falls vorher blockiert
-(function(){
-    try {
-        // Guards gegen Endlosschleifen
-        if (window.__laravelAuthed === true) return; // bereits eingeloggt
-        if (sessionStorage.getItem('teams-auth-running') === 'true') return; // laufende Auth vermeiden
-        sessionStorage.setItem('teams-auth-running', 'true');
-        if (window.microsoftTeams?.app) {
-            window.microsoftTeams.app.initialize().then(function(){
-                return window.microsoftTeams.app.getContext();
-            }).then(function(ctx){
-                const email = ctx?.user?.userPrincipalName || '';
-                const name = ctx?.user?.displayName || '';
-                if (!email) return;
-                fetch('/planner/embedded/teams/auth', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    },
-                    body: JSON.stringify({ email: email, name: name })
-                }).then(function(res){
-                    if (res.ok) {
-                        // kurz warten, damit Session geschrieben ist
-                        setTimeout(function(){ location.reload(); }, 100);
+                        // Versuche Auth manuell
+                        fetch('/planner/embedded/teams/auth', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            },
+                            body: JSON.stringify({ email: email, name: name || '' })
+                        }).then(function(response) {
+                            console.log('Auth Response:', response.status);
+                            if (response.ok) {
+                                updateDebugInfo('auth-status', 'Laravel Auth: ✅ Authentifiziert');
+                                setTimeout(() => location.reload(), 100);
+                            } else {
+                                response.text().then(text => {
+                                    updateDebugInfo('auth-status', 'Laravel Auth: ❌ Fehler (' + response.status + '): ' + text);
+                                });
+                            }
+                        }).catch(function(error) {
+                            updateDebugInfo('auth-status', 'Laravel Auth: ❌ Request Fehler: ' + error.message);
+                        });
                     } else {
-                        sessionStorage.removeItem('teams-auth-running');
+                        updateDebugInfo('teams-user-status', 'Teams User: ❌ Kein Email im Context');
                     }
-                }).catch(function(){});
-            }).catch(function(){ sessionStorage.removeItem('teams-auth-running'); });
+                }).catch(function(error) {
+                    updateDebugInfo('teams-context-status', 'Teams Context: ❌ Fehler: ' + error.message);
+                });
+            } else {
+                updateDebugInfo('teams-sdk-status', 'Teams SDK: ❌ Nicht verfügbar');
+            }
         }
-    } catch(_) {}
-})();
-</script>
-@endpush
+
+        // Sofort debuggen
+        debugAuth();
+        
+        // Alle 2 Sekunden erneut prüfen
+        setInterval(debugAuth, 2000);
+    })();
+    </script>
+    @endpush
