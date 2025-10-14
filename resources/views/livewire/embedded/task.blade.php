@@ -147,6 +147,22 @@
             console.log('- sessionStorage teams-auth-completed:', sessionStorage.getItem('teams-auth-completed'));
             console.log('- sessionStorage teams-auth-retries:', sessionStorage.getItem('teams-auth-retries'));
             
+            // Guards gegen mehrfache Auth-Versuche
+            if (window.__laravelAuthed === true) {
+                updateDebugInfo('auth-status', 'Laravel Auth: ✅ Bereits angemeldet');
+                return;
+            }
+            
+            if (sessionStorage.getItem('teams-auth-running') === 'true') {
+                updateDebugInfo('auth-status', 'Laravel Auth: 🔄 Auth läuft bereits...');
+                return;
+            }
+            
+            if (sessionStorage.getItem('teams-auth-completed') === 'true') {
+                updateDebugInfo('auth-status', 'Laravel Auth: ✅ Auth bereits abgeschlossen');
+                return;
+            }
+            
             // Teams SDK Status
             if (window.microsoftTeams && window.microsoftTeams.app) {
                 updateDebugInfo('teams-sdk-status', 'Teams SDK: ✅ Verfügbar');
@@ -168,6 +184,9 @@
                     if (email) {
                         updateDebugInfo('teams-user-status', 'Teams User: ✅ ' + email + '<br>Name: ' + (name || 'N/A'));
                         
+                        // Auth-Flag setzen um mehrfache Versuche zu verhindern
+                        sessionStorage.setItem('teams-auth-running', 'true');
+                        
                         // Versuche Auth manuell
                         fetch('/planner/embedded/teams/auth', {
                             method: 'POST',
@@ -180,13 +199,17 @@
                             console.log('Auth Response:', response.status);
                             if (response.ok) {
                                 updateDebugInfo('auth-status', 'Laravel Auth: ✅ Authentifiziert');
+                                sessionStorage.setItem('teams-auth-completed', 'true');
+                                sessionStorage.removeItem('teams-auth-running');
                                 setTimeout(() => location.reload(), 100);
                             } else {
+                                sessionStorage.removeItem('teams-auth-running');
                                 response.text().then(text => {
                                     updateDebugInfo('auth-status', 'Laravel Auth: ❌ Fehler (' + response.status + '): ' + text);
                                 });
                             }
                         }).catch(function(error) {
+                            sessionStorage.removeItem('teams-auth-running');
                             updateDebugInfo('auth-status', 'Laravel Auth: ❌ Request Fehler: ' + error.message);
                         });
                     } else {
@@ -204,8 +227,8 @@
         // Sofort debuggen
         debugAuth();
         
-        // Alle 2 Sekunden erneut prüfen
-        setInterval(debugAuth, 2000);
+        // Nur alle 5 Sekunden prüfen, nicht alle 2 Sekunden
+        setInterval(debugAuth, 5000);
     })();
     </script>
     @endpush
