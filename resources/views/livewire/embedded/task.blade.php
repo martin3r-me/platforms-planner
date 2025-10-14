@@ -151,8 +151,15 @@
             if (window.microsoftTeams && window.microsoftTeams.app) {
                 updateDebugInfo('teams-sdk-status', 'Teams SDK: ✅ Verfügbar');
                 
-                // Versuche Context zu bekommen
-                window.microsoftTeams.app.getContext().then(function(context) {
+                // Teams SDK initialisieren falls noch nicht geschehen
+                window.microsoftTeams.app.initialize().then(function() {
+                    console.log('✅ Teams SDK initialisiert');
+                    updateDebugInfo('teams-sdk-status', 'Teams SDK: ✅ Initialisiert');
+                    
+                    // Jetzt Context abrufen
+                    return window.microsoftTeams.app.getContext();
+                }).then(function(context) {
+                    console.log('✅ Teams Context erhalten:', context);
                     updateDebugInfo('teams-context-status', 'Teams Context: ✅ Verfügbar<br>Team: ' + (context.team?.displayName || 'N/A'));
                     
                     const email = context.user?.userPrincipalName || context.user?.loginHint;
@@ -186,6 +193,7 @@
                         updateDebugInfo('teams-user-status', 'Teams User: ❌ Kein Email im Context');
                     }
                 }).catch(function(error) {
+                    console.error('❌ Teams SDK/Context Fehler:', error);
                     updateDebugInfo('teams-context-status', 'Teams Context: ❌ Fehler: ' + error.message);
                 });
             } else {
