@@ -32,24 +32,24 @@ class Task extends BaseTask
 
     public function updatedDueDateInput($value)
     {
+        // Keine direkten Saves hier, nur robustes Setzen – Speichern erfolgt zentral in save()
         if (empty($value)) {
             $this->task->due_date = null;
-        } else {
-            try {
-                // Prüfe ob es nur ein Jahr ist (z.B. "2025")
-                if (preg_match('/^\d{4}$/', $value)) {
-                    $this->task->due_date = null; // Ungültiges Format ignorieren
-                } else {
-                    // Parse das Date-Format (YYYY-MM-DD oder YYYY-MM-DD HH:MM)
-                    $this->task->due_date = \Carbon\Carbon::parse($value);
-                }
-            } catch (\Exception $e) {
-                // Bei ungültigem Datum auf null setzen
-                $this->task->due_date = null;
-            }
+            return;
         }
-        
-        $this->task->save();
+        try {
+            $normalized = str_replace('T', ' ', $value);
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $normalized)) {
+                $normalized .= ' 00:00';
+            }
+            // Ignoriere reine Jahres-/Monatsangaben
+            if (preg_match('/^\d{4}$/', $normalized) || preg_match('/^\d{4}-\d{2}$/', $normalized)) {
+                return; // unvollständig, nicht setzen
+            }
+            $this->task->due_date = \Carbon\Carbon::parse($normalized);
+        } catch (\Throwable $e) {
+            // still und leise ignorieren – kein Exception-Bubble beim Modal-Schließen
+        }
     }
 
     public function updatedTask($property, $value)
