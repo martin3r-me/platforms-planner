@@ -55,12 +55,15 @@ class Task extends BaseTask
 
     public function updatedTask($property, $value)
     {
-        $this->validateOnly("task.$property");
+        // $property kann z.B. "title" oder "task.title" sein – wir normalisieren auf Attributnamen
+        $attribute = str_starts_with($property, 'task.') ? substr($property, 5) : $property;
         
-        // Nur speichern wenn sich wirklich was geändert hat
-        if ($this->task->isDirty($property)) {
+        // Korrekte Validierung nur des geänderten Feldes
+        $this->validateOnly("task.$attribute");
+        
+        // Nur speichern, wenn sich das konkrete Attribut geändert hat
+        if ($this->task->isDirty($attribute)) {
             $this->task->save();
-            // Auto-Save läuft still im Hintergrund
         }
     }
 
