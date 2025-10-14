@@ -1,4 +1,4 @@
-<x-ui-page>
+    <x-ui-page>
         <x-slot name="navbar">
             <x-ui-page-navbar :title="$task->title" icon="heroicon-o-clipboard-document-check">
             <x-slot name="titleActions">
@@ -436,53 +436,7 @@
             </x-slot>
         </x-ui-modal>
 
-@push('scripts')
-<script>
-// Einfache Teams Authentication mit Debug-Info
-(function() {
-    console.log('🔍 Teams Authentication - Vereinfacht');
-    if (window.__laravelAuthed === true) return;
-    if (sessionStorage.getItem('teams-auth-running') === 'true') return;
-    sessionStorage.setItem('teams-auth-running', 'true');
-    function updateDebugInfo(id, content) {
-        const el = document.getElementById(id);
-        if (el) el.innerHTML = content;
-    }
-    updateDebugInfo('teams-sdk-status', '🔄 Initialisiere...');
-    updateDebugInfo('teams-context-status', '🔄 Lade...');
-    updateDebugInfo('teams-user-status', '🔄 Lade...');
-    updateDebugInfo('teams-token-status', '🔄 Lade...');
-    updateDebugInfo('auth-status', '🔄 Lade...');
-    if (window.microsoftTeams?.app) {
-        window.microsoftTeams.app.initialize().then(function(){
-            return window.microsoftTeams.app.getContext();
-        }).then(function(context){
-            updateDebugInfo('teams-context-status', '✅ Context verfügbar');
-            return window.microsoftTeams.authentication.getUser().then(function(user){
-                updateDebugInfo('teams-user-status', '✅ User verfügbar');
-                return window.microsoftTeams.authentication.getAuthToken().then(function(){
-                    updateDebugInfo('teams-token-status', '✅ Token verfügbar');
-                    return fetch('/planner/embedded/teams/auth', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                        },
-                        body: JSON.stringify({ email: user.userPrincipalName, name: user.displayName || '' })
-                    }).then(function(res){
-                        if (res.ok) { setTimeout(function(){ location.reload(); }, 100); }
-                        else { sessionStorage.removeItem('teams-auth-running'); }
-                    }).catch(function(){ sessionStorage.removeItem('teams-auth-running'); });
-                });
-            });
-        }).catch(function(){ sessionStorage.removeItem('teams-auth-running'); });
-    } else {
-        updateDebugInfo('teams-sdk-status', '❌ Teams SDK nicht verfügbar');
-        sessionStorage.removeItem('teams-auth-running');
-    }
-})();
-</script>
-@endpush
+{{-- Auth-Script entfernt – zentral im Embedded-Layout geregelt --}}
 
     @endif
     </x-ui-page>
