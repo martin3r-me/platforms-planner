@@ -70,16 +70,29 @@
                 wire:model.live="task.priority"
             />
         </div>
-        <div class="bg-white rounded-lg border p-4">
+        <div class="bg-white rounded-lg border p-4 space-y-3">
             <x-ui-input-datetime
                 name="dueDateInput"
                 label="Fälligkeitsdatum"
                 :value="$dueDateInput"
-                wire:model="dueDateInput"
-                placeholder="Fälligkeitsdatum auswählen..."
+                wire:model.live.debounce.500ms="dueDateInput"
+                placeholder="Datum und Uhrzeit wählen"
                 :nullable="true"
                 :errorKey="'dueDateInput'"
             />
+            <div class="flex items-center justify-between text-xs text-[var(--ui-muted)]">
+                <div>Speichert automatisch nach Auswahl. Leeren setzt das Fälligkeitsdatum zurück.</div>
+                <div class="flex items-center gap-2">
+                    <x-ui-button variant="secondary-ghost" size="xs" wire:click="$set('dueDateInput','')">
+                        @svg('heroicon-o-x-mark','w-4 h-4')
+                        Leeren
+                    </x-ui-button>
+                    <x-ui-button variant="primary" size="xs" wire:click="save">
+                        @svg('heroicon-o-check','w-4 h-4')
+                        Speichern
+                    </x-ui-button>
+                </div>
+            </div>
         </div>
     </div>
 </x-ui-page>
