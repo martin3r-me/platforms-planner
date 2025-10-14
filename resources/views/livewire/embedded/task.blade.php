@@ -71,17 +71,16 @@
             />
         </div>
         <div class="bg-white rounded-lg border p-4 space-y-3">
-            <x-ui-input-datetime
-                name="dueDateInput"
-                label="Fälligkeitsdatum"
-                :value="$dueDateInput"
-                wire:model.live.debounce.500ms="dueDateInput"
-                placeholder="Datum und Uhrzeit wählen"
-                :nullable="true"
-                :errorKey="'dueDateInput'"
+            <label class="block text-sm font-medium text-[var(--ui-secondary)]">Fälligkeitsdatum</label>
+            <input 
+                type="datetime-local" 
+                class="w-full rounded border border-[var(--ui-border)]/60 px-3 py-2 text-sm"
+                wire:model.live.debounce.400ms="dueDateInput"
+                @keydown.enter.prevent
+                @change.stop
             />
             <div class="flex items-center justify-between text-xs text-[var(--ui-muted)]">
-                <div>Speichert automatisch nach Auswahl. Leeren setzt das Fälligkeitsdatum zurück.</div>
+                <div>Eingabe schreibt direkt in dueDateInput. Speichern setzt task.due_date.</div>
                 <div class="flex items-center gap-2">
                     <x-ui-button variant="secondary-ghost" size="xs" wire:click="$set('dueDateInput','')">
                         @svg('heroicon-o-x-mark','w-4 h-4')
