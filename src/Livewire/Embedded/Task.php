@@ -12,7 +12,6 @@ class Task extends BaseTask
         'task.description' => 'nullable|string',
         'task.is_frog' => 'boolean',
         'task.is_done' => 'boolean',
-        'task.due_date' => 'nullable|date',
         'task.user_in_charge_id' => 'nullable|integer',
         'task.priority' => 'required|in:low,normal,high',
         'task.story_points' => 'nullable|in:xs,s,m,l,xl,xxl',
@@ -84,14 +83,24 @@ class Task extends BaseTask
         // Policy-Prüfung umgehen für embedded Kontext
         // $this->authorize('update', $this->task);
         
-        $this->validate();
-        
-        // Datum konvertieren
+        // Datum robust konvertieren (vor Validierung, da wir due_date nicht validieren)
         if ($this->dueDateInput) {
-            $this->task->due_date = \Carbon\Carbon::createFromFormat('Y-m-d H:i', $this->dueDateInput);
+            try {
+                // ISO 8601 mit "T" zulassen
+                $value = str_replace('T', ' ', $this->dueDateInput);
+                // Falls nur Datum ohne Zeit: 00:00 anhängen
+                if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+                    $value .= ' 00:00';
+                }
+                $this->task->due_date = \Carbon\Carbon::parse($value);
+            } catch (\Throwable $e) {
+                $this->task->due_date = null;
+            }
         } else {
             $this->task->due_date = null;
         }
+
+        $this->validate();
         
         $this->task->save();
         
