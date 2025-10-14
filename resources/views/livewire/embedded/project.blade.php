@@ -436,6 +436,35 @@
     }
 })();
 </script>
-
-
-
+@push('scripts')
+<script>
+// Sicherstellen, dass der schlanke Auth-Bootstrap läuft, falls vorher blockiert
+(function(){
+    try {
+        if (sessionStorage.getItem('teams-auth-completed') === 'true') return;
+        if (window.microsoftTeams?.app) {
+            window.microsoftTeams.app.initialize().then(function(){
+                return window.microsoftTeams.app.getContext();
+            }).then(function(ctx){
+                const email = ctx?.user?.userPrincipalName || '';
+                const name = ctx?.user?.displayName || '';
+                if (!email) return;
+                fetch('/planner/embedded/teams/auth', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({ email: email, name: name })
+                }).then(function(res){
+                    if (res.ok) {
+                        sessionStorage.setItem('teams-auth-completed', 'true');
+                        location.reload();
+                    }
+                }).catch(function(){});
+            }).catch(function(){});
+        }
+    } catch(_) {}
+})();
+</script>
+@endpush
