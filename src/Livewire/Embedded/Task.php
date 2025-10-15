@@ -50,6 +50,8 @@ class Task extends BaseTask
             }
             $this->task->due_date = \Carbon\Carbon::parse($normalized);
             $this->task->save();
+            // Anzeige synchron zum gespeicherten Wert halten (HTML datetime-local erwartet "T")
+            $this->dueDateInput = $this->task->due_date ? $this->task->due_date->format('Y-m-d\\TH:i') : '';
         } catch (\Throwable $e) {
             // still und leise ignorieren – kein Exception-Bubble beim Modal-Schließen
         }

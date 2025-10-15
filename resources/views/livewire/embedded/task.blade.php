@@ -83,14 +83,16 @@
                             wire:model.live="task.priority"
                         />
                     </div>
-        <div class="bg-white rounded-lg border p-4 space-y-3">
-            <label class="block text-sm font-medium text-[var(--ui-secondary)]">Fälligkeitsdatum</label>
-            <input 
-                type="datetime-local" 
-                class="w-full rounded border border-[var(--ui-border)]/60 px-3 py-2 text-sm"
-                wire:model.live="dueDateInput"
-                @keydown.enter.prevent
-            />
+        <div class="bg-white rounded-lg border p-4">
+            <div class="space-y-2">
+                <label class="block text-sm font-medium text-[var(--ui-secondary)]">Fälligkeitsdatum</label>
+                <input 
+                    type="datetime-local" 
+                    class="w-full rounded border border-[var(--ui-border)]/60 px-3 py-2 text-sm"
+                    wire:model.live="dueDateInput"
+                    @keydown.enter.prevent
+                />
+            </div>
         </div>
         <div class="bg-white rounded-lg border p-4">
             <x-ui-input-select
