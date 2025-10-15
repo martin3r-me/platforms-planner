@@ -3,6 +3,7 @@
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerTask;
 use Illuminate\Http\Middleware\FrameGuard;
+use Illuminate\Support\Facades\Cookie;
 
 // Embedded Routes für Microsoft Teams Tab Apps
 // Diese Routes laufen OHNE Laravel Auth-Middleware
@@ -42,8 +43,35 @@ Route::post('/embedded/teams/auth', function (Illuminate\Http\Request $request) 
     
     // User einloggen
     \Auth::login($user);
+
+    // Session regenerieren, damit das Session-Cookie neu gesetzt wird
+    $request->session()->regenerate();
+
+    // Test-Cookie für Embedded-Kontext (SameSite=None; Secure) – hilft bei Third-Party-Cookie-Blocks
+    Cookie::queue(Cookie::make(
+        'teams_embed_test',
+        '1', // 1 Minute
+        1,
+        '/',
+        null,
+        true,   // secure
+        true,   // httpOnly
+        false,  // raw
+        'None'  // SameSite
+    ));
     
-    return response()->json(['success' => true, 'user' => $user->email]);
+    return response()->json([
+        'success' => true,
+        'user' => [
+            'id' => $user->id,
+            'email' => $user->email,
+            'name' => $user->name,
+        ],
+        'auth' => [
+            'checked' => \Auth::check(),
+            'session_id' => $request->session()->getId(),
+        ],
+    ]);
 })->withoutMiddleware([FrameGuard::class])->name('planner.embedded.teams.auth');
 
 // Embedded Test: Teams Tab Konfigurations-Check
