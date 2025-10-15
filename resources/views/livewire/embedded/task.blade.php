@@ -238,9 +238,7 @@
         // Sofort debuggen
         debugAuth();
         
-        // Nur alle 5 Sekunden prüfen, nicht alle 2 Sekunden
-        setInterval(debugAuth, 5000);
-
+        // Nur einmalig prüfen (kein dauerhaftes Polling)
         // Zusätzlich: Server-Ping für Auth-Status und Cookies
         function pingServer(){
             fetch('/planner/embedded/teams/ping', { credentials: 'include' })
@@ -253,7 +251,6 @@
                 .catch(function(err){ /* ignore */ });
         }
         pingServer();
-        setInterval(pingServer, 5000);
     })();
     </script>
     @endpush
