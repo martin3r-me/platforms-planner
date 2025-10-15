@@ -8,77 +8,106 @@ use Illuminate\Support\Facades\Cookie;
 // Embedded Routes für Microsoft Teams Tab Apps
 // Diese Routes laufen OHNE Laravel Auth-Middleware
 
-// Embedded (Teams/iframe) – Projekt-Ansicht - Livewire Komponente
-Route::get('/embedded/planner/projects/{plannerProject}', \Platform\Planner\Livewire\Embedded\Project::class)
-    ->withoutMiddleware([FrameGuard::class])
-    ->name('planner.embedded.project');
+// Gemeinsame Header-Auth für embedded
+Route::middleware([\Platform\Core\Middleware\EmbeddedHeaderAuth::class])->group(function () {
 
-// Embedded Task-Ansicht (Teams) - Livewire Komponente
-Route::get('/embedded/planner/tasks/{plannerTask}', \Platform\Planner\Livewire\Embedded\Task::class)
-    ->withoutMiddleware([FrameGuard::class])
-    ->name('planner.embedded.task');
+    // Embedded (Teams/iframe) – Projekt-Ansicht - Livewire Komponente
+    Route::get('/embedded/planner/projects/{plannerProject}', \Platform\Planner\Livewire\Embedded\Project::class)
+        ->withoutMiddleware([FrameGuard::class])
+        ->name('planner.embedded.project');
 
-// Teams Authentication Route
-Route::post('/embedded/teams/auth', function (Illuminate\Http\Request $request) {
-    $email = $request->input('email');
-    $name = $request->input('name');
-    
-    if (!$email) {
-        return response()->json(['error' => 'No email provided'], 400);
-    }
-    
-    // User finden oder erstellen
-    $userModelClass = config('auth.providers.users.model');
-    $user = $userModelClass::where('email', $email)->first();
-    
-    if (!$user) {
-        $user = new $userModelClass();
-        $user->email = $email;
-        $user->name = $name ?: $email;
-        $user->save();
+    // Embedded Task-Ansicht (Teams) - Livewire Komponente
+    Route::get('/embedded/planner/tasks/{plannerTask}', \Platform\Planner\Livewire\Embedded\Task::class)
+        ->withoutMiddleware([FrameGuard::class])
+        ->name('planner.embedded.task');
+
+    // Teams Authentication Route
+    Route::post('/embedded/teams/auth', function (Illuminate\Http\Request $request) {
+        $email = $request->input('email');
+        $name = $request->input('name');
         
-        // Personal Team erstellen
-        \Platform\Core\PlatformCore::createPersonalTeamFor($user);
-    }
-    
-    // User einloggen
-    \Auth::login($user);
+        if (!$email) {
+            return response()->json(['error' => 'No email provided'], 400);
+        }
+        
+        // User finden oder erstellen
+        $userModelClass = config('auth.providers.users.model');
+        $user = $userModelClass::where('email', $email)->first();
+        
+        if (!$user) {
+            $user = new $userModelClass();
+            $user->email = $email;
+            $user->name = $name ?: $email;
+            $user->save();
+            
+            // Personal Team erstellen
+            \Platform\Core\PlatformCore::createPersonalTeamFor($user);
+        }
+        
+        // User einloggen
+        \Auth::login($user);
 
-    // Session regenerieren, damit das Session-Cookie neu gesetzt wird
-    $request->session()->regenerate();
+        // Session regenerieren, damit das Session-Cookie neu gesetzt wird
+        $request->session()->regenerate();
 
-    // Test-Cookie für Embedded-Kontext (SameSite=None; Secure) – hilft bei Third-Party-Cookie-Blocks
-    Cookie::queue(Cookie::make(
-        'teams_embed_test',
-        '1', // 1 Minute
-        1,
-        '/',
-        null,
-        true,   // secure
-        true,   // httpOnly
-        false,  // raw
-        'None'  // SameSite
-    ));
-    
-    return response()->json([
-        'success' => true,
-        'user' => [
-            'id' => $user->id,
-            'email' => $user->email,
-            'name' => $user->name,
-        ],
-        'auth' => [
-            'checked' => \Auth::check(),
-            'session_id' => $request->session()->getId(),
-        ],
-    ]);
-})->withoutMiddleware([FrameGuard::class])->name('planner.embedded.teams.auth');
+        // Test-Cookie für Embedded-Kontext (SameSite=None; Secure)
+        Cookie::queue(Cookie::make(
+            'teams_embed_test',
+            '1', // 1 Minute
+            1,
+            '/',
+            null,
+            true,   // secure
+            true,   // httpOnly
+            false,  // raw
+            'None'  // SameSite
+        ));
+        
+        return response()->json([
+            'success' => true,
+            'user' => [
+                'id' => $user->id,
+                'email' => $user->email,
+                'name' => $user->name,
+            ],
+            'auth' => [
+                'checked' => \Auth::check(),
+                'session_id' => $request->session()->getId(),
+            ],
+        ]);
+    })->withoutMiddleware([FrameGuard::class])->name('planner.embedded.teams.auth');
+
+    // Teams Auth Ping
+    Route::get('/embedded/teams/ping', function (Illuminate\Http\Request $request) {
+        $sessionCookie = $request->cookies->get(config('session.cookie'));
+        $xsrfCookie = $request->cookies->get('XSRF-TOKEN');
+
+        return response()->json([
+            'auth' => [
+                'checked' => \Auth::check(),
+                'user' => \Auth::check() ? [
+                    'id' => \Auth::id(),
+                    'email' => \Auth::user()->email,
+                    'name' => \Auth::user()->name,
+                ] : null,
+                'session_id' => $request->session()->getId(),
+            ],
+            'cookies' => [
+                'session_cookie_name' => config('session.cookie'),
+                'session_cookie_present' => (bool) $sessionCookie,
+                'xsrf_token_present' => (bool) $xsrfCookie,
+            ],
+            'request' => [
+                'has_credentials' => $request->headers->get('Cookie') ? true : false,
+                'user_agent' => $request->userAgent(),
+            ],
+        ]);
+    })->withoutMiddleware([FrameGuard::class])->name('planner.embedded.teams.ping');
+
+});
 
 // Embedded Test: Teams Tab Konfigurations-Check
 Route::get('/embedded/teams/config', function () {
-    // Projekte für die Teams Config laden
-    // TODO: Hier sollten wir nur Projekte laden, auf die der User Zugriff hat
-    // Für jetzt laden wir alle Projekte, später filtern wir nach Teams User
     $projects = \Platform\Planner\Models\PlannerProject::select(['id', 'name', 'team_id'])
         ->orderBy('name')
         ->get();
@@ -178,7 +207,6 @@ Route::get('/embedded/planner/api/projects', function () {
 
 // Auth-API: Projekte des eingeloggten Nutzers (für echte Konfiguration)
 Route::get('/embedded/planner/api/my-projects', function () {
-    // Teams User-Info aus Request holen (ohne Laravel Auth)
     $teamsUser = \Platform\Core\Helpers\TeamsAuthHelper::getTeamsUser(request());
     
     if (!$teamsUser) {
@@ -186,7 +214,6 @@ Route::get('/embedded/planner/api/my-projects', function () {
             ->header('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
     }
 
-    // User aus Teams Context finden oder erstellen
     $user = \Platform\Planner\Livewire\Embedded\Project::findOrCreateUserFromTeams($teamsUser);
     
     if (!$user) {
@@ -198,9 +225,7 @@ Route::get('/embedded/planner/api/my-projects', function () {
     if ($user && method_exists($user, 'teams')) {
         try {
             $teamIds = $teamIds->merge($user->teams()->pluck('teams.id'));
-        } catch (\Throwable $e) {
-            // ignore
-        }
+        } catch (\Throwable $e) {}
     }
     if ($user && property_exists($user, 'currentTeam') && $user->currentTeam) {
         $teamIds->push($user->currentTeam->id);
@@ -219,30 +244,3 @@ Route::get('/embedded/planner/api/my-projects', function () {
     return response()->json(['data' => $query->limit(200)->get()])
         ->header('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
 })->withoutMiddleware([FrameGuard::class])->name('planner.embedded.api.my-projects');
-
-// Teams Auth Ping: prüft aktuellen Auth-Status und reflektiert Cookies
-Route::get('/embedded/teams/ping', function (Illuminate\Http\Request $request) {
-    $sessionCookie = $request->cookies->get(config('session.cookie'));
-    $xsrfCookie = $request->cookies->get('XSRF-TOKEN');
-
-    return response()->json([
-        'auth' => [
-            'checked' => \Auth::check(),
-            'user' => \Auth::check() ? [
-                'id' => \Auth::id(),
-                'email' => \Auth::user()->email,
-                'name' => \Auth::user()->name,
-            ] : null,
-            'session_id' => $request->session()->getId(),
-        ],
-        'cookies' => [
-            'session_cookie_name' => config('session.cookie'),
-            'session_cookie_present' => (bool) $sessionCookie,
-            'xsrf_token_present' => (bool) $xsrfCookie,
-        ],
-        'request' => [
-            'has_credentials' => $request->headers->get('Cookie') ? true : false,
-            'user_agent' => $request->userAgent(),
-        ],
-    ]);
-})->withoutMiddleware([FrameGuard::class])->name('planner.embedded.teams.ping');
