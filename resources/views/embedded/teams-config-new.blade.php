@@ -126,10 +126,17 @@
             if (!selectedTeamId) {
                 projectSelect.innerHTML = '<option value="">– Bitte erst ein Team wählen –</option>';
                 if (projectCountEl) projectCountEl.textContent = '0';
+                // Save-Button deaktivieren
+                if (window.microsoftTeams?.pages?.config) {
+                    window.microsoftTeams.pages.config.setValidityState(false);
+                }
                 return;
             }
             if (filtered.length === 0) {
                 projectSelect.innerHTML = '<option value="">Keine Projekte im Team</option>';
+                if (window.microsoftTeams?.pages?.config) {
+                    window.microsoftTeams.pages.config.setValidityState(false);
+                }
             } else {
                 const placeholder = document.createElement('option');
                 placeholder.value = '';
@@ -140,9 +147,20 @@
                     opt.value = p.id; opt.textContent = p.name;
                     projectSelect.appendChild(opt);
                 });
+                // Noch nichts gewählt -> deaktiviert lassen
+                if (window.microsoftTeams?.pages?.config) {
+                    window.microsoftTeams.pages.config.setValidityState(false);
+                }
             }
             if (projectCountEl) projectCountEl.textContent = String(filtered.length);
         }
+
+        // Auswahl-Listener: Validity toggeln
+        projectSelect?.addEventListener('change', function(){
+            if (window.microsoftTeams?.pages?.config) {
+                window.microsoftTeams.pages.config.setValidityState(!!projectSelect.value);
+            }
+        });
 
         // Neues Projekt Modal Logik
         const modal = document.getElementById('newProjectModal');
@@ -187,6 +205,10 @@
                 selectedTeamId = String(teamId);
                 renderProjects();
                 projectSelect.value = data.project.id;
+                // Validity aktivieren
+                if (window.microsoftTeams?.pages?.config) {
+                    window.microsoftTeams.pages.config.setValidityState(true);
+                }
                 modal.classList.add('hidden');
             } catch (e) {
                 alert('Request-Fehler: ' + e.message);
@@ -195,7 +217,8 @@
 
         // Teams SDK Config Save-Handler (wie zuvor)
         if (window.microsoftTeams?.pages?.config) {
-            window.microsoftTeams.pages.config.setValidityState(true);
+            // initial deaktivieren – erst aktivieren, wenn Projekt gewählt
+            window.microsoftTeams.pages.config.setValidityState(false);
             window.microsoftTeams.pages.config.registerOnSaveHandler(async function (saveEvent) {
                 const projectId = projectSelect?.value || '';
                 if (!projectId) {
