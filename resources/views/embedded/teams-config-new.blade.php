@@ -215,52 +215,51 @@
             }
         });
 
-        // Teams SDK Config Save-Handler (wie zuvor)
-        if (window.microsoftTeams?.pages?.config) {
-            // initial deaktivieren – erst aktivieren, wenn Projekt gewählt
-            window.microsoftTeams.pages.config.setValidityState(false);
-            window.microsoftTeams.pages.config.registerOnSaveHandler(async function (saveEvent) {
-                try {
-                    if (!window.microsoftTeams?.pages?.config?.isSupported || !window.microsoftTeams.pages.config.isSupported()) {
-                        saveEvent.notifyFailure('Teams Config API nicht verfügbar');
-                        return;
-                    }
-                    const projectId = projectSelect?.value || '';
-                    if (!projectId) {
-                        saveEvent.notifyFailure('Bitte Projekt wählen');
-                        return;
-                    }
-                    // Projektname finden
-                    let projectName = 'Projekt ' + projectId;
-                    const selected = allProjects.find(p => String(p.id) === String(projectId));
-                    if (selected) projectName = selected.name;
-
-                    const contentUrl = 'https://office.martin3r.me/planner/embedded/planner/projects/' + encodeURIComponent(projectId) + '?name=' + encodeURIComponent(projectName);
-                    const config = {
-                        contentUrl: contentUrl,
-                        websiteUrl: contentUrl,
-                        entityId: 'planner-project-' + projectId,
-                        suggestedDisplayName: 'PLANNER - ' + projectName
-                    };
-                    console.log('setConfig()', config);
-                    await window.microsoftTeams.pages.config.setConfig(config);
-                    saveEvent.notifySuccess();
-                } catch (e) {
-                    console.error('Teams setConfig Fehler:', e);
-                    try {
-                        const msg = (e && (e.message || e.code || e.toString())) || 'Unbekannter Fehler';
-                        saveEvent.notifyFailure('Speichern fehlgeschlagen: ' + msg);
-                    } catch(_) {}
-                    // Zusätzlich im UI anzeigen
-                    try {
-                        const el = document.createElement('div');
-                        el.className = 'mt-3 text-xs text-red-600';
-                        el.textContent = 'Fehler beim Speichern (siehe Konsole)';
-                        document.querySelector('.max-w-2xl')?.appendChild(el);
-                    } catch(_) {}
+        // Teams SDK: initialize + Config-Handler mit Support-Check
+        (async function setupTeamsConfig(){
+            try {
+                if (window.microsoftTeams?.app?.initialize) {
+                    try { await window.microsoftTeams.app.initialize(); } catch(_) {}
                 }
-            });
-        }
+                if (!window.microsoftTeams?.pages?.config || (window.microsoftTeams.pages.config.isSupported && !window.microsoftTeams.pages.config.isSupported())) {
+                    return;
+                }
+                // initial deaktivieren – erst aktivieren, wenn Projekt gewählt
+                window.microsoftTeams.pages.config.setValidityState(false);
+                window.microsoftTeams.pages.config.registerOnSaveHandler(async function (saveEvent) {
+                    try {
+                        if (window.microsoftTeams.pages.config.isSupported && !window.microsoftTeams.pages.config.isSupported()) {
+                            saveEvent.notifyFailure('Teams Config API nicht verfügbar');
+                            return;
+                        }
+                        const projectId = projectSelect?.value || '';
+                        if (!projectId) {
+                            saveEvent.notifyFailure('Bitte Projekt wählen');
+                            return;
+                        }
+                        // Projektname finden
+                        let projectName = 'Projekt ' + projectId;
+                        const selected = allProjects.find(p => String(p.id) === String(projectId));
+                        if (selected) projectName = selected.name;
+
+                        const contentUrl = 'https://office.martin3r.me/planner/embedded/planner/projects/' + encodeURIComponent(projectId) + '?name=' + encodeURIComponent(projectName);
+                        const config = {
+                            contentUrl: contentUrl,
+                            websiteUrl: contentUrl,
+                            entityId: 'planner-project-' + projectId,
+                            suggestedDisplayName: 'PLANNER - ' + projectName
+                        };
+                        await window.microsoftTeams.pages.config.setConfig(config);
+                        saveEvent.notifySuccess();
+                    } catch (e) {
+                        try {
+                            const msg = (e && (e.message || e.code || e.toString())) || 'Unbekannter Fehler';
+                            saveEvent.notifyFailure('Speichern fehlgeschlagen: ' + msg);
+                        } catch(_) {}
+                    }
+                });
+            } catch(_) {}
+        })();
     })();
     </script>
 @endsection
