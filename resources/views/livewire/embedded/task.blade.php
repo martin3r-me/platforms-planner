@@ -88,23 +88,9 @@
             <input 
                 type="datetime-local" 
                 class="w-full rounded border border-[var(--ui-border)]/60 px-3 py-2 text-sm"
-                wire:model.live.debounce.400ms="dueDateInput"
+                wire:model.live="dueDateInput"
                 @keydown.enter.prevent
-                @change.stop
             />
-            <div class="flex items-center justify-between text-xs text-[var(--ui-muted)]">
-                <div>Eingabe schreibt direkt in dueDateInput. Speichern setzt task.due_date.</div>
-                <div class="flex items-center gap-2">
-                    <x-ui-button variant="secondary-ghost" size="xs" wire:click="$set('dueDateInput','')">
-                        @svg('heroicon-o-x-mark','w-4 h-4')
-                        Leeren
-                    </x-ui-button>
-                    <x-ui-button variant="primary" size="xs" wire:click="save">
-                        @svg('heroicon-o-check','w-4 h-4')
-                        Speichern
-                    </x-ui-button>
-                </div>
-            </div>
         </div>
         <div class="bg-white rounded-lg border p-4">
             <x-ui-input-select

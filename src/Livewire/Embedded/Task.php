@@ -34,8 +34,9 @@ class Task extends BaseTask
     public function updatedDueDateInput($value)
     {
         // Keine direkten Saves hier, nur robustes Setzen – Speichern erfolgt zentral in save()
-        if (empty($value)) {
+        if ($value === null || $value === '') {
             $this->task->due_date = null;
+            $this->task->save();
             return;
         }
         try {
@@ -48,6 +49,7 @@ class Task extends BaseTask
                 return; // unvollständig, nicht setzen
             }
             $this->task->due_date = \Carbon\Carbon::parse($normalized);
+            $this->task->save();
         } catch (\Throwable $e) {
             // still und leise ignorieren – kein Exception-Bubble beim Modal-Schließen
         }
