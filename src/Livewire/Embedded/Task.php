@@ -27,7 +27,8 @@ class Task extends BaseTask
             $this->task = $plannerTask;
         }
         
-        $this->dueDateInput = $this->task->due_date ? $this->task->due_date->format('Y-m-d H:i') : '';
+        // HTML datetime-local erwartet ein "T" zwischen Datum und Zeit
+        $this->dueDateInput = $this->task->due_date ? $this->task->due_date->format('Y-m-d\TH:i') : '';
     }
 
     public function updatedDueDateInput($value)
@@ -103,6 +104,8 @@ class Task extends BaseTask
         $this->validate();
         
         $this->task->save();
+        // Nach dem Speichern Input an das erwartete HTML-Format anpassen
+        $this->dueDateInput = $this->task->due_date ? $this->task->due_date->format('Y-m-d\TH:i') : '';
         
         // Toast-Notification über das Notification-System
         $this->dispatch('notifications:store', [
