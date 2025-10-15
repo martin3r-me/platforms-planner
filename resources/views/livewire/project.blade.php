@@ -1,4 +1,4 @@
-<div class="h-full d-flex">
+{{-- Root auf x-ui-page umstellen, damit volle Höhe/Sidebars korrekt funktionieren --}}
     @php 
         $completedTasks = $groups->filter(fn($g) => $g->isDoneGroup ?? false)->flatMap(fn($g) => $g->tasks);
         $stats = [
@@ -159,7 +159,7 @@
         </x-slot>
 
         <x-slot name="activity">
-            <x-ui-page-sidebar title="Aktivitäten" width="w-80" :defaultOpen="false" storeKey="activityOpen" side="right">
+            <x-ui-page-sidebar title="Aktivitäten" width="w-80" :defaultOpen="true" storeKey="activityOpen" side="right">
                 <div class="p-4 space-y-4">
                     <div class="text-sm text-[var(--ui-muted)]">Letzte Aktivitäten</div>
                     <div class="space-y-3 text-sm">
@@ -246,10 +246,8 @@
                 </x-ui-kanban-column>
             @endif
             </x-ui-kanban-container>
+        {{-- Modals innerhalb des Page-Roots halten (ein Root-Element) --}}
+        <livewire:planner.project-settings-modal/>
+        <livewire:planner.project-slot-settings-modal/>
+        <livewire:planner.customer-project-settings-modal/>
     </x-ui-page>
-
-    <livewire:planner.project-settings-modal/>
-    <livewire:planner.project-slot-settings-modal/>
-    <livewire:planner.customer-project-settings-modal/>
-
-</div>
