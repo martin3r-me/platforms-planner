@@ -106,16 +106,75 @@ Route::middleware([\Platform\Core\Middleware\EmbeddedHeaderAuth::class])->group(
 
 });
 
-// Embedded Test: Teams Tab Konfigurations-Check
+// Embedded Planner Config – nur Projekte aus Teams des aktuellen Users
 Route::get('/embedded/teams/config', function () {
+    $user = auth()->user();
+    $teamIds = collect();
+    $teams = collect();
+
+    if ($user) {
+        try {
+            // Alle Teams des Users sammeln (inkl. currentTeam)
+            if (method_exists($user, 'teams')) {
+                $teams = $user->teams()->select(['teams.id','teams.name'])->orderBy('name')->get();
+                $teamIds = $teams->pluck('id');
+            }
+            if ($user->currentTeam && !$teamIds->contains($user->currentTeam->id)) {
+                $teamIds->push($user->currentTeam->id);
+                $teams = $teams->push($user->currentTeam)->unique('id');
+            }
+        } catch (\Throwable $e) {
+            // ignore
+        }
+    }
+
     $projects = \Platform\Planner\Models\PlannerProject::select(['id', 'name', 'team_id'])
+        ->when($teamIds->isNotEmpty(), function($q) use ($teamIds){ $q->whereIn('team_id', $teamIds); }, function($q){ $q->whereRaw('1=0'); })
         ->orderBy('name')
         ->get();
-    
-    $response = response()->view('planner::embedded.teams-config-new', compact('projects'));
+
+    $response = response()->view('planner::embedded.teams-config-new', [
+        'projects' => $projects,
+        'teams' => $teams,
+    ]);
     $response->headers->set('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
     return $response;
-})->withoutMiddleware([FrameGuard::class])->name('planner.embedded.teams.config');
+})->middleware([\Platform\Core\Middleware\EmbeddedHeaderAuth::class])->withoutMiddleware([FrameGuard::class])->name('planner.embedded.teams.config');
+
+// Neues Projekt erstellen (embedded Config)
+Route::post('/embedded/planner/projects', function (Illuminate\Http\Request $request) {
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'team_id' => 'required|integer',
+    ]);
+    $user = auth()->user();
+    if (!$user) {
+        return response()->json(['error' => 'Unauthenticated'], 401);
+    }
+    // Sicherstellen, dass der User dem Team angehört
+    $teamId = (int) $request->input('team_id');
+    $belongs = false;
+    try {
+        if ($user->currentTeam && $user->currentTeam->id === $teamId) { $belongs = true; }
+        if (!$belongs && method_exists($user, 'teams')) {
+            $belongs = $user->teams()->where('teams.id', $teamId)->exists();
+        }
+    } catch (\Throwable $e) {}
+    if (!$belongs) {
+        return response()->json(['error' => 'Forbidden'], 403);
+    }
+
+    $project = new \Platform\Planner\Models\PlannerProject();
+    $project->name = $request->input('name');
+    $project->team_id = $teamId;
+    $project->save();
+
+    return response()->json(['success' => true, 'project' => [
+        'id' => $project->id,
+        'name' => $project->name,
+        'team_id' => $project->team_id,
+    ]]);
+})->middleware([\Platform\Core\Middleware\EmbeddedHeaderAuth::class])->withoutMiddleware([FrameGuard::class])->name('planner.embedded.projects.store');
 
 // Rückwärtskompatibel: alte URL auf die neue weiterleiten
 Route::get('/embedded/planner/teams/config', function () {

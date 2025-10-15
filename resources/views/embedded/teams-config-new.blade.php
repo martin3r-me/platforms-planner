@@ -9,49 +9,46 @@
                     @svg('heroicon-o-clipboard-document-list', 'w-6 h-6 text-white')
                 </div>
                 <h1 class="text-2xl font-bold text-gray-900 mb-2">Planner Tab einrichten</h1>
-                <p class="text-gray-600 text-sm">Wählen Sie ein Projekt aus, das als Teams Tab hinzugefügt werden soll</p>
+                <p class="text-gray-600 text-sm">Wähle zuerst ein Team, dann ein Projekt</p>
             </div>
 
-            <!-- Status Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-                <!-- SDK Status -->
-                <div class="bg-white rounded-lg p-4 shadow-sm border">
-                    <div class="flex items-center gap-3">
-                        <div class="w-2 h-2 bg-gray-400 rounded-full" id="sdkIndicator"></div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-900">Teams SDK</p>
-                            <p class="text-xs text-gray-500" id="sdkStatus">wird geprüft...</p>
-                        </div>
-                    </div>
+            <!-- Teams Auswahl -->
+            <div class="bg-white rounded-lg shadow-sm border p-4 mb-6">
+                <div class="mb-3">
+                    <label class="block text-sm font-medium text-gray-900 mb-1">Team auswählen</label>
+                    <p class="text-xs text-gray-500">Nur Teams, denen du angehörst</p>
                 </div>
-
-                <!-- User Info -->
-                <div class="bg-white rounded-lg p-4 shadow-sm border">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                            @svg('heroicon-o-user', 'w-4 h-4 text-blue-600')
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-900">Angemeldet als</p>
-                            <p class="text-xs text-gray-500" id="userInfo">wird geladen...</p>
-                        </div>
-                    </div>
+                <div id="teamGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    @forelse(($teams ?? collect()) as $team)
+                        <button type="button" class="team-tile flex items-center justify-center p-3 rounded-lg border border-gray-200 bg-white hover:border-blue-500 text-sm"
+                                data-team-id="{{ $team->id }}" data-team-name="{{ $team->name }}">
+                            <span class="truncate">{{ $team->name }}</span>
+                        </button>
+                    @empty
+                        <div class="text-xs text-gray-500">Keine Teams gefunden.</div>
+                    @endforelse
                 </div>
             </div>
 
             <!-- Project Selection -->
             <div class="bg-white rounded-lg shadow-sm border p-4">
-                <div class="mb-3">
-                    <label class="block text-sm font-medium text-gray-900 mb-1">Projekt auswählen</label>
-                    <p class="text-xs text-gray-500">Wählen Sie das Projekt aus, das als Teams Tab hinzugefügt werden soll</p>
+                <div class="mb-3 flex items-center justify-between">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-900 mb-1">Projekt auswählen</label>
+                        <p class="text-xs text-gray-500">Nur Projekte aus dem gewählten Team</p>
+                    </div>
+                    <button id="newProjectBtn" type="button" class="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-300 text-gray-700 text-xs font-medium rounded-md hover:bg-gray-50">
+                        @svg('heroicon-o-plus', 'w-4 h-4')
+                        Neues Projekt
+                    </button>
                 </div>
 
                 <div class="space-y-4">
                     <select id="projectSelect" class="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        <option value="">– Projekte werden geladen –</option>
+                        <option value="">– Bitte erst ein Team wählen –</option>
                     </select>
 
-                    <div class="flex items-center justify-between pt-4">
+                    <div class="flex items-center justify-between pt-2">
                         <div class="text-sm text-gray-500">
                             <span id="projectCount">0</span> Projekte verfügbar
                         </div>
@@ -63,283 +60,162 @@
                 </div>
             </div>
 
+            <!-- Neues Projekt Modal (einfach) -->
+            <div id="newProjectModal" class="hidden fixed inset-0 z-50 bg-black/30">
+                <div class="absolute inset-0 flex items-center justify-center p-4">
+                    <div class="w-full max-w-sm rounded-lg bg-white border shadow p-4 space-y-3">
+                        <div class="text-sm font-medium text-gray-900">Neues Projekt anlegen</div>
+                        <div class="space-y-2">
+                            <label class="block text-xs text-gray-600">Team</label>
+                            <select id="newProjectTeam" class="w-full rounded border border-gray-300 px-3 py-2 text-sm bg-white">
+                                @foreach(($teams ?? collect()) as $team)
+                                    <option value="{{ $team->id }}">{{ $team->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="block text-xs text-gray-600">Projektname</label>
+                            <input id="newProjectName" type="text" class="w-full rounded border border-gray-300 px-3 py-2 text-sm" placeholder="Projektname" />
+                        </div>
+                        <div class="flex items-center justify-end gap-2 pt-2">
+                            <button type="button" id="newProjectCancel" class="px-3 py-1.5 text-xs rounded border border-gray-300">Abbrechen</button>
+                            <button type="button" id="newProjectCreate" class="px-3 py-1.5 text-xs rounded bg-blue-600 text-white">Anlegen</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Info Box -->
             <div class="mt-4 bg-blue-50 rounded-lg p-3">
                 <div class="flex items-start gap-2">
                     @svg('heroicon-o-information-circle', 'w-4 h-4 text-blue-600 mt-0.5')
                     <div>
                         <p class="text-xs font-medium text-blue-900">Was passiert als nächstes?</p>
-                        <p class="text-xs text-blue-700 mt-1">Nach der Auswahl wird der Planner Tab zu Ihrem Teams Kanal hinzugefügt.</p>
+                        <p class="text-xs text-blue-700 mt-1">Nach der Auswahl wird der Planner Tab zu deinem Teams Kanal hinzugefügt.</p>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-        <script>
-            // Schlanker Auth-Bootstrap wie in embedded Projekt/Task
-            (function(){
-                try {
-                    if (sessionStorage.getItem('teams-auth-completed') === 'true') {
-                        return; // bereits authentifiziert in dieser Session
-                    }
-                    if (window.microsoftTeams?.app) {
-                        window.microsoftTeams.app.initialize().then(function(){
-                            return window.microsoftTeams.app.getContext();
-                        }).then(function(ctx){
-                            const email = ctx?.user?.userPrincipalName || '';
-                            const name = ctx?.user?.displayName || '';
-                            if (!email) return; // kein User im Kontext
-                            return fetch('/planner/embedded/teams/auth', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                                },
-                                body: JSON.stringify({ email: email, name: name })
-                            }).then(function(res){
-                                if (res.ok) {
-                                    sessionStorage.setItem('teams-auth-completed', 'true');
-                                    location.reload();
-                                }
-                            }).catch(function(){ /* ignore */ });
-                        }).catch(function(){ /* ignore */ });
-                    }
-                } catch (_) { /* ignore */ }
-            })();
-        </script>
-        <script>
-            (function(){
-                let teamsContext = null;
-                
-                // Teams SDK ist im Embedded-Layout eingebunden
-                try {
-                    if (window.microsoftTeams && window.microsoftTeams.app) {
-                        window.microsoftTeams.app.initialize().then(() => {
-                            const statusEl = document.getElementById('sdkStatus');
-                            const indicatorEl = document.getElementById('sdkIndicator');
-                            if (statusEl) {
-                                statusEl.textContent = 'bereit';
-                            }
-                            if (indicatorEl) {
-                                indicatorEl.className = 'w-2 h-2 bg-green-500 rounded-full';
-                            }
+    <script>
+    (function(){
+        // Projekte/Teams aus Blade
+        let allProjects = @json($projects);
+        let selectedTeamId = null;
 
-                            // Teams Context abrufen
-                            window.microsoftTeams.app.getContext().then(context => {
-                                teamsContext = context;
-                                console.log('Teams Context:', context);
-                                
-                                // User-Info anzeigen
-                                const userInfo = document.getElementById('userInfo');
-                                if (userInfo && context.user) {
-                                    userInfo.textContent = `Hallo, ${context.user.displayName || context.user.userPrincipalName || 'Teams User'}`;
-                                }
-                                
-                                // Projekte laden basierend auf Teams Context
-                                loadProjects(context);
-                            });
+        // Team-Kacheln aktivieren
+        const teamTiles = document.querySelectorAll('.team-tile');
+        const projectSelect = document.getElementById('projectSelect');
+        const projectCountEl = document.getElementById('projectCount');
 
-                            // Config-API aktivieren: Validity setzen und Save-Handler registrieren
-                            if (window.microsoftTeams.pages && window.microsoftTeams.pages.config) {
-                                try {
-                                    // Validity aktiv (Save-Button in Teams wird klickbar)
-                                    window.microsoftTeams.pages.config.setValidityState(true);
+        teamTiles.forEach(tile => {
+            tile.addEventListener('click', function(){
+                // Active-State
+                teamTiles.forEach(t => t.classList.remove('ring-2','ring-blue-500'));
+                this.classList.add('ring-2','ring-blue-500');
+                selectedTeamId = this.getAttribute('data-team-id');
+                // Projekte neu filtern
+                renderProjects();
+            });
+        });
 
-                                    // OnSave: einfache Test-Content-URL setzen (später Projekt-URL)
-                                    window.microsoftTeams.pages.config.registerOnSaveHandler(async function (saveEvent) {
-                                        const select = document.getElementById('projectSelect');
-                                        const projectId = select ? select.value : '';
-                                        if (!projectId) {
-                                            saveEvent.notifyFailure('Bitte ein Projekt wählen');
-                                            return;
-                                        }
-                                        // Optional Team-Kontext an URL anhängen
-                                        let teamIdQuery = '';
-                                        try {
-                                            const ctx = await window.microsoftTeams.app.getContext();
-                                            const gid = ctx?.team?.groupId || '';
-                                            if (gid) teamIdQuery = '?teamId=' + encodeURIComponent(gid);
-                                        } catch(_) {}
+        function renderProjects(){
+            projectSelect.innerHTML = '';
+            let filtered = allProjects.filter(p => String(p.team_id) === String(selectedTeamId));
+            if (!selectedTeamId) {
+                projectSelect.innerHTML = '<option value="">– Bitte erst ein Team wählen –</option>';
+                if (projectCountEl) projectCountEl.textContent = '0';
+                return;
+            }
+            if (filtered.length === 0) {
+                projectSelect.innerHTML = '<option value="">Keine Projekte im Team</option>';
+            } else {
+                const placeholder = document.createElement('option');
+                placeholder.value = '';
+                placeholder.textContent = '– Bitte wählen –';
+                projectSelect.appendChild(placeholder);
+                filtered.forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = p.id; opt.textContent = p.name;
+                    projectSelect.appendChild(opt);
+                });
+            }
+            if (projectCountEl) projectCountEl.textContent = String(filtered.length);
+        }
 
-                                        // Projektname aus den Projektdaten holen (sauberer)
-                                        let projectName = 'Projekt ' + projectId;
-                                        const selectedProject = allProjects.find(p => p.id == projectId);
-                                        if (selectedProject) {
-                                            projectName = selectedProject.name;
-                                        }
-                                        
-                                        // Projektname in URL setzen für bessere Identifikation
-                                        const projectNameForUrl = projectName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
-                                        const contentUrl = 'https://office.martin3r.me/planner/embedded/planner/projects/' + encodeURIComponent(projectId) + '?name=' + encodeURIComponent(projectName) + teamIdQuery;
-                                        const websiteUrl = contentUrl;
-                                        const entityId = 'planner-project-' + projectId;
-                                        
-                                        const displayName = 'PLANNER - ' + projectName;
+        // Neues Projekt Modal Logik
+        const modal = document.getElementById('newProjectModal');
+        const btnOpen = document.getElementById('newProjectBtn');
+        const btnCancel = document.getElementById('newProjectCancel');
+        const btnCreate = document.getElementById('newProjectCreate');
+        const inputName = document.getElementById('newProjectName');
+        const selectTeam = document.getElementById('newProjectTeam');
 
-                                        // Teams Tab-Namen werden aus der App-Registrierung genommen
-                                        // displayName funktioniert nicht für Tab-Namen
-                                        // Wir müssen den Tab-Namen in der App-Registrierung dynamisch setzen
-                                        console.log('Tab wird erstellt mit:', {
-                                            contentUrl: contentUrl,
-                                            websiteUrl: websiteUrl,
-                                            entityId: entityId,
-                                            displayName: displayName
-                                        });
-                                        
-                                        window.microsoftTeams.pages.config.setConfig({
-                                            contentUrl: contentUrl,
-                                            websiteUrl: websiteUrl,
-                                            entityId: entityId
-                                            // displayName wird ignoriert für Tab-Namen
-                                        }).then(function () {
-                                            saveEvent.notifySuccess();
-                                        }).catch(function () {
-                                            saveEvent.notifyFailure('Config konnte nicht gesetzt werden');
-                                        });
-                                    });
+        btnOpen?.addEventListener('click', function(){
+            if (selectedTeamId) selectTeam.value = selectedTeamId;
+            modal.classList.remove('hidden');
+            inputName.value = '';
+            inputName.focus();
+        });
+        btnCancel?.addEventListener('click', function(){ modal.classList.add('hidden'); });
+        modal?.addEventListener('click', function(e){ if (e.target === modal) modal.classList.add('hidden'); });
 
-                                    // Lokaler Button triggert ebenfalls den Save-Flow (hilfreich zum Testen)
-                                    const btn = document.getElementById('saveBtn');
-                                    if (btn) {
-                                        btn.addEventListener('click', function(){
-                                            // Simuliere Save-Event
-                                            const mockEvent = {
-                                                notifySuccess: function() { alert('Konfiguration gespeichert!'); },
-                                                notifyFailure: function(msg) { alert('Fehler: ' + msg); }
-                                            };
-                                            // Trigger den Save-Handler
-                                            if (window.microsoftTeams.pages && window.microsoftTeams.pages.config) {
-                                                // Manuell den Save-Handler aufrufen
-                                                console.log('Manueller Save-Trigger');
-                                            }
-                                        });
-                                    }
-                                } catch (e) {
-                                    console.error('Teams Config API Fehler:', e);
-                                }
-                            }
-                        }).catch(function (error) {
-                            console.error('Teams SDK Initialisierung fehlgeschlagen:', error);
-                            const statusEl = document.getElementById('sdkStatus');
-                            const indicatorEl = document.getElementById('sdkIndicator');
-                            if (statusEl) {
-                                statusEl.textContent = 'Fehler';
-                            }
-                            if (indicatorEl) {
-                                indicatorEl.className = 'w-2 h-2 bg-red-500 rounded-full';
-                            }
-                        });
-                    } else {
-                        console.warn('Microsoft Teams SDK nicht verfügbar');
-                        const statusEl = document.getElementById('sdkStatus');
-                        const indicatorEl = document.getElementById('sdkIndicator');
-                        if (statusEl) {
-                            statusEl.textContent = 'nicht verfügbar';
-                        }
-                        if (indicatorEl) {
-                            indicatorEl.className = 'w-2 h-2 bg-yellow-500 rounded-full';
-                        }
-                    }
-                } catch (error) {
-                    console.error('Teams SDK Fehler:', error);
+        btnCreate?.addEventListener('click', async function(){
+            const name = inputName.value.trim();
+            const teamId = selectTeam.value;
+            if (!name) { alert('Bitte einen Projektnamen eingeben'); return; }
+            if (!teamId) { alert('Bitte ein Team wählen'); return; }
+            try {
+                const res = await fetch('/planner/embedded/planner/projects', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({ name: name, team_id: teamId })
+                });
+                if (!res.ok) {
+                    const t = await res.text();
+                    alert('Fehler: ' + t);
+                    return;
                 }
+                const data = await res.json();
+                // In Liste aufnehmen und auswählen
+                allProjects.push(data.project);
+                selectedTeamId = String(teamId);
+                renderProjects();
+                projectSelect.value = data.project.id;
+                modal.classList.add('hidden');
+            } catch (e) {
+                alert('Request-Fehler: ' + e.message);
+            }
+        });
 
-                // Projekte direkt aus PHP laden (keine API nötig)
-                let allProjects = []; // Globale Variable für Projekte
-                
-                function loadProjects(context) {
-                    const select = document.getElementById('projectSelect');
-                    if (!select) return;
-
-                    // Projekte sind bereits in der View verfügbar (aus der Route)
-                    allProjects = @json($projects);
-                    
-                    // Teams User-Info für Berechtigung
-                    const teamsUser = context?.user;
-                    console.log('Teams User für Berechtigung:', teamsUser);
-                    
-                    console.log('Projekte aus PHP:', allProjects);
-                    
-                    // Select leeren
-                    select.innerHTML = '<option value="">– Bitte wählen –</option>';
-                    
-                    // Team ID aus Teams Context
-                    const teamId = context?.team?.groupId || '';
-                    console.log('Teams Team ID:', teamId);
-                    
-                    // Projekte nach Teams clustern und filtern
-                    let filteredProjects = allProjects;
-                    
-                    if (teamId) {
-                        // Nach Teams Team ID filtern
-                        filteredProjects = allProjects.filter(project => {
-                            // Hier müssten wir die Teams Team ID mit unserer DB Team ID abgleichen
-                            // Das ist ein Mapping-Problem zwischen Teams und unserer DB
-                            console.log('Project team_id:', project.team_id, 'Teams teamId:', teamId);
-                            return true; // Erstmal alle anzeigen, später filtern
-                        });
-                        console.log('Gefilterte Projekte für Team:', filteredProjects);
-                    }
-                    
-                    // Projekte nach Teams gruppieren
-                    const projectsByTeam = {};
-                    filteredProjects.forEach(project => {
-                        const teamKey = project.team_id || 'Kein Team';
-                        if (!projectsByTeam[teamKey]) {
-                            projectsByTeam[teamKey] = [];
-                        }
-                        projectsByTeam[teamKey].push(project);
-                    });
-                    
-                    console.log('Projekte nach Teams gruppiert:', projectsByTeam);
-                    
-                    // Projekte in Select hinzufügen, gruppiert nach Teams
-                    if (Object.keys(projectsByTeam).length > 0) {
-                        let totalProjects = 0;
-                        Object.keys(projectsByTeam).forEach(teamKey => {
-                            // Team-Header hinzufügen
-                            const teamOption = document.createElement('option');
-                            teamOption.value = '';
-                            teamOption.textContent = `--- ${teamKey} ---`;
-                            teamOption.disabled = true;
-                            teamOption.style.fontWeight = 'bold';
-                            select.appendChild(teamOption);
-                            
-                            // Projekte des Teams hinzufügen
-                            projectsByTeam[teamKey].forEach(project => {
-                                const option = document.createElement('option');
-                                option.value = project.id;
-                                option.textContent = `  ${project.name}`;
-                                select.appendChild(option);
-                                totalProjects++;
-                            });
-                        });
-                        
-                        // Projekt-Counter aktualisieren
-                        const projectCountEl = document.getElementById('projectCount');
-                        if (projectCountEl) {
-                            projectCountEl.textContent = totalProjects;
-                        }
-                        
-                        // Validity aktivieren wenn Projekte vorhanden
-                        if (window.microsoftTeams.pages && window.microsoftTeams.pages.config) {
-                            window.microsoftTeams.pages.config.setValidityState(true);
-                        }
-                    } else {
-                        const option = document.createElement('option');
-                        option.value = '';
-                        option.textContent = 'Keine Projekte gefunden';
-                        select.appendChild(option);
-                        
-                        // Projekt-Counter auf 0 setzen
-                        const projectCountEl = document.getElementById('projectCount');
-                        if (projectCountEl) {
-                            projectCountEl.textContent = '0';
-                        }
-                    }
+        // Teams SDK Config Save-Handler (wie zuvor)
+        if (window.microsoftTeams?.pages?.config) {
+            window.microsoftTeams.pages.config.setValidityState(true);
+            window.microsoftTeams.pages.config.registerOnSaveHandler(async function (saveEvent) {
+                const projectId = projectSelect?.value || '';
+                if (!projectId) {
+                    saveEvent.notifyFailure('Bitte Projekt wählen');
+                    return;
                 }
-            })();
-        </script>
-    </div>
+                // Projektname finden
+                let projectName = 'Projekt ' + projectId;
+                const selected = allProjects.find(p => String(p.id) === String(projectId));
+                if (selected) projectName = selected.name;
+
+                const contentUrl = 'https://office.martin3r.me/planner/embedded/planner/projects/' + encodeURIComponent(projectId) + '?name=' + encodeURIComponent(projectName);
+                window.microsoftTeams.pages.config.setConfig({
+                    contentUrl: contentUrl,
+                    websiteUrl: contentUrl,
+                    entityId: 'planner-project-' + projectId
+                }).then(function(){ saveEvent.notifySuccess(); })
+                 .catch(function(){ saveEvent.notifyFailure('Config konnte nicht gesetzt werden'); });
+            });
+        }
+    })();
+    </script>
 @endsection
