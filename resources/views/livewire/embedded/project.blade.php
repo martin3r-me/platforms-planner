@@ -246,14 +246,22 @@
                 return;
             }
             
-            if (sessionStorage.getItem('teams-auth-running') === 'true') {
-                updateDebugInfo('auth-status', 'Laravel Auth: 🔄 Auth läuft bereits...');
-                return;
-            }
-            
             if (sessionStorage.getItem('teams-auth-completed') === 'true') {
                 updateDebugInfo('auth-status', 'Laravel Auth: ✅ Auth bereits abgeschlossen');
                 return;
+            }
+            
+            // Wenn Auth läuft, aber schon länger als 10 Sekunden, dann zurücksetzen
+            if (sessionStorage.getItem('teams-auth-running') === 'true') {
+                const authStartTime = sessionStorage.getItem('teams-auth-start-time');
+                if (authStartTime && (Date.now() - parseInt(authStartTime)) > 10000) {
+                    console.log('🔄 Auth läuft zu lange, setze zurück');
+                    sessionStorage.removeItem('teams-auth-running');
+                    sessionStorage.removeItem('teams-auth-start-time');
+                } else {
+                    updateDebugInfo('auth-status', 'Laravel Auth: 🔄 Auth läuft bereits...');
+                    return;
+                }
             }
             
             // Teams SDK Status
@@ -279,6 +287,7 @@
                         
                         // Auth-Flag setzen um mehrfache Versuche zu verhindern
                         sessionStorage.setItem('teams-auth-running', 'true');
+                        sessionStorage.setItem('teams-auth-start-time', Date.now().toString());
                         
                         // Versuche Auth manuell
                         fetch('/planner/embedded/teams/auth', {
