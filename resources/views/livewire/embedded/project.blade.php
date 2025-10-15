@@ -292,9 +292,11 @@
                         // Versuche Auth manuell
                         fetch('/planner/embedded/teams/auth', {
                             method: 'POST',
+                            credentials: 'include',
                             headers: {
                                 'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                'X-Teams-Embedded': '1'
                             },
                             body: JSON.stringify({ email: email, name: name || '' })
                         }).then(function(response) {

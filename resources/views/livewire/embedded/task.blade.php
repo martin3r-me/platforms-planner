@@ -1,24 +1,24 @@
-<x-ui-page>
-    <x-slot name="navbar">
-        <x-ui-page-navbar :title="$task->title" icon="heroicon-o-clipboard-document-check">
+    <x-ui-page>
+        <x-slot name="navbar">
+            <x-ui-page-navbar :title="$task->title" icon="heroicon-o-clipboard-document-check">
             <div class="mt-1 text-sm text-[var(--ui-muted)] flex items-center gap-2">
                 <span class="flex items-center gap-1">
-                    @svg('heroicon-o-home', 'w-4 h-4')
-                    Teams
-                </span>
-                @if($task->project)
+                        @svg('heroicon-o-home', 'w-4 h-4')
+                        Teams
+                    </span>
+                    @if($task->project)
                     <span>›</span>
-                    <a href="{{ route('planner.embedded.project', $task->project) }}" class="text-[var(--ui-secondary)] hover:text-[var(--ui-primary)] flex items-center gap-1">
-                        @svg('heroicon-o-folder', 'w-4 h-4')
-                        {{ $task->project->name }}
-                    </a>
-                @endif
+                        <a href="{{ route('planner.embedded.project', $task->project) }}" class="text-[var(--ui-secondary)] hover:text-[var(--ui-primary)] flex items-center gap-1">
+                            @svg('heroicon-o-folder', 'w-4 h-4')
+                            {{ $task->project->name }}
+                        </a>
+                    @endif
                 <span>›</span>
                 <span class="flex items-center gap-1">
-                    @svg('heroicon-o-clipboard-document-check', 'w-4 h-4')
+                        @svg('heroicon-o-clipboard-document-check', 'w-4 h-4')
                     Aufgabe
-                </span>
-            </div>
+                    </span>
+                </div>
         </x-ui-page-navbar>
     </x-slot>
 
@@ -58,31 +58,31 @@
                 </div>
             </div>
         </x-ui-page-sidebar>
-    </x-slot>
+        </x-slot>
 
     <div class="p-4 space-y-4">
-        <div class="bg-white rounded-lg border p-4">
+            <div class="bg-white rounded-lg border p-4">
             <div class="text-sm text-[var(--ui-muted)] mb-2">Task-ID: {{ $task->id }}</div>
-            <x-ui-input-text
-                name="task.title"
-                label="Titel"
+                        <x-ui-input-text
+                            name="task.title"
+                            label="Titel"
                 wire:model.live.debounce.500ms="task.title"
-                placeholder="Aufgabentitel eingeben..."
-                required
-                :errorKey="'task.title'"
-            />
-        </div>
+                            placeholder="Aufgabentitel eingeben..."
+                            required
+                            :errorKey="'task.title'"
+                        />
+                    </div>
         <div class="bg-white rounded-lg border p-4">
-            <x-ui-input-select
-                name="task.priority"
-                label="Priorität"
-                :options="\Platform\Planner\Enums\TaskPriority::cases()"
-                optionValue="value"
-                optionLabel="label"
-                :nullable="false"
-                wire:model.live="task.priority"
-            />
-        </div>
+                        <x-ui-input-select
+                            name="task.priority"
+                            label="Priorität"
+                            :options="\Platform\Planner\Enums\TaskPriority::cases()"
+                            optionValue="value"
+                            optionLabel="label"
+                            :nullable="false"
+                            wire:model.live="task.priority"
+                        />
+                    </div>
         <div class="bg-white rounded-lg border p-4 space-y-3">
             <label class="block text-sm font-medium text-[var(--ui-secondary)]">Fälligkeitsdatum</label>
             <input 
@@ -113,24 +113,24 @@
                 :options="\Platform\Planner\Enums\TaskStoryPoints::cases()"
                 optionValue="value"
                 optionLabel="label"
-                :nullable="true"
+                            :nullable="true"
                 nullLabel="– Story Points auswählen –"
                 wire:model.live="task.story_points"
-            />
-        </div>
+                        />
+                    </div>
         <div class="bg-white rounded-lg border p-4">
-            <x-ui-input-select
-                name="task.user_in_charge_id"
-                label="Verantwortlicher"
+                        <x-ui-input-select
+                            name="task.user_in_charge_id"
+                            label="Verantwortlicher"
                 :options="$teamUsers"
-                optionValue="id"
-                optionLabel="name"
-                :nullable="true"
-                nullLabel="– Verantwortlichen auswählen –"
-                wire:model.live="task.user_in_charge_id"
-            />
-        </div>
-    </div>
+                            optionValue="id"
+                            optionLabel="name"
+                            :nullable="true"
+                            nullLabel="– Verantwortlichen auswählen –"
+                            wire:model.live="task.user_in_charge_id"
+                        />
+                    </div>
+                </div>
 
     @push('scripts')
     <script>
@@ -199,9 +199,11 @@
                         // Versuche Auth manuell
                         fetch('/planner/embedded/teams/auth', {
                             method: 'POST',
+                            credentials: 'include',
                             headers: {
                                 'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                'X-Teams-Embedded': '1'
                             },
                             body: JSON.stringify({ email: email, name: name || '' })
                         }).then(function(response) {
