@@ -219,3 +219,30 @@ Route::get('/embedded/planner/api/my-projects', function () {
     return response()->json(['data' => $query->limit(200)->get()])
         ->header('Content-Security-Policy', "frame-ancestors https://*.teams.microsoft.com https://teams.microsoft.com https://*.skype.com");
 })->withoutMiddleware([FrameGuard::class])->name('planner.embedded.api.my-projects');
+
+// Teams Auth Ping: prüft aktuellen Auth-Status und reflektiert Cookies
+Route::get('/embedded/teams/ping', function (Illuminate\Http\Request $request) {
+    $sessionCookie = $request->cookies->get(config('session.cookie'));
+    $xsrfCookie = $request->cookies->get('XSRF-TOKEN');
+
+    return response()->json([
+        'auth' => [
+            'checked' => \Auth::check(),
+            'user' => \Auth::check() ? [
+                'id' => \Auth::id(),
+                'email' => \Auth::user()->email,
+                'name' => \Auth::user()->name,
+            ] : null,
+            'session_id' => $request->session()->getId(),
+        ],
+        'cookies' => [
+            'session_cookie_name' => config('session.cookie'),
+            'session_cookie_present' => (bool) $sessionCookie,
+            'xsrf_token_present' => (bool) $xsrfCookie,
+        ],
+        'request' => [
+            'has_credentials' => $request->headers->get('Cookie') ? true : false,
+            'user_agent' => $request->userAgent(),
+        ],
+    ]);
+})->withoutMiddleware([FrameGuard::class])->name('planner.embedded.teams.ping');

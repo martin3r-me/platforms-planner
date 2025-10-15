@@ -333,6 +333,20 @@
         
         // Nur alle 5 Sekunden prüfen, nicht alle 2 Sekunden
         setInterval(debugAuth, 5000);
+
+        // Zusätzlich: Server-Ping für Auth-Status und Cookies
+        function pingServer(){
+            fetch('/planner/embedded/teams/ping', { credentials: 'include' })
+                .then(function(r){ return r.json(); })
+                .then(function(data){
+                    const authed = data?.auth?.checked ? '✅' : '❌';
+                    const email = data?.auth?.user?.email || 'Kein User';
+                    updateDebugInfo('auth-status', `Laravel Auth: ${authed} ${email}`);
+                })
+                .catch(function(err){ /* ignore */ });
+        }
+        pingServer();
+        setInterval(pingServer, 5000);
     })();
     </script>
     @endpush
