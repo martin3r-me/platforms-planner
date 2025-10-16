@@ -10,6 +10,18 @@ use Livewire\Attributes\On;
 
 class MyTasks extends Component
 {
+    public $selectedTeamId = null; // null = alle Teams
+
+    public function mount()
+    {
+        // Standard: Alle Teams anzeigen
+        $this->selectedTeamId = null;
+    }
+
+    public function filterByTeam($teamId)
+    {
+        $this->selectedTeamId = $teamId;
+    }
 
     #[On('updateDashboard')] 
     public function updateDashboard()
@@ -52,11 +64,9 @@ class MyTasks extends Component
         $userId = $user->id;
         $startOfMonth = now()->startOfMonth();
 
-        // === 1. INBOX ===
-        $inboxTasks = PlannerTask::query()
-            ->whereNull('task_group_id')
-            ->where('is_done', false)
-            ->where(function ($q) use ($userId) {
+        // === TEAM-FILTER LOGIK ===
+        $teamFilter = function ($query) use ($userId) {
+            $query->where(function ($q) use ($userId) {
                 $q->where(function ($q) use ($userId) {
                     $q->whereNull('project_id')
                       ->where('user_id', $userId); // private Aufgabe
@@ -71,7 +81,19 @@ class MyTasks extends Component
                                });
                       });
                 });
-            })
+            });
+            
+            // Team-Filter anwenden
+            if ($this->selectedTeamId !== null) {
+                $query->where('team_id', $this->selectedTeamId);
+            }
+        };
+
+        // === 1. INBOX ===
+        $inboxTasks = PlannerTask::query()
+            ->whereNull('task_group_id')
+            ->where('is_done', false)
+            ->where($teamFilter)
             ->orderBy('order')
             ->get();
 
@@ -85,24 +107,9 @@ class MyTasks extends Component
         ];
 
         // === 2. GRUPPEN ===
-        $grouped = PlannerTaskGroup::with(['tasks' => function ($q) use ($userId) {
+        $grouped = PlannerTaskGroup::with(['tasks' => function ($q) use ($teamFilter) {
             $q->where('is_done', false)
-              ->where(function ($q) use ($userId) {
-                  $q->where(function ($q) use ($userId) {
-                      $q->whereNull('project_id')
-                        ->where('user_id', $userId);
-                  })->orWhere(function ($q) use ($userId) {
-                      $q->whereNotNull('project_id')
-                        ->where('user_in_charge_id', $userId)
-                        ->where(function ($subQ) {
-                            $subQ->whereNotNull('project_slot_id') // zuständige Projektaufgabe im Project-Slot
-                                 ->orWhere(function ($slotQ) {
-                                     $slotQ->whereNull('project_slot_id')
-                                           ->whereNull('sprint_slot_id'); // oder ohne Slot-Zuordnung (Backlog)
-                                 });
-                        });
-                  });
-              })
+              ->where($teamFilter)
               ->orderBy('order');
         }])
         ->where('user_id', $userId)
@@ -120,22 +127,7 @@ class MyTasks extends Component
         // === 3. ERLEDIGT ===
         $doneTasks = PlannerTask::query()
             ->where('is_done', true)
-            ->where(function ($q) use ($userId) {
-                $q->where(function ($q) use ($userId) {
-                    $q->whereNull('project_id')
-                      ->where('user_id', $userId);
-                })->orWhere(function ($q) use ($userId) {
-                    $q->whereNotNull('project_id')
-                      ->where('user_in_charge_id', $userId)
-                      ->where(function ($subQ) {
-                          $subQ->whereNotNull('project_slot_id') // zuständige Projektaufgabe im Project-Slot
-                               ->orWhere(function ($slotQ) {
-                                   $slotQ->whereNull('project_slot_id')
-                                         ->whereNull('sprint_slot_id'); // oder ohne Slot-Zuordnung (Backlog)
-                               });
-                      });
-                });
-            })
+            ->where($teamFilter)
             ->orderByDesc('done_at')
             ->get();
 
@@ -185,11 +177,16 @@ class MyTasks extends Component
 
         $monthlyPerformanceScore = $createdPoints > 0 ? round($donePoints / $createdPoints, 2) : null;
 
+        // === TEAMS FÜR FILTER ===
+        $userTeams = $user->teams()->get();
+
         return view('planner::livewire.my-tasks', [
             'groups' => $groups,
             'monthlyPerformanceScore' => $monthlyPerformanceScore,
             'createdPoints' => $createdPoints,
             'donePoints' => $donePoints,
+            'userTeams' => $userTeams,
+            'selectedTeamId' => $this->selectedTeamId,
         ])->layout('platform::layouts.app');
     }
 
