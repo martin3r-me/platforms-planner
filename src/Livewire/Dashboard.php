@@ -65,8 +65,9 @@ class Dashboard extends Component
                 ->where('team_id', $team->id)
                 ->get();
 
-            $openTasks = $myTasks->where('is_done', false)->count();
-            $completedTasks = $myTasks->where('is_done', true)->count();
+            // Viele Alt-Datensätze haben is_done = null für offen → null als offen behandeln
+            $openTasks = $myTasks->filter(fn($t) => !$t->is_done)->count();
+            $completedTasks = $myTasks->filter(fn($t) => (bool)$t->is_done)->count();
             $totalTasks = $myTasks->count();
             $frogTasks = $myTasks->where('is_frog', true)->count();
             $overdueTasks = $myTasks->where('is_done', false)
@@ -75,9 +76,9 @@ class Dashboard extends Component
 
             // === PERSÖNLICHE STORY POINTS ===
             $totalStoryPoints = $myTasks->sum(fn($task) => $task->story_points?->points() ?? 0);
-            $completedStoryPoints = $myTasks->where('is_done', true)
+            $completedStoryPoints = $myTasks->filter(fn($t) => (bool)$t->is_done)
                 ->sum(fn($task) => $task->story_points?->points() ?? 0);
-            $openStoryPoints = $myTasks->where('is_done', false)
+            $openStoryPoints = $myTasks->filter(fn($t) => !$t->is_done)
                 ->sum(fn($task) => $task->story_points?->points() ?? 0);
 
             // === PERSÖNLICHE MONATLICHE PERFORMANCE ===
@@ -270,13 +271,13 @@ class Dashboard extends Component
                 })
                 ->get();
 
-            $openTasks = $memberTasks->where('is_done', false)->count();
-            $completedTasks = $memberTasks->where('is_done', true)->count();
+            $openTasks = $memberTasks->filter(fn($t) => !$t->is_done)->count();
+            $completedTasks = $memberTasks->filter(fn($t) => (bool)$t->is_done)->count();
             $totalTasks = $memberTasks->count();
             $totalStoryPoints = $memberTasks->sum(fn($task) => $task->story_points?->points() ?? 0);
-            $completedStoryPoints = $memberTasks->where('is_done', true)
+            $completedStoryPoints = $memberTasks->filter(fn($t) => (bool)$t->is_done)
                 ->sum(fn($task) => $task->story_points?->points() ?? 0);
-            $openStoryPoints = $memberTasks->where('is_done', false)
+            $openStoryPoints = $memberTasks->filter(fn($t) => !$t->is_done)
                 ->sum(fn($task) => $task->story_points?->points() ?? 0);
 
             return [
@@ -325,7 +326,7 @@ class Dashboard extends Component
             return [
                 'id' => $project->id,
                 'name' => $project->name,
-                'open_tasks' => $projectTasks->where('is_done', false)->count(),
+                'open_tasks' => $projectTasks->filter(fn($t) => !$t->is_done)->count(),
                 'total_tasks' => $projectTasks->count(),
                 'story_points' => $projectTasks->sum(fn($task) => $task->story_points?->points() ?? 0),
             ];
