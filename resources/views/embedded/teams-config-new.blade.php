@@ -242,7 +242,7 @@
                         const selected = allProjects.find(p => String(p.id) === String(projectId));
                         if (selected) projectName = selected.name;
 
-                        const contentUrl = 'https://office.martin3r.me/planner/embedded/planner/projects/' + encodeURIComponent(projectId) + '?name=' + encodeURIComponent(projectName);
+                        const contentUrl = '{{ url('/planner/embedded/planner/projects') }}' + '/' + encodeURIComponent(projectId) + '?name=' + encodeURIComponent(projectName);
                         const config = {
                             contentUrl: contentUrl,
                             websiteUrl: contentUrl,
