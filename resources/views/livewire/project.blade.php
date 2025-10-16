@@ -215,15 +215,7 @@
                     </x-slot>
 
                     @foreach($column->tasks as $task)
-                        <x-ui-kanban-card :title="$task->title" :sortable-id="$task->id" :href="route('planner.tasks.show', $task)">
-                            <div class="text-xs text-[var(--ui-muted)]">
-                                @if($task->due_date)
-                                    Fällig: {{ $task->due_date->format('d.m.Y') }}
-                                @else
-                                    Keine Fälligkeit
-                                @endif
-                            </div>
-                        </x-ui-kanban-card>
+                        @include('planner::livewire.task-preview-card', ['task' => $task])
                     @endforeach
                 </x-ui-kanban-column>
             @endforeach
@@ -233,15 +225,7 @@
             @if($done)
                 <x-ui-kanban-column :title="($done->label ?? 'Erledigt')" :sortable-id="null" :scrollable="true" :muted="true">
                     @foreach($done->tasks as $task)
-                        <x-ui-kanban-card :title="$task->title" :sortable-id="$task->id" :href="route('planner.tasks.show', $task)">
-                            <div class="text-xs text-[var(--ui-muted)]">
-                                @if($task->due_date)
-                                    Fällig: {{ $task->due_date->format('d.m.Y') }}
-                                @else
-                                    Keine Fälligkeit
-                                @endif
-                            </div>
-                        </x-ui-kanban-card>
+                        @include('planner::livewire.task-preview-card', ['task' => $task])
                     @endforeach
                 </x-ui-kanban-column>
             @endif

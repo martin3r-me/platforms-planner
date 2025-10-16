@@ -23,12 +23,16 @@ class ProjectSlotSettingsModal extends Component
     }
 
     #[On('open-modal-project-slot-settings')] 
-    public function openModalProjectSlotSettings($payload)
+    public function openModalProjectSlotSettings($payload = null)
     {
         // Payload kann als ID oder als Array/Objekt { projectSlotId: X } kommen
         $id = is_array($payload)
             ? ($payload['projectSlotId'] ?? $payload['id'] ?? null)
             : (is_object($payload) ? ($payload->projectSlotId ?? $payload->id ?? null) : $payload);
+
+        if(!$id){
+            return; // kein valides Payload, still ignorieren
+        }
 
         $this->projectSlot = PlannerProjectSlot::findOrFail($id);
         $this->modalShow = true;
