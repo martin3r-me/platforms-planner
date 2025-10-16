@@ -1,4 +1,4 @@
-<x-ui-modal size="md" wire:model="modalShow">
+<x-ui-modal size="md" model="modalShow">
     <x-slot name="header">
         <div class="flex items-center gap-3">
             <div class="flex-shrink-0">
