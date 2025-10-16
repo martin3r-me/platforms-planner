@@ -40,7 +40,11 @@ class Task extends Component
     #[Computed]
     public function isDirty(): bool
     {
-        return $this->task ? $this->task->isDirty() : false;
+        if (!$this->task) {
+            return false;
+        }
+        // Nur echte, noch nicht gespeicherte Änderungen berücksichtigen
+        return count($this->task->getDirty()) > 0;
     }
 
     public function rendered()

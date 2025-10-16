@@ -1,21 +1,35 @@
 <x-ui-page>
     <x-slot name="navbar">
-        <x-ui-page-navbar title="" icon="heroicon-o-clipboard-document-check">
+        <x-ui-page-navbar title="">
             <x-slot name="titleActions">
-                @can('update', $task)
-                    <x-ui-button variant="secondary-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-task-settings', { taskId: {{ $task->id }} })" title="Einstellungen">
-                        @svg('heroicon-o-cog-6-tooth','w-4 h-4')
-                    </x-ui-button>
-                    <div x-data="{ dirty: $wire.entangle('isDirty') }">
-                        <x-ui-button x-show="dirty" variant="primary" size="sm" wire:click="save">
+                {{-- Links (links ausgerichtet) --}}
+                <div class="flex items-center space-x-2">
+                    <a href="{{ route('planner.my-tasks') }}" class="text-[var(--ui-secondary)] hover:text-[var(--ui-primary)] flex items-center gap-1">
+                        @svg('heroicon-o-clipboard-document-list', 'w-4 h-4')
+                        Meine Aufgaben
+                    </a>
+                    @if($task->project)
+                        <span class="text-[var(--ui-muted)]">›</span>
+                        <a href="{{ route('planner.projects.show', $task->project) }}" class="text-[var(--ui-secondary)] hover:text-[var(--ui-primary)] flex items-center gap-1">
+                            @svg('heroicon-o-folder', 'w-4 h-4')
+                            Zum Projekt
+                        </a>
+                    @endif
+                </div>
+            </x-slot>
+            {{-- Rechts: Aktionen (Save) --}}
+            @can('update', $task)
+                <div class="flex items-center gap-2">
+                    <div x-data="{ dirty: $wire.entangle('isDirty') }" x-cloak>
+                        <x-ui-button x-show="dirty" x-transition.opacity variant="primary" size="sm" wire:click="save">
                             <span class="inline-flex items-center gap-2">
                                 @svg('heroicon-o-check','w-4 h-4')
                                 Speichern
                             </span>
                         </x-ui-button>
                     </div>
-                @endcan
-            </x-slot>
+                </div>
+            @endcan
             
             
             
