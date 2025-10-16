@@ -1,24 +1,6 @@
 <x-ui-page>
     <x-slot name="navbar">
         <x-ui-page-navbar title="Meine Aufgaben" icon="heroicon-o-clipboard-document-check">
-            {{-- Team-Filter --}}
-            <div class="flex items-center gap-2">
-                <x-ui-input-select
-                    name="teamFilter"
-                    label=""
-                    :options="collect([['id' => null, 'name' => 'Alle Teams (' . $groups->flatMap(fn($g) => $g->tasks)->count() . ' Aufgaben)']])->concat($userTeams->map(function($team) use ($groups) {
-                        $teamTaskCount = $groups->flatMap(fn($g) => $g->tasks)->where('team_id', $team->id)->count();
-                        return ['id' => $team->id, 'name' => $team->name . ' (' . $teamTaskCount . ' Aufgaben)'];
-                    }))"
-                    optionValue="id"
-                    optionLabel="name"
-                    :nullable="false"
-                    wire:model.live="selectedTeamId"
-                    wire:change="filterByTeam($event.target.value)"
-                    class="!w-auto min-w-[180px]"
-                />
-            </div>
-            
             <x-ui-button variant="secondary" size="sm" wire:click="createTaskGroup">
                 <span class="inline-flex items-center gap-2">
                     @svg('heroicon-o-square-2-stack','w-4 h-4 inline-block align-middle')
