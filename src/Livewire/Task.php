@@ -4,6 +4,7 @@ namespace Platform\Planner\Livewire;
 
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Computed;
 use Platform\Planner\Models\PlannerTask;
 
 
@@ -34,6 +35,12 @@ class Task extends Component
         $this->authorize('view', $plannerTask);
         $this->task = $plannerTask;
         $this->dueDateInput = $plannerTask->due_date ? $plannerTask->due_date->format('Y-m-d H:i') : '';
+    }
+
+    #[Computed]
+    public function isDirty(): bool
+    {
+        return $this->task ? $this->task->isDirty() : false;
     }
 
     public function rendered()
