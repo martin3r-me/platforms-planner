@@ -1,18 +1,18 @@
 <x-ui-kanban-card :title="$task->title" :sortable-id="$task->id" :href="route('planner.tasks.show', $task)">
-    <!-- Meta: Team • Projekt • Verantwortlicher • Story Points -->
+    <!-- Team (eigene Zeile) -->
+    @if($task->team)
+        <div class="mb-2">
+            <span class="inline-flex items-center gap-1 text-xs text-[var(--ui-muted)]">
+                @svg('heroicon-o-user-group','w-3.5 h-3.5')
+                <span class="font-medium">{{ $task->team->name }}</span>
+            </span>
+        </div>
+    @endif
+
+    <!-- Meta: Projekt • Verantwortlicher • Story Points -->
     <div class="flex items-center justify-between mb-2 gap-2">
         <div class="flex items-center gap-2 text-xs text-[var(--ui-secondary)] min-w-0">
-            @if($task->team)
-                <span class="inline-flex items-center gap-1 min-w-0">
-                    @svg('heroicon-o-user-group','w-3.5 h-3.5 text-[var(--ui-muted)]')
-                    <span class="truncate max-w-[8rem] font-medium">{{ $task->team->name }}</span>
-                </span>
-            @endif
-
             @if($task->project)
-                @if($task->team)
-                    <span class="text-[var(--ui-muted)]">•</span>
-                @endif
                 <span class="inline-flex items-center gap-1 min-w-0">
                     @svg('heroicon-o-folder','w-3.5 h-3.5')
                     <span class="truncate max-w-[9rem] font-medium">{{ $task->project->name }}</span>
@@ -24,7 +24,7 @@
                 $initials = $owner ? mb_strtoupper(mb_substr($owner->name ?? $owner->email ?? 'U', 0, 1)) : null;
             @endphp
             @if($owner)
-                @if($task->project || $task->team)
+                @if($task->project)
                     <span class="text-[var(--ui-muted)]">•</span>
                 @endif
                 <span class="inline-flex items-center gap-1 min-w-0">

@@ -20,7 +20,7 @@ class MyTasks extends Component
 
     public function filterByTeam($teamId)
     {
-        $this->selectedTeamId = $teamId;
+        $this->selectedTeamId = $teamId === 'null' || $teamId === null ? null : (int) $teamId;
     }
 
     #[On('updateDashboard')] 
@@ -84,7 +84,7 @@ class MyTasks extends Component
             });
             
             // Team-Filter anwenden
-            if ($this->selectedTeamId !== null) {
+            if ($this->selectedTeamId !== null && $this->selectedTeamId !== 'null') {
                 $query->where('team_id', $this->selectedTeamId);
             }
         };

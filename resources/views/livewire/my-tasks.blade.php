@@ -6,13 +6,16 @@
                 <x-ui-input-select
                     name="teamFilter"
                     label=""
-                    :options="collect([['id' => null, 'name' => 'Alle Teams']])->concat($userTeams->map(fn($team) => ['id' => $team->id, 'name' => $team->name]))"
+                    :options="collect([['id' => null, 'name' => 'Alle Teams (' . $groups->flatMap(fn($g) => $g->tasks)->count() . ' Aufgaben)']])->concat($userTeams->map(function($team) use ($groups) {
+                        $teamTaskCount = $groups->flatMap(fn($g) => $g->tasks)->where('team_id', $team->id)->count();
+                        return ['id' => $team->id, 'name' => $team->name . ' (' . $teamTaskCount . ' Aufgaben)'];
+                    }))"
                     optionValue="id"
                     optionLabel="name"
                     :nullable="false"
                     wire:model.live="selectedTeamId"
                     wire:change="filterByTeam($event.target.value)"
-                    class="!w-auto min-w-[140px]"
+                    class="!w-auto min-w-[180px]"
                 />
             </div>
             
