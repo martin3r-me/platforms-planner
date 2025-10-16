@@ -291,6 +291,9 @@ class Dashboard extends Component
                 'total_story_points' => $totalStoryPoints,
                 'completed_story_points' => $completedStoryPoints,
                 'open_story_points' => $openStoryPoints,
+                // Für Tailwind-Komponente x-ui-team-members-list (expects tasks/points)
+                'tasks' => $totalTasks,
+                'points' => $totalStoryPoints,
             ];
         })->sortByDesc('open_tasks');
 
@@ -329,6 +332,9 @@ class Dashboard extends Component
                 'open_tasks' => $projectTasks->filter(fn($t) => !$t->is_done)->count(),
                 'total_tasks' => $projectTasks->count(),
                 'story_points' => $projectTasks->sum(fn($task) => $task->story_points?->points() ?? 0),
+                // Für Tailwind-Komponente x-ui-project-list (expects tasks/points)
+                'tasks' => $projectTasks->count(),
+                'points' => $projectTasks->sum(fn($task) => $task->story_points?->points() ?? 0),
             ];
         })
         ->sortByDesc('open_tasks')
