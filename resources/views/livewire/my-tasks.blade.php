@@ -102,9 +102,9 @@
                             @svg('heroicon-o-plus-circle', 'w-4 h-4')
                         </button>
                         <button 
-                            @click="$dispatch('open-modal-project-slot-settings', { projectSlotId: {{ $column->id }} })"
+                            @click="$dispatch('open-modal-task-group-settings', { taskGroupId: {{ $column->id }} })"
                             class="text-[var(--ui-muted)] hover:text-[var(--ui-primary)] transition-colors"
-                            title="Einstellungen"
+                            title="Gruppen-Einstellungen"
                         >
                             @svg('heroicon-o-cog-6-tooth', 'w-4 h-4')
                         </button>
