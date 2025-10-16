@@ -147,27 +147,21 @@
                 </div>
             </x-ui-form-grid>
 
-            {{-- Status Checkboxes --}}
+            {{-- Status Actions --}}
             <div class="mt-8 pt-8 border-t border-[var(--ui-border)]/60">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <x-ui-panel class="bg-gray-50 rounded-lg">
-                        <x-ui-input-checkbox
-                            model="task.is_done"
-                            checked-label="Erledigt"
-                            unchecked-label="Als erledigt markieren"
-                            size="md"
-                            block="true"
-                        />
-                    </x-ui-panel>
-                    <x-ui-panel class="bg-gray-50 rounded-lg">
-                        <x-ui-input-checkbox
-                            model="task.is_frog"
-                            checked-label="Frosch (wichtig & unangenehm)"
-                            unchecked-label="Als Frosch markieren"
-                            size="md"
-                            block="true"
-                        />
-                    </x-ui-panel>
+                <div class="flex flex-wrap items-center gap-3">
+                    <x-ui-button :variant="$task->is_done ? 'success' : 'secondary-outline'" size="sm" wire:click="toggleDone">
+                        <span class="inline-flex items-center gap-2">
+                            @svg('heroicon-o-check-circle', 'w-4 h-4')
+                            {{ $task->is_done ? 'Erledigt' : 'Als erledigt markieren' }}
+                        </span>
+                    </x-ui-button>
+                    <x-ui-button :variant="$task->is_frog ? 'warning' : 'secondary-outline'" size="sm" wire:click="toggleFrog">
+                        <span class="inline-flex items-center gap-2">
+                            @svg('heroicon-o-exclamation-triangle', 'w-4 h-4')
+                            {{ $task->is_frog ? 'Frosch' : 'Als Frosch markieren' }}
+                        </span>
+                    </x-ui-button>
                 </div>
             </div>
 
@@ -186,65 +180,35 @@
     </x-ui-page-container>
 
     <x-slot name="sidebar">
-        <x-ui-page-sidebar title="Navigation & Details" width="w-80" :defaultOpen="true">
+        <x-ui-page-sidebar title="Übersicht" width="w-80" :defaultOpen="true">
             <div class="p-6 space-y-6">
-                {{-- Navigation --}}
-                <div>
-                    <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-4">Navigation</h3>
-                    <div class="space-y-2">
-                        @if($task->project)
-                            <x-ui-button
-                                variant="secondary-outline"
-                                size="sm"
-                                :href="route('planner.projects.show', ['plannerProject' => $task->project->id])"
-                                wire:navigate
-                                class="w-full"
-                            >
-                                <span class="flex items-center gap-2">
-                                    @svg('heroicon-o-folder', 'w-4 h-4')
-                                    Zum Projekt
-                                </span>
-                            </x-ui-button>
-                        @endif
-                        <x-ui-button
-                            variant="secondary-outline"
-                            size="sm"
-                            :href="route('planner.my-tasks')"
-                            wire:navigate
-                            class="w-full"
-                        >
+                {{-- Quick Links --}}
+                <div class="space-y-2">
+                    @if($task->project)
+                        <x-ui-button variant="secondary-outline" size="sm" :href="route('planner.projects.show', ['plannerProject' => $task->project->id])" wire:navigate class="w-full">
                             <span class="flex items-center gap-2">
-                                @svg('heroicon-o-clipboard-document-list', 'w-4 h-4')
-                                Zu meinen Aufgaben
+                                @svg('heroicon-o-folder', 'w-4 h-4')
+                                Zum Projekt
                             </span>
                         </x-ui-button>
-                    </div>
+                    @endif
+                    <x-ui-button variant="secondary-outline" size="sm" :href="route('planner.my-tasks')" wire:navigate class="w-full">
+                        <span class="flex items-center gap-2">
+                            @svg('heroicon-o-clipboard-document-list', 'w-4 h-4')
+                            Zu meinen Aufgaben
+                        </span>
+                    </x-ui-button>
                 </div>
 
-                {{-- Quick Stats --}}
-                <div>
-                    <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-4">Status</h3>
-                    <div class="space-y-3">
-                        <div class="flex items-center justify-between py-3 px-4 bg-[var(--ui-muted-5)] rounded-lg border border-[var(--ui-border)]/40">
-                            <span class="text-sm font-medium text-[var(--ui-secondary)]">Erledigt</span>
-                            <x-ui-input-checkbox
-                                model="task.is_done"
-                                checked-label=""
-                                unchecked-label=""
-                                size="sm"
-                                block="false"
-                            />
-                        </div>
-                        <div class="flex items-center justify-between py-3 px-4 bg-[var(--ui-muted-5)] rounded-lg border border-[var(--ui-border)]/40">
-                            <span class="text-sm font-medium text-[var(--ui-secondary)]">Frosch</span>
-                            <x-ui-input-checkbox
-                                model="task.is_frog"
-                                checked-label=""
-                                unchecked-label=""
-                                size="sm"
-                                block="false"
-                            />
-                        </div>
+                {{-- Status Badges --}}
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between py-2 px-3 rounded-md border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
+                        <span class="text-xs text-[var(--ui-muted)]">Status</span>
+                        <span class="text-sm font-medium text-[var(--ui-secondary)]">{{ $task->is_done ? 'Erledigt' : 'Offen' }}</span>
+                    </div>
+                    <div class="flex items-center justify-between py-2 px-3 rounded-md border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
+                        <span class="text-xs text-[var(--ui-muted)]">Frosch</span>
+                        <span class="text-sm font-medium text-[var(--ui-secondary)]">{{ $task->is_frog ? 'Ja' : 'Nein' }}</span>
                     </div>
                 </div>
 

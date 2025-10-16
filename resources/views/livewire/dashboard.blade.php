@@ -13,7 +13,6 @@
                     size="sm"
                 />
             </x-slot>
-            <div class="text-sm text-[var(--ui-muted)]">{{ $currentDay }}, {{ $currentDate }}</div>
         </x-ui-page-navbar>
     </x-slot>
 

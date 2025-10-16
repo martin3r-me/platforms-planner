@@ -41,19 +41,17 @@
                 @php $ptype = ($project->project_type?->value ?? $project->project_type); @endphp
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-[var(--ui-body-color)]">Projekttyp</label>
-                    <div class="inline-flex rounded-lg border border-[var(--ui-border)] bg-white overflow-hidden">
-                        <button type="button"
-                                wire:click="setProjectType('internal')"
-                                class="inline-flex items-center gap-2 text-sm h-8 px-3 {{ $ptype==='internal' ? 'bg-[rgb(var(--ui-primary-rgb))] text-[var(--ui-on-primary)]' : 'bg-white text-[var(--ui-body-color)] hover:bg-[var(--ui-muted-5)]' }} border-r border-[var(--ui-border)]">
-                            Intern
-                        </button>
-                        <button type="button"
-                                wire:click="setProjectType('customer')"
-                                @if($ptype==='customer') disabled @endif
-                                class="inline-flex items-center gap-2 text-sm h-8 px-3 {{ $ptype==='customer' ? 'bg-[rgb(var(--ui-primary-rgb))] text-[var(--ui-on-primary)]' : 'bg-white text-[var(--ui-body-color)] hover:bg-[var(--ui-muted-5)]' }}">
-                            Kunde
-                        </button>
-                    </div>
+                    <x-ui-segmented-toggle 
+                        model="projectType"
+                        :current="$ptype"
+                        :options="[
+                            ['value' => 'internal', 'label' => 'Intern'],
+                            ['value' => 'customer', 'label' => 'Kunde'],
+                        ]"
+                        size="sm"
+                        active-variant="primary"
+                        wire:change="setProjectType($event.detail.value)"
+                    />
                     <div class="text-xs text-[var(--ui-muted)]">
                         {{ $ptype==='customer' ? 'Typ: Kunde (nicht zurücksetzbar)' : 'Typ: Intern' }}
                     </div>
@@ -85,27 +83,23 @@
                                     </div>
                                 </div>
                                 
-                                <div class="flex items-center space-x-2">
-                                    {{-- Rolle ändern --}}
-                                    @can('changeRole', $project)
-                                        <select 
-                                            wire:change="changeUserRole({{ $projectUser->user_id }}, $event.target.value)"
-                                            class="text-sm border rounded px-2 py-1"
-                                            @if($projectUser->role === \Platform\Planner\Enums\ProjectRole::OWNER->value) disabled @endif
-                                        >
-                                            @foreach(\Platform\Planner\Enums\ProjectRole::cases() as $role)
-                                                <option value="{{ $role->value }}" 
-                                                    @if($projectUser->role === $role->value) selected @endif
-                                                >
-                                                    {{ ucfirst($role->value) }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                    @else
-                                        <span class="text-sm font-medium px-2 py-1 bg-gray-200 rounded">
-                                            {{ ucfirst($projectUser->role) }}
-                                        </span>
-                                    @endcan
+                            <div class="flex items-center space-x-2">
+                                {{-- Rolle ändern --}}
+                                @can('changeRole', $project)
+                                    <x-ui-input-select
+                                        name="role_{{ $projectUser->user_id }}"
+                                        :options="collect(\Platform\Planner\Enums\ProjectRole::cases())->map(fn($r)=>['value'=>$r->value,'label'=>ucfirst($r->value)])"
+                                        wire:change="changeUserRole({{ $projectUser->user_id }}, $event.target.value)"
+                                        :nullable="false"
+                                        :disabled="$projectUser->role === \Platform\Planner\Enums\ProjectRole::OWNER->value"
+                                        :value="$projectUser->role"
+                                        size="sm"
+                                    />
+                                @else
+                                    <span class="text-sm font-medium px-2 py-1 bg-[var(--ui-muted-5)] rounded">
+                                        {{ ucfirst($projectUser->role) }}
+                                    </span>
+                                @endcan
                                     
                                     {{-- Teilnehmer entfernen --}}
                                     @can('removeMember', $project)
@@ -135,22 +129,17 @@
                             @if($availableUsers->count() > 0)
                                 <div class="space-y-2">
                                     @foreach($availableUsers as $user)
-                                        <div class="flex items-center justify-between p-2 border rounded">
+                                        <div class="flex items-center justify-between p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-surface)]">
                                             <div class="flex items-center space-x-3">
-                                                <div class="w-6 h-6 bg-gray-300 text-gray-700 rounded-full flex items-center justify-center text-xs font-medium">
+                                                <div class="w-6 h-6 bg-[var(--ui-primary-5)] text-[var(--ui-primary)] rounded-full flex items-center justify-center text-xs font-medium">
                                                     {{ substr($user->name, 0, 1) }}
                                                 </div>
                                                 <div>
-                                                    <div class="font-medium text-sm">{{ $user->name }}</div>
-                                                    <div class="text-xs text-gray-500">{{ $user->email }}</div>
+                                                    <div class="font-medium text-sm text-[var(--ui-secondary)]">{{ $user->name }}</div>
+                                                    <div class="text-xs text-[var(--ui-muted)]">{{ $user->email }}</div>
                                                 </div>
                                             </div>
-                                            <button 
-                                                wire:click="addProjectUser({{ $user->id }}, 'member')"
-                                                class="text-primary hover:text-primary-dark text-sm font-medium"
-                                            >
-                                                Hinzufügen
-                                            </button>
+                                            <x-ui-button variant="secondary" size="xs" wire:click="addProjectUser({{ $user->id }}, 'member')">Hinzufügen</x-ui-button>
                                         </div>
                                     @endforeach
                                 </div>

@@ -260,7 +260,8 @@ class ProjectSettingsModal extends Component
         $this->authorize('delete', $this->project);
         
         $this->project->delete();
-        $this->redirect('/');
+        // Nach Planner-Dashboard leiten
+        $this->redirect(route('planner.dashboard'), navigate: true);
     }
 
     public function closeModal()

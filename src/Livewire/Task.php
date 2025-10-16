@@ -127,6 +127,20 @@ class Task extends Component
         ]);
     }
 
+    public function toggleDone(): void
+    {
+        $this->authorize('update', $this->task);
+        $this->task->is_done = (bool)!$this->task->is_done;
+        $this->task->save();
+    }
+
+    public function toggleFrog(): void
+    {
+        $this->authorize('update', $this->task);
+        $this->task->is_frog = (bool)!$this->task->is_frog;
+        $this->task->save();
+    }
+
     public function deleteTask()
     {
         $this->authorize('delete', $this->task);
@@ -146,6 +160,9 @@ class Task extends Component
             return $this->redirect(route('planner.my-tasks'), navigate: true);
         }
         
+        // Zielroute vor dem Löschen bestimmen, damit die Model-Bindung beim Redirect nicht fehlt
+        $redirectUrl = route('planner.projects.show', $this->task->project);
+        
         $this->task->delete();
         
         $this->dispatch('notifications:store', [
@@ -154,7 +171,7 @@ class Task extends Component
             'message' => "Die Aufgabe '{$taskTitle}' wurde gelöscht.",
         ]);
         
-        return $this->redirect(route('planner.projects.show', $this->task->project), navigate: true);
+        return $this->redirect($redirectUrl, navigate: true);
     }
 
     public function deleteTaskAndReturnToDashboard()
