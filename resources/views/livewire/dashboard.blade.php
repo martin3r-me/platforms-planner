@@ -1,38 +1,15 @@
 <x-ui-page>
     <x-slot name="navbar">
-        <x-ui-page-navbar title="Dashboard" icon="heroicon-o-home">
-            <x-slot name="titleActions">
-                <x-ui-segmented-toggle 
-                    model="perspective"
-                    :current="$perspective"
-                    :options="[
-                        ['value' => 'personal', 'label' => 'Persönlich', 'icon' => 'heroicon-o-user'],
-                        ['value' => 'team', 'label' => 'Team', 'icon' => 'heroicon-o-users'],
-                    ]"
-                    active-variant="secondary"
-                    size="sm"
-                />
-            </x-slot>
-        </x-ui-page-navbar>
+        <x-ui-page-navbar title="Dashboard" icon="heroicon-o-home" />
     </x-slot>
 
     <x-ui-page-container>
-            {{-- Info Banner --}}
-            @if($perspective === 'personal')
-                <x-ui-info-banner 
-                    icon="heroicon-o-user"
-                    title="Persönliche Übersicht"
-                    message="Deine persönlichen Aufgaben und zuständigen Projektaufgaben im aktuellen Sprint."
-                    variant="secondary"
-                />
-            @else
-                <x-ui-info-banner 
-                    icon="heroicon-o-users"
-                    title="Team-Übersicht"
-                    message="Alle Aufgaben des Teams in aktiven Projekten und Sprints."
-                    variant="secondary"
-                />
-            @endif
+            <x-ui-info-banner 
+                icon="heroicon-o-users"
+                title="Team-Übersicht"
+                message="Alle Aufgaben des Teams in aktiven Projekten und Sprints."
+                variant="secondary"
+            />
 
             {{-- Main Stats Grid --}}
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

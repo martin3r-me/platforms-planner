@@ -10,7 +10,7 @@ use Carbon\Carbon;
 
 class Dashboard extends Component
 {
-    public $perspective = 'team';
+    public $perspective = 'team'; // legacy, nicht mehr umschaltbar
 
     public function rendered()
     {
@@ -43,132 +43,7 @@ class Dashboard extends Component
         })->count();
         $totalProjects = $projects->count();
 
-        if ($this->perspective === 'personal') {
-            // === PERSÖNLICHE AUFGABEN ===
-            $myTasks = PlannerTask::query()
-                ->where(function ($q) use ($user) {
-                    $q->where(function ($q) use ($user) {
-                        $q->whereNull('project_id')
-                          ->where('user_id', $user->id); // private Aufgaben
-                    })->orWhere(function ($q) use ($user) {
-                        $q->whereNotNull('project_id')
-                          ->where('user_in_charge_id', $user->id)
-                          ->where(function ($subQ) {
-                              $subQ->whereNotNull('project_slot_id') // zuständige Projektaufgabe im Project-Slot
-                                   ->orWhere(function ($slotQ) {
-                                       $slotQ->whereNull('project_slot_id')
-                                             ->whereNull('sprint_slot_id'); // oder ohne Slot-Zuordnung (Backlog)
-                                   });
-                          });
-                    });
-                })
-                ->where('team_id', $team->id)
-                ->get();
-
-            // Viele Alt-Datensätze haben is_done = null für offen → null als offen behandeln
-            $openTasks = $myTasks->filter(fn($t) => !$t->is_done)->count();
-            $completedTasks = $myTasks->filter(fn($t) => (bool)$t->is_done)->count();
-            $totalTasks = $myTasks->count();
-            $frogTasks = $myTasks->where('is_frog', true)->count();
-            $overdueTasks = $myTasks->where('is_done', false)
-                ->filter(fn($task) => $task->due_date && $task->due_date->isPast())
-                ->count();
-
-            // === PERSÖNLICHE STORY POINTS ===
-            $totalStoryPoints = $myTasks->sum(fn($task) => $task->story_points?->points() ?? 0);
-            $completedStoryPoints = $myTasks->filter(fn($t) => (bool)$t->is_done)
-                ->sum(fn($task) => $task->story_points?->points() ?? 0);
-            $openStoryPoints = $myTasks->filter(fn($t) => !$t->is_done)
-                ->sum(fn($task) => $task->story_points?->points() ?? 0);
-
-            // === PERSÖNLICHE MONATLICHE PERFORMANCE ===
-            $monthlyCreatedTasks = PlannerTask::query()
-                ->where('team_id', $team->id)
-                ->where(function ($q) use ($user) {
-                    $q->where(function ($q) use ($user) {
-                        $q->whereNull('project_id')
-                          ->where('user_id', $user->id);
-                    })->orWhere(function ($q) use ($user) {
-                        $q->whereNotNull('project_id')
-                          ->where('user_in_charge_id', $user->id)
-                          ->where(function ($subQ) {
-                              $subQ->whereNotNull('project_slot_id')
-                                   ->orWhere(function ($slotQ) {
-                                       $slotQ->whereNull('project_slot_id')
-                                             ->whereNull('sprint_slot_id');
-                                   });
-                          });
-                    });
-                })
-                ->whereDate('created_at', '>=', $startOfMonth)
-                ->count();
-
-            $monthlyCompletedTasks = PlannerTask::query()
-                ->where('team_id', $team->id)
-                ->where(function ($q) use ($user) {
-                    $q->where(function ($q) use ($user) {
-                        $q->whereNull('project_id')
-                          ->where('user_id', $user->id);
-                    })->orWhere(function ($q) use ($user) {
-                        $q->whereNotNull('project_id')
-                          ->where('user_in_charge_id', $user->id)
-                          ->where(function ($subQ) {
-                              $subQ->whereNotNull('project_slot_id')
-                                   ->orWhere(function ($slotQ) {
-                                       $slotQ->whereNull('project_slot_id')
-                                             ->whereNull('sprint_slot_id');
-                                   });
-                          });
-                    });
-                })
-                ->whereDate('done_at', '>=', $startOfMonth)
-                ->count();
-
-            $monthlyCreatedPoints = PlannerTask::query()
-                ->where('team_id', $team->id)
-                ->where(function ($q) use ($user) {
-                    $q->where(function ($q) use ($user) {
-                        $q->whereNull('project_id')
-                          ->where('user_id', $user->id);
-                    })->orWhere(function ($q) use ($user) {
-                        $q->whereNotNull('project_id')
-                          ->where('user_in_charge_id', $user->id)
-                          ->where(function ($subQ) {
-                              $subQ->whereNotNull('project_slot_id')
-                                   ->orWhere(function ($slotQ) {
-                                       $slotQ->whereNull('project_slot_id')
-                                             ->whereNull('sprint_slot_id');
-                                   });
-                          });
-                    });
-                })
-                ->whereDate('created_at', '>=', $startOfMonth)
-                ->get()
-                ->sum(fn($task) => $task->story_points?->points() ?? 0);
-
-            $monthlyCompletedPoints = PlannerTask::query()
-                ->where('team_id', $team->id)
-                ->where(function ($q) use ($user) {
-                    $q->where(function ($q) use ($user) {
-                        $q->whereNull('project_id')
-                          ->where('user_id', $user->id);
-                    })->orWhere(function ($q) use ($user) {
-                        $q->whereNotNull('project_id')
-                          ->where('user_in_charge_id', $user->id)
-                          ->where(function ($subQ) {
-                              $subQ->whereNotNull('project_slot_id')
-                                   ->orWhere(function ($slotQ) {
-                                       $slotQ->whereNull('project_slot_id')
-                                             ->whereNull('sprint_slot_id');
-                                   });
-                          });
-                    });
-                })
-                ->whereDate('done_at', '>=', $startOfMonth)
-                ->get()
-                ->sum(fn($task) => $task->story_points?->points() ?? 0);
-
-        } else {
+        {
             // === TEAM-AUFGABEN ===
             $teamTasks = PlannerTask::query()
                 ->where('team_id', $team->id)
@@ -298,23 +173,12 @@ class Dashboard extends Component
         })->sortByDesc('open_tasks');
 
         // === PROJEKT-ÜBERSICHT (nur aktive Projekte) ===
-        $perspective = $this->perspective;
+        $perspective = 'team';
         $activeProjectsList = $projects->filter(function($project) {
             return $project->is_active === null || $project->is_active === true;
         })
         ->map(function ($project) use ($user, $perspective) {
-            if ($perspective === 'personal') {
-                $projectTasks = PlannerTask::where('project_id', $project->id)
-                    ->where('user_in_charge_id', $user->id)
-                    ->where(function ($q) {
-                        $q->whereNotNull('project_slot_id')
-                          ->orWhere(function ($slotQ) {
-                              $slotQ->whereNull('project_slot_id')
-                                    ->whereNull('sprint_slot_id');
-                          });
-                    })
-                    ->get();
-            } else {
+            {
                 $projectTasks = PlannerTask::where('project_id', $project->id)
                     ->where(function ($q) {
                         $q->whereNotNull('project_slot_id')
