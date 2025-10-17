@@ -107,23 +107,7 @@
                 </div>
             </x-ui-form-grid>
 
-            {{-- Status Actions --}}
-            <div class="mt-8 pt-8 border-t border-[var(--ui-border)]/60">
-                <div class="flex flex-wrap items-center gap-3">
-                    <x-ui-button :variant="$task->is_done ? 'success' : 'secondary-outline'" size="sm" wire:click="toggleDone">
-                        <span class="inline-flex items-center gap-2">
-                            @svg('heroicon-o-check-circle', 'w-4 h-4')
-                            {{ $task->is_done ? 'Erledigt' : 'Als erledigt markieren' }}
-                        </span>
-                    </x-ui-button>
-                    <x-ui-button :variant="$task->is_frog ? 'warning' : 'secondary-outline'" size="sm" wire:click="toggleFrog">
-                        <span class="inline-flex items-center gap-2">
-                            @svg('heroicon-o-exclamation-triangle', 'w-4 h-4')
-                            {{ $task->is_frog ? 'Frosch' : 'Als Frosch markieren' }}
-                        </span>
-                    </x-ui-button>
-                </div>
-            </div>
+            
 
             {{-- Description --}}
             <div class="mt-8 pt-8 border-t border-[var(--ui-border)]/60">
@@ -195,15 +179,31 @@
                     </x-ui-button>
                 </div>
 
-                {{-- Status Badges --}}
+                {{-- Status (interaktiv, stile wie Statistiken) --}}
                 <div class="space-y-2">
-                    <div class="flex items-center justify-between py-2 px-3 rounded-md border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
-                        <span class="text-xs text-[var(--ui-muted)]">Status</span>
-                        <span class="text-sm font-medium text-[var(--ui-secondary)]">{{ $task->is_done ? 'Erledigt' : 'Offen' }}</span>
+                    <div class="flex items-center justify-between py-2 px-3 rounded-lg bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
+                        <div class="flex items-center gap-2">
+                            @svg('heroicon-o-check-circle', 'w-4 h-4 text-[var(--ui-success)]')
+                            <span class="text-sm text-[var(--ui-secondary)]">Status</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-semibold text-[var(--ui-secondary)]">{{ $task->is_done ? 'Erledigt' : 'Offen' }}</span>
+                            <x-ui-button :variant="$task->is_done ? 'success' : 'secondary-outline'" size="xs" wire:click="toggleDone">
+                                {{ $task->is_done ? 'Zurück' : 'Erledigen' }}
+                            </x-ui-button>
+                        </div>
                     </div>
-                    <div class="flex items-center justify-between py-2 px-3 rounded-md border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
-                        <span class="text-xs text-[var(--ui-muted)]">Frosch</span>
-                        <span class="text-sm font-medium text-[var(--ui-secondary)]">{{ $task->is_frog ? 'Ja' : 'Nein' }}</span>
+                    <div class="flex items-center justify-between py-2 px-3 rounded-lg bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
+                        <div class="flex items-center gap-2">
+                            @svg('heroicon-o-exclamation-triangle', 'w-4 h-4 text-[var(--ui-warning)]')
+                            <span class="text-sm text-[var(--ui-secondary)]">Frosch</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-semibold text-[var(--ui-secondary)]">{{ $task->is_frog ? 'Ja' : 'Nein' }}</span>
+                            <x-ui-button :variant="$task->is_frog ? 'warning' : 'secondary-outline'" size="xs" wire:click="toggleFrog">
+                                {{ $task->is_frog ? 'Zurück' : 'Markieren' }}
+                            </x-ui-button>
+                        </div>
                     </div>
                 </div>
 
