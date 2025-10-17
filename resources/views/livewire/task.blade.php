@@ -1,46 +1,6 @@
 <x-ui-page>
     <x-slot name="navbar">
-        <x-ui-page-navbar title="">
-            <x-slot name="titleActions">
-                {{-- Links (links ausgerichtet) --}}
-                <div class="flex items-center space-x-2">
-                    <a href="{{ route('planner.my-tasks') }}" class="text-[var(--ui-secondary)] hover:text-[var(--ui-primary)] flex items-center gap-1">
-                        @svg('heroicon-o-clipboard-document-list', 'w-4 h-4')
-                        Meine Aufgaben
-                    </a>
-                    @if($task->project)
-                        <span class="text-[var(--ui-muted)]">›</span>
-                        <a href="{{ route('planner.projects.show', $task->project) }}" class="text-[var(--ui-secondary)] hover:text-[var(--ui-primary)] flex items-center gap-1">
-                            @svg('heroicon-o-folder', 'w-4 h-4')
-                            Zum Projekt
-                        </a>
-                    @endif
-                </div>
-            </x-slot>
-            {{-- Rechts: Aktionen (Save) --}}
-            @can('update', $task)
-                <div class="flex items-center gap-2">
-                    @if($this->isDirty())
-                        <x-ui-button variant="primary" size="sm" wire:click="save">
-                            <span class="inline-flex items-center gap-2">
-                                @svg('heroicon-o-check','w-4 h-4')
-                                Speichern
-                            </span>
-                        </x-ui-button>
-                    @endif
-                </div>
-            @endcan
-            
-            
-            
-            
-            @if($printingAvailable)
-                <x-ui-button variant="secondary" size="sm" wire:click="printTask()">
-                    @svg('heroicon-o-printer', 'w-4 h-4')
-                    <span class="hidden sm:inline ml-1">Drucken</span>
-                </x-ui-button>
-            @endif
-        </x-ui-page-navbar>
+        <x-ui-page-navbar title="" />
     </x-slot>
 
     <x-ui-page-container spacing="space-y-8">
@@ -182,6 +142,31 @@
     <x-slot name="sidebar">
         <x-ui-page-sidebar title="Übersicht" width="w-80" :defaultOpen="true">
             <div class="p-6 space-y-6">
+                {{-- Aktionen (Save/Print) --}}
+                <div>
+                    <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-4">Aktionen</h3>
+                    <div class="space-y-2">
+                        @can('update', $task)
+                            @if($this->isDirty())
+                                <x-ui-button variant="primary" size="sm" wire:click="save" class="w-full">
+                                    <span class="inline-flex items-center gap-2">
+                                        @svg('heroicon-o-check','w-4 h-4')
+                                        Speichern
+                                    </span>
+                                </x-ui-button>
+                            @endif
+                        @endcan
+                        @if($printingAvailable)
+                            <x-ui-button variant="secondary" size="sm" wire:click="printTask()" class="w-full">
+                                <span class="inline-flex items-center gap-2">
+                                    @svg('heroicon-o-printer', 'w-4 h-4')
+                                    Drucken
+                                </span>
+                            </x-ui-button>
+                        @endif
+                    </div>
+                </div>
+
                 {{-- Quick Links --}}
                 <div class="space-y-2">
                     @if($task->project)
