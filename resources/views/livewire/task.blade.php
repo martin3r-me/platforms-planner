@@ -164,6 +164,16 @@
                                 </span>
                             </x-ui-button>
                         @endif
+                        @can('delete', $task)
+                            <x-ui-confirm-button 
+                                action="deleteTask" 
+                                text="Löschen" 
+                                confirmText="Wirklich löschen?" 
+                                variant="danger"
+                                :icon="@svg('heroicon-o-trash', 'w-4 h-4')->toHtml()"
+                                class="w-full"
+                            />
+                        @endcan
                     </div>
                 </div>
 
@@ -197,43 +207,9 @@
                     </div>
                 </div>
 
-                {{-- Metrics --}}
-                <div>
-                    <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-4">Metriken</h3>
-                    <div class="space-y-3">
-                        @if($task->userInCharge)
-                            <div class="py-3 px-4 bg-[var(--ui-info-5)] rounded-lg border-l-4 border-[var(--ui-info)]">
-                                <div class="text-xs text-[var(--ui-info)] font-medium uppercase tracking-wide">Verantwortlicher</div>
-                                <div class="text-lg font-bold text-[var(--ui-info)]">{{ $task->userInCharge->fullname ?? $task->userInCharge->name }}</div>
-                            </div>
-                        @endif
-                        <div class="py-3 px-4 bg-[var(--ui-primary-5)] rounded-lg border-l-4 border-[var(--ui-primary)]">
-                            <div class="text-xs text-[var(--ui-primary)] font-medium uppercase tracking-wide">Offen seit</div>
-                            <div class="text-lg font-bold text-[var(--ui-primary)]">{{ optional($task->created_at)->diffForHumans(null, true) }}</div>
-                        </div>
-                        <div class="py-3 px-4 bg-[var(--ui-muted-5)] rounded-lg border border-[var(--ui-border)]/40">
-                            <div class="text-xs text-[var(--ui-muted)] font-medium uppercase tracking-wide">Kommentare</div>
-                            <div class="text-lg font-bold text-[var(--ui-secondary)]">0</div>
-                        </div>
-                    </div>
-                </div>
+                
 
-                {{-- Actions --}}
-                <div>
-                    <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-4">Aktionen</h3>
-                    <div class="space-y-2">
-                        @can('delete', $task)
-                            <x-ui-confirm-button 
-                                action="deleteTask" 
-                                text="Löschen" 
-                                confirmText="Wirklich löschen?" 
-                                variant="danger"
-                                :icon="@svg('heroicon-o-trash', 'w-4 h-4')->toHtml()"
-                                class="w-full"
-                            />
-                        @endcan
-                    </div>
-                </div>
+                
             </div>
         </x-ui-page-sidebar>
     </x-slot>
