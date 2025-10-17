@@ -89,35 +89,44 @@
     {{-- Neues Layout via x-ui-page --}}
     <x-ui-page>
         <x-slot name="navbar">
-            <x-ui-page-navbar :title="$project->name" icon="heroicon-o-clipboard-document-list">
-                <x-slot name="titleActions">
-                    <x-ui-button variant="secondary-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })" title="Einstellungen">
-                        @svg('heroicon-o-cog-6-tooth','w-4 h-4')
-                    </x-ui-button>
-                </x-slot>
-                    <x-ui-button variant="secondary" size="sm" wire:click="createProjectSlot">
-                        <span class="inline-flex items-center gap-2">
-                            @svg('heroicon-o-square-2-stack','w-4 h-4')
-                            <span class="hidden sm:inline">Spalte</span>
-                        </span>
-                    </x-ui-button>
-                    <x-ui-button variant="secondary" size="sm" wire:click="createTask()">
-                        <span class="inline-flex items-center gap-2">
-                            @svg('heroicon-o-plus','w-4 h-4')
-                            <span class="hidden sm:inline">Aufgabe</span>
-                        </span>
-                    </x-ui-button>
-                @if(($project->project_type?->value ?? $project->project_type) === 'customer')
-                    <x-ui-button variant="secondary-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="$dispatch('open-modal-customer-project', { projectId: {{ $project->id }} })">
-                        @svg('heroicon-o-user-group','w-4 h-4')
-                    </x-ui-button>
-                @endif
-            </x-ui-page-navbar>
+            <x-ui-page-navbar :title="$project->name" icon="heroicon-o-clipboard-document-list" />
         </x-slot>
 
         <x-slot name="sidebar">
             <x-ui-page-sidebar title="Projekt-Übersicht" width="w-80" :defaultOpen="true">
                 <div class="p-4 space-y-4">
+                    {{-- Aktionen aus Navbar verschoben --}}
+                    <div>
+                        <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Aktionen</h3>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <x-ui-button variant="secondary" size="sm" wire:click="createProjectSlot">
+                                <span class="inline-flex items-center gap-2">
+                                    @svg('heroicon-o-square-2-stack','w-4 h-4')
+                                    <span class="hidden sm:inline">Spalte</span>
+                                </span>
+                            </x-ui-button>
+                            <x-ui-button variant="secondary" size="sm" wire:click="createTask()">
+                                <span class="inline-flex items-center gap-2">
+                                    @svg('heroicon-o-plus','w-4 h-4')
+                                    <span class="hidden sm:inline">Aufgabe</span>
+                                </span>
+                            </x-ui-button>
+                            <x-ui-button variant="secondary-outline" size="sm" x-data @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })">
+                                <span class="inline-flex items-center gap-2">
+                                    @svg('heroicon-o-cog-6-tooth','w-4 h-4')
+                                    <span class="hidden sm:inline">Einstellungen</span>
+                                </span>
+                            </x-ui-button>
+                            @if(($project->project_type?->value ?? $project->project_type) === 'customer')
+                                <x-ui-button variant="secondary-outline" size="sm" x-data @click="$dispatch('open-modal-customer-project', { projectId: {{ $project->id }} })">
+                                    <span class="inline-flex items-center gap-2">
+                                        @svg('heroicon-o-user-group','w-4 h-4')
+                                        <span class="hidden sm:inline">Kunden</span>
+                                    </span>
+                                </x-ui-button>
+                            @endif
+                        </div>
+                    </div>
                     <!-- Projekt-Statistiken -->
                     <div>
                         <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Statistiken</h3>
