@@ -4,12 +4,7 @@
     </x-slot>
 
     <x-ui-page-container>
-            <x-ui-info-banner 
-                icon="heroicon-o-users"
-                title="Team-Übersicht"
-                message="Alle Aufgaben des Teams in aktiven Projekten und Sprints."
-                variant="secondary"
-            />
+
 
             {{-- Main Stats Grid --}}
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
