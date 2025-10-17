@@ -1,27 +1,29 @@
 <x-ui-page>
     <x-slot name="navbar">
-        <x-ui-page-navbar title="Meine Aufgaben" icon="heroicon-o-clipboard-document-check">
-            <x-ui-button variant="secondary" size="sm" wire:click="createTaskGroup">
-                <span class="inline-flex items-center gap-2">
-                    @svg('heroicon-o-square-2-stack','w-4 h-4 inline-block align-middle')
-                    <span class="hidden sm:inline">Spalte</span>
-                </span>
-            </x-ui-button>
-            <x-ui-button variant="secondary" size="sm" wire:click="createTask()">
-                <span class="inline-flex items-center gap-2">
-                    @svg('heroicon-o-plus','w-4 h-4 inline-block align-middle')
-                    <span class="hidden sm:inline">Aufgabe</span>
-                </span>
-            </x-ui-button>
-            <x-ui-button variant="secondary-ghost" size="sm" rounded="full" iconOnly="true" x-data @click="Alpine.store('page').activityOpen = !Alpine.store('page').activityOpen" title="Aktivitäten">
-                @svg('heroicon-o-bell-alert','w-4 h-4')
-            </x-ui-button>
-        </x-ui-page-navbar>
+        <x-ui-page-navbar title="Meine Aufgaben" icon="heroicon-o-clipboard-document-check" />
     </x-slot>
 
     <x-slot name="sidebar">
         <x-ui-page-sidebar title="Übersicht" width="w-80" :defaultOpen="true">
             <div class="p-4 space-y-4">
+                {{-- Quick Actions verschoben aus Navbar --}}
+                <div>
+                    <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Aktionen</h3>
+                    <div class="flex items-center gap-2">
+                        <x-ui-button variant="secondary" size="sm" wire:click="createTaskGroup">
+                            <span class="inline-flex items-center gap-2">
+                                @svg('heroicon-o-square-2-stack','w-4 h-4 inline-block align-middle')
+                                <span class="hidden sm:inline">Spalte</span>
+                            </span>
+                        </x-ui-button>
+                        <x-ui-button variant="secondary" size="sm" wire:click="createTask()">
+                            <span class="inline-flex items-center gap-2">
+                                @svg('heroicon-o-plus','w-4 h-4 inline-block align-middle')
+                                <span class="hidden sm:inline">Aufgabe</span>
+                            </span>
+                        </x-ui-button>
+                    </div>
+                </div>
                 <div>
                     <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Statistiken</h3>
                     <div class="space-y-2">
