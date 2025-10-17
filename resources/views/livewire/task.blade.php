@@ -181,30 +181,20 @@
 
                 {{-- Status (interaktiv, stile wie Statistiken) --}}
                 <div class="space-y-2">
-                    <div class="flex items-center justify-between py-2 px-3 rounded-lg bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
+                    <button type="button" wire:click="toggleDone" class="w-full text-left flex items-center justify-between py-2 px-3 rounded-lg bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40 hover:bg-[var(--ui-primary-5)] transition-colors cursor-pointer">
                         <div class="flex items-center gap-2">
                             @svg('heroicon-o-check-circle', 'w-4 h-4 text-[var(--ui-success)]')
                             <span class="text-sm text-[var(--ui-secondary)]">Status</span>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-sm font-semibold text-[var(--ui-secondary)]">{{ $task->is_done ? 'Erledigt' : 'Offen' }}</span>
-                            <x-ui-button :variant="$task->is_done ? 'success' : 'secondary-outline'" size="xs" wire:click="toggleDone">
-                                {{ $task->is_done ? 'Zurück' : 'Erledigen' }}
-                            </x-ui-button>
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-between py-2 px-3 rounded-lg bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
+                        <span class="text-sm font-semibold text-[var(--ui-secondary)]">{{ $task->is_done ? 'Erledigt' : 'Offen' }}</span>
+                    </button>
+                    <button type="button" wire:click="toggleFrog" class="w-full text-left flex items-center justify-between py-2 px-3 rounded-lg bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40 hover:bg-[var(--ui-primary-5)] transition-colors cursor-pointer">
                         <div class="flex items-center gap-2">
                             @svg('heroicon-o-exclamation-triangle', 'w-4 h-4 text-[var(--ui-warning)]')
                             <span class="text-sm text-[var(--ui-secondary)]">Frosch</span>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-sm font-semibold text-[var(--ui-secondary)]">{{ $task->is_frog ? 'Ja' : 'Nein' }}</span>
-                            <x-ui-button :variant="$task->is_frog ? 'warning' : 'secondary-outline'" size="xs" wire:click="toggleFrog">
-                                {{ $task->is_frog ? 'Zurück' : 'Markieren' }}
-                            </x-ui-button>
-                        </div>
-                    </div>
+                        <span class="text-sm font-semibold text-[var(--ui-secondary)]">{{ $task->is_frog ? 'Ja' : 'Nein' }}</span>
+                    </button>
                 </div>
 
                 
