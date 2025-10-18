@@ -64,13 +64,7 @@ class MyTasks extends Component
                 })->orWhere(function ($q) use ($userId) {
                     $q->whereNotNull('project_id')
                       ->where('user_in_charge_id', $userId)
-                      ->where(function ($subQ) {
-                          $subQ->whereNotNull('project_slot_id') // zuständige Projektaufgabe im Project-Slot
-                               ->orWhere(function ($slotQ) {
-                                   $slotQ->whereNull('project_slot_id')
-                                         ->whereNull('sprint_slot_id'); // oder ohne Slot-Zuordnung (Backlog)
-                               });
-                      });
+                      ->whereNotNull('project_slot_id'); // nur Projektaufgaben mit Project-Slot (nicht Backlog)
                 });
             })
             ->orderBy('order')
@@ -95,13 +89,7 @@ class MyTasks extends Component
                   })->orWhere(function ($q) use ($userId) {
                       $q->whereNotNull('project_id')
                         ->where('user_in_charge_id', $userId)
-                        ->where(function ($subQ) {
-                            $subQ->whereNotNull('project_slot_id') // zuständige Projektaufgabe im Project-Slot
-                                 ->orWhere(function ($slotQ) {
-                                     $slotQ->whereNull('project_slot_id')
-                                           ->whereNull('sprint_slot_id'); // oder ohne Slot-Zuordnung (Backlog)
-                                 });
-                        });
+                        ->whereNotNull('project_slot_id'); // nur Projektaufgaben mit Project-Slot (nicht Backlog)
                   });
               })
               ->orderBy('order');
@@ -128,13 +116,7 @@ class MyTasks extends Component
                 })->orWhere(function ($q) use ($userId) {
                     $q->whereNotNull('project_id')
                       ->where('user_in_charge_id', $userId)
-                      ->where(function ($subQ) {
-                          $subQ->whereNotNull('project_slot_id') // zuständige Projektaufgabe im Project-Slot
-                               ->orWhere(function ($slotQ) {
-                                   $slotQ->whereNull('project_slot_id')
-                                         ->whereNull('sprint_slot_id'); // oder ohne Slot-Zuordnung (Backlog)
-                               });
-                      });
+                      ->whereNotNull('project_slot_id'); // nur Projektaufgaben mit Project-Slot (nicht Backlog)
                 });
             })
             ->orderByDesc('done_at')
