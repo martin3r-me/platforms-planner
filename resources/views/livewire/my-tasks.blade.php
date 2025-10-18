@@ -97,14 +97,14 @@
                 <x-ui-kanban-column :title="($column->label ?? $column->name ?? 'Spalte')" :sortable-id="$column->id" :scrollable="true">
                     <x-slot name="headerActions">
                         <button 
-                            wire:click="createTask('{{ $column->id }}')" 
+                            wire:click="createTask('{{ $column->id ?? 0 }}')" 
                             class="text-[var(--ui-muted)] hover:text-[var(--ui-primary)] transition-colors"
                             title="Neue Aufgabe"
                         >
                             @svg('heroicon-o-plus-circle', 'w-4 h-4')
                         </button>
                         <button 
-                            @click="$dispatch('open-modal-task-group-settings', { taskGroupId: {{ $column->id }} })"
+                            @click="$dispatch('open-modal-task-group-settings', { taskGroupId: {{ $column->id ?? 0 }} })"
                             class="text-[var(--ui-muted)] hover:text-[var(--ui-primary)] transition-colors"
                             title="Gruppen-Einstellungen"
                         >
