@@ -65,11 +65,12 @@ class AiBuildManifests extends Command
                         'soft_deletes' => $usesSoftDeletes,
                         'fields' => $this->buildFields($columns, $casts, $fillable),
                         'relations' => [],
-                        'operations' => ['read'],
+                        'operations' => ['read','write'],
                         'defaults' => [
                             'sort' => $this->suggestSort($columns),
                             'filters' => $this->suggestFilters($columns),
                         ],
+                        'write_schemas' => $this->suggestWriteSchemas($fullEntityKey, $columns),
                         'built_at' => now()->toISOString(),
                         'schema_version' => '1.0.0',
                     ];
@@ -149,5 +150,33 @@ class AiBuildManifests extends Command
             $filters[] = ['field' => 'is_done', 'op' => 'eq', 'value' => false];
         }
         return $filters;
+    }
+
+    private function suggestWriteSchemas(string $entityKey, array $columns): array
+    {
+        // Minimal MVP for planner.tasks
+        if ($entityKey === 'planner.tasks' || $entityKey === 'planner.task' || str_contains($entityKey, 'tasks')) {
+            return [
+                'create' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'title' => ['type' => 'string'],
+                        'description' => ['type' => 'string'],
+                        'is_frog' => ['type' => 'boolean'],
+                    ],
+                    'required' => ['title']
+                ],
+                'update' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'title' => ['type' => 'string'],
+                        'description' => ['type' => 'string'],
+                        'is_done' => ['type' => 'boolean']
+                    ],
+                    'required' => []
+                ],
+            ];
+        }
+        return [];
     }
 }
