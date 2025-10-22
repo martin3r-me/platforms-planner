@@ -14,15 +14,7 @@ use Platform\ActivityLog\Traits\LogsActivity;
 use Platform\Media\Traits\HasMedia;
 
 /**
- * PlannerTask Model
- * 
- * Repräsentiert eine Task (Aufgabe) im Planner-Modul.
- * Tasks können in Project Slots, Sprints oder Task Groups organisiert werden.
- * 
- * @hint Tasks sind Aufgaben, die in Project Slots organisiert werden
- * @hint Tasks haben Prioritäten, Story Points und Due Dates
- * @hint Tasks können Benutzern und Teams zugewiesen werden
- * @hint Tasks können in Sprints oder Task Groups organisiert werden
+ * @ai.description Aufgaben können optional einem Projekt zugeordnet sein (über ProjectSlot). Ohne Projekt sind es persönliche Aufgaben des Nutzers. TaskGroups und Slots dienen der Planung und Strukturierung der Arbeit.
  */
 class PlannerTask extends Model
 {

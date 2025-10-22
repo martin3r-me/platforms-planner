@@ -10,15 +10,7 @@ use Symfony\Component\Uid\UuidV7;
 use Illuminate\Support\Facades\Log;
 
 /**
- * PlannerProject Model
- * 
- * Repräsentiert ein Projekt im Planner-Modul.
- * Projekte haben Project Slots (auch als "slots" bezeichnet), die Tasks enthalten.
- * 
- * @hint Project Slots sind Container für Tasks in einem Projekt
- * @hint Projekte haben Sprints und Project Slots
- * @hint Jedes Projekt gehört zu einem Team und einem User
- * @hint Projekte können Kunden-Projekte sein
+ * @ai.description Projekt bündelt Aufgaben (Tasks) und Sprints. Dient als Container für Planung, Ressourcen und Fortschritt eines Vorhabens im Team.
  */
 class PlannerProject extends Model
 {

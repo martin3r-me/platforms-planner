@@ -8,15 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Symfony\Component\Uid\UuidV7;
 
 /**
- * PlannerProjectSlot Model
- * 
- * Repräsentiert einen Project Slot (auch als "slot" bezeichnet) in einem Projekt.
- * Project Slots sind Container für Tasks und organisieren die Arbeit in einem Projekt.
- * 
- * @hint Project Slots sind Container für Tasks in einem Projekt
- * @hint Slots organisieren die Arbeit in einem Projekt
- * @hint Jeder Slot gehört zu einem Projekt und kann Tasks enthalten
- * @hint Slots können Benutzern und Teams zugewiesen werden
+ * @ai.description ProjectSlot verortet Aufgaben zeitlich/strukturell in einem Projekt (z. B. Sprint/Phase/Swimlane) und ermöglicht klare Zuordnung.
  */
 class PlannerProjectSlot extends Model
 {

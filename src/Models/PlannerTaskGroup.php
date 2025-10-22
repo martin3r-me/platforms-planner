@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use Symfony\Component\Uid\UuidV7;
 use Illuminate\Support\Facades\Auth;
 
+/**
+ * @ai.description TaskGroup gruppiert thematisch/organisatorisch Aufgaben und hilft bei der Planung (z. B. in Backlogs oder Bereichen).
+ */
 class PlannerTaskGroup extends Model
 {
     protected $fillable = ['label', 'order', 'user_id', 'team_id'];
