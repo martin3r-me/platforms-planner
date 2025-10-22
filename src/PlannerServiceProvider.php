@@ -29,6 +29,7 @@ class PlannerServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 \Platform\Planner\Console\Commands\MigrateSprintSlotsToProjectSlots::class,
+                \Platform\Planner\Console\Commands\AiBuildManifests::class,
             ]);
         }
     }
