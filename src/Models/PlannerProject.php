@@ -72,4 +72,14 @@ class PlannerProject extends Model
     {
         return $this->hasOne(\Platform\Planner\Models\PlannerCustomerProject::class, 'project_id');
     }
+
+    /**
+     * Tasks Relation
+     * 
+     * @hint Alle Tasks eines Projekts abrufen (direkt über project_id)
+     */
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(PlannerTask::class, 'project_id');
+    }
 }

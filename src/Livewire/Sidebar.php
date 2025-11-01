@@ -6,16 +6,23 @@ use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Platform\Planner\Models\PlannerProject as Project;
 use Platform\Planner\Models\PlannerProjectSlot as ProjectSlot;
+use Platform\Planner\Models\PlannerTask;
 use Livewire\Attributes\On; 
 
 
 class Sidebar extends Component
 {
+    public bool $showAllProjects = false;
 
     #[On('updateSidebar')] 
     public function updateSidebar()
     {
         
+    }
+
+    public function toggleShowAllProjects()
+    {
+        $this->showAllProjects = !$this->showAllProjects;
     }
 
     public function createProject()
@@ -60,26 +67,79 @@ class Sidebar extends Component
 
     public function render()
     {
-        // Dynamische Projekte holen, z. B. team-basiert
-        $projects = Project::query()
-            ->where('team_id', auth()->user()?->currentTeam->id ?? null)
+        $user = auth()->user();
+        $teamId = $user?->currentTeam->id ?? null;
+
+        if (!$user || !$teamId) {
+            return view('planner::livewire.sidebar', [
+                'customerProjects' => collect(),
+                'internalProjects' => collect(),
+                'hasMoreProjects' => false,
+                'allCustomerProjectsCount' => 0,
+                'allInternalProjectsCount' => 0,
+            ]);
+        }
+
+        // Projekte, bei denen der User Aufgaben hat (über ProjectSlots oder direkt)
+        $projectsWithUserTasks = Project::query()
+            ->where('team_id', $teamId)
+            ->where(function ($query) use ($user) {
+                // Aufgaben über ProjectSlots
+                $query->whereHas('projectSlots.tasks', function ($q) use ($user) {
+                    $q->where('user_in_charge_id', $user->id)
+                      ->where('is_done', false);
+                })
+                // Oder Aufgaben direkt am Projekt
+                ->orWhereHas('tasks', function ($q) use ($user) {
+                    $q->where('user_in_charge_id', $user->id)
+                      ->where('is_done', false)
+                      ->whereNull('project_slot_id');
+                });
+            })
             ->orderBy('name')
             ->get();
 
-        $customerProjects = $projects->filter(function ($p) {
+        // Alle Projekte
+        $allProjects = Project::query()
+            ->where('team_id', $teamId)
+            ->orderBy('name')
+            ->get();
+
+        // Projekte filtern: nur solche mit User-Aufgaben, oder alle
+        $projectsToShow = $this->showAllProjects 
+            ? $allProjects 
+            : $projectsWithUserTasks;
+
+        // Nach Typ trennen
+        $customerProjects = $projectsToShow->filter(function ($p) {
             $type = is_string($p->project_type) ? $p->project_type : ($p->project_type?->value ?? null);
             return $type === 'customer';
         });
 
-        $internalProjects = $projects->filter(function ($p) {
+        $internalProjects = $projectsToShow->filter(function ($p) {
             $type = is_string($p->project_type) ? $p->project_type : ($p->project_type?->value ?? null);
             return $type !== 'customer';
         });
 
+        // Alle Projekte für den Button
+        $allCustomerProjects = $allProjects->filter(function ($p) {
+            $type = is_string($p->project_type) ? $p->project_type : ($p->project_type?->value ?? null);
+            return $type === 'customer';
+        });
+
+        $allInternalProjects = $allProjects->filter(function ($p) {
+            $type = is_string($p->project_type) ? $p->project_type : ($p->project_type?->value ?? null);
+            return $type !== 'customer';
+        });
+
+        $hasMoreProjects = $allProjects->count() > $projectsWithUserTasks->count();
+
         return view('planner::livewire.sidebar', [
-            'projects' => $projects,
             'customerProjects' => $customerProjects,
             'internalProjects' => $internalProjects,
+            'hasMoreProjects' => $hasMoreProjects,
+            'allCustomerProjectsCount' => $allCustomerProjects->count(),
+            'allInternalProjectsCount' => $allInternalProjects->count(),
         ]);
     }
 }
