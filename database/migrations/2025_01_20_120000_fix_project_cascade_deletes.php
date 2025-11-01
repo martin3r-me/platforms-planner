@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -21,15 +22,22 @@ return new class extends Migration
         });
 
         // 2. Fix planner_project_users.project_id: Foreign Key mit cascade hinzufügen
+        // Prüfe ob Foreign Key existiert und entferne ihn falls vorhanden
+        $foreignKeys = DB::select("
+            SELECT CONSTRAINT_NAME 
+            FROM information_schema.KEY_COLUMN_USAGE 
+            WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = 'planner_project_users'
+            AND COLUMN_NAME = 'project_id'
+            AND REFERENCED_TABLE_NAME IS NOT NULL
+        ");
+        
+        foreach ($foreignKeys as $foreignKey) {
+            DB::statement("ALTER TABLE `planner_project_users` DROP FOREIGN KEY `{$foreignKey->CONSTRAINT_NAME}`");
+        }
+        
+        // Foreign Key mit cascade hinzufügen
         Schema::table('planner_project_users', function (Blueprint $table) {
-            // Foreign Key entfernen falls vorhanden
-            try {
-                $table->dropForeign(['project_id']);
-            } catch (\Exception $e) {
-                // Foreign Key existiert nicht, das ist ok
-            }
-            
-            // Foreign Key mit cascade hinzufügen
             $table->foreign('project_id')
                 ->references('id')
                 ->on('planner_projects')
