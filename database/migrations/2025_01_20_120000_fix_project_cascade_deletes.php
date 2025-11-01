@@ -22,6 +22,14 @@ return new class extends Migration
         });
 
         // 2. Fix planner_project_users.project_id: Foreign Key mit cascade hinzufügen
+        // Zuerst: Verwaiste Einträge löschen (project_id verweist auf nicht-existierende Projekte)
+        DB::statement("
+            DELETE ppu FROM planner_project_users ppu
+            LEFT JOIN planner_projects pp ON ppu.project_id = pp.id
+            WHERE ppu.project_id IS NOT NULL 
+            AND pp.id IS NULL
+        ");
+        
         // Prüfe ob Foreign Key existiert und entferne ihn falls vorhanden
         $foreignKeys = DB::select("
             SELECT CONSTRAINT_NAME 
