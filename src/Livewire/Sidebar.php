@@ -80,20 +80,24 @@ class Sidebar extends Component
             ]);
         }
 
-        // Projekte, bei denen der User Aufgaben hat (über ProjectSlots oder direkt)
+        // Projekte, bei denen der User Aufgaben hat ODER Mitglied ist
         $projectsWithUserTasks = Project::query()
             ->where('team_id', $teamId)
             ->where(function ($query) use ($user) {
-                // Aufgaben über ProjectSlots
+                // 1. Projekte, bei denen der User Aufgaben hat (über ProjectSlots)
                 $query->whereHas('projectSlots.tasks', function ($q) use ($user) {
                     $q->where('user_in_charge_id', $user->id)
                       ->where('is_done', false);
                 })
-                // Oder Aufgaben direkt am Projekt
+                // 2. Oder Aufgaben direkt am Projekt
                 ->orWhereHas('tasks', function ($q) use ($user) {
                     $q->where('user_in_charge_id', $user->id)
                       ->where('is_done', false)
                       ->whereNull('project_slot_id');
+                })
+                // 3. Oder Projekte, bei denen der User Mitglied ist (Owner/Admin/Member/Viewer)
+                ->orWhereHas('projectUsers', function ($q) use ($user) {
+                    $q->where('user_id', $user->id);
                 });
             })
             ->orderBy('name')
