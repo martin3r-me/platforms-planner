@@ -20,16 +20,16 @@
             @endif
 
             @php
-                $owner = $task->assignee ?? ($task->user ?? null);
-                $initials = $owner ? mb_strtoupper(mb_substr($owner->name ?? $owner->email ?? 'U', 0, 1)) : null;
+                $userInCharge = $task->userInCharge ?? null;
+                $initials = $userInCharge ? mb_strtoupper(mb_substr($userInCharge->name ?? $userInCharge->email ?? 'U', 0, 1)) : null;
             @endphp
-            @if($owner)
+            @if($userInCharge)
                 @if($task->project)
                     <span class="text-[var(--ui-muted)]">•</span>
                 @endif
                 <span class="inline-flex items-center gap-1 min-w-0">
                     <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/60 text-[10px] text-[var(--ui-secondary)]">{{ $initials }}</span>
-                    <span class="truncate max-w-[7rem]">{{ $owner->name ?? $owner->email }}</span>
+                    <span class="truncate max-w-[7rem]">{{ $userInCharge->name ?? $userInCharge->email }}</span>
                 </span>
             @endif
         </div>

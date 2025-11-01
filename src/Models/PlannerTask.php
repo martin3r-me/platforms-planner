@@ -99,4 +99,9 @@ class PlannerTask extends Model
     {
         return $this->belongsTo(PlannerProjectSlot::class, 'project_slot_id');
     }
+
+    public function userInCharge()
+    {
+        return $this->belongsTo(\Platform\Core\Models\User::class, 'user_in_charge_id');
+    }
 }
