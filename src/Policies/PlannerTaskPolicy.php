@@ -19,12 +19,17 @@ class PlannerTaskPolicy extends BasePolicy
             return true;
         }
 
-        // 2. Aufgabe ohne Projekt: Nur Owner
+        // 2. Zugewiesener User (Verantwortlicher) kann sehen
+        if ($task->user_in_charge_id === $user->id) {
+            return true;
+        }
+
+        // 3. Aufgabe ohne Projekt: Nur Owner
         if (!$task->project_id) {
             return false;
         }
 
-        // 3. Aufgabe mit Projekt: Projekt-Berechtigung prüfen
+        // 4. Aufgabe mit Projekt: Projekt-Mitgliedschaft reicht (egal in welchem Team)
         $project = $task->project;
         if (!$project) {
             return false;
@@ -129,8 +134,8 @@ class PlannerTaskPolicy extends BasePolicy
             return true;
         }
 
-        // 2. Zugewiesener User kann abschließen
-        if ($task->assigned_user_id === $user->id) {
+        // 2. Zugewiesener User (Verantwortlicher) kann abschließen
+        if ($task->user_in_charge_id === $user->id) {
             return true;
         }
 
@@ -153,12 +158,7 @@ class PlannerTaskPolicy extends BasePolicy
      */
     protected function canAccessProject(User $user, $project): bool
     {
-        // Team-Zugriff prüfen
-        if (!$this->isInTeam($user, $project)) {
-            return false;
-        }
-
-        // Projekt-Rolle prüfen
+        // Projekt-Mitgliedschaft prüfen (egal in welchem Team)
         $userRole = $this->getUserProjectRole($user, $project);
         return $userRole !== null;
     }
@@ -168,12 +168,7 @@ class PlannerTaskPolicy extends BasePolicy
      */
     protected function canWriteProject(User $user, $project): bool
     {
-        // Team-Zugriff prüfen
-        if (!$this->isInTeam($user, $project)) {
-            return false;
-        }
-
-        // Projekt-Schreibrolle prüfen
+        // Projekt-Schreibrolle prüfen (egal in welchem Team)
         $userRole = $this->getUserProjectRole($user, $project);
         return in_array($userRole, ['owner', 'admin', 'member'], true);
     }
@@ -183,12 +178,7 @@ class PlannerTaskPolicy extends BasePolicy
      */
     protected function canAdminProject(User $user, $project): bool
     {
-        // Team-Zugriff prüfen
-        if (!$this->isInTeam($user, $project)) {
-            return false;
-        }
-
-        // Projekt-Admin-Rolle prüfen
+        // Projekt-Admin-Rolle prüfen (egal in welchem Team)
         $userRole = $this->getUserProjectRole($user, $project);
         return in_array($userRole, ['owner', 'admin'], true);
     }

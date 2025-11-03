@@ -14,12 +14,7 @@ class PlannerProjectPolicy extends RolePolicy
      */
     public function view(User $user, $project): bool
     {
-        // Team-Zugriff prüfen
-        if (!$this->isInTeam($user, $project)) {
-            return false;
-        }
-
-        // Projekt-Rolle prüfen (alle Rollen haben Leszugriff)
+        // Projekt-Mitgliedschaft prüfen (egal in welchem Team)
         $userRole = $this->getUserProjectRole($user, $project);
         return $userRole !== null;
     }
@@ -29,12 +24,7 @@ class PlannerProjectPolicy extends RolePolicy
      */
     public function update(User $user, $project): bool
     {
-        // Team-Zugriff prüfen
-        if (!$this->isInTeam($user, $project)) {
-            return false;
-        }
-
-        // Projekt-Schreibrolle prüfen
+        // Projekt-Schreibrolle prüfen (egal in welchem Team)
         $userRole = $this->getUserProjectRole($user, $project);
         return in_array($userRole, [
             ProjectRole::OWNER->value,
@@ -48,12 +38,7 @@ class PlannerProjectPolicy extends RolePolicy
      */
     public function delete(User $user, $project): bool
     {
-        // Team-Zugriff prüfen
-        if (!$this->isInTeam($user, $project)) {
-            return false;
-        }
-
-        // Nur Owner darf löschen
+        // Nur Owner darf löschen (egal in welchem Team)
         $userRole = $this->getUserProjectRole($user, $project);
         return $userRole === ProjectRole::OWNER->value;
     }
@@ -72,12 +57,7 @@ class PlannerProjectPolicy extends RolePolicy
      */
     public function invite(User $user, $project): bool
     {
-        // Team-Zugriff prüfen
-        if (!$this->isInTeam($user, $project)) {
-            return false;
-        }
-
-        // Nur Owner und Admin können einladen
+        // Nur Owner und Admin können einladen (egal in welchem Team)
         $userRole = $this->getUserProjectRole($user, $project);
         return in_array($userRole, [
             ProjectRole::OWNER->value,
@@ -90,12 +70,7 @@ class PlannerProjectPolicy extends RolePolicy
      */
     public function removeMember(User $user, $project): bool
     {
-        // Team-Zugriff prüfen
-        if (!$this->isInTeam($user, $project)) {
-            return false;
-        }
-
-        // Nur Owner und Admin können entfernen
+        // Nur Owner und Admin können entfernen (egal in welchem Team)
         $userRole = $this->getUserProjectRole($user, $project);
         return in_array($userRole, [
             ProjectRole::OWNER->value,
@@ -108,12 +83,7 @@ class PlannerProjectPolicy extends RolePolicy
      */
     public function changeRole(User $user, $project): bool
     {
-        // Team-Zugriff prüfen
-        if (!$this->isInTeam($user, $project)) {
-            return false;
-        }
-
-        // Nur Owner kann Rollen ändern
+        // Nur Owner kann Rollen ändern (egal in welchem Team)
         $userRole = $this->getUserProjectRole($user, $project);
         return $userRole === ProjectRole::OWNER->value;
     }
@@ -123,11 +93,6 @@ class PlannerProjectPolicy extends RolePolicy
      */
     public function leave(User $user, $project): bool
     {
-        // Team-Zugriff prüfen
-        if (!$this->isInTeam($user, $project)) {
-            return false;
-        }
-
         // Owner kann nicht gehen (muss erst Ownership übertragen)
         $userRole = $this->getUserProjectRole($user, $project);
         return $userRole !== ProjectRole::OWNER->value;
@@ -138,12 +103,7 @@ class PlannerProjectPolicy extends RolePolicy
      */
     public function transferOwnership(User $user, $project): bool
     {
-        // Team-Zugriff prüfen
-        if (!$this->isInTeam($user, $project)) {
-            return false;
-        }
-
-        // Nur Owner kann Ownership übertragen
+        // Nur Owner kann Ownership übertragen (egal in welchem Team)
         $userRole = $this->getUserProjectRole($user, $project);
         return $userRole === ProjectRole::OWNER->value;
     }

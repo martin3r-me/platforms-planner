@@ -127,19 +127,44 @@ class Task extends BaseTask
 
     public function render()
     {
-        // Team-Mitglieder für Assignee-Auswahl laden
-        $teamUsers = Auth::user()
-            ->currentTeam
-            ->users()
-            ->orderBy('name')
-            ->get()
-            ->map(function ($user) {
-                return [
-                    'id' => $user->id,
-                    'name' => $user->fullname ?? $user->name,
-                    'email' => $user->email,
-                ];
-            });
+        // Projekt-Mitglieder für Verantwortliche-Auswahl laden (wenn Aufgabe zu Projekt gehört)
+        // Sonst Team-Mitglieder als Fallback
+        if ($this->task->project_id && $this->task->project) {
+            $projectUsers = $this->task->project
+                ->projectUsers()
+                ->with('user')
+                ->get()
+                ->map(function ($projectUser) {
+                    $user = $projectUser->user;
+                    if (!$user) {
+                        return null;
+                    }
+                    return [
+                        'id' => $user->id,
+                        'name' => $user->fullname ?? $user->name,
+                        'email' => $user->email,
+                    ];
+                })
+                ->filter()
+                ->sortBy('name')
+                ->values();
+            
+            $teamUsers = $projectUsers;
+        } else {
+            // Fallback: Team-Mitglieder für Aufgaben ohne Projekt
+            $teamUsers = Auth::user()
+                ->currentTeam
+                ->users()
+                ->orderBy('name')
+                ->get()
+                ->map(function ($user) {
+                    return [
+                        'id' => $user->id,
+                        'name' => $user->fullname ?? $user->name,
+                        'email' => $user->email,
+                    ];
+                });
+        }
 
         return view('planner::livewire.embedded.task', [
             'teamUsers' => $teamUsers,
