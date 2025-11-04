@@ -18,6 +18,8 @@ class Task extends Component
     public $calendarYear; // Aktuelles Jahr
     public $selectedDate; // Ausgewähltes Datum (Y-m-d)
     public $selectedTime; // Ausgewählte Zeit (H:i)
+    public $selectedHour = 12; // Ausgewählte Stunde (0-23)
+    public $selectedMinute = 0; // Ausgewählte Minute (0-59)
     public $printModalShow = false;
     public $printTarget = 'printer'; // 'printer' oder 'group'
     public $selectedPrinterId = null;
@@ -307,12 +309,16 @@ class Task extends Component
             $this->calendarYear = $date->year;
             $this->selectedDate = $date->format('Y-m-d');
             $this->selectedTime = $date->format('H:i');
+            $this->selectedHour = (int) $date->format('H');
+            $this->selectedMinute = (int) $date->format('i');
         } else {
             $today = now();
             $this->calendarMonth = $today->month;
             $this->calendarYear = $today->year;
             $this->selectedDate = null;
             $this->selectedTime = $today->format('H:i');
+            $this->selectedHour = (int) $today->format('H');
+            $this->selectedMinute = (int) $today->format('i');
         }
         
         $this->dueDateModalShow = true;
@@ -320,10 +326,20 @@ class Task extends Component
 
     public function closeDueDateModal()
     {
-        // Verwerfe Änderungen
+        // Verwerfe Änderungen - setze zurück auf aktuelles Datum
+        if ($this->task->due_date) {
+            $date = $this->task->due_date;
+            $this->selectedDate = $date->format('Y-m-d');
+            $this->selectedTime = $date->format('H:i');
+            $this->selectedHour = (int) $date->format('H');
+            $this->selectedMinute = (int) $date->format('i');
+        } else {
+            $this->selectedDate = null;
+            $this->selectedTime = null;
+            $this->selectedHour = 12;
+            $this->selectedMinute = 0;
+        }
         $this->dueDateModalShow = false;
-        $this->selectedDate = null;
-        $this->selectedTime = null;
     }
 
     public function previousMonth()
@@ -347,6 +363,33 @@ class Task extends Component
         $this->selectedDate = $date;
     }
 
+    public function selectHour($hour)
+    {
+        $this->selectedHour = (int) $hour;
+        $this->updateSelectedTime();
+    }
+
+    public function selectMinute($minute)
+    {
+        $this->selectedMinute = (int) $minute;
+        $this->updateSelectedTime();
+    }
+
+    public function updatedSelectedHour()
+    {
+        $this->updateSelectedTime();
+    }
+
+    public function updatedSelectedMinute()
+    {
+        $this->updateSelectedTime();
+    }
+
+    private function updateSelectedTime()
+    {
+        $this->selectedTime = sprintf('%02d:%02d', $this->selectedHour, $this->selectedMinute);
+    }
+
     public function saveDueDate()
     {
         $this->authorize('update', $this->task);
@@ -355,8 +398,8 @@ class Task extends Component
             $this->task->due_date = null;
         } else {
             try {
-                // Wenn keine Zeit gesetzt ist, Standard-Zeit verwenden
-                $time = !empty($this->selectedTime) ? $this->selectedTime : '00:00';
+                // Verwende die ausgewählte Stunde und Minute
+                $time = sprintf('%02d:%02d', $this->selectedHour, $this->selectedMinute);
                 $this->task->due_date = \Carbon\Carbon::parse("{$this->selectedDate} {$time}");
             } catch (\Exception $e) {
                 $this->dispatch('notify', [
@@ -367,14 +410,17 @@ class Task extends Component
             }
         }
 
+        // Speichere die Task explizit
         $this->task->save();
+        
+        // Refresh des Models für die Anzeige
+        $this->task->refresh();
         
         // Aktualisiere auch dueDateInput für die Anzeige
         $this->dueDateInput = $this->task->due_date ? $this->task->due_date->format('Y-m-d H:i') : '';
         
+        // Schließe Modal und setze State zurück
         $this->dueDateModalShow = false;
-        $this->selectedDate = null;
-        $this->selectedTime = null;
 
         $this->dispatch('notify', [
             'type' => 'success',
@@ -387,10 +433,13 @@ class Task extends Component
         $this->authorize('update', $this->task);
         $this->task->due_date = null;
         $this->task->save();
+        $this->task->refresh();
         $this->dueDateInput = '';
         $this->dueDateModalShow = false;
         $this->selectedDate = null;
         $this->selectedTime = null;
+        $this->selectedHour = 12;
+        $this->selectedMinute = 0;
 
         $this->dispatch('notify', [
             'type' => 'success',

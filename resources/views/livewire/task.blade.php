@@ -233,7 +233,7 @@
     <livewire:planner.print-modal />
 
     <!-- Due Date Modal -->
-    <x-ui-modal size="md" model="dueDateModalShow" :backdropClosable="false" :escClosable="true">
+    <x-ui-modal size="md" model="dueDateModalShow" :backdropClosable="true" :escClosable="true">
         <x-slot name="header">
             <div class="flex items-center gap-3">
                 <div class="flex-shrink-0">
@@ -308,15 +308,64 @@
 
             <!-- Zeitauswahl -->
             <div class="pt-4 border-t border-[var(--ui-border)]/60">
-                <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-2">
+                <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-4">
                     Uhrzeit
                 </label>
-                <input
-                    type="time"
-                    wire:model.live="selectedTime"
-                    class="w-full px-4 py-2.5 bg-[var(--ui-surface)] border border-[var(--ui-border)]/60 rounded-lg text-[var(--ui-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--ui-primary)]/20 focus:border-[var(--ui-primary)] transition-all"
-                    placeholder="00:00"
-                />
+                
+                <div class="flex items-center gap-4">
+                    <!-- Stunden -->
+                    <div class="flex-1">
+                        <div class="text-xs text-[var(--ui-muted)] mb-2 text-center">Stunden</div>
+                        <div class="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto p-2 bg-[var(--ui-muted-5)] rounded-lg border border-[var(--ui-border)]/40">
+                            @for($h = 0; $h < 24; $h++)
+                                <button
+                                    type="button"
+                                    wire:click="selectHour({{ $h }})"
+                                    class="px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                                        {{ $selectedHour == $h 
+                                            ? 'bg-[var(--ui-primary)] text-white shadow-md scale-105' 
+                                            : 'bg-[var(--ui-surface)] text-[var(--ui-secondary)] hover:bg-[var(--ui-primary-5)] hover:text-[var(--ui-primary)] border border-[var(--ui-border)]/40' 
+                                        }}"
+                                >
+                                    {{ str_pad($h, 2, '0', STR_PAD_LEFT) }}
+                                </button>
+                            @endfor
+                        </div>
+                    </div>
+                    
+                    <!-- Separator -->
+                    <div class="text-2xl font-bold text-[var(--ui-muted)]">:</div>
+                    
+                    <!-- Minuten -->
+                    <div class="flex-1">
+                        <div class="text-xs text-[var(--ui-muted)] mb-2 text-center">Minuten</div>
+                        <div class="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto p-2 bg-[var(--ui-muted-5)] rounded-lg border border-[var(--ui-border)]/40">
+                            @foreach([0, 15, 30, 45] as $minute)
+                                <button
+                                    type="button"
+                                    wire:click="selectMinute({{ $minute }})"
+                                    class="px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                                        {{ $selectedMinute == $minute 
+                                            ? 'bg-[var(--ui-primary)] text-white shadow-md scale-105' 
+                                            : 'bg-[var(--ui-surface)] text-[var(--ui-secondary)] hover:bg-[var(--ui-primary-5)] hover:text-[var(--ui-primary)] border border-[var(--ui-border)]/40' 
+                                        }}"
+                                >
+                                    {{ str_pad($minute, 2, '0', STR_PAD_LEFT) }}
+                                </button>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Aktuelle Zeit Anzeige -->
+                <div class="mt-4 text-center">
+                    <div class="inline-flex items-center gap-2 px-4 py-2 bg-[var(--ui-primary-10)] rounded-lg border border-[var(--ui-primary)]/20">
+                        @svg('heroicon-o-clock', 'w-4 h-4 text-[var(--ui-primary)]')
+                        <span class="text-sm font-semibold text-[var(--ui-primary)]">
+                            {{ sprintf('%02d:%02d', $selectedHour, $selectedMinute) }} Uhr
+                        </span>
+                    </div>
+                </div>
             </div>
 
             <!-- Aktuelles Datum Anzeige -->
