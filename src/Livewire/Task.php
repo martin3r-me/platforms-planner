@@ -417,16 +417,26 @@ class Task extends Component
             // Speichere
             $this->task->save();
             
-            // Lade die Task neu
-            $this->task = $this->task->fresh();
+            // Aktualisiere das Model im gleichen Objekt
+            $this->task->refresh();
             
-            // Aktualisiere dueDateInput
+            if ($this->task->relationLoaded('project')) {
+                $this->task->load('project');
+            }
+            if ($this->task->relationLoaded('userInCharge')) {
+                $this->task->load('userInCharge');
+            }
+            
+            // Aktualisiere dueDateInput und den Selektions-State
             $this->dueDateInput = $this->task->due_date ? $this->task->due_date->format('Y-m-d H:i') : '';
+            $this->selectedDate = $this->task->due_date ? $this->task->due_date->format('Y-m-d') : null;
+            $this->selectedHour = $this->task->due_date ? (int) $this->task->due_date->format('H') : 12;
+            $this->selectedMinute = $this->task->due_date ? (int) $this->task->due_date->format('i') : 0;
             
-            // Schließe Modal - muss ZUERST gesetzt werden, damit Alpine.js es erkennt
+            // Modal schließen
             $this->dueDateModalShow = false;
 
-            // Dispatch Notification
+            // Notification
             $this->dispatch('notify', [
                 'type' => 'success',
                 'message' => 'Fälligkeitsdatum gespeichert',
@@ -456,16 +466,21 @@ class Task extends Component
         $this->authorize('update', $this->task);
         $this->task->due_date = null;
         $this->task->save();
-        
-        // Lade die Task neu
-        $this->task = $this->task->fresh();
+        $this->task->refresh();
+        if ($this->task->relationLoaded('project')) {
+            $this->task->load('project');
+        }
+        if ($this->task->relationLoaded('userInCharge')) {
+            $this->task->load('userInCharge');
+        }
         
         $this->dueDateInput = '';
-        $this->dueDateModalShow = false;
         $this->selectedDate = null;
         $this->selectedTime = null;
         $this->selectedHour = 12;
         $this->selectedMinute = 0;
+        
+        $this->dueDateModalShow = false;
 
         $this->dispatch('notify', [
             'type' => 'success',
