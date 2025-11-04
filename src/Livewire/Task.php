@@ -115,12 +115,20 @@ class Task extends Component
         
         // Datum konvertieren
         if ($this->dueDateInput) {
-            $this->task->due_date = \Carbon\Carbon::createFromFormat('Y-m-d H:i', $this->dueDateInput);
+            try {
+                $this->task->due_date = \Carbon\Carbon::createFromFormat('Y-m-d H:i', $this->dueDateInput);
+            } catch (\Exception $e) {
+                // Fallback: Versuche direkt zu parsen
+                $this->task->due_date = \Carbon\Carbon::parse($this->dueDateInput);
+            }
         } else {
             $this->task->due_date = null;
         }
         
         $this->task->save();
+        
+        // Lade die Task neu für die Anzeige
+        $this->task = $this->task->fresh();
         
         // Toast-Notification über das Notification-System
         $this->dispatch('notifications:store', [
@@ -407,8 +415,8 @@ class Task extends Component
             // Speichere die Task explizit
             $this->task->save();
             
-            // Refresh des Models für die Anzeige
-            $this->task->refresh();
+            // Lade die Task neu mit allen Attributen (fresh() lädt aus DB neu)
+            $this->task = $this->task->fresh();
             
             // Aktualisiere auch dueDateInput für die Anzeige
             $this->dueDateInput = $this->task->due_date ? $this->task->due_date->format('Y-m-d H:i') : '';
@@ -445,7 +453,10 @@ class Task extends Component
         $this->authorize('update', $this->task);
         $this->task->due_date = null;
         $this->task->save();
-        $this->task->refresh();
+        
+        // Lade die Task neu
+        $this->task = $this->task->fresh();
+        
         $this->dueDateInput = '';
         $this->dueDateModalShow = false;
         $this->selectedDate = null;
