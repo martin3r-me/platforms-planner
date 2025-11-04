@@ -42,7 +42,7 @@ class PlannerTask extends Model
     protected $casts = [
         'priority' => TaskPriority::class,
         'story_points' => TaskStoryPoints::class,
-        'due_date' => 'date'
+        'due_date' => 'datetime'
     ];
 
     protected static function booted(): void
@@ -72,7 +72,17 @@ class PlannerTask extends Model
 
     public function setDueDateAttribute($value)
     {
-        $this->attributes['due_date'] = empty($value) || $value === 'null' ? null : (int)$value;
+        if (empty($value) || $value === 'null') {
+            $this->attributes['due_date'] = null;
+            return;
+        }
+
+        if ($value instanceof \Carbon\CarbonInterface) {
+            $this->attributes['due_date'] = $value;
+            return;
+        }
+
+        $this->attributes['due_date'] = \Carbon\Carbon::parse($value);
     }
 
     public function user()

@@ -76,24 +76,8 @@ class Task extends Component
 
     public function updatedDueDateInput($value)
     {
-        if (empty($value)) {
-            $this->task->due_date = null;
-        } else {
-            try {
-                // Prüfe ob es nur ein Jahr ist (z.B. "2025")
-                if (preg_match('/^\d{4}$/', $value)) {
-                    $this->task->due_date = null; // Ungültiges Format ignorieren
-                } else {
-                    // Parse das Date-Format (YYYY-MM-DD oder YYYY-MM-DD HH:MM)
-                    $this->task->due_date = \Carbon\Carbon::parse($value);
-                }
-            } catch (\Exception $e) {
-                // Bei ungültigem Datum auf null setzen
-                $this->task->due_date = null;
-            }
-        }
-        
-        $this->task->save();
+        // Für Kompatibilität mit anderen Eingabewegen nur den lokalen State setzen
+        $this->dueDateInput = $value;
     }
 
     public function updatedTask($property, $value)
@@ -372,31 +356,21 @@ class Task extends Component
         $this->selectedDate = $date;
     }
 
-    public function selectHour($hour)
+    public function updatedSelectedHour($value)
     {
-        $this->selectedHour = (int) $hour;
+        $this->selectedHour = (int) $value;
         $this->updateSelectedTime();
     }
 
-    public function selectMinute($minute)
+    public function updatedSelectedMinute($value)
     {
-        $this->selectedMinute = (int) $minute;
-        $this->updateSelectedTime();
-    }
-
-    public function updatedSelectedHour()
-    {
-        $this->updateSelectedTime();
-    }
-
-    public function updatedSelectedMinute()
-    {
+        $this->selectedMinute = (int) $value;
         $this->updateSelectedTime();
     }
 
     private function updateSelectedTime()
     {
-        $this->selectedTime = sprintf('%02d:%02d', $this->selectedHour, $this->selectedMinute);
+        $this->selectedTime = sprintf('%02d:%02d', (int) $this->selectedHour, (int) $this->selectedMinute);
     }
 
     public function saveDueDate()
