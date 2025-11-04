@@ -404,26 +404,29 @@ class Task extends Component
         try {
             $this->authorize('update', $this->task);
 
+            // Setze das Datum
             if (empty($this->selectedDate)) {
                 $this->task->due_date = null;
             } else {
-                // Verwende die ausgewählte Stunde und Minute
-                $time = sprintf('%02d:%02d', $this->selectedHour ?? 12, $this->selectedMinute ?? 0);
+                $hour = $this->selectedHour ?? 12;
+                $minute = $this->selectedMinute ?? 0;
+                $time = sprintf('%02d:%02d', $hour, $minute);
                 $this->task->due_date = \Carbon\Carbon::parse("{$this->selectedDate} {$time}");
             }
 
-            // Speichere die Task explizit
+            // Speichere
             $this->task->save();
             
-            // Lade die Task neu mit allen Attributen (fresh() lädt aus DB neu)
+            // Lade die Task neu
             $this->task = $this->task->fresh();
             
-            // Aktualisiere auch dueDateInput für die Anzeige
+            // Aktualisiere dueDateInput
             $this->dueDateInput = $this->task->due_date ? $this->task->due_date->format('Y-m-d H:i') : '';
             
-            // Schließe Modal
+            // Schließe Modal - muss ZUERST gesetzt werden, damit Alpine.js es erkennt
             $this->dueDateModalShow = false;
 
+            // Dispatch Notification
             $this->dispatch('notify', [
                 'type' => 'success',
                 'message' => 'Fälligkeitsdatum gespeichert',
@@ -437,8 +440,8 @@ class Task extends Component
             Log::error('Error saving due date: ' . $e->getMessage(), [
                 'task_id' => $this->task->id,
                 'selectedDate' => $this->selectedDate,
-                'selectedHour' => $this->selectedHour,
-                'selectedMinute' => $this->selectedMinute,
+                'selectedHour' => $this->selectedHour ?? null,
+                'selectedMinute' => $this->selectedMinute ?? null,
             ]);
             
             $this->dispatch('notify', [
