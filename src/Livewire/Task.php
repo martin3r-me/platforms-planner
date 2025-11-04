@@ -4,6 +4,7 @@ namespace Platform\Planner\Livewire;
 
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Computed;
 use Platform\Planner\Models\PlannerTask;
 
@@ -392,40 +393,51 @@ class Task extends Component
 
     public function saveDueDate()
     {
-        $this->authorize('update', $this->task);
+        try {
+            $this->authorize('update', $this->task);
 
-        if (empty($this->selectedDate)) {
-            $this->task->due_date = null;
-        } else {
-            try {
+            if (empty($this->selectedDate)) {
+                $this->task->due_date = null;
+            } else {
                 // Verwende die ausgewählte Stunde und Minute
-                $time = sprintf('%02d:%02d', $this->selectedHour, $this->selectedMinute);
+                $time = sprintf('%02d:%02d', $this->selectedHour ?? 12, $this->selectedMinute ?? 0);
                 $this->task->due_date = \Carbon\Carbon::parse("{$this->selectedDate} {$time}");
-            } catch (\Exception $e) {
-                $this->dispatch('notify', [
-                    'type' => 'error',
-                    'message' => 'Ungültiges Datumsformat: ' . $e->getMessage(),
-                ]);
-                return;
             }
+
+            // Speichere die Task explizit
+            $this->task->save();
+            
+            // Refresh des Models für die Anzeige
+            $this->task->refresh();
+            
+            // Aktualisiere auch dueDateInput für die Anzeige
+            $this->dueDateInput = $this->task->due_date ? $this->task->due_date->format('Y-m-d H:i') : '';
+            
+            // Schließe Modal
+            $this->dueDateModalShow = false;
+
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => 'Fälligkeitsdatum gespeichert',
+            ]);
+        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Sie haben keine Berechtigung, diese Aufgabe zu bearbeiten.',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error saving due date: ' . $e->getMessage(), [
+                'task_id' => $this->task->id,
+                'selectedDate' => $this->selectedDate,
+                'selectedHour' => $this->selectedHour,
+                'selectedMinute' => $this->selectedMinute,
+            ]);
+            
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Fehler beim Speichern: ' . $e->getMessage(),
+            ]);
         }
-
-        // Speichere die Task explizit
-        $this->task->save();
-        
-        // Refresh des Models für die Anzeige
-        $this->task->refresh();
-        
-        // Aktualisiere auch dueDateInput für die Anzeige
-        $this->dueDateInput = $this->task->due_date ? $this->task->due_date->format('Y-m-d H:i') : '';
-        
-        // Schließe Modal und setze State zurück
-        $this->dueDateModalShow = false;
-
-        $this->dispatch('notify', [
-            'type' => 'success',
-            'message' => 'Fälligkeitsdatum gespeichert',
-        ]);
     }
 
     public function clearDueDate()
