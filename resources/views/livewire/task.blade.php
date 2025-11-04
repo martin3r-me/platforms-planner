@@ -233,7 +233,7 @@
     <livewire:planner.print-modal />
 
     <!-- Due Date Modal -->
-    <x-ui-modal size="sm" model="dueDateModalShow">
+    <x-ui-modal size="md" model="dueDateModalShow" :backdropClosable="false" :escClosable="true">
         <x-slot name="header">
             <div class="flex items-center gap-3">
                 <div class="flex-shrink-0">
@@ -249,16 +249,95 @@
         </x-slot>
 
         <div class="space-y-6">
-            <x-ui-input-datetime
-                name="dueDateInputModal"
-                label="Datum & Uhrzeit"
-                :value="$dueDateInputModal"
-                wire:model="dueDateInputModal"
-                placeholder="Datum und Uhrzeit auswählen..."
-                :nullable="true"
-                :errorKey="'dueDateInputModal'"
-            />
+            <!-- Kalender Navigation -->
+            <div class="flex items-center justify-between">
+                <h2 class="flex-auto text-sm font-semibold text-[var(--ui-secondary)]">
+                    {{ $this->calendarMonthName }}
+                </h2>
+                <div class="flex items-center gap-2">
+                    <button 
+                        type="button" 
+                        wire:click="previousMonth"
+                        class="flex flex-none items-center justify-center p-1.5 text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] transition-colors rounded-lg hover:bg-[var(--ui-muted-5)]"
+                    >
+                        <span class="sr-only">Vorheriger Monat</span>
+                        @svg('heroicon-o-chevron-left', 'w-5 h-5')
+                    </button>
+                    <button 
+                        type="button" 
+                        wire:click="nextMonth"
+                        class="flex flex-none items-center justify-center p-1.5 text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] transition-colors rounded-lg hover:bg-[var(--ui-muted-5)]"
+                    >
+                        <span class="sr-only">Nächster Monat</span>
+                        @svg('heroicon-o-chevron-right', 'w-5 h-5')
+                    </button>
+                </div>
+            </div>
 
+            <!-- Wochentage Header -->
+            <div class="grid grid-cols-7 text-center text-xs font-medium text-[var(--ui-muted)]">
+                <div>Mo</div>
+                <div>Di</div>
+                <div>Mi</div>
+                <div>Do</div>
+                <div>Fr</div>
+                <div>Sa</div>
+                <div>So</div>
+            </div>
+
+            <!-- Kalender Grid -->
+            <div class="grid grid-cols-7 gap-1 text-sm">
+                @foreach($this->calendarDays as $day)
+                    <div class="py-2 {{ !$loop->first ? 'border-t border-[var(--ui-border)]/40' : '' }}">
+                        <button
+                            type="button"
+                            wire:click="selectDate('{{ $day['date'] }}')"
+                            class="mx-auto flex w-8 h-8 items-center justify-center rounded-full transition-all duration-200
+                                {{ !$day['isCurrentMonth'] ? 'text-[var(--ui-muted)]/50' : '' }}
+                                {{ $day['isCurrentMonth'] && !$day['isToday'] && !$day['isSelected'] ? 'text-[var(--ui-secondary)] hover:bg-[var(--ui-primary-5)] hover:text-[var(--ui-primary)]' : '' }}
+                                {{ $day['isToday'] && !$day['isSelected'] ? 'font-semibold text-[var(--ui-primary)]' : '' }}
+                                {{ $day['isSelected'] && !$day['isToday'] ? 'font-semibold text-white bg-[var(--ui-secondary)]' : '' }}
+                                {{ $day['isSelected'] && $day['isToday'] ? 'font-semibold text-white bg-[var(--ui-primary)]' : '' }}
+                            "
+                        >
+                            <time datetime="{{ $day['date'] }}">{{ $day['day'] }}</time>
+                        </button>
+                    </div>
+                @endforeach
+            </div>
+
+            <!-- Zeitauswahl -->
+            <div class="pt-4 border-t border-[var(--ui-border)]/60">
+                <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-2">
+                    Uhrzeit
+                </label>
+                <input
+                    type="time"
+                    wire:model.live="selectedTime"
+                    class="w-full px-4 py-2.5 bg-[var(--ui-surface)] border border-[var(--ui-border)]/60 rounded-lg text-[var(--ui-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--ui-primary)]/20 focus:border-[var(--ui-primary)] transition-all"
+                    placeholder="00:00"
+                />
+            </div>
+
+            <!-- Aktuelles Datum Anzeige -->
+            @if($selectedDate)
+                <div class="pt-4 border-t border-[var(--ui-border)]/60">
+                    <div class="flex items-center gap-2 text-sm text-[var(--ui-muted)]">
+                        @svg('heroicon-o-calendar-days', 'w-4 h-4')
+                        <span>
+                            Ausgewählt: 
+                            <span class="font-medium text-[var(--ui-secondary)]">
+                                {{ \Carbon\Carbon::parse($selectedDate)->locale('de')->isoFormat('dddd, D. MMMM YYYY') }}
+                                @if($selectedTime)
+                                    um {{ $selectedTime }} Uhr
+                                @endif
+                            </span>
+                        </span>
+                    </div>
+                </div>
+            @endif
+
+            <!-- Entfernen Button -->
             @if($task->due_date)
                 <div class="pt-4 border-t border-[var(--ui-border)]/60">
                     <x-ui-button 
@@ -281,7 +360,12 @@
                 <x-ui-button variant="secondary-outline" size="sm" wire:click="closeDueDateModal">
                     Abbrechen
                 </x-ui-button>
-                <x-ui-button variant="primary" size="sm" wire:click="saveDueDate">
+                <x-ui-button 
+                    variant="primary" 
+                    size="sm" 
+                    wire:click="saveDueDate"
+                    :disabled="!$selectedDate"
+                >
                     <span class="inline-flex items-center gap-2">
                         @svg('heroicon-o-check', 'w-4 h-4')
                         Speichern

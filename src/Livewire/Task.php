@@ -14,6 +14,10 @@ class Task extends Component
     public $dueDateInput; // Separate Property für das Datum
     public $dueDateModalShow = false;
     public $dueDateInputModal; // Temporärer Wert für das Modal
+    public $calendarMonth; // Aktueller Monat (1-12)
+    public $calendarYear; // Aktuelles Jahr
+    public $selectedDate; // Ausgewähltes Datum (Y-m-d)
+    public $selectedTime; // Ausgewählte Zeit (H:i)
     public $printModalShow = false;
     public $printTarget = 'printer'; // 'printer' oder 'group'
     public $selectedPrinterId = null;
@@ -257,39 +261,107 @@ class Task extends Component
         ]);
     }
 
+    #[Computed]
+    public function calendarDays()
+    {
+        $firstDay = \Carbon\Carbon::create($this->calendarYear, $this->calendarMonth, 1);
+        $lastDay = $firstDay->copy()->endOfMonth();
+        
+        // Start mit dem ersten Tag der Woche (Montag = 1)
+        $startDate = $firstDay->copy()->startOfWeek(\Carbon\Carbon::MONDAY);
+        $endDate = $lastDay->copy()->endOfWeek(\Carbon\Carbon::SUNDAY);
+        
+        $days = [];
+        $current = $startDate->copy();
+        
+        while ($current <= $endDate) {
+            $days[] = [
+                'date' => $current->format('Y-m-d'),
+                'day' => $current->day,
+                'isCurrentMonth' => $current->month == $this->calendarMonth,
+                'isToday' => $current->isToday(),
+                'isSelected' => $this->selectedDate === $current->format('Y-m-d'),
+            ];
+            $current->addDay();
+        }
+        
+        return $days;
+    }
+
+    #[Computed]
+    public function calendarMonthName()
+    {
+        return \Carbon\Carbon::create($this->calendarYear, $this->calendarMonth, 1)
+            ->locale('de')
+            ->isoFormat('MMMM YYYY');
+    }
+
     public function openDueDateModal()
     {
         $this->authorize('update', $this->task);
-        // Initialisiere den Modal-Wert mit dem aktuellen Datum
-        $this->dueDateInputModal = $this->task->due_date ? $this->task->due_date->format('Y-m-d\TH:i') : '';
+        
+        // Initialisiere Kalender mit aktuellem Datum oder heute
+        if ($this->task->due_date) {
+            $date = $this->task->due_date;
+            $this->calendarMonth = $date->month;
+            $this->calendarYear = $date->year;
+            $this->selectedDate = $date->format('Y-m-d');
+            $this->selectedTime = $date->format('H:i');
+        } else {
+            $today = now();
+            $this->calendarMonth = $today->month;
+            $this->calendarYear = $today->year;
+            $this->selectedDate = null;
+            $this->selectedTime = $today->format('H:i');
+        }
+        
         $this->dueDateModalShow = true;
     }
 
     public function closeDueDateModal()
     {
-        // Verwerfe Änderungen, setze zurück auf aktuelles Datum
-        $this->dueDateInputModal = $this->task->due_date ? $this->task->due_date->format('Y-m-d\TH:i') : '';
+        // Verwerfe Änderungen
         $this->dueDateModalShow = false;
+        $this->selectedDate = null;
+        $this->selectedTime = null;
+    }
+
+    public function previousMonth()
+    {
+        $date = \Carbon\Carbon::create($this->calendarYear, $this->calendarMonth, 1);
+        $date->subMonth();
+        $this->calendarMonth = $date->month;
+        $this->calendarYear = $date->year;
+    }
+
+    public function nextMonth()
+    {
+        $date = \Carbon\Carbon::create($this->calendarYear, $this->calendarMonth, 1);
+        $date->addMonth();
+        $this->calendarMonth = $date->month;
+        $this->calendarYear = $date->year;
+    }
+
+    public function selectDate($date)
+    {
+        $this->selectedDate = $date;
     }
 
     public function saveDueDate()
     {
         $this->authorize('update', $this->task);
 
-        if (empty($this->dueDateInputModal)) {
+        if (empty($this->selectedDate)) {
             $this->task->due_date = null;
         } else {
             try {
-                // Parse das Datum (Format: YYYY-MM-DDTHH:mm)
-                $normalized = str_replace('T', ' ', $this->dueDateInputModal);
-                if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $normalized)) {
-                    $normalized .= ' 00:00';
-                }
-                $this->task->due_date = \Carbon\Carbon::parse($normalized);
+                // Wenn keine Zeit gesetzt ist, Standard-Zeit verwenden
+                $time = !empty($this->selectedTime) ? $this->selectedTime : '00:00';
+                $this->task->due_date = \Carbon\Carbon::parse("{$this->selectedDate} {$time}");
             } catch (\Exception $e) {
                 $this->dispatch('notify', [
                     'type' => 'error',
-                    'message' => 'Ungültiges Datumsformat',
+                    'message' => 'Ungültiges Datumsformat: ' . $e->getMessage(),
                 ]);
                 return;
             }
@@ -301,6 +373,8 @@ class Task extends Component
         $this->dueDateInput = $this->task->due_date ? $this->task->due_date->format('Y-m-d H:i') : '';
         
         $this->dueDateModalShow = false;
+        $this->selectedDate = null;
+        $this->selectedTime = null;
 
         $this->dispatch('notify', [
             'type' => 'success',
@@ -311,11 +385,12 @@ class Task extends Component
     public function clearDueDate()
     {
         $this->authorize('update', $this->task);
-        $this->dueDateInputModal = '';
         $this->task->due_date = null;
         $this->task->save();
         $this->dueDateInput = '';
         $this->dueDateModalShow = false;
+        $this->selectedDate = null;
+        $this->selectedTime = null;
 
         $this->dispatch('notify', [
             'type' => 'success',
