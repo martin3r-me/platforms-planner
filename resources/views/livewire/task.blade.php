@@ -71,15 +71,24 @@
                     />
                 </div>
                 <div>
-                    <x-ui-input-datetime
-                        name="dueDateInput"
-                        label="Fälligkeitsdatum"
-                        :value="$dueDateInput"
-                        wire:model="dueDateInput"
-                        placeholder="Fälligkeitsdatum auswählen..."
-                        :nullable="true"
-                        :errorKey="'dueDateInput'"
-                    />
+                    <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-2">
+                        Fälligkeitsdatum
+                    </label>
+                    <button
+                        type="button"
+                        wire:click="openDueDateModal"
+                        class="w-full px-4 py-2.5 text-left bg-[var(--ui-surface)] border border-[var(--ui-border)]/60 rounded-lg hover:border-[var(--ui-primary)]/60 hover:bg-[var(--ui-primary-5)] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--ui-primary)]/20 focus:border-[var(--ui-primary)] flex items-center justify-between group"
+                    >
+                        <span class="flex items-center gap-2 text-sm text-[var(--ui-secondary)]">
+                            @svg('heroicon-o-calendar', 'w-4 h-4 text-[var(--ui-muted)] group-hover:text-[var(--ui-primary)] transition-colors')
+                            @if($task->due_date)
+                                <span class="font-medium">{{ $task->due_date->format('d.m.Y H:i') }}</span>
+                            @else
+                                <span class="text-[var(--ui-muted)]">Kein Datum gesetzt</span>
+                            @endif
+                        </span>
+                        @svg('heroicon-o-chevron-right', 'w-4 h-4 text-[var(--ui-muted)] group-hover:text-[var(--ui-primary)] transition-colors')
+                    </button>
                 </div>
                 <div>
                     <x-ui-input-select
@@ -222,4 +231,63 @@
 
     <!-- Print Modal direkt hier einbinden -->
     <livewire:planner.print-modal />
+
+    <!-- Due Date Modal -->
+    <x-ui-modal size="sm" model="dueDateModalShow">
+        <x-slot name="header">
+            <div class="flex items-center gap-3">
+                <div class="flex-shrink-0">
+                    <div class="w-10 h-10 bg-[var(--ui-primary-10)] rounded-lg flex items-center justify-center">
+                        @svg('heroicon-o-calendar', 'w-5 h-5 text-[var(--ui-primary)]')
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-[var(--ui-secondary)]">Fälligkeitsdatum</h3>
+                    <p class="text-sm text-[var(--ui-muted)]">Datum und Uhrzeit festlegen</p>
+                </div>
+            </div>
+        </x-slot>
+
+        <div class="space-y-6">
+            <x-ui-input-datetime
+                name="dueDateInputModal"
+                label="Datum & Uhrzeit"
+                :value="$dueDateInputModal"
+                wire:model="dueDateInputModal"
+                placeholder="Datum und Uhrzeit auswählen..."
+                :nullable="true"
+                :errorKey="'dueDateInputModal'"
+            />
+
+            @if($task->due_date)
+                <div class="pt-4 border-t border-[var(--ui-border)]/60">
+                    <x-ui-button 
+                        variant="danger-outline" 
+                        size="sm" 
+                        wire:click="clearDueDate"
+                        class="w-full"
+                    >
+                        <span class="inline-flex items-center gap-2">
+                            @svg('heroicon-o-trash', 'w-4 h-4')
+                            Datum entfernen
+                        </span>
+                    </x-ui-button>
+                </div>
+            @endif
+        </div>
+        
+        <x-slot name="footer">
+            <div class="flex justify-end gap-3">
+                <x-ui-button variant="secondary-outline" size="sm" wire:click="closeDueDateModal">
+                    Abbrechen
+                </x-ui-button>
+                <x-ui-button variant="primary" size="sm" wire:click="saveDueDate">
+                    <span class="inline-flex items-center gap-2">
+                        @svg('heroicon-o-check', 'w-4 h-4')
+                        Speichern
+                    </span>
+                </x-ui-button>
+            </div>
+        </x-slot>
+    </x-ui-modal>
 </x-ui-page>

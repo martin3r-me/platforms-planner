@@ -12,6 +12,8 @@ class Task extends Component
 {
 	public $task;
     public $dueDateInput; // Separate Property für das Datum
+    public $dueDateModalShow = false;
+    public $dueDateInputModal; // Temporärer Wert für das Modal
     public $printModalShow = false;
     public $printTarget = 'printer'; // 'printer' oder 'group'
     public $selectedPrinterId = null;
@@ -252,6 +254,72 @@ class Task extends Component
         $this->dispatch('notify', [
             'type' => 'success',
             'message' => 'Druckauftrag wurde erstellt',
+        ]);
+    }
+
+    public function openDueDateModal()
+    {
+        $this->authorize('update', $this->task);
+        // Initialisiere den Modal-Wert mit dem aktuellen Datum
+        $this->dueDateInputModal = $this->task->due_date ? $this->task->due_date->format('Y-m-d\TH:i') : '';
+        $this->dueDateModalShow = true;
+    }
+
+    public function closeDueDateModal()
+    {
+        // Verwerfe Änderungen, setze zurück auf aktuelles Datum
+        $this->dueDateInputModal = $this->task->due_date ? $this->task->due_date->format('Y-m-d\TH:i') : '';
+        $this->dueDateModalShow = false;
+    }
+
+    public function saveDueDate()
+    {
+        $this->authorize('update', $this->task);
+
+        if (empty($this->dueDateInputModal)) {
+            $this->task->due_date = null;
+        } else {
+            try {
+                // Parse das Datum (Format: YYYY-MM-DDTHH:mm)
+                $normalized = str_replace('T', ' ', $this->dueDateInputModal);
+                if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $normalized)) {
+                    $normalized .= ' 00:00';
+                }
+                $this->task->due_date = \Carbon\Carbon::parse($normalized);
+            } catch (\Exception $e) {
+                $this->dispatch('notify', [
+                    'type' => 'error',
+                    'message' => 'Ungültiges Datumsformat',
+                ]);
+                return;
+            }
+        }
+
+        $this->task->save();
+        
+        // Aktualisiere auch dueDateInput für die Anzeige
+        $this->dueDateInput = $this->task->due_date ? $this->task->due_date->format('Y-m-d H:i') : '';
+        
+        $this->dueDateModalShow = false;
+
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => 'Fälligkeitsdatum gespeichert',
+        ]);
+    }
+
+    public function clearDueDate()
+    {
+        $this->authorize('update', $this->task);
+        $this->dueDateInputModal = '';
+        $this->task->due_date = null;
+        $this->task->save();
+        $this->dueDateInput = '';
+        $this->dueDateModalShow = false;
+
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => 'Fälligkeitsdatum entfernt',
         ]);
     }
 
