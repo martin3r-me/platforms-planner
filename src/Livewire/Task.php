@@ -354,6 +354,10 @@ class Task extends Component
     public function selectDate($date)
     {
         $this->selectedDate = $date;
+        // Standardzeit nach Datumsauswahl auf 12:00 setzen
+        $this->selectedHour = 12;
+        $this->selectedMinute = 0;
+        $this->updateSelectedTime();
     }
 
     public function updatedSelectedHour($value)
