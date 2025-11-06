@@ -150,7 +150,11 @@
         </div>
 
         <div class="bg-white rounded-lg border border-[var(--ui-border)]/60 p-6">
-            <livewire:planner.task-time-tracking :task="$task" />
+            <livewire:core.time-entries-panel
+                :context="$task"
+                :linked-contexts="$task->project ? [['type' => get_class($task->project), 'id' => $task->project->id]] : []"
+                :planned-minutes="$task->planned_minutes"
+            />
         </div>
     </x-ui-page-container>
 

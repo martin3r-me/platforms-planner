@@ -9,17 +9,16 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Symfony\Component\Uid\UuidV7;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-
 use Platform\ActivityLog\Traits\LogsActivity;
 use Platform\Media\Traits\HasMedia;
+use Platform\Core\Traits\HasTimeEntries;
 
 /**
  * @ai.description Aufgaben können optional einem Projekt zugeordnet sein (über ProjectSlot). Ohne Projekt sind es persönliche Aufgaben des Nutzers. TaskGroups und Slots dienen der Planung und Strukturierung der Arbeit.
  */
 class PlannerTask extends Model
 {
-    use HasFactory, SoftDeletes, LogsActivity, HasMedia;
+    use HasFactory, SoftDeletes, LogsActivity, HasMedia, HasTimeEntries;
 
     protected $fillable = [
         'uuid',
@@ -117,13 +116,8 @@ class PlannerTask extends Model
         return $this->belongsTo(\Platform\Core\Models\User::class, 'user_in_charge_id');
     }
 
-    public function timeEntries(): HasMany
-    {
-        return $this->hasMany(PlannerTimeEntry::class, 'task_id');
-    }
-
     public function getLoggedMinutesAttribute(): int
     {
-        return (int) $this->timeEntries()->sum('minutes');
+        return $this->totalLoggedMinutes();
     }
 }

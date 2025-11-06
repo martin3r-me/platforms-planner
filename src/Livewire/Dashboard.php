@@ -6,7 +6,7 @@ use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Models\PlannerProject;
-use Platform\Planner\Models\PlannerTimeEntry;
+use Platform\Core\Models\CoreTimeEntry;
 use Carbon\Carbon;
 
 class Dashboard extends Component
@@ -37,7 +37,7 @@ class Dashboard extends Component
         $startOfMonth = now()->startOfMonth();
         $endOfMonth = now()->endOfMonth();
 
-        $baseTimeEntries = PlannerTimeEntry::query()
+        $baseTimeEntries = CoreTimeEntry::query()
             ->where('team_id', $team->id);
 
         $totalLoggedMinutes = (clone $baseTimeEntries)->sum('minutes');

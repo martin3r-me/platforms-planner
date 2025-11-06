@@ -8,12 +8,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Symfony\Component\Uid\UuidV7;
 use Illuminate\Support\Facades\Log;
+use Platform\Core\Traits\HasTimeEntries;
 
 /**
  * @ai.description Projekt bündelt Aufgaben (Tasks) und Sprints. Dient als Container für Planung, Ressourcen und Fortschritt eines Vorhabens im Team.
  */
 class PlannerProject extends Model
 {
+    use HasTimeEntries;
 
     protected $fillable = [
         'uuid',
@@ -55,11 +57,6 @@ class PlannerProject extends Model
         return $this->hasMany(PlannerProjectSlot::class, 'project_id');
     }
 
-    public function timeEntries(): HasMany
-    {
-        return $this->hasMany(PlannerTimeEntry::class, 'project_id');
-    }
-
     public function user(): BelongsTo
     {
         return $this->belongsTo(\Platform\Core\Models\User::class);
@@ -92,6 +89,6 @@ class PlannerProject extends Model
 
     public function getLoggedMinutesAttribute(): int
     {
-        return (int) $this->timeEntries()->sum('minutes');
+        return $this->totalLoggedMinutes();
     }
 }
