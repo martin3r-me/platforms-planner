@@ -6,6 +6,7 @@ use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Models\PlannerProject;
+use Platform\Planner\Models\PlannerTimeEntry;
 use Carbon\Carbon;
 
 class Dashboard extends Component
@@ -35,6 +36,31 @@ class Dashboard extends Component
         $team = $user->currentTeam;
         $startOfMonth = now()->startOfMonth();
         $endOfMonth = now()->endOfMonth();
+
+        $baseTimeEntries = PlannerTimeEntry::query()
+            ->where('team_id', $team->id);
+
+        $totalLoggedMinutes = (clone $baseTimeEntries)->sum('minutes');
+        $totalLoggedAmountCents = (int) (clone $baseTimeEntries)->sum('amount_cents');
+
+        $billedMinutes = (clone $baseTimeEntries)
+            ->where('is_billed', true)
+            ->sum('minutes');
+        $billedAmountCents = (int) (clone $baseTimeEntries)
+            ->where('is_billed', true)
+            ->sum('amount_cents');
+
+        $monthlyLoggedMinutes = (clone $baseTimeEntries)
+            ->whereBetween('work_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
+            ->sum('minutes');
+
+        $monthlyBilledMinutes = (clone $baseTimeEntries)
+            ->whereBetween('work_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
+            ->where('is_billed', true)
+            ->sum('minutes');
+
+        $unbilledMinutes = max(0, $totalLoggedMinutes - $billedMinutes);
+        $unbilledAmountCents = max(0, $totalLoggedAmountCents - $billedAmountCents);
 
         // === PROJEKTE (nur Team-Projekte) ===
         $projects = PlannerProject::where('team_id', $team->id)->orderBy('name')->get();
@@ -235,6 +261,14 @@ class Dashboard extends Component
             'activeProjectsList' => $activeProjectsList,
             'todayCreatedTasks' => $todayCreatedTasks,
             'todayCompletedTasks' => $todayCompletedTasks,
+            'totalLoggedMinutes' => $totalLoggedMinutes,
+            'monthlyLoggedMinutes' => $monthlyLoggedMinutes,
+            'billedMinutes' => $billedMinutes,
+            'monthlyBilledMinutes' => $monthlyBilledMinutes,
+            'unbilledMinutes' => $unbilledMinutes,
+            'totalLoggedAmountCents' => $totalLoggedAmountCents,
+            'billedAmountCents' => $billedAmountCents,
+            'unbilledAmountCents' => $unbilledAmountCents,
         ])->layout('platform::layouts.app');
     }
 }

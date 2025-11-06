@@ -22,6 +22,7 @@ class PlannerTimeEntry extends Model
         'minutes',
         'rate_cents',
         'amount_cents',
+        'is_billed',
         'currency_code',
         'note',
     ];
@@ -31,6 +32,7 @@ class PlannerTimeEntry extends Model
         'minutes' => 'integer',
         'rate_cents' => 'integer',
         'amount_cents' => 'integer',
+        'is_billed' => 'boolean',
     ];
 
     protected static function booted(): void

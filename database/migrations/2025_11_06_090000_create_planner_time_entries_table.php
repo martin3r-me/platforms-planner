@@ -21,6 +21,7 @@ return new class extends Migration
             $table->unsignedSmallInteger('minutes');
             $table->unsignedInteger('rate_cents')->nullable();
             $table->unsignedInteger('amount_cents')->nullable();
+            $table->boolean('is_billed')->default(false);
             $table->string('currency_code', 3)->default('EUR');
             $table->text('note')->nullable();
 

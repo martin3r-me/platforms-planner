@@ -16,6 +16,16 @@
                         Plan: {{ number_format($project->planned_minutes / 60, 2, ',', '.') }} h
                     </span>
                 @endif
+                @if($this->billedMinutes)
+                    <span class="text-[var(--ui-secondary)]">
+                        Abgerechnet: {{ number_format($this->billedMinutes / 60, 2, ',', '.') }} h
+                    </span>
+                @endif
+                @if($this->unbilledMinutes)
+                    <span class="text-[var(--ui-muted)]">
+                        Offen: {{ number_format($this->unbilledMinutes / 60, 2, ',', '.') }} h
+                    </span>
+                @endif
                 @if($this->totalAmountCents)
                     <span class="text-[var(--ui-secondary)]">
                         Wert: {{ number_format($this->totalAmountCents / 100, 2, ',', '.') }}&nbsp;€
@@ -122,6 +132,36 @@
                             <span>{{ number_format($entry->rate_cents / 100, 2, ',', '.') }}&nbsp;€/h</span>
                         @endif
                         <span class="text-[var(--ui-muted)]">{{ $entry->user?->name }}</span>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold {{ $entry->is_billed ? 'bg-[var(--ui-success-10)] border-[var(--ui-success)]/40 text-[var(--ui-success)]' : 'bg-[var(--ui-warning-10)] border-[var(--ui-warning)]/40 text-[var(--ui-warning)]' }}">
+                            @if($entry->is_billed)
+                                @svg('heroicon-o-check-circle', 'w-3 h-3')
+                            @else
+                                @svg('heroicon-o-exclamation-circle', 'w-3 h-3')
+                            @endif
+                            {{ $entry->is_billed ? 'Abgerechnet' : 'Offen' }}
+                        </span>
+                        <button
+                            type="button"
+                            wire:click="toggleBilled({{ $entry->id }})"
+                            wire:loading.attr="disabled"
+                            wire:target="toggleBilled({{ $entry->id }})"
+                            class="text-xs font-medium text-[var(--ui-primary)] hover:text-[var(--ui-primary-80)]"
+                        >
+                            {{ $entry->is_billed ? 'Als offen markieren' : 'Abrechnen' }}
+                        </button>
+                        <button
+                            type="button"
+                            wire:click="deleteEntry({{ $entry->id }})"
+                            wire:loading.attr="disabled"
+                            wire:target="deleteEntry({{ $entry->id }})"
+                            class="text-xs font-medium text-[var(--ui-danger)] hover:text-[var(--ui-danger-80)]"
+                        >
+                            @svg('heroicon-o-trash', 'w-4 h-4')
+                            <span class="sr-only">Eintrag löschen</span>
+                        </button>
                     </div>
                 </div>
             @empty

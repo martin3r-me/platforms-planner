@@ -49,7 +49,7 @@
 
                     <x-ui-input-text 
                         name="project.customer_cost_center"
-                        label="Kostenstelle (Kunde)"
+                        label="Kostenstelle"
                         wire:model.live.debounce.500ms="project.customer_cost_center"
                         placeholder="Kostenstelle hinterlegen"
                         :errorKey="'project.customer_cost_center'"

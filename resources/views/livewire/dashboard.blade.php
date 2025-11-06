@@ -33,10 +33,10 @@
                     size="lg"
                 />
                 <x-ui-dashboard-tile
-                    title="Story Points"
-                    :count="$openStoryPoints"
-                    subtitle="erledigt: {{ $completedStoryPoints }}"
-                    icon="chart-bar"
+                    title="Gearbeitete Stunden"
+                    :count="number_format($totalLoggedMinutes / 60, 1, ',', '.')"
+                    subtitle="Monat: {{ number_format($monthlyLoggedMinutes / 60, 1, ',', '.') }} h"
+                    icon="clock"
                     variant="secondary"
                     size="lg"
                 />
@@ -60,6 +60,25 @@
                         <x-ui-dashboard-tile title="Erledigt" :count="$completedStoryPoints" icon="check-circle" variant="success" size="sm" />
                         <x-ui-dashboard-tile title="Erstellt (Monat)" :count="$monthlyCreatedPoints" icon="plus-circle" variant="neutral" size="sm" />
                         <x-ui-dashboard-tile title="Erledigt (Monat)" :count="$monthlyCompletedPoints" icon="check-circle" variant="success" size="sm" />
+                    </x-ui-form-grid>
+                    <h3 class="mt-6 text-lg font-semibold text-[var(--ui-secondary)] mb-4">Zeit-Übersicht</h3>
+                    <x-ui-form-grid :cols="2" :gap="3">
+                        <x-ui-dashboard-tile
+                            title="Abgerechnet"
+                            :count="number_format($billedMinutes / 60, 1, ',', '.') . ' h'"
+                            :subtitle="'Monat: ' . number_format($monthlyBilledMinutes / 60, 1, ',', '.') . ' h'"
+                            icon="check-circle"
+                            variant="success"
+                            size="sm"
+                        />
+                        <x-ui-dashboard-tile
+                            title="Offen"
+                            :count="number_format($unbilledMinutes / 60, 1, ',', '.') . ' h'"
+                            :subtitle="$unbilledAmountCents ? 'Wert: ' . number_format($unbilledAmountCents / 100, 2, ',', '.') . ' €' : 'Noch keine offenen Werte'"
+                            icon="exclamation-circle"
+                            variant="warning"
+                            size="sm"
+                        />
                     </x-ui-form-grid>
                 </x-slot:right>
             </x-ui-detail-stats-grid>
@@ -104,6 +123,14 @@
                         <div class="p-3 bg-[var(--ui-muted-5)] rounded-lg border border-[var(--ui-border)]/40">
                             <div class="text-xs text-[var(--ui-muted)]">Offene Frösche</div>
                             <div class="text-lg font-bold text-[var(--ui-secondary)]">{{ $frogTasks }} Aufgaben</div>
+                        </div>
+                        <div class="p-3 bg-[var(--ui-muted-5)] rounded-lg border border-[var(--ui-border)]/40">
+                            <div class="text-xs text-[var(--ui-muted)]">Offene Stunden</div>
+                            <div class="text-lg font-bold text-[var(--ui-secondary)]">{{ number_format($unbilledMinutes / 60, 2, ',', '.') }} h</div>
+                        </div>
+                        <div class="p-3 bg-[var(--ui-muted-5)] rounded-lg border border-[var(--ui-border)]/40">
+                            <div class="text-xs text-[var(--ui-muted)]">Offener Wert</div>
+                            <div class="text-lg font-bold text-[var(--ui-secondary)]">{{ number_format($unbilledAmountCents / 100, 2, ',', '.') }} €</div>
                         </div>
                     </div>
                 </div>

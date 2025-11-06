@@ -52,13 +52,32 @@ class ProjectTimeTracking extends Component
     #[Computed]
     public function totalMinutes(): int
     {
-        return (int) $this->entries->sum('minutes');
+        return (int) $this->project
+            ->timeEntries()
+            ->sum('minutes');
     }
 
     #[Computed]
     public function totalAmountCents(): int
     {
-        return (int) $this->entries->sum(fn ($entry) => $entry->amount_cents ?? 0);
+        return (int) $this->project
+            ->timeEntries()
+            ->sum('amount_cents');
+    }
+
+    #[Computed]
+    public function billedMinutes(): int
+    {
+        return (int) $this->project
+            ->timeEntries()
+            ->where('is_billed', true)
+            ->sum('minutes');
+    }
+
+    #[Computed]
+    public function unbilledMinutes(): int
+    {
+        return max(0, $this->totalMinutes - $this->billedMinutes);
     }
 
     public function getMinuteOptionsProperty(): array
@@ -109,6 +128,7 @@ class ProjectTimeTracking extends Component
             'minutes' => $minutes,
             'rate_cents' => $rateCents,
             'amount_cents' => $amountCents,
+            'is_billed' => false,
             'currency_code' => 'EUR',
             'note' => $this->note,
         ]);
@@ -119,6 +139,43 @@ class ProjectTimeTracking extends Component
         $this->dispatch('notify', [
             'type' => 'success',
             'message' => 'Arbeitszeit gespeichert',
+        ]);
+    }
+
+    public function toggleBilled(int $entryId): void
+    {
+        $this->authorize('update', $this->project);
+
+        $entry = PlannerTimeEntry::where('project_id', $this->project->id)
+            ->where('team_id', $this->project->team_id)
+            ->findOrFail($entryId);
+
+        $entry->is_billed = ! $entry->is_billed;
+        $entry->save();
+
+        $this->project->refresh();
+
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => $entry->is_billed ? 'Eintrag als abgerechnet markiert.' : 'Eintrag wieder auf offen gesetzt.',
+        ]);
+    }
+
+    public function deleteEntry(int $entryId): void
+    {
+        $this->authorize('update', $this->project);
+
+        $entry = PlannerTimeEntry::where('project_id', $this->project->id)
+            ->where('team_id', $this->project->team_id)
+            ->findOrFail($entryId);
+
+        $entry->delete();
+
+        $this->project->refresh();
+
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => 'Zeiteintrag gelöscht.',
         ]);
     }
 
