@@ -73,6 +73,13 @@ class Task extends Component
                 'story_points' => $this->task->story_points,
             ],
         ]);
+
+        // Zeit-Tracking-Kontext für Navbar setzen
+        $this->dispatch('time-entry-context:set', [
+            'context_type' => get_class($this->task),
+            'context_id' => $this->task->id,
+            'linked_contexts' => $this->task->project ? [['type' => get_class($this->task->project), 'id' => $this->task->project->id]] : [],
+        ]);
     }
 
     public function updatedDueDateInput($value)
