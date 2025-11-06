@@ -259,7 +259,7 @@
     <livewire:planner.print-modal />
 
     <!-- Due Date Modal -->
-    <x-ui-modal size="md" model="dueDateModalShow" :backdropClosable="true" :escClosable="true">
+    <x-ui-modal size="md" wire:model="dueDateModalShow" :backdropClosable="true" :escClosable="true">
         <x-slot name="header">
             <div class="flex items-center gap-3">
                 <div class="flex-shrink-0">
