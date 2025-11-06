@@ -161,7 +161,23 @@
                                     {{ $project->created_at->format('d.m.Y') }}
                                 </span>
                             </div>
+                            <div class="flex justify-between py-1">
+                                <span class="text-[var(--ui-muted)]">Geplant:</span>
+                                <span class="text-[var(--ui-secondary)] font-medium">
+                                    {{ $project->planned_minutes ? number_format($project->planned_minutes / 60, 2, ',', '.') . ' h' : '–' }}
+                                </span>
+                            </div>
+                            <div class="flex justify-between py-1">
+                                <span class="text-[var(--ui-muted)]">Kostenstelle:</span>
+                                <span class="text-[var(--ui-secondary)] font-medium">
+                                    {{ $project->customer_cost_center ?? '–' }}
+                                </span>
+                            </div>
                         </div>
+                    </div>
+
+                    <div>
+                        <livewire:planner.project-time-tracking :project="$project" />
                     </div>
                 </div>
             </x-ui-page-sidebar>

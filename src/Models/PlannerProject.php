@@ -19,6 +19,8 @@ class PlannerProject extends Model
         'uuid',
         'name',
         'order',
+        'planned_minutes',
+        'customer_cost_center',
         'user_id',
         'team_id',
         'project_type',
@@ -53,6 +55,11 @@ class PlannerProject extends Model
         return $this->hasMany(PlannerProjectSlot::class, 'project_id');
     }
 
+    public function timeEntries(): HasMany
+    {
+        return $this->hasMany(PlannerTimeEntry::class, 'project_id');
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(\Platform\Core\Models\User::class);
@@ -81,5 +88,10 @@ class PlannerProject extends Model
     public function tasks(): HasMany
     {
         return $this->hasMany(PlannerTask::class, 'project_id');
+    }
+
+    public function getLoggedMinutesAttribute(): int
+    {
+        return (int) $this->timeEntries()->sum('minutes');
     }
 }

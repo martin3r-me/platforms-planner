@@ -82,6 +82,8 @@ class ProjectSettingsModal extends Component
         return [
             'project.name' => 'required|string|max:255',
             'project.description' => 'nullable|string',
+            'project.planned_minutes' => 'nullable|integer|min:0',
+            'project.customer_cost_center' => 'nullable|string|max:64',
             'project.project_type' => 'nullable|in:internal,customer',
             'roles' => 'array',
             'roles.*' => 'nullable|string|in:' . implode(',', array_column(ProjectRole::cases(), 'value')),

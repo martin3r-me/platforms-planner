@@ -34,6 +34,36 @@
                         <span class="font-medium text-[var(--ui-body-color)] text-right">{{ $project->description }}</span>
                     </div>
                 @endcan
+
+                @can('update', $project)
+                    <x-ui-input-text 
+                        name="project.planned_minutes"
+                        label="Geplante Minuten"
+                        type="number"
+                        min="0"
+                        step="15"
+                        wire:model.live.debounce.500ms="project.planned_minutes"
+                        placeholder="z. B. 480 für 8 Stunden"
+                        :errorKey="'project.planned_minutes'"
+                    />
+
+                    <x-ui-input-text 
+                        name="project.customer_cost_center"
+                        label="Kostenstelle (Kunde)"
+                        wire:model.live.debounce.500ms="project.customer_cost_center"
+                        placeholder="Kostenstelle hinterlegen"
+                        :errorKey="'project.customer_cost_center'"
+                    />
+                @else
+                    <div class="flex items-center justify-between text-sm p-2 rounded border border-[var(--ui-border)] bg-white">
+                        <span class="text-[var(--ui-muted)]">Geplante Minuten</span>
+                        <span class="font-medium text-[var(--ui-body-color)]">{{ $project->planned_minutes ?? '–' }}</span>
+                    </div>
+                    <div class="flex items-center justify-between text-sm p-2 rounded border border-[var(--ui-border)] bg-white">
+                        <span class="text-[var(--ui-muted)]">Kostenstelle</span>
+                        <span class="font-medium text-[var(--ui-body-color)]">{{ $project->customer_cost_center ?? '–' }}</span>
+                    </div>
+                @endcan
             </x-ui-form-grid>
 
             <x-ui-form-grid :cols="1" :gap="6">

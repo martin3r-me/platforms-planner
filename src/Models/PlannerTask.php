@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Symfony\Component\Uid\UuidV7;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 use Platform\ActivityLog\Traits\LogsActivity;
 use Platform\Media\Traits\HasMedia;
@@ -28,6 +29,7 @@ class PlannerTask extends Model
         'title',
         'description',
         'due_date',
+        'planned_minutes',
         'status',
         'is_done',
         'is_frog',
@@ -113,5 +115,15 @@ class PlannerTask extends Model
     public function userInCharge()
     {
         return $this->belongsTo(\Platform\Core\Models\User::class, 'user_in_charge_id');
+    }
+
+    public function timeEntries(): HasMany
+    {
+        return $this->hasMany(PlannerTimeEntry::class, 'task_id');
+    }
+
+    public function getLoggedMinutesAttribute(): int
+    {
+        return (int) $this->timeEntries()->sum('minutes');
     }
 }
