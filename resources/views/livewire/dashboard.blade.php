@@ -34,7 +34,7 @@
                 />
                 <x-ui-dashboard-tile
                     title="Gearbeitete Stunden"
-                    :count="number_format($totalLoggedMinutes / 60, 1, ',', '.')"
+                    :count="round($totalLoggedMinutes / 60, 1)"
                     subtitle="Monat: {{ number_format($monthlyLoggedMinutes / 60, 1, ',', '.') }} h"
                     icon="clock"
                     variant="secondary"
@@ -65,7 +65,7 @@
                     <x-ui-form-grid :cols="2" :gap="3">
                         <x-ui-dashboard-tile
                             title="Abgerechnet"
-                            :count="number_format($billedMinutes / 60, 1, ',', '.') . ' h'"
+                            :count="round($billedMinutes / 60, 1)"
                             :subtitle="'Monat: ' . number_format($monthlyBilledMinutes / 60, 1, ',', '.') . ' h'"
                             icon="check-circle"
                             variant="success"
@@ -73,8 +73,8 @@
                         />
                         <x-ui-dashboard-tile
                             title="Offen"
-                            :count="number_format($unbilledMinutes / 60, 1, ',', '.') . ' h'"
-                            :subtitle="$unbilledAmountCents ? 'Wert: ' . number_format($unbilledAmountCents / 100, 2, ',', '.') . ' €' : 'Noch keine offenen Werte'"
+                            :count="round($unbilledMinutes / 60, 1)"
+                            :subtitle="$unbilledAmountCents ? 'Offene Stunden: ' . number_format($unbilledMinutes / 60, 1, ',', '.') . ' h • Wert: ' . number_format($unbilledAmountCents / 100, 2, ',', '.') . ' €' : 'Noch keine offenen Werte'"
                             icon="exclamation-circle"
                             variant="warning"
                             size="sm"
