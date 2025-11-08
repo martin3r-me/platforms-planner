@@ -11,12 +11,12 @@ use Illuminate\Support\Facades\Log;
 use Platform\Organization\Traits\HasTimeEntries;
 use Platform\Organization\Traits\HasOrganizationContexts;
 use Platform\Core\Contracts\HasTimeAncestors;
-// use Platform\Core\Contracts\HasDisplayName; // Temporär auskommentiert für composer update
+use Platform\Core\Contracts\HasDisplayName;
 
 /**
  * @ai.description Projekt bündelt Aufgaben (Tasks) und Sprints. Dient als Container für Planung, Ressourcen und Fortschritt eines Vorhabens im Team.
  */
-class PlannerProject extends Model implements HasTimeAncestors
+class PlannerProject extends Model implements HasTimeAncestors, HasDisplayName
 {
     use HasTimeEntries, HasOrganizationContexts;
 
@@ -111,10 +111,9 @@ class PlannerProject extends Model implements HasTimeAncestors
 
     /**
      * Gibt den anzeigbaren Namen des Projects zurück.
-     * TODO: Nach composer update wieder HasDisplayName Interface implementieren
      */
-    // public function getDisplayName(): ?string
-    // {
-    //     return $this->name;
-    // }
+    public function getDisplayName(): ?string
+    {
+        return $this->name;
+    }
 }
