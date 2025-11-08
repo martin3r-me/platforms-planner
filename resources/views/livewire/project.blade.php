@@ -175,14 +175,6 @@
                             </div>
                         </div>
                     </div>
-
-                    <div>
-                        <livewire:core.time-entries-panel
-                            :context="$project"
-                            :linked-contexts="$project->customerProject ? [['type' => get_class($project->customerProject), 'id' => $project->customerProject->id]] : []"
-                            :planned-minutes="$project->planned_minutes"
-                        />
-                    </div>
                 </div>
             </x-ui-page-sidebar>
         </x-slot>
