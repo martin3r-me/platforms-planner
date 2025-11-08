@@ -181,10 +181,17 @@ class Dashboard extends Component
             $openStoryPoints = $memberTasks->filter(fn($t) => !$t->is_done)
                 ->sum(fn($task) => $task->story_points?->points() ?? 0);
 
-            // Zeiten für diesen Nutzer berechnen
+            // Zeiten für diesen Nutzer berechnen - Gesamt
             $totalMinutes = (int) CoreTimeEntry::query()
                 ->where('team_id', $team->id)
                 ->where('user_id', $member->id)
+                ->sum('minutes');
+            
+            // Zeiten des laufenden Monats
+            $monthlyMinutes = (int) CoreTimeEntry::query()
+                ->where('team_id', $team->id)
+                ->where('user_id', $member->id)
+                ->whereBetween('work_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
                 ->sum('minutes');
             
             $billedMinutes = (int) CoreTimeEntry::query()
@@ -208,6 +215,7 @@ class Dashboard extends Component
                 'tasks' => $totalTasks,
                 'points' => $totalStoryPoints,
                 'total_minutes' => $totalMinutes,
+                'monthly_minutes' => $monthlyMinutes,
                 'billed_minutes' => $billedMinutes,
                 'unbilled_minutes' => max(0, $totalMinutes - $billedMinutes),
             ];
@@ -215,10 +223,13 @@ class Dashboard extends Component
 
         // === PROJEKT-ÜBERSICHT (nur aktive Projekte) ===
         $perspective = 'team';
+        $startOfMonth = now()->startOfMonth();
+        $endOfMonth = now()->endOfMonth();
+        
         $activeProjectsList = $projects->filter(function($project) {
             return $project->is_active === null || $project->is_active === true;
         })
-        ->map(function ($project) use ($user, $perspective, $team) {
+        ->map(function ($project) use ($user, $perspective, $team, $startOfMonth, $endOfMonth) {
             {
                 $projectTasks = PlannerTask::where('project_id', $project->id)
                     ->where(function ($q) {
@@ -231,10 +242,17 @@ class Dashboard extends Component
                     ->get();
             }
             
-            // Zeiten für dieses Projekt berechnen (über Kontext-Kaskade)
+            // Zeiten für dieses Projekt berechnen (über Kontext-Kaskade) - Gesamt
             $totalMinutes = (int) CoreTimeEntry::query()
                 ->where('team_id', $team->id)
                 ->forContext(get_class($project), $project->id)
+                ->sum('minutes');
+            
+            // Zeiten des laufenden Monats
+            $monthlyMinutes = (int) CoreTimeEntry::query()
+                ->where('team_id', $team->id)
+                ->forContext(get_class($project), $project->id)
+                ->whereBetween('work_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
                 ->sum('minutes');
             
             $billedMinutes = (int) CoreTimeEntry::query()
@@ -253,6 +271,7 @@ class Dashboard extends Component
                 'tasks' => $projectTasks->count(),
                 'points' => $projectTasks->sum(fn($task) => $task->story_points?->points() ?? 0),
                 'total_minutes' => $totalMinutes,
+                'monthly_minutes' => $monthlyMinutes,
                 'billed_minutes' => $billedMinutes,
                 'unbilled_minutes' => max(0, $totalMinutes - $billedMinutes),
             ];
