@@ -100,9 +100,13 @@
                         @foreach($project->projectUsers as $projectUser)
                             <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                                 <div class="flex items-center space-x-3">
-                                    <div class="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-medium">
-                                        {{ substr($projectUser->user->name, 0, 1) }}
-                                    </div>
+                                    @if($projectUser->user->avatar)
+                                        <img src="{{ $projectUser->user->avatar }}" alt="{{ $projectUser->user->name }}" class="w-8 h-8 rounded-full object-cover">
+                                    @else
+                                        <div class="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-medium">
+                                            {{ substr($projectUser->user->name, 0, 1) }}
+                                        </div>
+                                    @endif
                                     <div>
                                         <div class="font-medium">{{ $projectUser->user->name }}</div>
                                         <div class="text-sm text-gray-500">{{ $projectUser->user->email }}</div>
@@ -157,9 +161,13 @@
                                     @foreach($availableUsers as $user)
                                         <div class="flex items-center justify-between p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-surface)]">
                                             <div class="flex items-center space-x-3">
-                                                <div class="w-6 h-6 bg-[var(--ui-primary-5)] text-[var(--ui-primary)] rounded-full flex items-center justify-center text-xs font-medium">
-                                                    {{ substr($user->name, 0, 1) }}
-                                                </div>
+                                                @if($user->avatar)
+                                                    <img src="{{ $user->avatar }}" alt="{{ $user->name }}" class="w-6 h-6 rounded-full object-cover">
+                                                @else
+                                                    <div class="w-6 h-6 bg-[var(--ui-primary-5)] text-[var(--ui-primary)] rounded-full flex items-center justify-center text-xs font-medium">
+                                                        {{ substr($user->name, 0, 1) }}
+                                                    </div>
+                                                @endif
                                                 <div>
                                                     <div class="font-medium text-sm text-[var(--ui-secondary)]">{{ $user->name }}</div>
                                                     <div class="text-xs text-[var(--ui-muted)]">{{ $user->email }}</div>

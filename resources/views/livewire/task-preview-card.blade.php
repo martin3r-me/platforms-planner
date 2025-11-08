@@ -28,7 +28,11 @@
                     <span class="text-[var(--ui-muted)]">•</span>
                 @endif
                 <span class="inline-flex items-center gap-1 min-w-0">
-                    <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/60 text-[10px] text-[var(--ui-secondary)]">{{ $initials }}</span>
+                    @if($userInCharge->avatar)
+                        <img src="{{ $userInCharge->avatar }}" alt="{{ $userInCharge->name ?? $userInCharge->email }}" class="w-4 h-4 rounded-full object-cover">
+                    @else
+                        <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/60 text-[10px] text-[var(--ui-secondary)]">{{ $initials }}</span>
+                    @endif
                     <span class="truncate max-w-[7rem]">{{ $userInCharge->name ?? $userInCharge->email }}</span>
                 </span>
             @endif
