@@ -45,6 +45,13 @@ class Task extends Component
         $this->authorize('view', $plannerTask);
         $this->task = $plannerTask;
         $this->dueDateInput = $plannerTask->due_date ? $plannerTask->due_date->format('Y-m-d H:i') : '';
+        
+        // Zeit-Tracking-Kontext setzen - nach dem Rendering senden
+        $this->dispatch('time-entry', [
+            'context_type' => get_class($this->task),
+            'context_id' => $this->task->id,
+            'linked_contexts' => $this->task->project ? [['type' => get_class($this->task->project), 'id' => $this->task->project->id]] : [],
+        ])->after('render');
     }
 
     #[Computed]
@@ -74,13 +81,6 @@ class Task extends Component
             ],
         ]);
 
-        // Zeit-Tracking-Kontext für Navbar setzen
-        \Log::info('Task: Dispatching time-entry event', [
-            'task_id' => $this->task->id,
-            'timestamp' => now(),
-        ]);
-        $this->dispatch('time-entry')->to('core.modal-time-entry');
-        \Log::info('Task: time-entry event dispatched to core.modal-time-entry');
     }
 
     public function updatedDueDateInput($value)
