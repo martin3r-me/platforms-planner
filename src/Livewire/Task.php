@@ -75,7 +75,12 @@ class Task extends Component
         ]);
 
         // Zeit-Tracking-Kontext für Navbar setzen
+        \Log::info('Task: Dispatching time-entry event', [
+            'task_id' => $this->task->id,
+            'timestamp' => now(),
+        ]);
         $this->dispatch('time-entry');
+        \Log::info('Task: time-entry event dispatched');
     }
 
     public function updatedDueDateInput($value)
