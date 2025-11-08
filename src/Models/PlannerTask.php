@@ -13,12 +13,12 @@ use Platform\ActivityLog\Traits\LogsActivity;
 use Platform\Media\Traits\HasMedia;
 use Platform\Organization\Traits\HasTimeEntries;
 use Platform\Core\Contracts\HasTimeAncestors;
-use Platform\Core\Contracts\HasDisplayName;
+// use Platform\Core\Contracts\HasDisplayName; // Temporär auskommentiert für composer update
 
 /**
  * @ai.description Aufgaben können optional einem Projekt zugeordnet sein (über ProjectSlot). Ohne Projekt sind es persönliche Aufgaben des Nutzers. TaskGroups und Slots dienen der Planung und Strukturierung der Arbeit.
  */
-class PlannerTask extends Model implements HasTimeAncestors, HasDisplayName
+class PlannerTask extends Model implements HasTimeAncestors
 {
     use HasFactory, SoftDeletes, LogsActivity, HasMedia, HasTimeEntries;
 
@@ -146,9 +146,10 @@ class PlannerTask extends Model implements HasTimeAncestors, HasDisplayName
 
     /**
      * Gibt den anzeigbaren Namen/Titel der Task zurück.
+     * TODO: Nach composer update wieder HasDisplayName Interface implementieren
      */
-    public function getDisplayName(): ?string
-    {
-        return $this->title;
-    }
+    // public function getDisplayName(): ?string
+    // {
+    //     return $this->title;
+    // }
 }
