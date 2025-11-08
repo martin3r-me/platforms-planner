@@ -59,7 +59,6 @@ class Task extends Component
 
     public function rendered()
     {
-        dd('hallo');
         $this->dispatch('comms', [
             'model' => get_class($this->task),                                // z. B. 'Platform\Planner\Models\PlannerTask'
             'modelId' => $this->task->id,
@@ -74,6 +73,8 @@ class Task extends Component
                 'story_points' => $this->task->story_points,
             ],
         ]);
+
+        dd('hallo welt');
 
         // Zeit-Tracking-Kontext für Navbar setzen
         $this->dispatch('time', [
