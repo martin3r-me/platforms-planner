@@ -68,7 +68,7 @@ class Project extends Component
         ]);
 
         // Zeit-Tracking-Kontext für Navbar setzen
-        $this->dispatch('time-entry-context:set', [
+        $this->dispatch('time-entry-context-set', [
             'context_type' => get_class($this->project),
             'context_id' => $this->project->id,
             'linked_contexts' => [],
