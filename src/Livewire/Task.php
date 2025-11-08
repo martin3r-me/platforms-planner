@@ -59,6 +59,7 @@ class Task extends Component
 
     public function rendered()
     {
+        dd('hallo');
         $this->dispatch('comms', [
             'model' => get_class($this->task),                                // z. B. 'Platform\Planner\Models\PlannerTask'
             'modelId' => $this->task->id,
