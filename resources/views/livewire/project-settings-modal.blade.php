@@ -56,10 +56,6 @@
                     />
                 @else
                     <div class="flex items-center justify-between text-sm p-2 rounded border border-[var(--ui-border)] bg-white">
-                        <span class="text-[var(--ui-muted)]">Geplante Minuten</span>
-                        <span class="font-medium text-[var(--ui-body-color)]">{{ $project->planned_minutes ?? '–' }}</span>
-                    </div>
-                    <div class="flex items-center justify-between text-sm p-2 rounded border border-[var(--ui-border)] bg-white">
                         <span class="text-[var(--ui-muted)]">Kostenstelle</span>
                         <span class="font-medium text-[var(--ui-body-color)]">{{ $project->customer_cost_center ?? '–' }}</span>
                     </div>
