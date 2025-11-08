@@ -67,10 +67,15 @@ class Project extends Component
             'project_name' => $this->project->name
         ]);
 
-        // Zeit-Tracking-Kontext für Time Entry Modal setzen
-        $this->dispatch('time-entry', [
+        // Organization-Kontext setzen - beides erlauben: Zeiten + Entity-Verknüpfung
+        $this->dispatch('organization', [
             'context_type' => get_class($this->project),
             'context_id' => $this->project->id,
+            'allow_time_entry' => true,
+            'allow_context_management' => true,
+            'can_link_to_entity' => true,
+            // Verfügbare Relations für Children-Cascade (z.B. Tasks mit/ohne Slots)
+            'include_children_relations' => ['tasks', 'projectSlots.tasks'],
         ]);
     }
 

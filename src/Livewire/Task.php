@@ -74,11 +74,14 @@ class Task extends Component
             ],
         ]);
 
-        // Zeit-Tracking-Kontext setzen
-        $this->dispatch('time-entry', [
+        // Organization-Kontext setzen - nur Zeiten erlauben, keine Entity-Verknüpfung
+        $this->dispatch('organization', [
             'context_type' => get_class($this->task),
             'context_id' => $this->task->id,
             'linked_contexts' => $this->task->project ? [['type' => get_class($this->task->project), 'id' => $this->task->project->id]] : [],
+            'allow_time_entry' => true,
+            'allow_context_management' => false,
+            'can_link_to_entity' => false,
         ]);
     }
 
