@@ -45,7 +45,14 @@
                     @foreach($customerProjects as $project)
                         <x-ui-sidebar-item :href="route('planner.projects.show', ['plannerProject' => $project])">
                             @svg('heroicon-o-folder', 'w-5 h-5 flex-shrink-0 text-[var(--ui-secondary)]')
-                            <span class="truncate text-sm ml-2">{{ $project->name }}</span>
+                            <div class="flex-1 min-w-0 ml-2">
+                                <div class="truncate text-sm font-medium">{{ $project->name }}</div>
+                                @if(isset($project->total_minutes) && $project->total_minutes > 0)
+                                    <div class="text-xs text-[var(--ui-muted)] truncate">
+                                        {{ number_format($project->total_minutes / 60, 1, ',', '.') }} h
+                                    </div>
+                                @endif
+                            </div>
                         </x-ui-sidebar-item>
                     @endforeach
                 </x-ui-sidebar-list>
@@ -57,7 +64,14 @@
                     @foreach($internalProjects as $project)
                         <x-ui-sidebar-item :href="route('planner.projects.show', ['plannerProject' => $project])">
                             @svg('heroicon-o-folder', 'w-5 h-5 flex-shrink-0 text-[var(--ui-secondary)]')
-                            <span class="truncate text-sm ml-2">{{ $project->name }}</span>
+                            <div class="flex-1 min-w-0 ml-2">
+                                <div class="truncate text-sm font-medium">{{ $project->name }}</div>
+                                @if(isset($project->total_minutes) && $project->total_minutes > 0)
+                                    <div class="text-xs text-[var(--ui-muted)] truncate">
+                                        {{ number_format($project->total_minutes / 60, 1, ',', '.') }} h
+                                    </div>
+                                @endif
+                            </div>
                         </x-ui-sidebar-item>
                     @endforeach
                 </x-ui-sidebar-list>

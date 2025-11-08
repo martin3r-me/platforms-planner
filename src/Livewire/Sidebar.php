@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use Platform\Planner\Models\PlannerProject as Project;
 use Platform\Planner\Models\PlannerProjectSlot as ProjectSlot;
 use Platform\Planner\Models\PlannerTask;
+use Platform\Core\Models\CoreTimeEntry;
 use Livewire\Attributes\On; 
 
 
@@ -114,15 +115,31 @@ class Sidebar extends Component
             ? $allProjects 
             : $projectsWithUserTasks;
 
-        // Nach Typ trennen
+        // Nach Typ trennen und Zeiten berechnen
         $customerProjects = $projectsToShow->filter(function ($p) {
             $type = is_string($p->project_type) ? $p->project_type : ($p->project_type?->value ?? null);
             return $type === 'customer';
+        })->map(function ($project) use ($teamId) {
+            $totalMinutes = (int) CoreTimeEntry::query()
+                ->where('team_id', $teamId)
+                ->forContext(get_class($project), $project->id)
+                ->sum('minutes');
+            
+            $project->total_minutes = $totalMinutes;
+            return $project;
         });
 
         $internalProjects = $projectsToShow->filter(function ($p) {
             $type = is_string($p->project_type) ? $p->project_type : ($p->project_type?->value ?? null);
             return $type !== 'customer';
+        })->map(function ($project) use ($teamId) {
+            $totalMinutes = (int) CoreTimeEntry::query()
+                ->where('team_id', $teamId)
+                ->forContext(get_class($project), $project->id)
+                ->sum('minutes');
+            
+            $project->total_minutes = $totalMinutes;
+            return $project;
         });
 
         // Alle Projekte für den Button
