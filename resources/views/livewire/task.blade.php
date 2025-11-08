@@ -34,12 +34,6 @@
                                 {{ $task->story_points->points() }} SP
                             </span>
                         @endif
-                        @if($task->planned_minutes)
-                            <span class="flex items-center gap-2">
-                                @svg('heroicon-o-clock', 'w-4 h-4')
-                                {{ number_format($task->planned_minutes / 60, 2, ',', '.') }} h geplant
-                            </span>
-                        @endif
                     </div>
                 </div>
                 <div class="flex items-center gap-3">
@@ -118,18 +112,6 @@
                         :nullable="true"
                         nullLabel="– Verantwortlichen auswählen –"
                         wire:model.live="task.user_in_charge_id"
-                    />
-                </div>
-                <div>
-                    <x-ui-input-text
-                        name="task.planned_minutes"
-                        label="Geplante Minuten"
-                        type="number"
-                        min="0"
-                        step="15"
-                        wire:model.live.debounce.500ms="task.planned_minutes"
-                        placeholder="z. B. 240"
-                        :errorKey="'task.planned_minutes'"
                     />
                 </div>
             </x-ui-form-grid>
