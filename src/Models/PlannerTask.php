@@ -124,28 +124,20 @@ class PlannerTask extends Model implements HasTimeAncestors
 
     /**
      * Gibt alle Vorfahren-Kontexte für die Zeitkaskade zurück.
-     * Task → Project → Customer (falls vorhanden)
+     * Task → Project (als Root)
      */
     public function timeAncestors(): array
     {
         $ancestors = [];
 
-        // Projekt als Vorfahr
+        // Projekt als Root-Kontext (bei Tasks ist das Project immer der Root)
         if ($this->project) {
             $ancestors[] = [
                 'type' => get_class($this->project),
                 'id' => $this->project->id,
-                'is_root' => false,
+                'is_root' => true, // Project ist Root-Kontext für Tasks
                 'label' => $this->project->name,
             ];
-
-            // Wenn Projekt auch HasTimeAncestors implementiert, dessen Vorfahren hinzufügen
-            if ($this->project instanceof HasTimeAncestors) {
-                $projectAncestors = $this->project->timeAncestors();
-                foreach ($projectAncestors as $ancestor) {
-                    $ancestors[] = $ancestor;
-                }
-            }
         }
 
         return $ancestors;

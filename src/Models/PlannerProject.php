@@ -96,26 +96,15 @@ class PlannerProject extends Model implements HasTimeAncestors
 
     /**
      * Gibt alle Vorfahren-Kontexte für die Zeitkaskade zurück.
-     * Project → Customer (falls vorhanden)
+     * Project → Project selbst (als Root)
+     * 
+     * Wenn direkt auf Project-Level Zeit erfasst wird, ist das Project selbst der Root-Kontext.
      */
     public function timeAncestors(): array
     {
-        $ancestors = [];
-
-        // Kunde als Vorfahr (über customerProject)
-        if ($this->customerProject && $this->customerProject->company_id) {
-            // Prüfe, ob es ein CRM-Company-Model gibt
-            $companyClass = 'Platform\Crm\Models\CrmCompany';
-            if (class_exists($companyClass)) {
-                $ancestors[] = [
-                    'type' => $companyClass,
-                    'id' => $this->customerProject->company_id,
-                    'is_root' => true, // Kunde ist Root-Kontext
-                    'label' => null, // Wird vom Resolver aufgelöst
-                ];
-            }
-        }
-
-        return $ancestors;
+        // Bei Projects ist das Project selbst der Root-Kontext
+        // Wir geben ein leeres Array zurück, da das Project selbst bereits als context_type/context_id gesetzt ist
+        // und in StoreTimeEntry wird das Project dann als root_context gesetzt, wenn keine Ancestors vorhanden sind
+        return [];
     }
 }
