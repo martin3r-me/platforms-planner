@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Symfony\Component\Uid\UuidV7;
 use Illuminate\Support\Facades\Log;
 use Platform\Organization\Traits\HasTimeEntries;
+use Platform\Organization\Traits\HasOrganizationContexts;
 use Platform\Core\Contracts\HasTimeAncestors;
 
 /**
@@ -16,7 +17,7 @@ use Platform\Core\Contracts\HasTimeAncestors;
  */
 class PlannerProject extends Model implements HasTimeAncestors
 {
-    use HasTimeEntries;
+    use HasTimeEntries, HasOrganizationContexts;
 
     protected $fillable = [
         'uuid',
