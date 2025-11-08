@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use Platform\Planner\Models\PlannerProject as Project;
 use Platform\Planner\Models\PlannerProjectSlot as ProjectSlot;
 use Platform\Planner\Models\PlannerTask;
-use Platform\Core\Models\CoreTimeEntry;
+use Platform\Organization\Models\OrganizationTimeEntry;
 use Livewire\Attributes\On; 
 
 
@@ -120,7 +120,7 @@ class Sidebar extends Component
             $type = is_string($p->project_type) ? $p->project_type : ($p->project_type?->value ?? null);
             return $type === 'customer';
         })->map(function ($project) use ($teamId) {
-            $totalMinutes = (int) CoreTimeEntry::query()
+            $totalMinutes = (int) OrganizationTimeEntry::query()
                 ->where('team_id', $teamId)
                 ->forContext(get_class($project), $project->id)
                 ->sum('minutes');
@@ -133,7 +133,7 @@ class Sidebar extends Component
             $type = is_string($p->project_type) ? $p->project_type : ($p->project_type?->value ?? null);
             return $type !== 'customer';
         })->map(function ($project) use ($teamId) {
-            $totalMinutes = (int) CoreTimeEntry::query()
+            $totalMinutes = (int) OrganizationTimeEntry::query()
                 ->where('team_id', $teamId)
                 ->forContext(get_class($project), $project->id)
                 ->sum('minutes');

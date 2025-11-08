@@ -6,7 +6,7 @@ use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Models\PlannerProject;
-use Platform\Core\Models\CoreTimeEntry;
+use Platform\Organization\Models\OrganizationTimeEntry;
 use Carbon\Carbon;
 
 class Dashboard extends Component
@@ -37,7 +37,7 @@ class Dashboard extends Component
         $startOfMonth = now()->startOfMonth();
         $endOfMonth = now()->endOfMonth();
 
-        $baseTimeEntries = CoreTimeEntry::query()
+        $baseTimeEntries = OrganizationTimeEntry::query()
             ->where('team_id', $team->id);
 
         $totalLoggedMinutes = (clone $baseTimeEntries)->sum('minutes');
@@ -182,19 +182,19 @@ class Dashboard extends Component
                 ->sum(fn($task) => $task->story_points?->points() ?? 0);
 
             // Zeiten für diesen Nutzer berechnen - Gesamt
-            $totalMinutes = (int) CoreTimeEntry::query()
+            $totalMinutes = (int) OrganizationTimeEntry::query()
                 ->where('team_id', $team->id)
                 ->where('user_id', $member->id)
                 ->sum('minutes');
             
             // Zeiten des laufenden Monats
-            $monthlyMinutes = (int) CoreTimeEntry::query()
+            $monthlyMinutes = (int) OrganizationTimeEntry::query()
                 ->where('team_id', $team->id)
                 ->where('user_id', $member->id)
                 ->whereBetween('work_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
                 ->sum('minutes');
             
-            $billedMinutes = (int) CoreTimeEntry::query()
+            $billedMinutes = (int) OrganizationTimeEntry::query()
                 ->where('team_id', $team->id)
                 ->where('user_id', $member->id)
                 ->where('is_billed', true)
@@ -243,19 +243,19 @@ class Dashboard extends Component
             }
             
             // Zeiten für dieses Projekt berechnen (über Kontext-Kaskade) - Gesamt
-            $totalMinutes = (int) CoreTimeEntry::query()
+            $totalMinutes = (int) OrganizationTimeEntry::query()
                 ->where('team_id', $team->id)
                 ->forContext(get_class($project), $project->id)
                 ->sum('minutes');
             
             // Zeiten des laufenden Monats
-            $monthlyMinutes = (int) CoreTimeEntry::query()
+            $monthlyMinutes = (int) OrganizationTimeEntry::query()
                 ->where('team_id', $team->id)
                 ->forContext(get_class($project), $project->id)
                 ->whereBetween('work_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
                 ->sum('minutes');
             
-            $billedMinutes = (int) CoreTimeEntry::query()
+            $billedMinutes = (int) OrganizationTimeEntry::query()
                 ->where('team_id', $team->id)
                 ->forContext(get_class($project), $project->id)
                 ->where('is_billed', true)

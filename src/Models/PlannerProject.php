@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Symfony\Component\Uid\UuidV7;
 use Illuminate\Support\Facades\Log;
-use Platform\Core\Traits\HasTimeEntries;
+use Platform\Organization\Traits\HasTimeEntries;
 use Platform\Core\Contracts\HasTimeAncestors;
 
 /**

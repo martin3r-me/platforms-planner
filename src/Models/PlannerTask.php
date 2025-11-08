@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Platform\ActivityLog\Traits\LogsActivity;
 use Platform\Media\Traits\HasMedia;
-use Platform\Core\Traits\HasTimeEntries;
+use Platform\Organization\Traits\HasTimeEntries;
 use Platform\Core\Contracts\HasTimeAncestors;
 
 /**
