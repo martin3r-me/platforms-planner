@@ -13,11 +13,12 @@ use Platform\ActivityLog\Traits\LogsActivity;
 use Platform\Media\Traits\HasMedia;
 use Platform\Organization\Traits\HasTimeEntries;
 use Platform\Core\Contracts\HasTimeAncestors;
+use Platform\Core\Contracts\HasDisplayName;
 
 /**
  * @ai.description Aufgaben können optional einem Projekt zugeordnet sein (über ProjectSlot). Ohne Projekt sind es persönliche Aufgaben des Nutzers. TaskGroups und Slots dienen der Planung und Strukturierung der Arbeit.
  */
-class PlannerTask extends Model implements HasTimeAncestors
+class PlannerTask extends Model implements HasTimeAncestors, HasDisplayName
 {
     use HasFactory, SoftDeletes, LogsActivity, HasMedia, HasTimeEntries;
 
@@ -141,5 +142,13 @@ class PlannerTask extends Model implements HasTimeAncestors
         }
 
         return $ancestors;
+    }
+
+    /**
+     * Gibt den anzeigbaren Namen/Titel der Task zurück.
+     */
+    public function getDisplayName(): ?string
+    {
+        return $this->title;
     }
 }
