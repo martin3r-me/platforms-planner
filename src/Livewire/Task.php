@@ -74,8 +74,6 @@ class Task extends Component
             ],
         ]);
 
-        dd('hallo welt');
-
         // Zeit-Tracking-Kontext für Navbar setzen
         $this->dispatch('time', [
             'context_type' => get_class($this->task),
