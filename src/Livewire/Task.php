@@ -74,26 +74,12 @@ class Task extends Component
             ],
         ]);
 
-        // Zeit-Tracking-Kontext setzen - als Browser-Event senden, damit es auch ankommt, wenn Modal später initialisiert wird
-        \Log::info('Task rendered: Dispatching time-entry event', [
-            'task_id' => $this->task->id,
-            'context_type' => get_class($this->task),
-            'context_id' => $this->task->id,
-        ]);
-        
-        $payload = [
+        // Zeit-Tracking-Kontext setzen
+        $this->dispatch('time-entry', [
             'context_type' => get_class($this->task),
             'context_id' => $this->task->id,
             'linked_contexts' => $this->task->project ? [['type' => get_class($this->task->project), 'id' => $this->task->project->id]] : [],
-        ];
-        
-        // Livewire Event
-        $this->dispatch('time-entry', $payload);
-        
-        // Browser Event (als Fallback) - verzögert senden, damit Modal Zeit hat zu initialisieren
-        $this->js("setTimeout(() => { window.dispatchEvent(new CustomEvent('time-entry', { detail: " . json_encode($payload) . " })) }, 100)");
-        
-        \Log::info('Task rendered: time-entry event dispatched');
+        ]);
     }
 
     public function updatedDueDateInput($value)
