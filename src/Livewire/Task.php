@@ -79,8 +79,8 @@ class Task extends Component
             'task_id' => $this->task->id,
             'timestamp' => now(),
         ]);
-        $this->dispatch('time-entry');
-        \Log::info('Task: time-entry event dispatched');
+        $this->dispatch('time-entry')->to('core.modal-time-entry');
+        \Log::info('Task: time-entry event dispatched to core.modal-time-entry');
     }
 
     public function updatedDueDateInput($value)
