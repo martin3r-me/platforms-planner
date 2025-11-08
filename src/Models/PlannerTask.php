@@ -12,11 +12,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Platform\ActivityLog\Traits\LogsActivity;
 use Platform\Media\Traits\HasMedia;
 use Platform\Core\Traits\HasTimeEntries;
+use Platform\Core\Contracts\HasTimeAncestors;
 
 /**
  * @ai.description Aufgaben können optional einem Projekt zugeordnet sein (über ProjectSlot). Ohne Projekt sind es persönliche Aufgaben des Nutzers. TaskGroups und Slots dienen der Planung und Strukturierung der Arbeit.
  */
-class PlannerTask extends Model
+class PlannerTask extends Model implements HasTimeAncestors
 {
     use HasFactory, SoftDeletes, LogsActivity, HasMedia, HasTimeEntries;
 
@@ -119,5 +120,34 @@ class PlannerTask extends Model
     public function getLoggedMinutesAttribute(): int
     {
         return $this->totalLoggedMinutes();
+    }
+
+    /**
+     * Gibt alle Vorfahren-Kontexte für die Zeitkaskade zurück.
+     * Task → Project → Customer (falls vorhanden)
+     */
+    public function timeAncestors(): array
+    {
+        $ancestors = [];
+
+        // Projekt als Vorfahr
+        if ($this->project) {
+            $ancestors[] = [
+                'type' => get_class($this->project),
+                'id' => $this->project->id,
+                'is_root' => false,
+                'label' => $this->project->name,
+            ];
+
+            // Wenn Projekt auch HasTimeAncestors implementiert, dessen Vorfahren hinzufügen
+            if ($this->project instanceof HasTimeAncestors) {
+                $projectAncestors = $this->project->timeAncestors();
+                foreach ($projectAncestors as $ancestor) {
+                    $ancestors[] = $ancestor;
+                }
+            }
+        }
+
+        return $ancestors;
     }
 }

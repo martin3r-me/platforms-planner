@@ -9,11 +9,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Symfony\Component\Uid\UuidV7;
 use Illuminate\Support\Facades\Log;
 use Platform\Core\Traits\HasTimeEntries;
+use Platform\Core\Contracts\HasTimeAncestors;
 
 /**
  * @ai.description Projekt bündelt Aufgaben (Tasks) und Sprints. Dient als Container für Planung, Ressourcen und Fortschritt eines Vorhabens im Team.
  */
-class PlannerProject extends Model
+class PlannerProject extends Model implements HasTimeAncestors
 {
     use HasTimeEntries;
 
@@ -90,5 +91,30 @@ class PlannerProject extends Model
     public function getLoggedMinutesAttribute(): int
     {
         return $this->totalLoggedMinutes();
+    }
+
+    /**
+     * Gibt alle Vorfahren-Kontexte für die Zeitkaskade zurück.
+     * Project → Customer (falls vorhanden)
+     */
+    public function timeAncestors(): array
+    {
+        $ancestors = [];
+
+        // Kunde als Vorfahr (über customerProject)
+        if ($this->customerProject && $this->customerProject->company_id) {
+            // Prüfe, ob es ein CRM-Company-Model gibt
+            $companyClass = 'Platform\Crm\Models\CrmCompany';
+            if (class_exists($companyClass)) {
+                $ancestors[] = [
+                    'type' => $companyClass,
+                    'id' => $this->customerProject->company_id,
+                    'is_root' => true, // Kunde ist Root-Kontext
+                    'label' => null, // Wird vom Resolver aufgelöst
+                ];
+            }
+        }
+
+        return $ancestors;
     }
 }
