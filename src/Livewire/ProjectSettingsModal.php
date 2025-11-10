@@ -256,6 +256,30 @@ class ProjectSettingsModal extends Component
         $this->project->refresh();
     }
 
+    public function markAsDone()
+    {
+        // Policy-Berechtigung prüfen
+        $this->authorize('update', $this->project);
+        
+        $this->project->done = true;
+        $this->project->done_at = now();
+        $this->project->save();
+        
+        $this->dispatch('updateSidebar');
+        $this->dispatch('updateProject');
+        $this->dispatch('updateDashboard');
+        
+        $this->dispatch('notifications:store', [
+            'title' => 'Projekt abgeschlossen',
+            'message' => 'Das Projekt wurde erfolgreich als abgeschlossen markiert.',
+            'notice_type' => 'success',
+            'noticable_type' => get_class($this->project),
+            'noticable_id'   => $this->project->getKey(),
+        ]);
+        
+        $this->project->refresh();
+    }
+
     public function deleteProject()
     {
         // Policy-Berechtigung prüfen

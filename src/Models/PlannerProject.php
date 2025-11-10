@@ -29,11 +29,15 @@ class PlannerProject extends Model implements HasTimeAncestors, HasDisplayName
         'user_id',
         'team_id',
         'project_type',
+        'done',
+        'done_at',
     ];
 
     protected $casts = [
         'uuid' => 'string',
         'project_type' => \Platform\Planner\Enums\ProjectType::class,
+        'done' => 'boolean',
+        'done_at' => 'datetime',
     ];
 
     protected static function booted(): void

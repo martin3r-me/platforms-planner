@@ -206,6 +206,38 @@
                     @endcan
                 </div>
                 
+                {{-- Projekt abschließen --}}
+                @can('update', $project)
+                    @if(!$project->done)
+                        <div class="border-t pt-4">
+                            <x-ui-button 
+                                variant="success" 
+                                wire:click="markAsDone"
+                                class="w-full"
+                            >
+                                <span class="inline-flex items-center gap-2">
+                                    @svg('heroicon-o-check-circle','w-5 h-5')
+                                    <span>Projekt abschließen</span>
+                                </span>
+                            </x-ui-button>
+                        </div>
+                    @else
+                        <div class="border-t pt-4">
+                            <div class="p-3 bg-green-50 border border-green-200 rounded-lg">
+                                <div class="flex items-center gap-2 text-green-700">
+                                    @svg('heroicon-o-check-circle','w-5 h-5')
+                                    <span class="font-medium">Projekt abgeschlossen</span>
+                                </div>
+                                @if($project->done_at)
+                                    <p class="text-sm text-green-600 mt-1">
+                                        Abgeschlossen am: {{ $project->done_at->format('d.m.Y H:i') }}
+                                    </p>
+                                @endif
+                            </div>
+                        </div>
+                    @endif
+                @endcan
+                
                 {{-- Projekt löschen --}}
                 @can('delete', $project)
                         <x-ui-confirm-button action="deleteProject" text="Projekt löschen" confirmText="Wirklich löschen?" />
