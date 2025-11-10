@@ -177,29 +177,30 @@ class Task extends BaseTask
         // Policy-Prüfung umgehen für embedded Kontext
         // $this->authorize('delete', $this->task);
         
+        // Alle notwendigen Informationen VOR dem Löschen speichern
         $taskTitle = $this->task->title;
+        $projectId = $this->task->project_id;
+        $hasProject = $this->task->project !== null;
         
-        if (!$this->task->project) {
-            // Fallback zu MyTasks wenn kein Projekt vorhanden
-            $this->task->delete();
-            
-            $this->dispatch('notifications:store', [
-                'notice_type' => 'info',
-                'title' => 'Aufgabe gelöscht',
-                'message' => "Die Aufgabe '{$taskTitle}' wurde gelöscht.",
-            ]);
-            
-            return $this->redirect(route('planner.my-tasks'), navigate: true);
+        // Zielroute vor dem Löschen bestimmen
+        if (!$hasProject) {
+            $redirectUrl = route('planner.my-tasks');
+        } else {
+            // Projekt-ID direkt verwenden, um Model-Binding zu vermeiden
+            $redirectUrl = route('planner.embedded.project', ['plannerProject' => $projectId]);
         }
         
+        // Task löschen
         $this->task->delete();
         
+        // Notification dispatchen (wird nach Redirect verarbeitet)
         $this->dispatch('notifications:store', [
             'notice_type' => 'info',
             'title' => 'Aufgabe gelöscht',
             'message' => "Die Aufgabe '{$taskTitle}' wurde gelöscht.",
         ]);
         
-        return $this->redirect(route('planner.embedded.project', $this->task->project), navigate: true);
+        // Sofort redirecten, ohne View zu rendern
+        return $this->redirect($redirectUrl, navigate: true);
     }
 }
