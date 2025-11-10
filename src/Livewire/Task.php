@@ -59,6 +59,11 @@ class Task extends Component
 
     public function rendered()
     {
+        // Wenn Task gelöscht wurde, nichts tun (wird nach Redirect nicht mehr aufgerufen)
+        if (!$this->task) {
+            return;
+        }
+
         $this->dispatch('comms', [
             'model' => get_class($this->task),                                // z. B. 'Platform\Planner\Models\PlannerTask'
             'modelId' => $this->task->id,
@@ -173,6 +178,9 @@ class Task extends Component
         // Task löschen
         $this->task->delete();
         
+        // Task-Property auf null setzen, damit rendered() Hook nicht mehr darauf zugreift
+        $this->task = null;
+        
         // Notification dispatchen (wird nach Redirect verarbeitet)
         $this->dispatch('notifications:store', [
             'notice_type' => 'info',
@@ -188,6 +196,7 @@ class Task extends Component
     {
         $this->authorize('delete', $this->task);
         $this->task->delete();
+        $this->task = null;
         return $this->redirect(route('planner.my-tasks'), navigate: true);
     }
 
@@ -201,11 +210,13 @@ class Task extends Component
         if (!$projectId) {
             // Fallback zu MyTasks wenn kein Projekt vorhanden
             $this->task->delete();
+            $this->task = null;
             return $this->redirect(route('planner.my-tasks'), navigate: true);
         }
         
         // Task löschen
         $this->task->delete();
+        $this->task = null;
         
         // Redirect mit Projekt-ID (direkt, nicht über Model)
         return $this->redirect(route('planner.projects.show', ['plannerProject' => $projectId]), navigate: true);

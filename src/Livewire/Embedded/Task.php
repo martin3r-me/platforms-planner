@@ -193,6 +193,9 @@ class Task extends BaseTask
         // Task löschen
         $this->task->delete();
         
+        // Task-Property auf null setzen, damit rendered() Hook nicht mehr darauf zugreift
+        $this->task = null;
+        
         // Notification dispatchen (wird nach Redirect verarbeitet)
         $this->dispatch('notifications:store', [
             'notice_type' => 'info',
