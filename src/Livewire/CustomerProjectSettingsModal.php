@@ -60,14 +60,17 @@ class CustomerProjectSettingsModal extends Component
     {
         /** @var CrmCompanyOptionsProviderInterface $provider */
         $provider = app(CrmCompanyOptionsProviderInterface::class);
-        $this->companyOptions = $provider->options($q, 50);
+        $options = $provider->options($q, 50);
+
+        // Konvertiere zu Collection für die Komponente
+        $this->companyOptions = collect($options);
 
         // Falls aktuelle Auswahl nicht in den Optionen ist, füge sie als erste Option hinzu
-        if ($this->companyId && !collect($this->companyOptions)->contains(fn($o) => (string)($o['value'] ?? null) === (string)$this->companyId)) {
+        if ($this->companyId && !$this->companyOptions->contains(fn($o) => (string)($o['value'] ?? null) === (string)$this->companyId)) {
             /** @var CrmCompanyResolverInterface $resolver */
             $resolver = app(CrmCompanyResolverInterface::class);
             $label = $resolver->displayName((int)$this->companyId) ?? ('#'.$this->companyId);
-            array_unshift($this->companyOptions, [
+            $this->companyOptions->prepend([
                 'value' => (int)$this->companyId,
                 'label' => $label,
             ]);
