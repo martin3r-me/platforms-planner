@@ -1,6 +1,35 @@
 <x-ui-modal size="md" model="modalShow" header="Project Settings">
 
     @if($project)
+            {{-- Info-Box: Eigene Rolle und Berechtigungen --}}
+            @if($currentUserRole ?? null)
+                <div class="mb-4 p-4 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-muted-5)]">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="text-sm font-semibold text-[var(--ui-secondary)]">Deine Rolle im Projekt</h4>
+                        <span class="text-sm font-medium px-2 py-1 rounded bg-[var(--ui-primary-5)] text-[var(--ui-primary)]">
+                            {{ ucfirst($currentUserRole) }}
+                        </span>
+                    </div>
+                    <div class="text-xs text-[var(--ui-muted)] space-y-1">
+                        @if($currentUserRole === 'owner')
+                            <p>✓ Du hast vollen Zugriff auf alle Projekt-Funktionen</p>
+                            <p>✓ Du kannst das Projekt löschen und Ownership übertragen</p>
+                        @elseif($currentUserRole === 'admin')
+                            <p>✓ Du kannst Projektdetails bearbeiten</p>
+                            <p>✓ Du kannst Mitglieder einladen und entfernen</p>
+                            <p>✗ Du kannst keine Rollen ändern oder Ownership übertragen</p>
+                        @elseif($currentUserRole === 'member')
+                            <p>✓ Du kannst Projektdetails bearbeiten</p>
+                            <p>✓ Du kannst Aufgaben erstellen und bearbeiten</p>
+                            <p>✗ Du kannst keine Mitglieder verwalten</p>
+                        @elseif($currentUserRole === 'viewer')
+                            <p>✓ Du kannst das Projekt und Aufgaben ansehen</p>
+                            <p>✗ Du kannst keine Änderungen vornehmen</p>
+                        @endif
+                    </div>
+                </div>
+            @endif
+
             <x-ui-form-grid :cols="1" :gap="4">
                 {{-- Projekt Name --}}
                 @can('update', $project)

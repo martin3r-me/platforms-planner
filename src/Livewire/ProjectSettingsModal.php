@@ -27,8 +27,8 @@ class ProjectSettingsModal extends Component
     {
         $this->project = PlannerProject::with(['projectUsers.user', 'customerProject'])->findOrFail($projectId);
         
-        // Policy-Berechtigung prüfen
-        $this->authorize('view', $this->project);
+        // Policy-Berechtigung prüfen - Settings erfordert view-Rechte
+        $this->authorize('settings', $this->project);
         
         $this->originalProjectType = is_string($this->project->project_type)
             ? $this->project->project_type
@@ -42,10 +42,20 @@ class ProjectSettingsModal extends Component
             ->get();
 
         // Rollen aus aktueller ProjectUser-Tabelle laden
+        // WICHTIG: Alle Projekt-User initialisieren, nicht nur Team-User!
+        // Sonst gehen Projekt-User verloren, die nicht im Team sind
         $this->roles = [];
+        
+        // Zuerst alle aktuellen Projekt-User in roles aufnehmen
+        foreach ($this->project->projectUsers as $projectUser) {
+            $this->roles[$projectUser->user_id] = $projectUser->role;
+        }
+        
+        // Dann auch alle Team-User hinzufügen (falls noch nicht vorhanden)
         foreach ($this->teamUsers as $user) {
-            $projectUser = $this->project->projectUsers->firstWhere('user_id', $user->id);
-            $this->roles[$user->id] = $projectUser?->role ?? '';
+            if (!isset($this->roles[$user->id])) {
+                $this->roles[$user->id] = '';
+            }
         }
 
         // Kundenprojekt-Form vorbereiten
@@ -391,8 +401,26 @@ class ProjectSettingsModal extends Component
             ->get();
     }
 
+    /**
+     * Ermittelt die aktuelle Rolle des Users im Projekt
+     */
+    public function getCurrentUserRole()
+    {
+        if (!$this->project) {
+            return null;
+        }
+        
+        $projectUser = $this->project->projectUsers()
+            ->where('user_id', Auth::id())
+            ->first();
+            
+        return $projectUser?->role;
+    }
+
     public function render()
     {
-        return view('planner::livewire.project-settings-modal')->layout('platform::layouts.app');
+        return view('planner::livewire.project-settings-modal', [
+            'currentUserRole' => $this->getCurrentUserRole(),
+        ])->layout('platform::layouts.app');
     }
 }

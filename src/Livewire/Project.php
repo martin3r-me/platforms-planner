@@ -147,10 +147,16 @@ class Project extends Component
         $customerCompanyName = $companyResolver->displayName($companyId);
         $customerCompanyUrl = $companyResolver->url($companyId);
 
+        // Aktuelle Rolle des Users im Projekt ermitteln
+        $currentUserRole = $this->project->projectUsers()
+            ->where('user_id', $user->id)
+            ->first()?->role;
+
         return view('planner::livewire.project', [
             'groups' => $groups,
             'customerCompanyName' => $customerCompanyName,
             'customerCompanyUrl' => $customerCompanyUrl,
+            'currentUserRole' => $currentUserRole,
         ])->layout('platform::layouts.app');
     }
 
@@ -159,6 +165,9 @@ class Project extends Component
      */
     public function createProjectSlot()
     {
+        // Policy-Berechtigung prüfen
+        $this->authorize('update', $this->project);
+        
         $user = Auth::user();
         $maxOrder = $this->project->projectSlots()->max('order') ?? 0;
 
@@ -178,6 +187,9 @@ class Project extends Component
      */
     public function createTask($projectSlotId = null)
     {
+        // Policy-Berechtigung prüfen
+        $this->authorize('update', $this->project);
+        
         $user = Auth::user();
 
         $lowestOrder = PlannerTask::where('user_id', $user->id)

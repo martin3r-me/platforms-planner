@@ -109,6 +109,16 @@ class PlannerProjectPolicy extends RolePolicy
     }
 
     /**
+     * Darf der User die Settings öffnen?
+     * Jeder mit view-Rechten kann Settings öffnen (auch Viewer)
+     */
+    public function settings(User $user, $project): bool
+    {
+        // Jeder Projekt-Mitglied kann Settings öffnen
+        return $this->view($user, $project);
+    }
+
+    /**
      * Hole die Projekt-Rolle des Users
      */
     protected function getUserProjectRole(User $user, $project): ?string

@@ -99,24 +99,30 @@
                     <div>
                         <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Aktionen</h3>
                         <div class="flex items-center gap-2 flex-wrap">
-                            <x-ui-button variant="secondary" size="sm" wire:click="createProjectSlot">
-                                <span class="inline-flex items-center gap-2">
-                                    @svg('heroicon-o-square-2-stack','w-4 h-4')
-                                    <span class="hidden sm:inline">Spalte</span>
-                                </span>
-                            </x-ui-button>
-                            <x-ui-button variant="secondary" size="sm" wire:click="createTask()">
-                                <span class="inline-flex items-center gap-2">
-                                    @svg('heroicon-o-plus','w-4 h-4')
-                                    <span class="hidden sm:inline">Aufgabe</span>
-                                </span>
-                            </x-ui-button>
-                            <x-ui-button variant="secondary-outline" size="sm" x-data @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })">
-                                <span class="inline-flex items-center gap-2">
-                                    @svg('heroicon-o-cog-6-tooth','w-4 h-4')
-                                    <span class="hidden sm:inline">Einstellungen</span>
-                                </span>
-                            </x-ui-button>
+                            @can('update', $project)
+                                <x-ui-button variant="secondary" size="sm" wire:click="createProjectSlot">
+                                    <span class="inline-flex items-center gap-2">
+                                        @svg('heroicon-o-square-2-stack','w-4 h-4')
+                                        <span class="hidden sm:inline">Spalte</span>
+                                    </span>
+                                </x-ui-button>
+                            @endcan
+                            @can('update', $project)
+                                <x-ui-button variant="secondary" size="sm" wire:click="createTask()">
+                                    <span class="inline-flex items-center gap-2">
+                                        @svg('heroicon-o-plus','w-4 h-4')
+                                        <span class="hidden sm:inline">Aufgabe</span>
+                                    </span>
+                                </x-ui-button>
+                            @endcan
+                            @can('settings', $project)
+                                <x-ui-button variant="secondary-outline" size="sm" x-data @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })">
+                                    <span class="inline-flex items-center gap-2">
+                                        @svg('heroicon-o-cog-6-tooth','w-4 h-4')
+                                        <span class="hidden sm:inline">Einstellungen</span>
+                                    </span>
+                                </x-ui-button>
+                            @endcan
                             @if(($project->project_type?->value ?? $project->project_type) === 'customer')
                                 <x-ui-button variant="secondary-outline" size="sm" x-data @click="$dispatch('open-modal-customer-project', { projectId: {{ $project->id }} })">
                                     <span class="inline-flex items-center gap-2">
@@ -149,6 +155,14 @@
                     <div>
                         <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Details</h3>
                         <div class="space-y-2 text-sm">
+                            @if($currentUserRole ?? null)
+                                <div class="flex justify-between py-1">
+                                    <span class="text-[var(--ui-muted)]">Deine Rolle:</span>
+                                    <span class="text-[var(--ui-secondary)] font-medium px-2 py-0.5 rounded bg-[var(--ui-primary-5)] text-[var(--ui-primary)]">
+                                        {{ ucfirst($currentUserRole) }}
+                                    </span>
+                                </div>
+                            @endif
                             <div class="flex justify-between py-1">
                                 <span class="text-[var(--ui-muted)]">Typ:</span>
                                 <span class="text-[var(--ui-secondary)] font-medium">
@@ -219,20 +233,24 @@
             @foreach($groups->filter(fn ($g) => !($g->isDoneGroup ?? false) && !($g->isBacklog ?? false)) as $column)
                 <x-ui-kanban-column :title="($column->label ?? $column->name ?? 'Spalte')" :sortable-id="$column->id" :scrollable="true">
                     <x-slot name="headerActions">
-                        <button 
-                            wire:click="createTask('{{ $column->id }}')" 
-                            class="text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] transition-colors"
-                            title="Neue Aufgabe"
-                        >
-                            @svg('heroicon-o-plus-circle', 'w-4 h-4')
-                        </button>
-                        <button 
-                            @click="$dispatch('open-modal-project-slot-settings', { projectSlotId: {{ $column->id }} })"
-                            class="text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] transition-colors"
-                            title="Einstellungen"
-                        >
-                            @svg('heroicon-o-cog-6-tooth', 'w-4 h-4')
-                        </button>
+                        @can('update', $project)
+                            <button 
+                                wire:click="createTask('{{ $column->id }}')" 
+                                class="text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] transition-colors"
+                                title="Neue Aufgabe"
+                            >
+                                @svg('heroicon-o-plus-circle', 'w-4 h-4')
+                            </button>
+                        @endcan
+                        @can('update', $project)
+                            <button 
+                                @click="$dispatch('open-modal-project-slot-settings', { projectSlotId: {{ $column->id }} })"
+                                class="text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] transition-colors"
+                                title="Einstellungen"
+                            >
+                                @svg('heroicon-o-cog-6-tooth', 'w-4 h-4')
+                            </button>
+                        @endcan
                     </x-slot>
 
                     @foreach($column->tasks as $task)
