@@ -15,6 +15,12 @@ class Sidebar extends Component
 {
     public bool $showAllProjects = false;
 
+    public function mount()
+    {
+        // Zustand aus localStorage laden (wird vom Frontend gesetzt)
+        $this->showAllProjects = false; // Default-Wert, wird vom Frontend überschrieben
+    }
+
     #[On('updateSidebar')] 
     public function updateSidebar()
     {

@@ -1,5 +1,15 @@
 {{-- resources/views/vendor/planner/livewire/sidebar-content.blade.php --}}
-<div>
+<div 
+    x-data="{
+        init() {
+            // Zustand aus localStorage laden beim Initialisieren
+            const savedState = localStorage.getItem('planner.showAllProjects');
+            if (savedState !== null) {
+                @this.set('showAllProjects', savedState === 'true');
+            }
+        }
+    }"
+>
     {{-- Modul Header --}}
     <div x-show="!collapsed" class="p-3 text-sm italic text-[var(--ui-secondary)] uppercase border-b border-[var(--ui-border)] mb-2">
         Planner
@@ -82,7 +92,8 @@
                 <div class="px-3 py-2">
                     <button 
                         type="button" 
-                        wire:click="toggleShowAllProjects" 
+                        wire:click="toggleShowAllProjects"
+                        x-on:click="localStorage.setItem('planner.showAllProjects', (!$wire.showAllProjects).toString())"
                         class="flex items-center gap-2 text-xs text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] transition-colors"
                     >
                         @if($showAllProjects)
