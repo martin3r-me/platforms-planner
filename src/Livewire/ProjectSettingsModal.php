@@ -78,7 +78,7 @@ class ProjectSettingsModal extends Component
             'invoice_account' => $cp?->invoice_account,
             'notes' => $cp?->notes,
         ];
-
+        
         $this->modalShow = true;
     }
 

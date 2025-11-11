@@ -114,30 +114,35 @@
             </x-ui-form-grid>
 
             <x-ui-form-grid :cols="1" :gap="6">
-                {{-- Projekttyp Toggle (lokal) --}}
+                {{-- Projekttyp Toggle --}}
                 @php $ptype = ($project->project_type?->value ?? $project->project_type); @endphp
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-[var(--ui-body-color)]">Projekttyp</label>
-                    <x-ui-segmented-toggle 
-                        model="projectType"
-                        :current="$ptype"
-                        :options="[
-                            ['value' => 'internal', 'label' => 'Intern'],
-                            ['value' => 'customer', 'label' => 'Kunde'],
-                        ]"
-                        size="sm"
-                        active-variant="primary"
-                        wire:change="setProjectType($event.detail.value)"
-                    />
+                    <div class="flex gap-2">
+                        <button
+                            type="button"
+                            wire:click="setProjectType('internal')"
+                            class="flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors border-2 {{ $projectType === 'internal' ? 'bg-[var(--ui-primary)] text-white border-[var(--ui-primary)]' : 'bg-white text-[var(--ui-secondary)] border-[var(--ui-border)] hover:border-[var(--ui-primary)]' }}"
+                        >
+                            Intern
+                        </button>
+                        <button
+                            type="button"
+                            wire:click="setProjectType('customer')"
+                            class="flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors border-2 {{ $projectType === 'customer' ? 'bg-[var(--ui-primary)] text-white border-[var(--ui-primary)]' : 'bg-white text-[var(--ui-secondary)] border-[var(--ui-border)] hover:border-[var(--ui-primary)]' }}"
+                        >
+                            Kunde
+                        </button>
+                    </div>
                     <div class="text-xs text-[var(--ui-muted)]">
                         {{ $ptype==='customer' ? 'Typ: Kunde (nicht zurücksetzbar)' : 'Typ: Intern' }}
                     </div>
                 </div>
 
-                {{-- Kundenprojekt: vorerst keine Eingaben, nur Hinweis --}}
+                {{-- Kundenprojekt: Hinweis --}}
                 @if(($project->project_type?->value ?? $project->project_type) === 'customer')
                     <x-ui-info-banner
-                        message="Kundenprojekt wurde angelegt. Weitere Einstellungen folgen."
+                        message="Kundenprojekt wurde angelegt. Verwende den 'Kunden'-Button in der Projekt-Ansicht, um die Firma zu verknüpfen."
                         variant="info"
                     />
                 @endif
