@@ -224,12 +224,12 @@ class RecurringTasksTab extends Component
         return view('planner::livewire.recurring-tasks-tab', [
             'projectSlots' => $projectSlots,
             'teamUsers' => $teamUsers,
-            'recurrenceTypes' => [
+            'recurrenceTypes' => collect([
                 ['value' => 'daily', 'label' => 'Täglich'],
                 ['value' => 'weekly', 'label' => 'Wöchentlich'],
                 ['value' => 'monthly', 'label' => 'Monatlich'],
                 ['value' => 'yearly', 'label' => 'Jährlich'],
-            ],
+            ]),
             'storyPointsOptions' => collect(TaskStoryPoints::cases())->map(fn($sp) => [
                 'value' => $sp->value,
                 'label' => $sp->label(),

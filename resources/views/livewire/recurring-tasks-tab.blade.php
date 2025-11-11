@@ -157,7 +157,9 @@
                     name="form.user_in_charge_id"
                     label="Verantwortlicher"
                     wire:model="form.user_in_charge_id"
-                    :options="$teamUsers->map(fn($u) => ['value' => $u->id, 'label' => $u->name])"
+                    :options="$teamUsers"
+                    optionValue="id"
+                    optionLabel="name"
                     :nullable="true"
                     :errorKey="'form.user_in_charge_id'"
                 />
@@ -166,7 +168,9 @@
                     name="form.project_slot_id"
                     label="Projekt Slot (optional)"
                     wire:model="form.project_slot_id"
-                    :options="$projectSlots->map(fn($s) => ['value' => $s->id, 'label' => $s->name])"
+                    :options="$projectSlots"
+                    optionValue="id"
+                    optionLabel="name"
                     :nullable="true"
                     :errorKey="'form.project_slot_id'"
                 />
