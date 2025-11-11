@@ -74,18 +74,32 @@
 
     <x-ui-kanban-container sortable="updateTaskGroupOrder" sortable-group="updateTaskOrder">
 
+            {{-- Fällige Aufgaben (nicht sortierbar, nur Anzeige) --}}
+            @php $dueGroup = $groups->first(fn($g) => ($g->isDueGroup ?? false)); @endphp
+            @if($dueGroup)
+                <x-ui-kanban-column :title="($dueGroup->label ?? 'Fällig')" :sortable-id="null" :scrollable="true" :muted="true">
+                    @foreach(($dueGroup->tasks ?? []) as $task)
+                        <div wire:key="due-{{ $task->id }}">
+                            @include('planner::livewire.task-preview-card', ['task' => $task])
+                        </div>
+                    @endforeach
+                </x-ui-kanban-column>
+            @endif
+
             {{-- Backlog (nicht sortierbar) --}}
             @php $backlog = $groups->first(fn($g) => ($g->isBacklog ?? false)); @endphp
             @if($backlog)
                 <x-ui-kanban-column :title="($backlog->label ?? 'Posteingang')" :sortable-id="null" :scrollable="true" :muted="true">
                     @foreach(($backlog->tasks ?? []) as $task)
-                        @include('planner::livewire.task-preview-card', ['task' => $task])
+                        <div wire:key="inbox-{{ $task->id }}">
+                            @include('planner::livewire.task-preview-card', ['task' => $task])
+                        </div>
                     @endforeach
                 </x-ui-kanban-column>
             @endif
 
             {{-- Mittlere Spalten (sortierbar) --}}
-            @foreach($groups->filter(fn ($g) => !($g->isDoneGroup ?? false) && !($g->isBacklog ?? false)) as $column)
+            @foreach($groups->filter(fn ($g) => !($g->isDoneGroup ?? false) && !($g->isBacklog ?? false) && !($g->isDueGroup ?? false)) as $column)
                 <x-ui-kanban-column :title="($column->label ?? $column->name ?? 'Spalte')" :sortable-id="$column->id" :scrollable="true">
                     <x-slot name="headerActions">
                         <button 
@@ -104,7 +118,9 @@
                         </button>
                     </x-slot>
                     @foreach(($column->tasks ?? []) as $task)
-                        @include('planner::livewire.task-preview-card', ['task' => $task])
+                        <div wire:key="group-{{ $column->id }}-{{ $task->id }}">
+                            @include('planner::livewire.task-preview-card', ['task' => $task])
+                        </div>
                     @endforeach
                 </x-ui-kanban-column>
             @endforeach
@@ -114,7 +130,9 @@
             @if($done)
                 <x-ui-kanban-column :title="($done->label ?? 'Erledigt')" :sortable-id="null" :scrollable="true" :muted="true">
                     @foreach(($done->tasks ?? []) as $task)
-                        @include('planner::livewire.task-preview-card', ['task' => $task])
+                        <div wire:key="done-{{ $task->id }}">
+                            @include('planner::livewire.task-preview-card', ['task' => $task])
+                        </div>
                     @endforeach
                 </x-ui-kanban-column>
             @endif

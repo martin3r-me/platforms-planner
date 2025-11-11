@@ -53,6 +53,41 @@ class MyTasks extends Component
         $startOfMonth = now()->startOfMonth();
 
 
+        // === 0. FÄLLIGE/ÜBERFÄLLIGE AUFGABEN ===
+        $now = now();
+        $nextWeek = now()->addDays(7);
+        
+        $dueTasks = PlannerTask::query()
+            ->where('is_done', false)
+            ->whereNotNull('due_date')
+            ->where(function ($q) use ($now, $nextWeek) {
+                // Überfällig (in der Vergangenheit) ODER kurzfristig fällig (nächste 7 Tage)
+                $q->where('due_date', '<=', $nextWeek);
+            })
+            ->where(function ($q) use ($userId) {
+                $q->where(function ($q) use ($userId) {
+                    $q->whereNull('project_id')
+                      ->where('user_id', $userId); // private Aufgabe
+                })->orWhere(function ($q) use ($userId) {
+                    $q->whereNotNull('project_id')
+                      ->where('user_in_charge_id', $userId)
+                      ->whereNotNull('project_slot_id'); // nur Projektaufgaben mit Project-Slot (nicht Backlog)
+                });
+            })
+            ->orderBy('due_date')
+            ->get();
+
+        $dueGroup = (object) [
+            'id' => 'due',
+            'label' => 'Fällig',
+            'isInbox' => false,
+            'isBacklog' => false,
+            'isDueGroup' => true,
+            'tasks' => $dueTasks,
+            'open_count' => $dueTasks->count(),
+            'open_points' => $dueTasks->sum(fn ($task) => $task->story_points instanceof \App\Enums\StoryPoints ? $task->story_points->points() : 1),
+        ];
+
         // === 1. INBOX ===
         $inboxTasks = PlannerTask::query()
             ->whereNull('task_group_id')
@@ -74,6 +109,7 @@ class MyTasks extends Component
             'id' => null,
             'label' => 'INBOX',
             'isInbox' => true,
+            'isBacklog' => true,
             'tasks' => $inboxTasks,
             'open_count' => $inboxTasks->count(),
             'open_points' => $inboxTasks->sum(fn ($task) => $task->story_points instanceof \App\Enums\StoryPoints ? $task->story_points->points() : 1),
@@ -131,7 +167,8 @@ class MyTasks extends Component
         ];
 
         // === 4. KOMPLETTE GRUPPENLISTE ===
-        $groups = collect([$inbox])->concat($grouped)->push($completedGroup);
+        // Fällige Aufgaben zuerst, dann Inbox, dann Gruppen, dann Erledigt
+        $groups = collect([$dueGroup, $inbox])->concat($grouped)->push($completedGroup);
 
         // === 5. PERFORMANCE-BERECHNUNG ===
         $createdPoints = PlannerTask::query()
