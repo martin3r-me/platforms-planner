@@ -124,10 +124,14 @@
                                 </x-ui-button>
                             @endcan
                             @if(($project->project_type?->value ?? $project->project_type) === 'customer')
+                                @php
+                                    $companyId = $project->customerProject?->company_id;
+                                    $companyName = $companyId ? app(\Platform\Core\Contracts\CrmCompanyResolverInterface::class)->displayName($companyId) : null;
+                                @endphp
                                 <x-ui-button variant="secondary-outline" size="sm" x-data @click="$dispatch('open-modal-customer-project', { projectId: {{ $project->id }} })">
                                     <span class="inline-flex items-center gap-2">
                                         @svg('heroicon-o-user-group','w-4 h-4')
-                                        <span class="hidden sm:inline">Kunden</span>
+                                        <span class="hidden sm:inline">{{ $companyName ?? 'Kunden' }}</span>
                                     </span>
                                 </x-ui-button>
                             @endif

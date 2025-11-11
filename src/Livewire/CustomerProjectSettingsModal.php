@@ -9,6 +9,7 @@ use Platform\Planner\Models\PlannerCustomerProject;
 use Illuminate\Support\Facades\Auth;
 use Platform\Core\Contracts\CrmCompanyResolverInterface;
 use Platform\Core\Contracts\CrmCompanyOptionsProviderInterface;
+use Platform\Core\Contracts\CrmCompanyContactsProviderInterface;
 
 class CustomerProjectSettingsModal extends Component
 {
@@ -18,6 +19,8 @@ class CustomerProjectSettingsModal extends Component
     public $companyDisplay = null;
     public $companyOptions = [];
     public $companySearch = '';
+    public $companyData = null;
+    public $companyContacts = [];
 
     #[On('open-modal-customer-project')]
     public function openModalCustomerProject($projectId)
@@ -26,6 +29,8 @@ class CustomerProjectSettingsModal extends Component
         $this->companyId = $this->project->customerProject?->company_id;
         $this->resolveCompanyDisplay();
         $this->loadCompanyOptions('');
+        $this->loadCompanyData();
+        $this->loadCompanyContacts();
         $this->modalShow = true;
     }
 
@@ -42,6 +47,8 @@ class CustomerProjectSettingsModal extends Component
     public function updatedCompanyId($value)
     {
         $this->resolveCompanyDisplay();
+        $this->loadCompanyData();
+        $this->loadCompanyContacts();
     }
 
     public function updatedCompanySearch($value)
@@ -86,6 +93,34 @@ class CustomerProjectSettingsModal extends Component
         }
     }
 
+    private function loadCompanyData(): void
+    {
+        if (!$this->companyId) {
+            $this->companyData = null;
+            return;
+        }
+
+        /** @var CrmCompanyResolverInterface $resolver */
+        $resolver = app(CrmCompanyResolverInterface::class);
+        
+        $this->companyData = [
+            'name' => $resolver->displayName((int)$this->companyId),
+            'url' => $resolver->url((int)$this->companyId),
+        ];
+    }
+
+    private function loadCompanyContacts(): void
+    {
+        if (!$this->companyId) {
+            $this->companyContacts = [];
+            return;
+        }
+
+        /** @var CrmCompanyContactsProviderInterface $provider */
+        $provider = app(CrmCompanyContactsProviderInterface::class);
+        $this->companyContacts = $provider->contacts((int)$this->companyId);
+    }
+
     public function saveCompany()
     {
         if (! $this->project) {
@@ -104,10 +139,12 @@ class CustomerProjectSettingsModal extends Component
 
         $this->project->refresh();
         $this->resolveCompanyDisplay();
+        $this->dispatch('updateProject');
         $this->dispatch('notify', [
             'type' => 'success',
             'message' => 'Kundenfirma gespeichert',
         ]);
+        $this->closeModal();
     }
 }
 
