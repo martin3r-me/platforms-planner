@@ -40,18 +40,32 @@
                 </div>
             @endif
 
-            {{-- Verknüpfte Kontakte --}}
-            @if($companyContacts && count($companyContacts) > 0)
+            {{-- Kontakte auswählen --}}
+            @if($companyId && $companyContacts && count($companyContacts) > 0)
                 <div>
-                    <h3 class="text-sm font-semibold text-[var(--ui-secondary)] mb-3">Verknüpfte Kontakte</h3>
-                    <div class="space-y-2">
+                    <h3 class="text-sm font-semibold text-[var(--ui-secondary)] mb-3">Kontakte mit Projekt verknüpfen</h3>
+                    <p class="text-xs text-[var(--ui-muted)] mb-3">Wählen Sie einen oder mehrere Kontakte aus, die mit diesem Projekt verknüpft werden sollen.</p>
+                    <div class="space-y-2 max-h-64 overflow-y-auto">
                         @foreach($companyContacts as $contact)
-                            <div class="flex items-center justify-between p-3 rounded-lg border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
+                            @php
+                                $isSelected = in_array($contact['id'], $selectedContactIds ?? []);
+                                $isLinked = collect($projectContacts ?? [])->contains('id', $contact['id']);
+                            @endphp
+                            <label class="flex items-start gap-3 p-3 rounded-lg border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)] hover:bg-[var(--ui-muted-10)] transition-colors cursor-pointer {{ $isSelected ? 'ring-2 ring-[var(--ui-primary)]' : '' }}">
+                                <input 
+                                    type="checkbox" 
+                                    wire:model.live="selectedContactIds"
+                                    value="{{ $contact['id'] }}"
+                                    class="mt-1 rounded border-[var(--ui-border)] text-[var(--ui-primary)] focus:ring-[var(--ui-primary)]"
+                                />
                                 <div class="flex-1 min-w-0">
                                     <div class="flex items-center gap-2 mb-1">
                                         <span class="text-sm font-medium text-[var(--ui-secondary)]">{{ $contact['name'] }}</span>
                                         @if($contact['is_primary'] ?? false)
                                             <x-ui-badge variant="primary" size="xs">Primär</x-ui-badge>
+                                        @endif
+                                        @if($isLinked)
+                                            <x-ui-badge variant="success" size="xs">Verknüpft</x-ui-badge>
                                         @endif
                                     </div>
                                     @if($contact['position'] ?? null)
@@ -71,13 +85,39 @@
                                         </div>
                                     @endif
                                 </div>
-                            </div>
+                            </label>
                         @endforeach
                     </div>
                 </div>
             @elseif($companyId && count($companyContacts) === 0)
                 <div class="p-4 rounded-lg border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)] text-center">
-                    <p class="text-sm text-[var(--ui-muted)]">Keine Kontakte verknüpft</p>
+                    <p class="text-sm text-[var(--ui-muted)]">Keine Kontakte für diese Firma verfügbar</p>
+                </div>
+            @endif
+
+            {{-- Bereits verknüpfte Kontakte (wenn keine Company ausgewählt) --}}
+            @if(!$companyId && $projectContacts && count($projectContacts) > 0)
+                <div>
+                    <h3 class="text-sm font-semibold text-[var(--ui-secondary)] mb-3">Verknüpfte Kontakte</h3>
+                    <div class="space-y-2">
+                        @foreach($projectContacts as $contact)
+                            <div class="flex items-center justify-between p-3 rounded-lg border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="text-sm font-medium text-[var(--ui-secondary)]">{{ $contact['name'] }}</span>
+                                    </div>
+                                    @if($contact['email'] ?? null)
+                                        <div class="text-xs text-[var(--ui-muted)] mt-1">
+                                            <span class="inline-flex items-center gap-1">
+                                                @svg('heroicon-o-envelope','w-3 h-3')
+                                                {{ $contact['email'] }}
+                                            </span>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
             @endif
         </div>

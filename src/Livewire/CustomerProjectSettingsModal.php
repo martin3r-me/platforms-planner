@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Auth;
 use Platform\Core\Contracts\CrmCompanyResolverInterface;
 use Platform\Core\Contracts\CrmCompanyOptionsProviderInterface;
 use Platform\Core\Contracts\CrmCompanyContactsProviderInterface;
+use Platform\Crm\Models\CrmContactLink;
+use Platform\Crm\Models\CrmContact;
 
 class CustomerProjectSettingsModal extends Component
 {
@@ -21,6 +23,8 @@ class CustomerProjectSettingsModal extends Component
     public $companySearch = '';
     public $companyData = null;
     public $companyContacts = [];
+    public $projectContacts = [];
+    public $selectedContactIds = [];
 
     #[On('open-modal-customer-project')]
     public function openModalCustomerProject($projectId)
@@ -31,6 +35,7 @@ class CustomerProjectSettingsModal extends Component
         $this->loadCompanyOptions('');
         $this->loadCompanyData();
         $this->loadCompanyContacts();
+        $this->loadProjectContacts();
         $this->modalShow = true;
     }
 
@@ -49,6 +54,7 @@ class CustomerProjectSettingsModal extends Component
         $this->resolveCompanyDisplay();
         $this->loadCompanyData();
         $this->loadCompanyContacts();
+        $this->loadProjectContacts();
     }
 
     public function updatedCompanySearch($value)
@@ -121,6 +127,114 @@ class CustomerProjectSettingsModal extends Component
         $this->companyContacts = $provider->contacts((int)$this->companyId);
     }
 
+    private function loadProjectContacts(): void
+    {
+        if (!$this->project) {
+            $this->projectContacts = [];
+            return;
+        }
+
+        $user = Auth::user();
+        $baseTeam = $user->currentTeamRelation;
+        $teamId = $baseTeam ? $baseTeam->getRootTeam()->id : null;
+
+        if (!$teamId) {
+            $this->projectContacts = [];
+            return;
+        }
+
+        $links = CrmContactLink::where('linkable_type', PlannerProject::class)
+            ->where('linkable_id', $this->project->id)
+            ->where('team_id', $teamId)
+            ->with(['contact.emailAddresses', 'contact.contactStatus'])
+            ->get();
+
+        $this->projectContacts = $links->map(function ($link) {
+            $contact = $link->contact;
+            if (!$contact) {
+                return null;
+            }
+
+            $emailAddress = $contact->emailAddresses()
+                ->where('is_primary', true)
+                ->first()
+                ?? $contact->emailAddresses()->first();
+
+            return [
+                'id' => $contact->id,
+                'link_id' => $link->id,
+                'name' => $contact->display_name,
+                'email' => $emailAddress?->email_address,
+            ];
+        })
+        ->filter()
+        ->values()
+        ->all();
+
+        // Selected IDs für Checkboxen (initial aus bereits verknüpften Kontakten)
+        $this->selectedContactIds = collect($this->projectContacts)->pluck('id')->toArray();
+    }
+
+    public function toggleContact($contactId): void
+    {
+        if (!in_array($contactId, $this->selectedContactIds)) {
+            $this->selectedContactIds[] = $contactId;
+        } else {
+            $this->selectedContactIds = array_values(array_diff($this->selectedContactIds, [$contactId]));
+        }
+    }
+
+    public function saveContacts(): void
+    {
+        if (!$this->project) {
+            return;
+        }
+
+        $user = Auth::user();
+        $baseTeam = $user->currentTeamRelation;
+        $teamId = $baseTeam ? $baseTeam->getRootTeam()->id : null;
+
+        if (!$teamId) {
+            return;
+        }
+
+        // Aktuelle Links holen
+        $currentLinks = CrmContactLink::where('linkable_type', PlannerProject::class)
+            ->where('linkable_id', $this->project->id)
+            ->where('team_id', $teamId)
+            ->get();
+
+        $currentContactIds = $currentLinks->pluck('contact_id')->toArray();
+        $selectedContactIds = array_map('intval', $this->selectedContactIds);
+
+        // Zu entfernende Links
+        $toRemove = array_diff($currentContactIds, $selectedContactIds);
+        foreach ($toRemove as $contactId) {
+            $link = $currentLinks->firstWhere('contact_id', $contactId);
+            if ($link && $link->created_by_user_id === Auth::id()) {
+                $link->delete();
+            }
+        }
+
+        // Neue Links hinzufügen
+        $toAdd = array_diff($selectedContactIds, $currentContactIds);
+        foreach ($toAdd as $contactId) {
+            // Prüfe ob Kontakt existiert und zum Root-Team gehört
+            $contact = CrmContact::find($contactId);
+            if ($contact && $contact->team_id === $teamId && $contact->is_active) {
+                CrmContactLink::create([
+                    'contact_id' => $contactId,
+                    'linkable_type' => PlannerProject::class,
+                    'linkable_id' => $this->project->id,
+                    'team_id' => $teamId,
+                    'created_by_user_id' => Auth::id(),
+                ]);
+            }
+        }
+
+        $this->loadProjectContacts();
+    }
+
     public function saveCompany()
     {
         if (! $this->project) {
@@ -139,6 +253,10 @@ class CustomerProjectSettingsModal extends Component
 
         $this->project->refresh();
         $this->resolveCompanyDisplay();
+        
+        // Kontakte speichern (auch wenn leer, um Entfernungen zu speichern)
+        $this->saveContacts();
+        
         $this->dispatch('updateProject');
         $this->dispatch('notify', [
             'type' => 'success',
