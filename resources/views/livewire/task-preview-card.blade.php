@@ -4,7 +4,7 @@
     :title="$task->title" 
     :sortable-id="$task->id" 
     :href="route('planner.tasks.show', $task)"
-    @if($wireKey) wire:key="{{ $wireKey }}" @endif
+    @if($wireKey){{ ' wire:key="' . $wireKey . '"' }}@endif
 >
     <!-- Team (eigene Zeile) -->
     @if($task->team)
