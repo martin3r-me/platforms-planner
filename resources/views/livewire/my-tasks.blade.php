@@ -72,25 +72,6 @@
         </x-ui-page-sidebar>
     </x-slot>
 
-    {{-- Fällige Aufgaben (außerhalb des Kanban-Boards) --}}
-    @php $dueGroup = $groups->first(fn($g) => ($g->isDueGroup ?? false)); @endphp
-    @if($dueGroup && $dueGroup->tasks->isNotEmpty())
-        <div class="mb-6">
-            <div class="flex items-center gap-2 mb-3">
-                <h3 class="text-sm font-semibold text-[var(--ui-secondary)]">Fällig</h3>
-                <span class="text-xs text-[var(--ui-muted)]">({{ $dueGroup->tasks->count() }})</span>
-            </div>
-            <div class="flex flex-wrap gap-3">
-                    @foreach(($dueGroup->tasks ?? []) as $task)
-                        <div wire:key="due-{{ $task->id }}" class="flex-shrink-0 w-80">
-                            @include('planner::livewire.task-preview-card', ['task' => $task])
-                        </div>
-                    @endforeach
-            </div>
-        </div>
-    @endif
-
-    {{-- Kanban Board --}}
     <x-ui-kanban-container sortable="updateTaskGroupOrder" sortable-group="updateTaskOrder">
 
             {{-- Backlog (nicht sortierbar) --}}
@@ -98,9 +79,7 @@
             @if($backlog)
                 <x-ui-kanban-column :title="($backlog->label ?? 'Posteingang')" :sortable-id="null" :scrollable="true" :muted="true">
                     @foreach(($backlog->tasks ?? []) as $task)
-                        <div wire:key="inbox-{{ $task->id }}">
-                            @include('planner::livewire.task-preview-card', ['task' => $task])
-                        </div>
+                        @include('planner::livewire.task-preview-card', ['task' => $task])
                     @endforeach
                 </x-ui-kanban-column>
             @endif
@@ -125,32 +104,22 @@
                         </button>
                     </x-slot>
                     @foreach(($column->tasks ?? []) as $task)
-                        <div wire:key="group-{{ $column->id }}-{{ $task->id }}">
-                            @include('planner::livewire.task-preview-card', ['task' => $task])
-                        </div>
+                        @include('planner::livewire.task-preview-card', ['task' => $task])
                     @endforeach
                 </x-ui-kanban-column>
             @endforeach
 
-    </x-ui-kanban-container>
-
-    {{-- Erledigte Aufgaben (außerhalb des Kanban-Boards) --}}
-    @php $done = $groups->first(fn($g) => ($g->isDoneGroup ?? false)); @endphp
-    @if($done && $done->tasks->isNotEmpty())
-        <div class="mt-6 pt-6 border-t border-[var(--ui-border)]/60">
-            <div class="flex items-center gap-2 mb-3">
-                <h3 class="text-sm font-semibold text-[var(--ui-muted)]">Erledigt</h3>
-                <span class="text-xs text-[var(--ui-muted)]">({{ $done->tasks->count() }})</span>
-            </div>
-            <div class="flex flex-wrap gap-3">
+            {{-- Erledigt (nicht sortierbar) --}}
+            @php $done = $groups->first(fn($g) => ($g->isDoneGroup ?? false)); @endphp
+            @if($done)
+                <x-ui-kanban-column :title="($done->label ?? 'Erledigt')" :sortable-id="null" :scrollable="true" :muted="true">
                     @foreach(($done->tasks ?? []) as $task)
-                        <div wire:key="done-{{ $task->id }}" class="flex-shrink-0 w-80 opacity-60">
-                            @include('planner::livewire.task-preview-card', ['task' => $task])
-                        </div>
+                        @include('planner::livewire.task-preview-card', ['task' => $task])
                     @endforeach
-            </div>
-        </div>
-    @endif
+                </x-ui-kanban-column>
+            @endif
+
+    </x-ui-kanban-container>
 
     <livewire:planner.task-group-settings-modal/>
     <livewire:planner.project-slot-settings-modal/>
