@@ -57,11 +57,6 @@
                             @svg('heroicon-o-folder', 'w-5 h-5 flex-shrink-0 text-[var(--ui-secondary)]')
                             <div class="flex-1 min-w-0 ml-2">
                                 <div class="truncate text-sm font-medium">{{ $project->name }}</div>
-                                @if(isset($project->total_minutes) && $project->total_minutes > 0)
-                                    <div class="text-xs text-[var(--ui-muted)] truncate">
-                                        {{ number_format($project->total_minutes / 60, 1, ',', '.') }} h
-                                    </div>
-                                @endif
                             </div>
                         </x-ui-sidebar-item>
                     @endforeach
@@ -76,11 +71,6 @@
                             @svg('heroicon-o-folder', 'w-5 h-5 flex-shrink-0 text-[var(--ui-secondary)]')
                             <div class="flex-1 min-w-0 ml-2">
                                 <div class="truncate text-sm font-medium">{{ $project->name }}</div>
-                                @if(isset($project->total_minutes) && $project->total_minutes > 0)
-                                    <div class="text-xs text-[var(--ui-muted)] truncate">
-                                        {{ number_format($project->total_minutes / 60, 1, ',', '.') }} h
-                                    </div>
-                                @endif
                             </div>
                         </x-ui-sidebar-item>
                     @endforeach
