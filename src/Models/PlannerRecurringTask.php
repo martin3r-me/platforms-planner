@@ -116,6 +116,14 @@ class PlannerRecurringTask extends Model
     }
 
     /**
+     * Alle Tasks, die aus dieser wiederkehrenden Aufgabe erstellt wurden
+     */
+    public function tasks()
+    {
+        return $this->hasMany(PlannerTask::class, 'recurring_task_id');
+    }
+
+    /**
      * Erstellt eine Task basierend auf dieser wiederkehrenden Aufgabe
      */
     public function createTask(): PlannerTask
@@ -132,6 +140,7 @@ class PlannerRecurringTask extends Model
             'project_id' => $this->project_id,
             'project_slot_id' => $this->project_slot_id,
             'task_group_id' => $this->task_group_id,
+            'recurring_task_id' => $this->id,
             'due_date' => $this->next_due_date,
         ]);
 

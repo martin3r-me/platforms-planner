@@ -40,6 +40,7 @@ class PlannerTask extends Model implements HasTimeAncestors, HasDisplayName
         'project_id',
         'project_slot_id',
         'task_group_id',
+        'recurring_task_id',
     ];
 
     protected $casts = [
@@ -116,6 +117,11 @@ class PlannerTask extends Model implements HasTimeAncestors, HasDisplayName
     public function userInCharge()
     {
         return $this->belongsTo(\Platform\Core\Models\User::class, 'user_in_charge_id');
+    }
+
+    public function recurringTask()
+    {
+        return $this->belongsTo(PlannerRecurringTask::class, 'recurring_task_id');
     }
 
     public function getLoggedMinutesAttribute(): int

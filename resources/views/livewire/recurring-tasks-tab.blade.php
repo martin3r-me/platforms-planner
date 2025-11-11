@@ -215,8 +215,7 @@
                     name="recurrenceEndDateInput"
                     label="Enddatum (optional)"
                     type="datetime-local"
-                    wire:model="recurrenceEndDateInput"
-                    wire:change="updatedRecurrenceEndDateInput($event.target.value)"
+                    wire:model.live="recurrenceEndDateInput"
                     :errorKey="'form.recurrence_end_date'"
                 />
 
@@ -224,8 +223,7 @@
                     name="nextDueDateInput"
                     label="Nächstes Fälligkeitsdatum"
                     type="datetime-local"
-                    wire:model="nextDueDateInput"
-                    wire:change="updatedNextDueDateInput($event.target.value)"
+                    wire:model.live="nextDueDateInput"
                     required
                     :errorKey="'form.next_due_date'"
                 />
