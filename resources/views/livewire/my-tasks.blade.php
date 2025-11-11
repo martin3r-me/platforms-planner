@@ -81,11 +81,11 @@
                 <span class="text-xs text-[var(--ui-muted)]">({{ $dueGroup->tasks->count() }})</span>
             </div>
             <div class="flex flex-wrap gap-3">
-                @foreach(($dueGroup->tasks ?? []) as $task)
-                    <div wire:key="due-{{ $task->id }}" class="flex-shrink-0 w-80">
-                        @include('planner::livewire.task-preview-card', ['task' => $task, 'wireKey' => null])
-                    </div>
-                @endforeach
+                    @foreach(($dueGroup->tasks ?? []) as $task)
+                        <div wire:key="due-{{ $task->id }}" class="flex-shrink-0 w-80">
+                            @include('planner::livewire.task-preview-card', ['task' => $task])
+                        </div>
+                    @endforeach
             </div>
         </div>
     @endif
@@ -98,7 +98,9 @@
             @if($backlog)
                 <x-ui-kanban-column :title="($backlog->label ?? 'Posteingang')" :sortable-id="null" :scrollable="true" :muted="true">
                     @foreach(($backlog->tasks ?? []) as $task)
-                        @include('planner::livewire.task-preview-card', ['task' => $task, 'wireKey' => 'inbox-' . $task->id])
+                        <div wire:key="inbox-{{ $task->id }}">
+                            @include('planner::livewire.task-preview-card', ['task' => $task])
+                        </div>
                     @endforeach
                 </x-ui-kanban-column>
             @endif
@@ -123,7 +125,9 @@
                         </button>
                     </x-slot>
                     @foreach(($column->tasks ?? []) as $task)
-                        @include('planner::livewire.task-preview-card', ['task' => $task, 'wireKey' => 'group-' . $column->id . '-' . $task->id])
+                        <div wire:key="group-{{ $column->id }}-{{ $task->id }}">
+                            @include('planner::livewire.task-preview-card', ['task' => $task])
+                        </div>
                     @endforeach
                 </x-ui-kanban-column>
             @endforeach
@@ -139,11 +143,11 @@
                 <span class="text-xs text-[var(--ui-muted)]">({{ $done->tasks->count() }})</span>
             </div>
             <div class="flex flex-wrap gap-3">
-                @foreach(($done->tasks ?? []) as $task)
-                    <div wire:key="done-{{ $task->id }}" class="flex-shrink-0 w-80 opacity-60">
-                        @include('planner::livewire.task-preview-card', ['task' => $task, 'wireKey' => null])
-                    </div>
-                @endforeach
+                    @foreach(($done->tasks ?? []) as $task)
+                        <div wire:key="done-{{ $task->id }}" class="flex-shrink-0 w-80 opacity-60">
+                            @include('planner::livewire.task-preview-card', ['task' => $task])
+                        </div>
+                    @endforeach
             </div>
         </div>
     @endif

@@ -1,10 +1,9 @@
-@props(['task', 'wireKey' => null])
+@props(['task'])
 
 <x-ui-kanban-card 
     :title="$task->title" 
     :sortable-id="$task->id" 
     :href="route('planner.tasks.show', $task)"
-    @if($wireKey){{ ' wire:key="' . $wireKey . '"' }}@endif
 >
     <!-- Team (eigene Zeile) -->
     @if($task->team)
