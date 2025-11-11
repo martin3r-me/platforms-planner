@@ -64,7 +64,23 @@
     <!-- Due date / Flags -->
     <div class="text-xs text-[var(--ui-muted)] flex items-center gap-2">
         @if($task->due_date)
-            <span class="inline-flex items-center gap-1">
+            @php
+                $isDueSoon = $task->due_date->lte(now()->addDay()->endOfDay());
+                $isOverdue = $task->due_date->isPast();
+                $isToday = $task->due_date->isToday();
+                $isTomorrow = $task->due_date->isTomorrow();
+            @endphp
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md transition-colors
+                @if($isOverdue)
+                    bg-[var(--ui-danger-5)] text-[var(--ui-danger)] border border-[var(--ui-danger)]/30
+                @elseif($isToday)
+                    bg-[var(--ui-warning-5)] text-[var(--ui-warning)] border border-[var(--ui-warning)]/30
+                @elseif($isTomorrow)
+                    bg-[var(--ui-warning-5)] text-[var(--ui-warning)] border border-[var(--ui-warning)]/20
+                @elseif($isDueSoon)
+                    bg-[var(--ui-warning-5)] text-[var(--ui-warning)] border border-[var(--ui-warning)]/20
+                @endif
+            ">
                 @svg('heroicon-o-calendar','w-3 h-3')
                 {{ $task->due_date->format('d.m.Y') }}
             </span>

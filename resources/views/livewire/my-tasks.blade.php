@@ -32,6 +32,8 @@
                                                     <span class="text-[var(--ui-danger)] font-semibold">Überfällig</span>
                                                 @elseif($task->due_date->isToday())
                                                     <span class="text-[var(--ui-warning)] font-semibold">Heute</span>
+                                                @elseif($task->due_date->isTomorrow())
+                                                    <span class="text-[var(--ui-warning)] font-semibold">Morgen</span>
                                                 @endif
                                             </div>
                                         </div>

@@ -54,15 +54,14 @@ class MyTasks extends Component
 
 
         // === 0. FÄLLIGE/ÜBERFÄLLIGE AUFGABEN ===
-        $now = now();
-        $nextWeek = now()->addDays(7);
+        $tomorrow = now()->addDay()->endOfDay();
         
         $dueTasks = PlannerTask::query()
             ->where('is_done', false)
             ->whereNotNull('due_date')
-            ->where(function ($q) use ($now, $nextWeek) {
-                // Überfällig (in der Vergangenheit) ODER kurzfristig fällig (nächste 7 Tage)
-                $q->where('due_date', '<=', $nextWeek);
+            ->where(function ($q) use ($tomorrow) {
+                // Überfällig (in der Vergangenheit), heute oder morgen fällig
+                $q->where('due_date', '<=', $tomorrow);
             })
             ->where(function ($q) use ($userId) {
                 $q->where(function ($q) use ($userId) {
