@@ -151,18 +151,78 @@
                         </div>
                     </div>
 
+                    <!-- Debug: Mitgliedstatus & Berechtigungen -->
+                    <div>
+                        <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Mitgliedstatus & Berechtigungen</h3>
+                        <div class="space-y-2 text-xs p-3 bg-[var(--ui-muted-5)] rounded-lg border border-[var(--ui-border)]">
+                            @if($currentUserRole ?? null)
+                                <div class="flex justify-between items-center py-1">
+                                    <span class="text-[var(--ui-muted)]">Deine Rolle:</span>
+                                    <span class="font-medium px-2 py-0.5 rounded bg-[var(--ui-primary-5)] text-[var(--ui-primary)]">
+                                        {{ ucfirst($currentUserRole) }}
+                                    </span>
+                                </div>
+                            @else
+                                <div class="flex justify-between items-center py-1">
+                                    <span class="text-[var(--ui-muted)]">Mitgliedstatus:</span>
+                                    <span class="font-medium px-2 py-0.5 rounded bg-red-100 text-red-700">
+                                        ❌ Nicht Mitglied
+                                    </span>
+                                </div>
+                            @endif
+                            
+                            @if(isset($permissions))
+                                <div class="mt-2 pt-2 border-t border-[var(--ui-border)]">
+                                    <div class="text-[var(--ui-muted)] mb-1">Berechtigungen:</div>
+                                    <div class="space-y-1">
+                                        <div class="flex justify-between">
+                                            <span>Ansehen:</span>
+                                            <span class="{{ $permissions['view'] ? 'text-green-600' : 'text-red-600' }}">
+                                                {{ $permissions['view'] ? '✓' : '✗' }}
+                                            </span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>Bearbeiten:</span>
+                                            <span class="{{ $permissions['update'] ? 'text-green-600' : 'text-red-600' }}">
+                                                {{ $permissions['update'] ? '✓' : '✗' }}
+                                            </span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>Settings:</span>
+                                            <span class="{{ $permissions['settings'] ? 'text-green-600' : 'text-red-600' }}">
+                                                {{ $permissions['settings'] ? '✓' : '✗' }}
+                                            </span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>Einladen:</span>
+                                            <span class="{{ $permissions['invite'] ? 'text-green-600' : 'text-red-600' }}">
+                                                {{ $permissions['invite'] ? '✓' : '✗' }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+
+                            @if(isset($allProjectUsers) && $allProjectUsers->count() > 0)
+                                <div class="mt-2 pt-2 border-t border-[var(--ui-border)]">
+                                    <div class="text-[var(--ui-muted)] mb-1">Projekt-Mitglieder ({{ $allProjectUsers->count() }}):</div>
+                                    <div class="space-y-1 max-h-32 overflow-y-auto">
+                                        @foreach($allProjectUsers as $pu)
+                                            <div class="flex justify-between text-xs">
+                                                <span class="truncate">{{ $pu->user->name ?? 'Unbekannt' }}</span>
+                                                <span class="ml-2 px-1 rounded bg-gray-200 text-gray-700">{{ $pu->role }}</span>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+
                     <!-- Projekt-Details -->
                     <div>
                         <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Details</h3>
                         <div class="space-y-2 text-sm">
-                            @if($currentUserRole ?? null)
-                                <div class="flex justify-between py-1">
-                                    <span class="text-[var(--ui-muted)]">Deine Rolle:</span>
-                                    <span class="text-[var(--ui-secondary)] font-medium px-2 py-0.5 rounded bg-[var(--ui-primary-5)] text-[var(--ui-primary)]">
-                                        {{ ucfirst($currentUserRole) }}
-                                    </span>
-                                </div>
-                            @endif
                             <div class="flex justify-between py-1">
                                 <span class="text-[var(--ui-muted)]">Typ:</span>
                                 <span class="text-[var(--ui-secondary)] font-medium">

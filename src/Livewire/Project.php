@@ -34,6 +34,10 @@ class Project extends Component
     public function mount(PlannerProject $plannerProject)
     {
         $this->project = $plannerProject;
+        
+        // Berechtigung prüfen - User muss Projekt-Mitglied sein
+        $this->authorize('view', $this->project);
+        
         // Sprints werden nicht mehr geladen - nur Project-Slots
     }
 
@@ -148,15 +152,30 @@ class Project extends Component
         $customerCompanyUrl = $companyResolver->url($companyId);
 
         // Aktuelle Rolle des Users im Projekt ermitteln
-        $currentUserRole = $this->project->projectUsers()
+        $projectUser = $this->project->projectUsers()
             ->where('user_id', $user->id)
-            ->first()?->role;
+            ->first();
+        $currentUserRole = $projectUser?->role;
+
+        // Debug: Berechtigungen prüfen
+        $permissions = [
+            'view' => $user->can('view', $this->project),
+            'update' => $user->can('update', $this->project),
+            'delete' => $user->can('delete', $this->project),
+            'settings' => $user->can('settings', $this->project),
+            'invite' => $user->can('invite', $this->project),
+        ];
+
+        // Alle Projekt-Mitglieder für Debug
+        $allProjectUsers = $this->project->projectUsers()->with('user')->get();
 
         return view('planner::livewire.project', [
             'groups' => $groups,
             'customerCompanyName' => $customerCompanyName,
             'customerCompanyUrl' => $customerCompanyUrl,
             'currentUserRole' => $currentUserRole,
+            'permissions' => $permissions,
+            'allProjectUsers' => $allProjectUsers,
         ])->layout('platform::layouts.app');
     }
 
