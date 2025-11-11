@@ -6,6 +6,42 @@
     <x-slot name="sidebar">
         <x-ui-page-sidebar title="Übersicht" width="w-80" :defaultOpen="true">
             <div class="p-4 space-y-4">
+                {{-- Fällige Aufgaben --}}
+                @php $dueGroup = $groups->first(fn($g) => ($g->isDueGroup ?? false)); @endphp
+                @if($dueGroup && $dueGroup->tasks->isNotEmpty())
+                    <div>
+                        <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Fällig</h3>
+                        <div class="space-y-2 max-h-96 overflow-y-auto">
+                            @foreach($dueGroup->tasks as $task)
+                                <a 
+                                    href="{{ route('planner.tasks.show', $task) }}" 
+                                    wire:navigate
+                                    class="block p-3 rounded-lg bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40 hover:bg-[var(--ui-muted)] hover:border-[var(--ui-primary)]/40 transition-colors"
+                                >
+                                    <div class="flex items-start justify-between gap-2">
+                                        <div class="flex-1 min-w-0">
+                                            <div class="text-sm font-medium text-[var(--ui-secondary)] truncate mb-1">
+                                                {{ $task->title }}
+                                            </div>
+                                            <div class="flex items-center gap-2 text-xs text-[var(--ui-muted)]">
+                                                <span class="inline-flex items-center gap-1">
+                                                    @svg('heroicon-o-calendar', 'w-3 h-3')
+                                                    {{ $task->due_date->format('d.m.Y') }}
+                                                </span>
+                                                @if($task->due_date->isPast())
+                                                    <span class="text-[var(--ui-danger)] font-semibold">Überfällig</span>
+                                                @elseif($task->due_date->isToday())
+                                                    <span class="text-[var(--ui-warning)] font-semibold">Heute</span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                </a>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
                 {{-- Quick Actions verschoben aus Navbar --}}
                 <div>
                     <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Aktionen</h3>
