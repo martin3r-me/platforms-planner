@@ -37,6 +37,8 @@ class PlannerRecurringTask extends Model
         'recurrence_end_date', // optional, wann die Wiederholung endet
         'next_due_date', // wann die nächste Aufgabe erstellt werden soll
         'is_active',
+        'auto_delete_old_tasks', // automatisch alte Tasks mit diesem Bezug löschen
+        'auto_mark_as_done', // automatisch als erledigt markieren
     ];
 
     protected $casts = [
@@ -45,6 +47,8 @@ class PlannerRecurringTask extends Model
         'recurrence_end_date' => 'datetime',
         'next_due_date' => 'datetime',
         'is_active' => 'boolean',
+        'auto_delete_old_tasks' => 'boolean',
+        'auto_mark_as_done' => 'boolean',
     ];
 
     protected static function booted(): void
@@ -71,6 +75,12 @@ class PlannerRecurringTask extends Model
             }
             if ($model->is_active === null) {
                 $model->is_active = true;
+            }
+            if ($model->auto_delete_old_tasks === null) {
+                $model->auto_delete_old_tasks = false;
+            }
+            if ($model->auto_mark_as_done === null) {
+                $model->auto_mark_as_done = false;
             }
         });
     }
@@ -128,6 +138,11 @@ class PlannerRecurringTask extends Model
      */
     public function createTask(): PlannerTask
     {
+        // Alte Tasks löschen, wenn gewünscht
+        if ($this->auto_delete_old_tasks) {
+            $this->tasks()->delete();
+        }
+
         $task = PlannerTask::create([
             'user_id' => $this->user_id,
             'user_in_charge_id' => $this->user_in_charge_id,
@@ -142,7 +157,14 @@ class PlannerRecurringTask extends Model
             'task_group_id' => $this->task_group_id,
             'recurring_task_id' => $this->id,
             'due_date' => $this->next_due_date,
+            'is_done' => $this->auto_mark_as_done,
         ]);
+
+        // Wenn automatisch als erledigt markiert, auch done_at setzen
+        if ($this->auto_mark_as_done) {
+            $task->done_at = now();
+            $task->save();
+        }
 
         // Nächsten Termin berechnen
         $this->calculateNextDueDate();

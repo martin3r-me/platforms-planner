@@ -228,16 +228,44 @@
                     :errorKey="'form.next_due_date'"
                 />
 
-                <div class="flex items-center gap-2">
-                    <input 
-                        type="checkbox" 
-                        id="form.is_active"
-                        wire:model="form.is_active"
-                        class="rounded border-[var(--ui-border)] text-[var(--ui-primary)] focus:ring-[var(--ui-primary)]"
-                    />
-                    <label for="form.is_active" class="text-sm text-[var(--ui-body-color)]">
-                        Aktiv
-                    </label>
+                <div class="space-y-3">
+                    <div class="flex items-center gap-2">
+                        <input 
+                            type="checkbox" 
+                            id="form.is_active"
+                            wire:model="form.is_active"
+                            class="rounded border-[var(--ui-border)] text-[var(--ui-primary)] focus:ring-[var(--ui-primary)]"
+                        />
+                        <label for="form.is_active" class="text-sm text-[var(--ui-body-color)]">
+                            Aktiv
+                        </label>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <input 
+                            type="checkbox" 
+                            id="form.auto_delete_old_tasks"
+                            wire:model="form.auto_delete_old_tasks"
+                            class="rounded border-[var(--ui-border)] text-[var(--ui-primary)] focus:ring-[var(--ui-primary)]"
+                        />
+                        <label for="form.auto_delete_old_tasks" class="text-sm text-[var(--ui-body-color)]">
+                            Alte Tasks automatisch löschen
+                            <span class="text-xs text-[var(--ui-muted)] block">Löscht alle vorhandenen Tasks mit diesem Bezug, bevor eine neue erstellt wird</span>
+                        </label>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <input 
+                            type="checkbox" 
+                            id="form.auto_mark_as_done"
+                            wire:model="form.auto_mark_as_done"
+                            class="rounded border-[var(--ui-border)] text-[var(--ui-primary)] focus:ring-[var(--ui-primary)]"
+                        />
+                        <label for="form.auto_mark_as_done" class="text-sm text-[var(--ui-body-color)]">
+                            Automatisch als erledigt markieren
+                            <span class="text-xs text-[var(--ui-muted)] block">Neue Tasks werden automatisch als erledigt markiert</span>
+                        </label>
+                    </div>
                 </div>
             </x-ui-form-grid>
 

@@ -53,31 +53,47 @@ class GenerateRecurringTasks extends Command
         $skippedCount = 0;
 
         foreach ($recurringTasks as $recurringTask) {
-            // Prüfe, ob bereits eine Task für dieses Datum existiert (verhindert Duplikate)
-            $existingTask = PlannerTask::where('project_id', $recurringTask->project_id)
-                ->where('project_slot_id', $recurringTask->project_slot_id)
-                ->where('title', $recurringTask->title)
-                ->whereDate('due_date', $recurringTask->next_due_date->toDateString())
-                ->first();
+            $this->info("  📝 Verarbeite: '{$recurringTask->title}' (Fällig: {$recurringTask->next_due_date->format('d.m.Y')})");
 
-            if ($existingTask) {
-                $this->warn("  ⚠️  Übersprungen: Task '{$recurringTask->title}' existiert bereits für {$recurringTask->next_due_date->format('d.m.Y')}");
-                $skippedCount++;
+            // Prüfe, ob bereits eine Task in der aktuellen Frequenzperiode existiert (nur wenn auto_delete_old_tasks nicht aktiv ist)
+            if (!$recurringTask->auto_delete_old_tasks) {
+                $periodStart = $this->getPeriodStart($recurringTask->recurrence_type, $recurringTask->next_due_date);
                 
-                // Trotzdem nächsten Termin berechnen
-                if (!$isDryRun) {
-                    $recurringTask->calculateNextDueDate();
-                    $recurringTask->save();
+                $existingTask = PlannerTask::where('recurring_task_id', $recurringTask->id)
+                    ->where('created_at', '>=', $periodStart)
+                    ->first();
+
+                if ($existingTask) {
+                    $this->warn("     ⚠️  Übersprungen: Task wurde bereits in dieser Periode erstellt (am {$existingTask->created_at->format('d.m.Y H:i')})");
+                    $skippedCount++;
+                    
+                    // Trotzdem nächsten Termin berechnen
+                    if (!$isDryRun) {
+                        $recurringTask->calculateNextDueDate();
+                        $recurringTask->save();
+                    }
+                    continue;
                 }
-                continue;
             }
 
-            $this->info("  📝 Erstelle Task: '{$recurringTask->title}' (Fällig: {$recurringTask->next_due_date->format('d.m.Y')})");
+            // Zeige Optionen an
+            $options = [];
+            if ($recurringTask->auto_delete_old_tasks) {
+                $oldTasksCount = $recurringTask->tasks()->count();
+                $options[] = "Löscht {$oldTasksCount} alte Task(s)";
+            }
+            if ($recurringTask->auto_mark_as_done) {
+                $options[] = "Markiert als erledigt";
+            }
+            if (!empty($options)) {
+                $this->info("     ⚙️  Optionen: " . implode(', ', $options));
+            }
 
             if (!$isDryRun) {
                 try {
                     $task = $recurringTask->createTask();
-                    $this->info("     ✅ Task erstellt (ID: {$task->id})");
+                    $status = $task->is_done ? ' (erledigt)' : '';
+                    $this->info("     ✅ Task erstellt (ID: {$task->id}){$status}");
                     $createdCount++;
                 } catch (\Exception $e) {
                     $this->error("     ❌ Fehler beim Erstellen: {$e->getMessage()}");
@@ -99,6 +115,20 @@ class GenerateRecurringTasks extends Command
         }
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Berechnet den Start der aktuellen Frequenzperiode basierend auf dem Wiederholungstyp
+     */
+    private function getPeriodStart(string $recurrenceType, \Carbon\Carbon $date): \Carbon\Carbon
+    {
+        return match($recurrenceType) {
+            'daily' => $date->copy()->startOfDay(),
+            'weekly' => $date->copy()->startOfWeek(),
+            'monthly' => $date->copy()->startOfMonth(),
+            'yearly' => $date->copy()->startOfYear(),
+            default => $date->copy()->startOfDay(),
+        };
     }
 }
 

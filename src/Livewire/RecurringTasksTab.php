@@ -88,6 +88,8 @@ class RecurringTasksTab extends Component
             'recurrence_end_date' => $recurringTask->recurrence_end_date,
             'next_due_date' => $recurringTask->next_due_date,
             'is_active' => $recurringTask->is_active,
+            'auto_delete_old_tasks' => $recurringTask->auto_delete_old_tasks,
+            'auto_mark_as_done' => $recurringTask->auto_mark_as_done,
         ];
 
         $this->recurrenceEndDateInput = $recurringTask->recurrence_end_date 
@@ -123,6 +125,8 @@ class RecurringTasksTab extends Component
             'recurrence_end_date' => null,
             'next_due_date' => null,
             'is_active' => true,
+            'auto_delete_old_tasks' => false,
+            'auto_mark_as_done' => false,
         ];
         $this->recurrenceEndDateInput = '';
         $this->nextDueDateInput = '';
@@ -153,6 +157,8 @@ class RecurringTasksTab extends Component
             'form.recurrence_end_date' => 'nullable|date',
             'form.next_due_date' => 'nullable|date',
             'form.is_active' => 'boolean',
+            'form.auto_delete_old_tasks' => 'boolean',
+            'form.auto_mark_as_done' => 'boolean',
         ]);
 
         $user = Auth::user();
