@@ -14,9 +14,34 @@ class PlannerProjectPolicy extends RolePolicy
      */
     public function view(User $user, $project): bool
     {
-        // Projekt-Mitgliedschaft prüfen (egal in welchem Team)
+        // 1. Projekt-Mitgliedschaft prüfen (egal in welchem Team)
         $userRole = $this->getUserProjectRole($user, $project);
-        return $userRole !== null;
+        if ($userRole !== null) {
+            return true;
+        }
+
+        // 2. User hat Aufgaben im Projekt (auch wenn nicht als Mitglied eingetragen)
+        // Das entspricht der Sidebar-Logik: Projekte mit User-Aufgaben werden angezeigt
+        $hasTasks = $project->tasks()
+            ->where('user_in_charge_id', $user->id)
+            ->exists();
+
+        if ($hasTasks) {
+            return true;
+        }
+
+        // 3. User hat Aufgaben in Project-Slots
+        $hasTasksInSlots = $project->projectSlots()
+            ->whereHas('tasks', function ($q) use ($user) {
+                $q->where('user_in_charge_id', $user->id);
+            })
+            ->exists();
+
+        if ($hasTasksInSlots) {
+            return true;
+        }
+
+        return false;
     }
 
     /**

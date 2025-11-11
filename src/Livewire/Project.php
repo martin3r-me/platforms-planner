@@ -157,6 +157,19 @@ class Project extends Component
             ->first();
         $currentUserRole = $projectUser?->role;
 
+        // Prüfen ob User Aufgaben im Projekt hat (auch ohne Mitgliedschaft)
+        $hasTasks = $this->project->tasks()
+            ->where('user_in_charge_id', $user->id)
+            ->exists();
+        
+        $hasTasksInSlots = $this->project->projectSlots()
+            ->whereHas('tasks', function ($q) use ($user) {
+                $q->where('user_in_charge_id', $user->id);
+            })
+            ->exists();
+        
+        $hasAnyTasks = $hasTasks || $hasTasksInSlots;
+
         // Debug: Berechtigungen prüfen
         $permissions = [
             'view' => $user->can('view', $this->project),
@@ -174,6 +187,7 @@ class Project extends Component
             'customerCompanyName' => $customerCompanyName,
             'customerCompanyUrl' => $customerCompanyUrl,
             'currentUserRole' => $currentUserRole,
+            'hasAnyTasks' => $hasAnyTasks,
             'permissions' => $permissions,
             'allProjectUsers' => $allProjectUsers,
         ])->layout('platform::layouts.app');

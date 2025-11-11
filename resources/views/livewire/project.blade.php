@@ -162,6 +162,13 @@
                                         {{ ucfirst($currentUserRole) }}
                                     </span>
                                 </div>
+                            @elseif($hasAnyTasks ?? false)
+                                <div class="flex justify-between items-center py-1">
+                                    <span class="text-[var(--ui-muted)]">Mitgliedstatus:</span>
+                                    <span class="font-medium px-2 py-0.5 rounded bg-yellow-100 text-yellow-700">
+                                        ⚠️ Mit Aufgaben (nicht Mitglied)
+                                    </span>
+                                </div>
                             @else
                                 <div class="flex justify-between items-center py-1">
                                     <span class="text-[var(--ui-muted)]">Mitgliedstatus:</span>
