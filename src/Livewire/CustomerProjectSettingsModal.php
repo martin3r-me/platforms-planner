@@ -66,14 +66,23 @@ class CustomerProjectSettingsModal extends Component
         $this->companyOptions = collect($options);
 
         // Falls aktuelle Auswahl nicht in den Optionen ist, füge sie als erste Option hinzu
-        if ($this->companyId && !$this->companyOptions->contains(fn($o) => (string)($o['value'] ?? null) === (string)$this->companyId)) {
-            /** @var CrmCompanyResolverInterface $resolver */
-            $resolver = app(CrmCompanyResolverInterface::class);
-            $label = $resolver->displayName((int)$this->companyId) ?? ('#'.$this->companyId);
-            $this->companyOptions->prepend([
-                'value' => (int)$this->companyId,
-                'label' => $label,
-            ]);
+        if ($this->companyId) {
+            $companyId = (int)$this->companyId;
+            $exists = $this->companyOptions->firstWhere('value', $companyId);
+            
+            if (!$exists) {
+                /** @var CrmCompanyResolverInterface $resolver */
+                $resolver = app(CrmCompanyResolverInterface::class);
+                $label = $resolver->displayName($companyId);
+                
+                // Nur hinzufügen, wenn ein Label gefunden wurde
+                if ($label) {
+                    $this->companyOptions->prepend([
+                        'value' => $companyId,
+                        'label' => $label,
+                    ]);
+                }
+            }
         }
     }
 
