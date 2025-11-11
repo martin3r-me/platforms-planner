@@ -20,6 +20,7 @@ class ProjectSettingsModal extends Component
     public $customerProjectForm = [];
     public $hasCustomerProject = false;
     public $originalProjectType = null;
+    public $projectType = null;
     public $billingMethodOptions = [];
 
     #[On('open-modal-project-settings')] 
@@ -36,6 +37,8 @@ class ProjectSettingsModal extends Component
         $this->originalProjectType = is_string($this->project->project_type)
             ? $this->project->project_type
             : ($this->project->project_type?->value ?? null);
+        
+        $this->projectType = $this->originalProjectType;
 
         // Teammitglieder holen (z.B. für Auswahl und Anzeige)
         $this->teamUsers = Auth::user()
@@ -234,6 +237,7 @@ class ProjectSettingsModal extends Component
             return;
         }
         $this->project->project_type = $type;
+        $this->projectType = $type;
         // Bei Umstellung auf Kunden sofort persistieren und CustomerProject anlegen
         if ($type === 'customer') {
             $this->project->save();
