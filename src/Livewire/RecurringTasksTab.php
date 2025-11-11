@@ -170,13 +170,17 @@ class RecurringTasksTab extends Component
                 'title' => 'Wiederkehrende Aufgabe aktualisiert',
                 'message' => 'Die wiederkehrende Aufgabe wurde erfolgreich aktualisiert.',
                 'notice_type' => 'success',
+                'noticable_type' => get_class($recurringTask),
+                'noticable_id' => $recurringTask->id,
             ]);
         } else {
-            PlannerRecurringTask::create($data);
+            $recurringTask = PlannerRecurringTask::create($data);
             $this->dispatch('notifications:store', [
                 'title' => 'Wiederkehrende Aufgabe erstellt',
                 'message' => 'Die wiederkehrende Aufgabe wurde erfolgreich erstellt.',
                 'notice_type' => 'success',
+                'noticable_type' => get_class($recurringTask),
+                'noticable_id' => $recurringTask->id,
             ]);
         }
 
@@ -187,6 +191,8 @@ class RecurringTasksTab extends Component
     public function delete($id)
     {
         $recurringTask = PlannerRecurringTask::findOrFail($id);
+        $noticableType = get_class($recurringTask);
+        $noticableId = $recurringTask->id;
         $recurringTask->delete();
         
         $this->loadRecurringTasks();
@@ -195,6 +201,8 @@ class RecurringTasksTab extends Component
             'title' => 'Wiederkehrende Aufgabe gelöscht',
             'message' => 'Die wiederkehrende Aufgabe wurde erfolgreich gelöscht.',
             'notice_type' => 'success',
+            'noticable_type' => $noticableType,
+            'noticable_id' => $noticableId,
         ]);
     }
 

@@ -101,9 +101,22 @@
         </div>
     @endif
 
-    {{-- Formular Modal --}}
+    {{-- Inline Formular --}}
     @if($showCreateForm)
-        <x-ui-modal size="md" model="showCreateForm" header="{{ $editingId ? 'Wiederkehrende Aufgabe bearbeiten' : 'Neue wiederkehrende Aufgabe' }}">
+        <div class="mt-6 p-6 rounded-lg border-2 border-[var(--ui-primary)] bg-[var(--ui-surface)]">
+            <div class="flex items-center justify-between mb-4">
+                <h4 class="text-lg font-semibold text-[var(--ui-secondary)]">
+                    {{ $editingId ? 'Wiederkehrende Aufgabe bearbeiten' : 'Neue wiederkehrende Aufgabe' }}
+                </h4>
+                <button 
+                    wire:click="closeForm"
+                    class="text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] transition-colors"
+                    title="Schließen"
+                >
+                    @svg('heroicon-o-x-mark','w-5 h-5')
+                </button>
+            </div>
+            
             <x-ui-form-grid :cols="1" :gap="4">
                 <x-ui-input-text 
                     name="form.title"
@@ -229,11 +242,11 @@
                 </div>
             </x-ui-form-grid>
 
-            <x-slot name="footer">
+            <div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-[var(--ui-border)]">
                 <x-ui-button variant="secondary" wire:click="closeForm">Abbrechen</x-ui-button>
                 <x-ui-button variant="success" wire:click="save">Speichern</x-ui-button>
-            </x-slot>
-        </x-ui-modal>
+            </div>
+        </div>
     @endif
 </div>
 
