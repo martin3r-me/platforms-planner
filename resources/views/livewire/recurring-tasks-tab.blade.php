@@ -78,13 +78,14 @@
                             >
                                 @svg('heroicon-o-pencil','w-5 h-5')
                             </button>
-                            <x-ui-confirm-button 
-                                action="delete({{ $rt['id'] }})" 
-                                text="Löschen" 
-                                confirmText="Wirklich löschen?"
-                                variant="danger"
-                                size="sm"
-                            />
+                            <button 
+                                wire:click="delete({{ $rt['id'] }})"
+                                wire:confirm="Wirklich löschen?"
+                                class="text-red-500 hover:text-red-700 transition-colors"
+                                title="Löschen"
+                            >
+                                @svg('heroicon-o-trash','w-5 h-5')
+                            </button>
                         </div>
                     </div>
                 </div>
