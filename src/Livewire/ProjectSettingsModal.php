@@ -30,6 +30,9 @@ class ProjectSettingsModal extends Component
         // Policy-Berechtigung prüfen - Settings erfordert view-Rechte
         $this->authorize('settings', $this->project);
         
+        // Event für RecurringTasksTab senden
+        $this->dispatch('project-loaded', $projectId);
+        
         $this->originalProjectType = is_string($this->project->project_type)
             ? $this->project->project_type
             : ($this->project->project_type?->value ?? null);

@@ -31,6 +31,7 @@ class PlannerServiceProvider extends ServiceProvider
                 \Platform\Planner\Console\Commands\MigrateSprintSlotsToProjectSlots::class,
                 \Platform\Planner\Console\Commands\AiBuildManifests::class,
                 \Platform\Planner\Console\Commands\MoveProjectToTeam::class,
+                \Platform\Planner\Console\Commands\GenerateRecurringTasks::class,
             ]);
         }
     }

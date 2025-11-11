@@ -1,7 +1,29 @@
-<x-ui-modal size="md" model="modalShow" header="Project Settings">
+<div x-data="{ activeTab: 'general' }">
+    <x-ui-modal size="md" model="modalShow" header="Project Settings">
+        @if($project)
+            {{-- Tabs --}}
+            <div class="flex gap-1 mb-6 border-b border-[var(--ui-border)]">
+                <button
+                    type="button"
+                    @click="activeTab = 'general'"
+                    class="px-4 py-2 text-sm font-medium transition-colors border-b-2"
+                    :class="activeTab === 'general' ? 'text-[var(--ui-primary)] border-[var(--ui-primary)]' : 'text-[var(--ui-muted)] border-transparent hover:text-[var(--ui-secondary)]'"
+                >
+                    Allgemein
+                </button>
+                <button
+                    type="button"
+                    @click="activeTab = 'recurring'"
+                    class="px-4 py-2 text-sm font-medium transition-colors border-b-2"
+                    :class="activeTab === 'recurring' ? 'text-[var(--ui-primary)] border-[var(--ui-primary)]' : 'text-[var(--ui-muted)] border-transparent hover:text-[var(--ui-secondary)]'"
+                >
+                    Wiederkehrende Aufgaben
+                </button>
+            </div>
 
-    @if($project)
-            {{-- Info-Box: Eigene Rolle und Berechtigungen --}}
+            {{-- Tab: Allgemein --}}
+            <div x-show="activeTab === 'general'" x-transition>
+                {{-- Info-Box: Eigene Rolle und Berechtigungen --}}
             @if($currentUserRole ?? null)
                 <div class="mb-4 p-4 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-muted-5)]">
                     <div class="flex items-center justify-between mb-2">
@@ -272,11 +294,22 @@
                         <x-ui-confirm-button action="deleteProject" text="Projekt löschen" confirmText="Wirklich löschen?" />
                 @endcan
             </x-ui-form-grid>
-    @endif
+            </div>
 
-    <x-slot name="footer">
-        @can('update', $project)
-            <x-ui-button variant="success" wire:click="save">Speichern</x-ui-button>
-        @endcan
-    </x-slot>
-</x-ui-modal>
+            {{-- Tab: Wiederkehrende Aufgaben --}}
+            <div x-show="activeTab === 'recurring'" x-transition>
+                <livewire:planner.recurring-tasks-tab :project-id="$project->id" />
+            </div>
+        @endif
+
+        <x-slot name="footer">
+            @if($project)
+                <div x-show="activeTab === 'general'">
+                    @can('update', $project)
+                        <x-ui-button variant="success" wire:click="save">Speichern</x-ui-button>
+                    @endcan
+                </div>
+            @endif
+        </x-slot>
+    </x-ui-modal>
+</div>
