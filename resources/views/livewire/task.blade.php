@@ -10,6 +10,12 @@
                 <div class="flex-1 min-w-0">
                     <h1 class="text-3xl font-bold text-[var(--ui-secondary)] mb-4 tracking-tight">{{ $task->title }}</h1>
                     <div class="flex items-center gap-6 text-sm text-[var(--ui-muted)]">
+                        @if($task->team)
+                            <span class="flex items-center gap-2">
+                                @svg('heroicon-o-user-group', 'w-4 h-4')
+                                <span>Team: <strong>{{ $task->team->name }}</strong></span>
+                            </span>
+                        @endif
                         @if($task->project)
                             <span class="flex items-center gap-2">
                                 @svg('heroicon-o-folder', 'w-4 h-4')

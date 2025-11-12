@@ -43,7 +43,7 @@ class Task extends Component
     public function mount(PlannerTask $plannerTask)
     {
         $this->authorize('view', $plannerTask);
-        $this->task = $plannerTask->load(['user', 'userInCharge', 'project']);
+        $this->task = $plannerTask->load(['user', 'userInCharge', 'project', 'team']);
         $this->dueDateInput = $plannerTask->due_date ? $plannerTask->due_date->format('Y-m-d H:i') : '';
     }
 
@@ -444,7 +444,7 @@ class Task extends Component
             $this->task->refresh();
             
             // Relationen neu laden
-            $this->task->load(['user', 'userInCharge', 'project']);
+            $this->task->load(['user', 'userInCharge', 'project', 'team']);
             
             // Aktualisiere dueDateInput und den Selektions-State
             $this->dueDateInput = $this->task->due_date ? $this->task->due_date->format('Y-m-d H:i') : '';
@@ -487,7 +487,7 @@ class Task extends Component
         $this->task->save();
         $this->task->refresh();
         // Relationen neu laden
-        $this->task->load(['user', 'userInCharge', 'project']);
+        $this->task->load(['user', 'userInCharge', 'project', 'team']);
         
         $this->dueDateInput = '';
         $this->selectedDate = null;
