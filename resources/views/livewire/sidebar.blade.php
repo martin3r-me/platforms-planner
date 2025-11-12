@@ -21,10 +21,6 @@
             @svg('heroicon-o-home', 'w-4 h-4 text-[var(--ui-secondary)]')
             <span class="ml-2 text-sm">Dashboard</span>
         </x-ui-sidebar-item>
-        <x-ui-sidebar-item :href="route('planner.overview')">
-            @svg('heroicon-o-calendar', 'w-4 h-4 text-[var(--ui-secondary)]')
-            <span class="ml-2 text-sm">Übersicht</span>
-        </x-ui-sidebar-item>
         <x-ui-sidebar-item :href="route('planner.my-tasks')">
             @svg('heroicon-o-clipboard-document-check', 'w-4 h-4 text-[var(--ui-secondary)]')
             <span class="ml-2 text-sm">Meine Aufgaben</span>
@@ -44,9 +40,6 @@
         <div class="flex flex-col gap-2">
             <a href="{{ route('planner.dashboard') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]">
                 @svg('heroicon-o-home', 'w-5 h-5')
-            </a>
-            <a href="{{ route('planner.overview') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]">
-                @svg('heroicon-o-calendar', 'w-5 h-5')
             </a>
             <a href="{{ route('planner.my-tasks') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]">
                 @svg('heroicon-o-clipboard-document-check', 'w-5 h-5')
