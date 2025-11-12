@@ -101,6 +101,7 @@ class DelegatedTasks extends Component
 
         // === 2. GRUPPEN ===
         // Für delegierte Aufgaben: Separate DelegatedTaskGroups verwenden
+        // WICHTIG: Alle Gruppen anzeigen, auch leere, damit User Aufgaben hinzufügen kann
         $grouped = PlannerDelegatedTaskGroup::with(['tasks' => function ($q) use ($userId) {
             $q->where('is_done', false)
               ->where('user_id', $userId) // Vom aktuellen User erstellt
@@ -111,12 +112,11 @@ class DelegatedTasks extends Component
         ->where('user_id', $userId)
         ->orderBy('order')
         ->get()
-        ->filter(fn ($group) => $group->tasks->isNotEmpty()) // Nur Gruppen mit delegierten Aufgaben
         ->map(fn ($group) => (object) [
             'id' => $group->id,
             'label' => $group->label,
             'isInbox' => false,
-            'tasks' => $group->tasks,
+            'tasks' => $group->tasks, // Collection (kann leer sein)
             'open_count' => $group->tasks->count(),
             'open_points' => $group->tasks->sum(fn ($task) => $task->story_points instanceof \App\Enums\StoryPoints ? $task->story_points->points() : 1),
         ]);
