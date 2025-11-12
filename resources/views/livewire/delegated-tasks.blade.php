@@ -140,7 +140,7 @@
                             @svg('heroicon-o-plus-circle', 'w-4 h-4')
                         </button>
                         <button 
-                            @click="$dispatch('open-modal-task-group-settings', { taskGroupId: {{ $column->id ?? 0 }} })"
+                            @click="$dispatch('open-modal-delegated-task-group-settings', { taskGroupId: {{ $column->id ?? 0 }} })"
                             class="text-[var(--ui-muted)] hover:text-[var(--ui-primary)] transition-colors"
                             title="Gruppen-Einstellungen"
                         >
@@ -165,7 +165,7 @@
 
     </x-ui-kanban-container>
 
-    <livewire:planner.task-group-settings-modal/>
+    <livewire:planner.delegated-task-group-settings-modal/>
     <livewire:planner.project-slot-settings-modal/>
 </x-ui-page>
 

@@ -187,14 +187,27 @@ class DelegatedTasks extends Component
     {
         $user = Auth::user();
         
-        $lowestOrder = PlannerTask::where('user_id', Auth::id())
-            ->where('team_id', Auth::user()->currentTeam->id)
-            ->min('delegated_group_order') ?? 0;
-
-        $order = $lowestOrder - 1;
-
         // Konvertiere 0 zu null für INBOX
         $taskGroupId = ($taskGroupId === 0 || $taskGroupId === '0') ? null : $taskGroupId;
+
+        // Für delegierte Aufgaben: delegated_group_order verwenden
+        // Wenn in Gruppe: Order innerhalb der Gruppe
+        // Wenn in Inbox: Order für delegierte Inbox
+        if ($taskGroupId) {
+            // In Gruppe: niedrigste Order in dieser Gruppe
+            $lowestOrder = PlannerTask::where('user_id', Auth::id())
+                ->where('delegated_group_id', $taskGroupId)
+                ->min('delegated_group_order') ?? 0;
+        } else {
+            // In Inbox: niedrigste Order in delegierter Inbox
+            $lowestOrder = PlannerTask::where('user_id', Auth::id())
+                ->whereNull('delegated_group_id')
+                ->whereNotNull('user_in_charge_id')
+                ->where('user_in_charge_id', '!=', Auth::id())
+                ->min('delegated_group_order') ?? 0;
+        }
+
+        $order = $lowestOrder - 1;
 
         $newTask = PlannerTask::create([
             'user_id' => Auth::id(),
@@ -208,7 +221,7 @@ class DelegatedTasks extends Component
             'priority' => null,
             'story_points' => null,
             'team_id' => Auth::user()->currentTeam->id,
-            'order' => 0, // Standard order für normale Aufgaben
+            'order' => 0, // Standard order für normale Aufgaben (wird in "Meine Aufgaben" verwendet)
         ]);
     }
 
