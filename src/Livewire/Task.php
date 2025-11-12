@@ -73,6 +73,93 @@ class Task extends Component
         return $this->task->project->team_id === $user->current_team_id;
     }
 
+    #[Computed]
+    public function activities()
+    {
+        if (!$this->task) {
+            return collect();
+        }
+
+        return $this->task->activities()
+            ->with('user')
+            ->limit(10)
+            ->get()
+            ->map(function ($activity) {
+                $title = $this->formatActivityTitle($activity);
+                $time = $activity->created_at->diffForHumans();
+                
+                return [
+                    'id' => $activity->id,
+                    'title' => $title,
+                    'time' => $time,
+                    'user' => $activity->user?->name ?? 'System',
+                    'type' => $activity->activity_type,
+                    'name' => $activity->name,
+                ];
+            });
+    }
+
+    private function formatActivityTitle($activity): string
+    {
+        $userName = $activity->user?->name ?? 'System';
+        $activityName = $activity->name;
+        
+        // Übersetze Activity-Namen
+        $translations = [
+            'created' => 'erstellt',
+            'updated' => 'aktualisiert',
+            'deleted' => 'gelöscht',
+            'manual' => 'hat eine Nachricht hinzugefügt',
+        ];
+        
+        $translatedName = $translations[$activityName] ?? $activityName;
+        
+        // Wenn es eine Nachricht gibt, zeige diese
+        if ($activity->message) {
+            return "{$userName}: {$activity->message}";
+        }
+        
+        // Wenn es Änderungen gibt, zeige diese
+        if ($activity->properties && !empty($activity->properties)) {
+            $props = $activity->properties;
+            $changedFields = [];
+            
+            // Prüfe ob es old/new gibt (strukturierte Properties)
+            if (isset($props['old']) || isset($props['new'])) {
+                if (isset($props['old']) && isset($props['new'])) {
+                    $changedFields = array_keys($props['new']);
+                } elseif (isset($props['new'])) {
+                    $changedFields = array_keys($props['new']);
+                }
+            } else {
+                // Direkte Properties (z.B. bei created)
+                $changedFields = array_keys($props);
+            }
+            
+            if (!empty($changedFields)) {
+                $fieldNames = array_map(function($field) {
+                    $translations = [
+                        'title' => 'Titel',
+                        'description' => 'Beschreibung',
+                        'due_date' => 'Fälligkeitsdatum',
+                        'is_done' => 'Status',
+                        'is_frog' => 'Frosch',
+                        'priority' => 'Priorität',
+                        'story_points' => 'Story Points',
+                        'user_in_charge_id' => 'Verantwortlicher',
+                    ];
+                    return $translations[$field] ?? $field;
+                }, $changedFields);
+                
+                $fields = implode(', ', $fieldNames);
+                return "{$userName} hat {$fields} {$translatedName}";
+            }
+        }
+        
+        // Standard-Format
+        return "{$userName} hat die Aufgabe {$translatedName}";
+    }
+
     public function rendered()
     {
         // Wenn Task gelöscht wurde, nichts tun (wird nach Redirect nicht mehr aufgerufen)
@@ -560,6 +647,7 @@ class Task extends Component
             'printerGroups' => $groups,
             'printingAvailable' => $this->printingAvailable,
             'teamUsers' => $teamUsers,
+            'activities' => $this->activities,
         ])->layout('platform::layouts.app');
     }
 }

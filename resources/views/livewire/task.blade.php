@@ -288,15 +288,40 @@
 
     <x-slot name="activity">
         <x-ui-page-sidebar title="Aktivitäten" width="w-80" :defaultOpen="false" storeKey="activityOpen" side="right">
-            <div class="p-4 space-y-4">
-                <div class="text-sm text-[var(--ui-muted)]">Letzte Aktivitäten</div>
-                <div class="space-y-3 text-sm">
-                    @foreach(($activities ?? []) as $activity)
-                        <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
-                            <div class="font-medium text-[var(--ui-secondary)] truncate">{{ $activity['title'] ?? 'Aktivität' }}</div>
-                            <div class="text-[var(--ui-muted)]">{{ $activity['time'] ?? '' }}</div>
+            <div class="p-6">
+                <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--ui-muted)] mb-4">Letzte Aktivitäten</h3>
+                <div class="space-y-3">
+                    @forelse(($activities ?? []) as $activity)
+                        <div class="p-3 rounded-lg border border-[var(--ui-border)]/40 bg-[var(--ui-muted-5)] hover:bg-[var(--ui-muted)] transition-colors">
+                            <div class="flex items-start justify-between gap-2 mb-1">
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-sm font-medium text-[var(--ui-secondary)] leading-snug">
+                                        {{ $activity['title'] ?? 'Aktivität' }}
+                                    </div>
+                                </div>
+                                @if(($activity['type'] ?? null) === 'system')
+                                    <div class="flex-shrink-0">
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40 text-xs text-[var(--ui-muted)]">
+                                            @svg('heroicon-o-cog', 'w-3 h-3')
+                                            System
+                                        </span>
+                                    </div>
+                                @endif
+                            </div>
+                            <div class="flex items-center gap-2 text-xs text-[var(--ui-muted)]">
+                                @svg('heroicon-o-clock', 'w-3 h-3')
+                                <span>{{ $activity['time'] ?? '' }}</span>
+                            </div>
                         </div>
-                    @endforeach
+                    @empty
+                        <div class="py-8 text-center">
+                            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[var(--ui-muted-5)] mb-3">
+                                @svg('heroicon-o-clock', 'w-6 h-6 text-[var(--ui-muted)]')
+                            </div>
+                            <p class="text-sm text-[var(--ui-muted)]">Noch keine Aktivitäten</p>
+                            <p class="text-xs text-[var(--ui-muted)] mt-1">Änderungen werden hier angezeigt</p>
+                        </div>
+                    @endforelse
                 </div>
             </div>
         </x-ui-page-sidebar>
