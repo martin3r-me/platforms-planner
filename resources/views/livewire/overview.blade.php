@@ -156,53 +156,47 @@
                                 $isSelected = $day['isSelected'];
                                 $dateStr = $day['date']->format('Y-m-d');
                                 
-                                // Button-Klassen basierend auf Zustand
-                                $buttonClasses = ['py-1.5', 'focus:z-10'];
-                                
-                                // Rounded corners
-                                if ($index === 0) {
-                                    $buttonClasses[] = 'first:rounded-tl-lg';
-                                }
-                                if ($index === 41) {
-                                    $buttonClasses[] = 'last:rounded-br-lg';
-                                }
-                                if ($index === 35) {
-                                    $buttonClasses[] = 'rounded-bl-lg';
-                                }
-                                if ($index === 6) {
-                                    $buttonClasses[] = 'rounded-tr-lg';
-                                }
-                                
-                                // Hintergrund und Text basierend auf Zustand
-                                if (!$isCurrentMonth) {
-                                    $buttonClasses[] = 'bg-gray-50 dark:bg-gray-900/75';
-                                    if (!$isSelected && !$isToday) {
-                                        $buttonClasses[] = 'text-gray-400 dark:text-gray-500';
-                                    }
-                                } else {
-                                    $buttonClasses[] = 'bg-white dark:bg-gray-900/90';
-                                    if (!$isSelected && !$isToday) {
-                                        $buttonClasses[] = 'text-gray-900 dark:text-white';
-                                    }
-                                }
-                                
-                                // Hover
-                                $buttonClasses[] = 'hover:bg-gray-100 dark:hover:bg-gray-900/25';
+                                // Data-Attribute für Tailwind Plus Elements
+                                $dataAttributes = [];
                                 if ($isCurrentMonth) {
-                                    $buttonClasses[] = 'dark:hover:bg-gray-900/50';
+                                    $dataAttributes[] = 'data-is-current-month';
                                 }
-                                
-                                // Ausgewählt
+                                if ($isToday) {
+                                    $dataAttributes[] = 'data-is-today';
+                                }
                                 if ($isSelected) {
-                                    $buttonClasses[] = 'font-semibold text-white dark:text-gray-900';
+                                    $dataAttributes[] = 'data-is-selected';
                                 }
                                 
-                                // Heute (aber nicht ausgewählt)
-                                if ($isToday && !$isSelected) {
-                                    $buttonClasses[] = 'font-semibold text-indigo-600 dark:text-indigo-400';
-                                }
+                                // Button-Klassen - exakt wie im Beispiel
+                                $buttonClasses = [
+                                    'py-1.5',
+                                    'not-data-is-current-month:bg-gray-50',
+                                    'not-data-is-selected:not-data-is-current-month:not-data-is-today:text-gray-400',
+                                    'first:rounded-tl-lg',
+                                    'last:rounded-br-lg',
+                                    'hover:bg-gray-100',
+                                    'focus:z-10',
+                                    'data-is-current-month:bg-white',
+                                    'not-data-is-selected:data-is-current-month:not-data-is-today:text-gray-900',
+                                    'data-is-current-month:hover:bg-gray-100',
+                                    'data-is-selected:font-semibold',
+                                    'data-is-selected:text-white',
+                                    'data-is-today:font-semibold',
+                                    'data-is-today:not-data-is-selected:text-indigo-600',
+                                    'nth-36:rounded-bl-lg',
+                                    'nth-7:rounded-tr-lg',
+                                    'dark:not-data-is-current-month:bg-gray-900/75',
+                                    'dark:not-data-is-selected:not-data-is-current-month:not-data-is-today:text-gray-500',
+                                    'dark:hover:bg-gray-900/25',
+                                    'dark:data-is-current-month:bg-gray-900/90',
+                                    'dark:not-data-is-selected:data-is-current-month:not-data-is-today:text-white',
+                                    'dark:data-is-current-month:hover:bg-gray-900/50',
+                                    'dark:data-is-selected:text-gray-900',
+                                    'dark:data-is-today:not-data-is-selected:text-indigo-400',
+                                ];
                                 
-                                // Time-Klassen
+                                // Time-Klassen - exakt wie im Beispiel
                                 $timeClasses = [
                                     'mx-auto',
                                     'flex',
@@ -210,35 +204,37 @@
                                     'items-center',
                                     'justify-center',
                                     'rounded-full',
+                                    'in-data-is-selected:not-in-data-is-today:bg-gray-900',
+                                    'in-data-is-selected:in-data-is-today:bg-indigo-600',
+                                    'dark:in-data-is-selected:not-in-data-is-today:bg-white',
+                                    'dark:in-data-is-selected:in-data-is-today:bg-indigo-500',
                                 ];
-                                
-                                if ($isSelected) {
-                                    if ($isToday) {
-                                        $timeClasses[] = 'bg-indigo-600 dark:bg-indigo-500';
-                                    } else {
-                                        $timeClasses[] = 'bg-gray-900 dark:bg-white';
-                                    }
-                                }
                             @endphp
                             <button 
                                 type="button" 
                                 wire:click="selectDate('{{ $dateStr }}')"
-                                class="{{ implode(' ', $buttonClasses) }}"
+                                class="{{ implode(' ', $buttonClasses) }} relative"
+                                @if(!empty($dataAttributes)) {!! implode(' ', $dataAttributes) !!} @endif
                             >
                                 <time datetime="{{ $dateStr }}" class="{{ implode(' ', $timeClasses) }}">
                                     {{ $day['date']->day }}
                                 </time>
+                                @if($day['taskCount'] > 0 && $isCurrentMonth)
+                                    <span class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-semibold text-white">
+                                        {{ $day['taskCount'] }}
+                                    </span>
+                                @endif
                             </button>
                         @endforeach
                     </div>
 
-                    <a 
-                        href="{{ route('planner.my-tasks') }}" 
-                        wire:navigate
+                    <button 
+                        type="button" 
+                        onclick="window.location.href='{{ route('planner.my-tasks') }}'"
                         class="mt-8 w-full rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 dark:bg-indigo-500 dark:shadow-none dark:hover:bg-indigo-400 dark:focus-visible:outline-indigo-500"
                     >
                         Aufgabe hinzufügen
-                    </a>
+                    </button>
                 </div>
             </div>
         </div>
