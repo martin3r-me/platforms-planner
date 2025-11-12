@@ -95,7 +95,7 @@ class Overview extends Component
             'tasks' => $tasks,
             'calendarData' => $calendarData,
             'selectedDate' => $this->selectedDate,
-        ]);
+        ])->layout('platform::layouts.app');
     }
 
     private function generateCalendarData($tasksByDate = null)
