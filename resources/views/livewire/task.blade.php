@@ -188,48 +188,9 @@
     <x-slot name="sidebar">
         <x-ui-page-sidebar title="Übersicht" width="w-80" :defaultOpen="true">
             <div class="p-6 space-y-6">
-                {{-- Status Toggles --}}
+                {{-- Aktionen (Save/Print) --}}
                 <div>
-                    <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--ui-muted)] mb-3">Status</h3>
-                    <div class="space-y-2">
-                        <button type="button" wire:click="toggleDone" class="w-full text-left flex items-center justify-between py-3 px-4 rounded-lg bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40 hover:bg-[var(--ui-primary-5)] hover:border-[var(--ui-primary)]/40 transition-all cursor-pointer group">
-                            <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 rounded-lg bg-[var(--ui-success-10)] flex items-center justify-center group-hover:bg-[var(--ui-success-20)] transition-colors">
-                                    @svg('heroicon-o-check-circle', 'w-5 h-5 text-[var(--ui-success)]')
-                                </div>
-                                <div>
-                                    <div class="text-sm font-medium text-[var(--ui-secondary)]">Status</div>
-                                    <div class="text-xs text-[var(--ui-muted)]">{{ $task->is_done ? 'Aufgabe ist erledigt' : 'Aufgabe ist offen' }}</div>
-                                </div>
-                            </div>
-                            <div class="flex-shrink-0">
-                                <div class="w-10 h-6 rounded-full transition-colors {{ $task->is_done ? 'bg-[var(--ui-success)]' : 'bg-[var(--ui-muted)]' }}">
-                                    <div class="w-5 h-5 bg-white rounded-full shadow-sm transform transition-transform {{ $task->is_done ? 'translate-x-4' : 'translate-x-0.5' }} mt-0.5"></div>
-                                </div>
-                            </div>
-                        </button>
-                        <button type="button" wire:click="toggleFrog" class="w-full text-left flex items-center justify-between py-3 px-4 rounded-lg bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40 hover:bg-[var(--ui-warning-5)] hover:border-[var(--ui-warning)]/40 transition-all cursor-pointer group">
-                            <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 rounded-lg bg-[var(--ui-warning-10)] flex items-center justify-center group-hover:bg-[var(--ui-warning-20)] transition-colors">
-                                    @svg('heroicon-o-exclamation-triangle', 'w-5 h-5 text-[var(--ui-warning)]')
-                                </div>
-                                <div>
-                                    <div class="text-sm font-medium text-[var(--ui-secondary)]">Frosch</div>
-                                    <div class="text-xs text-[var(--ui-muted)]">{{ $task->is_frog ? 'Wichtige Aufgabe' : 'Normale Aufgabe' }}</div>
-                                </div>
-                            </div>
-                            <div class="flex-shrink-0">
-                                <div class="w-10 h-6 rounded-full transition-colors {{ $task->is_frog ? 'bg-[var(--ui-warning)]' : 'bg-[var(--ui-muted)]' }}">
-                                    <div class="w-5 h-5 bg-white rounded-full shadow-sm transform transition-transform {{ $task->is_frog ? 'translate-x-4' : 'translate-x-0.5' }} mt-0.5"></div>
-                                </div>
-                            </div>
-                        </button>
-                    </div>
-                </div>
-
-                {{-- Aktionen --}}
-                <div>
-                    <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--ui-muted)] mb-3">Aktionen</h3>
+                    <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-4">Aktionen</h3>
                     <div class="space-y-2">
                         @can('update', $task)
                             @if($this->isDirty())
@@ -262,25 +223,40 @@
                     </div>
                 </div>
 
-                {{-- Navigation --}}
-                <div>
-                    <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--ui-muted)] mb-3">Navigation</h3>
-                    <div class="space-y-2">
-                        @if($task->project && $this->canAccessProject)
-                            <x-ui-button variant="secondary-outline" size="sm" :href="route('planner.projects.show', ['plannerProject' => $task->project->id])" wire:navigate class="w-full">
-                                <span class="flex items-center gap-2">
-                                    @svg('heroicon-o-folder', 'w-4 h-4')
-                                    Zum Projekt
-                                </span>
-                            </x-ui-button>
-                        @endif
-                        <x-ui-button variant="secondary-outline" size="sm" :href="route('planner.my-tasks')" wire:navigate class="w-full">
+                {{-- Quick Links --}}
+                <div class="space-y-2">
+                    @if($task->project && $this->canAccessProject)
+                        <x-ui-button variant="secondary-outline" size="sm" :href="route('planner.projects.show', ['plannerProject' => $task->project->id])" wire:navigate class="w-full">
                             <span class="flex items-center gap-2">
-                                @svg('heroicon-o-clipboard-document-list', 'w-4 h-4')
-                                Zu meinen Aufgaben
+                                @svg('heroicon-o-folder', 'w-4 h-4')
+                                Zum Projekt
                             </span>
                         </x-ui-button>
-                    </div>
+                    @endif
+                    <x-ui-button variant="secondary-outline" size="sm" :href="route('planner.my-tasks')" wire:navigate class="w-full">
+                        <span class="flex items-center gap-2">
+                            @svg('heroicon-o-clipboard-document-list', 'w-4 h-4')
+                            Zu meinen Aufgaben
+                        </span>
+                    </x-ui-button>
+                </div>
+
+                {{-- Status (interaktiv, stile wie Statistiken) --}}
+                <div class="space-y-2">
+                    <button type="button" wire:click="toggleDone" class="w-full text-left flex items-center justify-between py-2 px-3 rounded-lg bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40 hover:bg-[var(--ui-primary-5)] transition-colors cursor-pointer">
+                        <div class="flex items-center gap-2">
+                            @svg('heroicon-o-check-circle', 'w-4 h-4 text-[var(--ui-success)]')
+                            <span class="text-sm text-[var(--ui-secondary)]">Status</span>
+                        </div>
+                        <span class="text-sm font-semibold text-[var(--ui-secondary)]">{{ $task->is_done ? 'Erledigt' : 'Offen' }}</span>
+                    </button>
+                    <button type="button" wire:click="toggleFrog" class="w-full text-left flex items-center justify-between py-2 px-3 rounded-lg bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40 hover:bg-[var(--ui-primary-5)] transition-colors cursor-pointer">
+                        <div class="flex items-center gap-2">
+                            @svg('heroicon-o-exclamation-triangle', 'w-4 h-4 text-[var(--ui-warning)]')
+                            <span class="text-sm text-[var(--ui-secondary)]">Frosch</span>
+                        </div>
+                        <span class="text-sm font-semibold text-[var(--ui-secondary)]">{{ $task->is_frog ? 'Ja' : 'Nein' }}</span>
+                    </button>
                 </div>
             </div>
         </x-ui-page-sidebar>
