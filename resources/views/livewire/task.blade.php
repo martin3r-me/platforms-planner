@@ -9,7 +9,7 @@
             <div class="flex items-start justify-between">
                 <div class="flex-1 min-w-0">
                     <h1 class="text-3xl font-bold text-[var(--ui-secondary)] mb-4 tracking-tight">{{ $task->title }}</h1>
-                    <div class="flex items-center gap-6 text-sm text-[var(--ui-muted)]">
+                    <div class="flex flex-wrap items-center gap-6 text-sm text-[var(--ui-muted)]">
                         @if($task->team)
                             <span class="flex items-center gap-2">
                                 @svg('heroicon-o-user-group', 'w-4 h-4')
@@ -22,6 +22,7 @@
                                 {{ $task->project->name }}
                             </span>
                         @endif
+                        <div class="w-full"></div>
                         @if($task->user)
                             <span class="flex items-center gap-2">
                                 @svg('heroicon-o-user-circle', 'w-4 h-4')
