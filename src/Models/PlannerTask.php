@@ -40,6 +40,8 @@ class PlannerTask extends Model implements HasTimeAncestors, HasDisplayName
         'project_id',
         'project_slot_id',
         'task_group_id',
+        'delegated_group_id',
+        'delegated_group_order',
         'recurring_task_id',
     ];
 
@@ -107,6 +109,11 @@ class PlannerTask extends Model implements HasTimeAncestors, HasDisplayName
     public function taskGroup()
     {
         return $this->belongsTo(PlannerTaskGroup::class, 'task_group_id');
+    }
+
+    public function delegatedGroup()
+    {
+        return $this->belongsTo(PlannerDelegatedTaskGroup::class, 'delegated_group_id');
     }
 
     public function projectSlot()

@@ -5,7 +5,7 @@ namespace Platform\Planner\Livewire;
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Platform\Planner\Models\PlannerTask;
-use Platform\Planner\Models\PlannerTaskGroup;
+use Platform\Planner\Models\PlannerDelegatedTaskGroup;
 use Livewire\Attributes\On;
 
 class DelegatedTasks extends Component
@@ -81,12 +81,12 @@ class DelegatedTasks extends Component
 
         // === 1. INBOX ===
         $inboxTasks = PlannerTask::query()
-            ->whereNull('task_group_id')
+            ->whereNull('delegated_group_id')
             ->where('is_done', false)
             ->where('user_id', $userId) // Vom aktuellen User erstellt
             ->whereNotNull('user_in_charge_id') // Hat einen Verantwortlichen
             ->where('user_in_charge_id', '!=', $userId) // Aber nicht der aktuelle User
-            ->orderBy('order')
+            ->orderBy('delegated_group_order')
             ->get();
 
         $inbox = (object) [
@@ -100,14 +100,13 @@ class DelegatedTasks extends Component
         ];
 
         // === 2. GRUPPEN ===
-        // Für delegierte Aufgaben: Nur Gruppen, die der User erstellt hat
-        // Aber die Aufgaben müssen delegiert sein
-        $grouped = PlannerTaskGroup::with(['tasks' => function ($q) use ($userId) {
+        // Für delegierte Aufgaben: Separate DelegatedTaskGroups verwenden
+        $grouped = PlannerDelegatedTaskGroup::with(['tasks' => function ($q) use ($userId) {
             $q->where('is_done', false)
               ->where('user_id', $userId) // Vom aktuellen User erstellt
               ->whereNotNull('user_in_charge_id') // Hat einen Verantwortlichen
               ->where('user_in_charge_id', '!=', $userId) // Aber nicht der aktuelle User
-              ->orderBy('order');
+              ->orderBy('delegated_group_order');
         }])
         ->where('user_id', $userId)
         ->orderBy('order')
@@ -176,11 +175,11 @@ class DelegatedTasks extends Component
     {
         $user = Auth::user();
 
-        $newTaskGroup = new PlannerTaskGroup();
+        $newTaskGroup = new PlannerDelegatedTaskGroup();
         $newTaskGroup->label = "Neue Gruppe";
         $newTaskGroup->user_id = $user->id;
         $newTaskGroup->team_id = $user->currentTeam->id;
-        $newTaskGroup->order = PlannerTaskGroup::where('user_id', $user->id)->max('order') + 1;
+        $newTaskGroup->order = PlannerDelegatedTaskGroup::where('user_id', $user->id)->max('order') + 1;
         $newTaskGroup->save();
     }
 
@@ -190,7 +189,7 @@ class DelegatedTasks extends Component
         
         $lowestOrder = PlannerTask::where('user_id', Auth::id())
             ->where('team_id', Auth::user()->currentTeam->id)
-            ->min('order') ?? 0;
+            ->min('delegated_group_order') ?? 0;
 
         $order = $lowestOrder - 1;
 
@@ -201,14 +200,15 @@ class DelegatedTasks extends Component
             'user_id' => Auth::id(),
             'user_in_charge_id' => null, // Wird später gesetzt, wenn delegiert
             'project_id' => null,
-            'task_group_id' => $taskGroupId,
+            'delegated_group_id' => $taskGroupId,
+            'delegated_group_order' => $order,
             'title' => 'Neue Aufgabe',
             'description' => null,
             'due_date' => null,
             'priority' => null,
             'story_points' => null,
             'team_id' => Auth::user()->currentTeam->id,
-            'order' => $order,
+            'order' => 0, // Standard order für normale Aufgaben
         ]);
     }
 
@@ -239,8 +239,8 @@ class DelegatedTasks extends Component
                     continue;
                 }
 
-                $task->order = $item['order'];
-                $task->task_group_id = $taskGroupId;
+                $task->delegated_group_order = $item['order'];
+                $task->delegated_group_id = $taskGroupId;
                 $task->save();
             }
         }
@@ -249,7 +249,7 @@ class DelegatedTasks extends Component
     public function updateTaskGroupOrder($groups)
     {
         foreach ($groups as $taskGroup) {
-            $taskGroupDb = PlannerTaskGroup::find($taskGroup['value']);
+            $taskGroupDb = PlannerDelegatedTaskGroup::find($taskGroup['value']);
             if ($taskGroupDb) {
                 $taskGroupDb->order = $taskGroup['order'];
                 $taskGroupDb->save();
