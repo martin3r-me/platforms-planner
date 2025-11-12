@@ -16,10 +16,16 @@
                                 {{ $task->project->name }}
                             </span>
                         @endif
+                        @if($task->user)
+                            <span class="flex items-center gap-2">
+                                @svg('heroicon-o-user-circle', 'w-4 h-4')
+                                <span>Erstellt von: <strong>{{ $task->user->fullname ?? $task->user->name }}</strong></span>
+                            </span>
+                        @endif
                         @if($task->userInCharge)
                             <span class="flex items-center gap-2">
                                 @svg('heroicon-o-user', 'w-4 h-4')
-                                {{ $task->userInCharge->fullname ?? $task->userInCharge->name }}
+                                <span>Verantwortlich: <strong>{{ $task->userInCharge->fullname ?? $task->userInCharge->name }}</strong></span>
                             </span>
                         @endif
                         @if($task->due_date)

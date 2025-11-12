@@ -43,7 +43,7 @@ class Task extends Component
     public function mount(PlannerTask $plannerTask)
     {
         $this->authorize('view', $plannerTask);
-        $this->task = $plannerTask;
+        $this->task = $plannerTask->load(['user', 'userInCharge', 'project']);
         $this->dueDateInput = $plannerTask->due_date ? $plannerTask->due_date->format('Y-m-d H:i') : '';
     }
 
@@ -443,12 +443,8 @@ class Task extends Component
             // Aktualisiere das Model im gleichen Objekt
             $this->task->refresh();
             
-            if ($this->task->relationLoaded('project')) {
-                $this->task->load('project');
-            }
-            if ($this->task->relationLoaded('userInCharge')) {
-                $this->task->load('userInCharge');
-            }
+            // Relationen neu laden
+            $this->task->load(['user', 'userInCharge', 'project']);
             
             // Aktualisiere dueDateInput und den Selektions-State
             $this->dueDateInput = $this->task->due_date ? $this->task->due_date->format('Y-m-d H:i') : '';
@@ -490,12 +486,8 @@ class Task extends Component
         $this->task->due_date = null;
         $this->task->save();
         $this->task->refresh();
-        if ($this->task->relationLoaded('project')) {
-            $this->task->load('project');
-        }
-        if ($this->task->relationLoaded('userInCharge')) {
-            $this->task->load('userInCharge');
-        }
+        // Relationen neu laden
+        $this->task->load(['user', 'userInCharge', 'project']);
         
         $this->dueDateInput = '';
         $this->selectedDate = null;
