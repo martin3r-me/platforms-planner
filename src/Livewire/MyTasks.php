@@ -154,7 +154,8 @@ class MyTasks extends Component
                       ->whereNotNull('project_slot_id'); // nur Projektaufgaben mit Project-Slot (nicht Backlog)
                 });
             })
-            ->orderByDesc('done_at')
+            ->orderByDesc('done_at') // Neueste zuerst (zuletzt erledigt)
+            ->orderByDesc('updated_at') // Fallback für Tasks ohne done_at
             ->get();
 
         $completedGroup = (object) [

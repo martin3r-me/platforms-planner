@@ -127,7 +127,8 @@ class DelegatedTasks extends Component
             ->where('user_id', $userId) // Vom aktuellen User erstellt
             ->whereNotNull('user_in_charge_id') // Hat einen Verantwortlichen
             ->where('user_in_charge_id', '!=', $userId) // Aber nicht der aktuelle User
-            ->orderByDesc('done_at')
+            ->orderByDesc('done_at') // Neueste zuerst (zuletzt erledigt)
+            ->orderByDesc('updated_at') // Fallback für Tasks ohne done_at
             ->get();
 
         $completedGroup = (object) [
