@@ -9,44 +9,47 @@
             <div class="flex items-start justify-between">
                 <div class="flex-1 min-w-0">
                     <h1 class="text-3xl font-bold text-[var(--ui-secondary)] mb-4 tracking-tight">{{ $task->title }}</h1>
-                    <div class="flex flex-wrap items-center gap-6 text-sm text-[var(--ui-muted)]">
-                        @if($task->team)
-                            <span class="flex items-center gap-2">
-                                @svg('heroicon-o-user-group', 'w-4 h-4')
-                                <span>Team: <strong>{{ $task->team->name }}</strong></span>
-                            </span>
-                        @endif
-                        @if($task->project)
-                            <span class="flex items-center gap-2">
-                                @svg('heroicon-o-folder', 'w-4 h-4')
-                                {{ $task->project->name }}
-                            </span>
-                        @endif
-                        <div class="w-full"></div>
-                        @if($task->user)
-                            <span class="flex items-center gap-2">
-                                @svg('heroicon-o-user-circle', 'w-4 h-4')
-                                <span>Erstellt von: <strong>{{ $task->user->fullname ?? $task->user->name }}</strong></span>
-                            </span>
-                        @endif
-                        @if($task->userInCharge)
-                            <span class="flex items-center gap-2">
-                                @svg('heroicon-o-user', 'w-4 h-4')
-                                <span>Verantwortlich: <strong>{{ $task->userInCharge->fullname ?? $task->userInCharge->name }}</strong></span>
-                            </span>
-                        @endif
-                        @if($task->due_date)
-                            <span class="flex items-center gap-2">
-                                @svg('heroicon-o-calendar', 'w-4 h-4')
-                                {{ $task->due_date->format('d.m.Y H:i') }}
-                            </span>
-                        @endif
-                        @if($task->story_points)
-                            <span class="flex items-center gap-2">
-                                @svg('heroicon-o-sparkles', 'w-4 h-4')
-                                {{ $task->story_points->points() }} SP
-                            </span>
-                        @endif
+                    <div class="space-y-0">
+                        <div class="flex items-center gap-6 text-sm text-[var(--ui-muted)]">
+                            @if($task->team)
+                                <span class="flex items-center gap-2">
+                                    @svg('heroicon-o-user-group', 'w-4 h-4')
+                                    <span>Team: <strong>{{ $task->team->name }}</strong></span>
+                                </span>
+                            @endif
+                            @if($task->project)
+                                <span class="flex items-center gap-2">
+                                    @svg('heroicon-o-folder', 'w-4 h-4')
+                                    {{ $task->project->name }}
+                                </span>
+                            @endif
+                        </div>
+                        <div class="flex items-center gap-6 text-sm text-[var(--ui-muted)]">
+                            @if($task->user)
+                                <span class="flex items-center gap-2">
+                                    @svg('heroicon-o-user-circle', 'w-4 h-4')
+                                    <span>Erstellt von: <strong>{{ $task->user->fullname ?? $task->user->name }}</strong></span>
+                                </span>
+                            @endif
+                            @if($task->userInCharge)
+                                <span class="flex items-center gap-2">
+                                    @svg('heroicon-o-user', 'w-4 h-4')
+                                    <span>Verantwortlich: <strong>{{ $task->userInCharge->fullname ?? $task->userInCharge->name }}</strong></span>
+                                </span>
+                            @endif
+                            @if($task->due_date)
+                                <span class="flex items-center gap-2">
+                                    @svg('heroicon-o-calendar', 'w-4 h-4')
+                                    {{ $task->due_date->format('d.m.Y H:i') }}
+                                </span>
+                            @endif
+                            @if($task->story_points)
+                                <span class="flex items-center gap-2">
+                                    @svg('heroicon-o-sparkles', 'w-4 h-4')
+                                    {{ $task->story_points->points() }} SP
+                                </span>
+                            @endif
+                        </div>
                     </div>
                 </div>
                 <div class="flex items-center gap-3">
