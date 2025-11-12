@@ -25,6 +25,10 @@
             @svg('heroicon-o-clipboard-document-check', 'w-4 h-4 text-[var(--ui-secondary)]')
             <span class="ml-2 text-sm">Meine Aufgaben</span>
         </x-ui-sidebar-item>
+        <x-ui-sidebar-item :href="route('planner.delegated-tasks')">
+            @svg('heroicon-o-user-group', 'w-4 h-4 text-[var(--ui-secondary)]')
+            <span class="ml-2 text-sm">Delegierte Aufgaben</span>
+        </x-ui-sidebar-item>
         <x-ui-sidebar-item wire:click="createProject">
             @svg('heroicon-o-plus-circle', 'w-4 h-4 text-[var(--ui-secondary)]')
             <span class="ml-2 text-sm">Neues Projekt</span>
@@ -39,6 +43,9 @@
             </a>
             <a href="{{ route('planner.my-tasks') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]">
                 @svg('heroicon-o-clipboard-document-check', 'w-5 h-5')
+            </a>
+            <a href="{{ route('planner.delegated-tasks') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]">
+                @svg('heroicon-o-user-group', 'w-5 h-5')
             </a>
             <button type="button" wire:click="createProject" class="flex items-center justify-center p-2 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]">
                 @svg('heroicon-o-plus-circle', 'w-5 h-5')
