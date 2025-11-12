@@ -23,6 +23,11 @@ return [
                     'icon'  => 'heroicon-o-home',
                 ],
                 [
+                    'label' => 'Übersicht',
+                    'route' => 'planner.overview',
+                    'icon'  => 'heroicon-o-calendar',
+                ],
+                [
                     'label' => 'Meine Aufgaben',
                     'route' => 'planner.my-tasks',
                     'icon'  => 'heroicon-o-clipboard-document-check',

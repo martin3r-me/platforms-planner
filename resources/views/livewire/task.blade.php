@@ -7,81 +7,72 @@
         {{-- Header Section --}}
         <div class="bg-white rounded-xl border border-[var(--ui-border)]/60 shadow-sm overflow-hidden">
             <div class="p-6 lg:p-8">
-                <div class="flex items-start justify-between gap-4 mb-6">
+                <div class="flex items-start justify-between gap-4 mb-4">
                     <div class="flex-1 min-w-0">
-                        <h1 class="text-3xl font-bold text-[var(--ui-secondary)] mb-6 tracking-tight leading-tight">{{ $task->title }}</h1>
+                        <h1 class="text-3xl font-bold text-[var(--ui-secondary)] mb-4 tracking-tight leading-tight">{{ $task->title }}</h1>
                         
-                        {{-- Meta Informationen --}}
-                        <div class="space-y-3">
+                        {{-- Meta Informationen -- schlicht ohne Rahmen --}}
+                        <div class="space-y-2">
                             {{-- Erste Zeile: Team & Projekt --}}
-                            <div class="flex flex-wrap items-center gap-4">
+                            <div class="flex flex-wrap items-center gap-6 text-sm text-[var(--ui-muted)]">
                                 @if($task->team)
-                                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
-                                        @svg('heroicon-o-user-group', 'w-4 h-4 text-[var(--ui-muted)]')
-                                        <span class="text-sm font-medium text-[var(--ui-secondary)]">{{ $task->team->name }}</span>
-                                    </div>
+                                    <span class="flex items-center gap-2">
+                                        @svg('heroicon-o-user-group', 'w-4 h-4')
+                                        <span>Team: <span class="text-[var(--ui-secondary)]">{{ $task->team->name }}</span></span>
+                                    </span>
                                 @endif
                                 @if($task->project)
-                                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--ui-primary-5)] border border-[var(--ui-primary)]/20">
-                                        @svg('heroicon-o-folder', 'w-4 h-4 text-[var(--ui-primary)]')
-                                        <span class="text-sm font-medium text-[var(--ui-primary)]">{{ $task->project->name }}</span>
-                                    </div>
+                                    <span class="flex items-center gap-2">
+                                        @svg('heroicon-o-folder', 'w-4 h-4')
+                                        <span>Projekt: <span class="text-[var(--ui-secondary)]">{{ $task->project->name }}</span></span>
+                                    </span>
                                 @endif
                             </div>
                             
                             {{-- Zweite Zeile: Personen & Details --}}
-                            <div class="flex flex-wrap items-center gap-4">
+                            <div class="flex flex-wrap items-center gap-6 text-sm text-[var(--ui-muted)]">
                                 @if($task->user)
-                                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
-                                        @svg('heroicon-o-user-circle', 'w-4 h-4 text-[var(--ui-muted)]')
-                                        <span class="text-sm text-[var(--ui-secondary)]">
-                                            <span class="text-[var(--ui-muted)]">Erstellt von:</span>
-                                            <span class="font-medium ml-1">{{ $task->user->fullname ?? $task->user->name }}</span>
-                                        </span>
-                                    </div>
+                                    <span class="flex items-center gap-2">
+                                        @svg('heroicon-o-user-circle', 'w-4 h-4')
+                                        <span>Erstellt von: <span class="text-[var(--ui-secondary)]">{{ $task->user->fullname ?? $task->user->name }}</span></span>
+                                    </span>
                                 @endif
                                 @if($task->userInCharge)
-                                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--ui-primary-5)] border border-[var(--ui-primary)]/20">
-                                        @svg('heroicon-o-user', 'w-4 h-4 text-[var(--ui-primary)]')
-                                        <span class="text-sm text-[var(--ui-primary)]">
-                                            <span class="opacity-75">Verantwortlich:</span>
-                                            <span class="font-medium ml-1">{{ $task->userInCharge->fullname ?? $task->userInCharge->name }}</span>
-                                        </span>
-                                    </div>
+                                    <span class="flex items-center gap-2">
+                                        @svg('heroicon-o-user', 'w-4 h-4')
+                                        <span>Verantwortlich: <span class="text-[var(--ui-secondary)]">{{ $task->userInCharge->fullname ?? $task->userInCharge->name }}</span></span>
+                                    </span>
                                 @endif
                                 @if($task->due_date)
                                     @php
                                         $isOverdue = $task->due_date->isPast() && !$task->is_done;
                                         $isToday = $task->due_date->isToday();
                                         $isTomorrow = $task->due_date->isTomorrow();
-                                        $dueDateBg = $isOverdue ? 'bg-[var(--ui-danger-5)] border-[var(--ui-danger)]/30' : ($isToday || $isTomorrow ? 'bg-[var(--ui-warning-5)] border-[var(--ui-warning)]/30' : 'bg-[var(--ui-muted-5)] border-[var(--ui-border)]/40');
-                                        $dueDateIconColor = $isOverdue ? 'text-[var(--ui-danger)]' : ($isToday || $isTomorrow ? 'text-[var(--ui-warning)]' : 'text-[var(--ui-muted)]');
+                                        $dueDateColor = $isOverdue ? 'text-[var(--ui-danger)]' : ($isToday || $isTomorrow ? 'text-[var(--ui-warning)]' : 'text-[var(--ui-muted)]');
                                         $dueDateTextColor = $isOverdue ? 'text-[var(--ui-danger)]' : ($isToday || $isTomorrow ? 'text-[var(--ui-warning)]' : 'text-[var(--ui-secondary)]');
                                     @endphp
-                                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border {{ $dueDateBg }}">
-                                        @svg('heroicon-o-calendar', 'w-4 h-4 ' . $dueDateIconColor)
-                                        <span class="text-sm font-medium {{ $dueDateTextColor }}">
-                                            {{ $task->due_date->format('d.m.Y H:i') }}
-                                        </span>
-                                    </div>
+                                    <span class="flex items-center gap-2">
+                                        @svg('heroicon-o-calendar', 'w-4 h-4 ' . $dueDateColor)
+                                        <span>Fällig: <span class="{{ $dueDateTextColor }}">{{ $task->due_date->format('d.m.Y H:i') }}</span></span>
+                                    </span>
                                 @endif
                                 @if($task->story_points)
-                                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--ui-primary-5)] border border-[var(--ui-primary)]/20">
-                                        @svg('heroicon-o-sparkles', 'w-4 h-4 text-[var(--ui-primary)]')
-                                        <span class="text-sm font-semibold text-[var(--ui-primary)]">{{ $task->story_points->points() }} SP</span>
-                                    </div>
+                                    <span class="flex items-center gap-2">
+                                        @svg('heroicon-o-sparkles', 'w-4 h-4')
+                                        <span>Story Points: <span class="text-[var(--ui-secondary)] font-medium">{{ $task->story_points->points() }} SP</span></span>
+                                    </span>
                                 @endif
                             </div>
                         </div>
                     </div>
                     
-                    {{-- Status Badges --}}
+                    {{-- Status Badges -- kleiner --}}
                     <div class="flex flex-col items-end gap-2 flex-shrink-0">
                         @if($task->is_done)
-                            <x-ui-badge variant="success" size="lg">Erledigt</x-ui-badge>
+                            <x-ui-badge variant="success" size="sm">Erledigt</x-ui-badge>
                         @endif
                         @if($task->is_frog)
-                            <x-ui-badge variant="danger" size="lg">Frosch</x-ui-badge>
+                            <x-ui-badge variant="danger" size="sm">Frosch</x-ui-badge>
                         @endif
                     </div>
                 </div>
