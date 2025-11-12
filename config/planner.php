@@ -23,6 +23,16 @@ return [
                     'icon'  => 'heroicon-o-home',
                 ],
                 [
+                    'label' => 'Meine Aufgaben',
+                    'route' => 'planner.my-tasks',
+                    'icon'  => 'heroicon-o-clipboard-document-check',
+                ],
+                [
+                    'label' => 'Delegierte Aufgaben',
+                    'route' => 'planner.delegated-tasks',
+                    'icon'  => 'heroicon-o-user-group',
+                ],
+                [
                     'label' => 'Projekt anlegen',
                     'route' => 'planner.projects.create',
                     'icon'  => 'heroicon-o-plus',
