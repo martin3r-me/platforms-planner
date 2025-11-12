@@ -3,147 +3,184 @@
         <x-ui-page-navbar title="" />
     </x-slot>
 
-    <x-ui-page-container spacing="space-y-8">
-        {{-- Modern Header --}}
-        <div class="bg-white rounded-lg border border-[var(--ui-border)]/60 p-8">
-            <div class="flex items-start justify-between">
-                <div class="flex-1 min-w-0">
-                    <h1 class="text-3xl font-bold text-[var(--ui-secondary)] mb-4 tracking-tight">{{ $task->title }}</h1>
-                    <div class="space-y-0">
-                        <div class="flex items-center gap-6 text-sm text-[var(--ui-muted)]">
-                            @if($task->team)
-                                <span class="flex items-center gap-2">
-                                    @svg('heroicon-o-user-group', 'w-4 h-4')
-                                    <span>Team: <strong>{{ $task->team->name }}</strong></span>
-                                </span>
-                            @endif
-                            @if($task->project)
-                                <span class="flex items-center gap-2">
-                                    @svg('heroicon-o-folder', 'w-4 h-4')
-                                    {{ $task->project->name }}
-                                </span>
-                            @endif
-                        </div>
-                        <div class="flex items-center gap-6 text-sm text-[var(--ui-muted)]">
-                            @if($task->user)
-                                <span class="flex items-center gap-2">
-                                    @svg('heroicon-o-user-circle', 'w-4 h-4')
-                                    <span>Erstellt von: <strong>{{ $task->user->fullname ?? $task->user->name }}</strong></span>
-                                </span>
-                            @endif
-                            @if($task->userInCharge)
-                                <span class="flex items-center gap-2">
-                                    @svg('heroicon-o-user', 'w-4 h-4')
-                                    <span>Verantwortlich: <strong>{{ $task->userInCharge->fullname ?? $task->userInCharge->name }}</strong></span>
-                                </span>
-                            @endif
-                            @if($task->due_date)
-                                <span class="flex items-center gap-2">
-                                    @svg('heroicon-o-calendar', 'w-4 h-4')
-                                    {{ $task->due_date->format('d.m.Y H:i') }}
-                                </span>
-                            @endif
-                            @if($task->story_points)
-                                <span class="flex items-center gap-2">
-                                    @svg('heroicon-o-sparkles', 'w-4 h-4')
-                                    {{ $task->story_points->points() }} SP
-                                </span>
-                            @endif
+    <x-ui-page-container spacing="space-y-6">
+        {{-- Header Section --}}
+        <div class="bg-white rounded-xl border border-[var(--ui-border)]/60 shadow-sm overflow-hidden">
+            <div class="p-6 lg:p-8">
+                <div class="flex items-start justify-between gap-4 mb-6">
+                    <div class="flex-1 min-w-0">
+                        <h1 class="text-3xl font-bold text-[var(--ui-secondary)] mb-6 tracking-tight leading-tight">{{ $task->title }}</h1>
+                        
+                        {{-- Meta Informationen --}}
+                        <div class="space-y-3">
+                            {{-- Erste Zeile: Team & Projekt --}}
+                            <div class="flex flex-wrap items-center gap-4">
+                                @if($task->team)
+                                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
+                                        @svg('heroicon-o-user-group', 'w-4 h-4 text-[var(--ui-muted)]')
+                                        <span class="text-sm font-medium text-[var(--ui-secondary)]">{{ $task->team->name }}</span>
+                                    </div>
+                                @endif
+                                @if($task->project)
+                                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--ui-primary-5)] border border-[var(--ui-primary)]/20">
+                                        @svg('heroicon-o-folder', 'w-4 h-4 text-[var(--ui-primary)]')
+                                        <span class="text-sm font-medium text-[var(--ui-primary)]">{{ $task->project->name }}</span>
+                                    </div>
+                                @endif
+                            </div>
+                            
+                            {{-- Zweite Zeile: Personen & Details --}}
+                            <div class="flex flex-wrap items-center gap-4">
+                                @if($task->user)
+                                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
+                                        @svg('heroicon-o-user-circle', 'w-4 h-4 text-[var(--ui-muted)]')
+                                        <span class="text-sm text-[var(--ui-secondary)]">
+                                            <span class="text-[var(--ui-muted)]">Erstellt von:</span>
+                                            <span class="font-medium ml-1">{{ $task->user->fullname ?? $task->user->name }}</span>
+                                        </span>
+                                    </div>
+                                @endif
+                                @if($task->userInCharge)
+                                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--ui-primary-5)] border border-[var(--ui-primary)]/20">
+                                        @svg('heroicon-o-user', 'w-4 h-4 text-[var(--ui-primary)]')
+                                        <span class="text-sm text-[var(--ui-primary)]">
+                                            <span class="opacity-75">Verantwortlich:</span>
+                                            <span class="font-medium ml-1">{{ $task->userInCharge->fullname ?? $task->userInCharge->name }}</span>
+                                        </span>
+                                    </div>
+                                @endif
+                                @if($task->due_date)
+                                    @php
+                                        $isOverdue = $task->due_date->isPast() && !$task->is_done;
+                                        $isToday = $task->due_date->isToday();
+                                        $isTomorrow = $task->due_date->isTomorrow();
+                                        $dueDateBg = $isOverdue ? 'bg-[var(--ui-danger-5)] border-[var(--ui-danger)]/30' : ($isToday || $isTomorrow ? 'bg-[var(--ui-warning-5)] border-[var(--ui-warning)]/30' : 'bg-[var(--ui-muted-5)] border-[var(--ui-border)]/40');
+                                        $dueDateIconColor = $isOverdue ? 'text-[var(--ui-danger)]' : ($isToday || $isTomorrow ? 'text-[var(--ui-warning)]' : 'text-[var(--ui-muted)]');
+                                        $dueDateTextColor = $isOverdue ? 'text-[var(--ui-danger)]' : ($isToday || $isTomorrow ? 'text-[var(--ui-warning)]' : 'text-[var(--ui-secondary)]');
+                                    @endphp
+                                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border {{ $dueDateBg }}">
+                                        @svg('heroicon-o-calendar', 'w-4 h-4 ' . $dueDateIconColor)
+                                        <span class="text-sm font-medium {{ $dueDateTextColor }}">
+                                            {{ $task->due_date->format('d.m.Y H:i') }}
+                                        </span>
+                                    </div>
+                                @endif
+                                @if($task->story_points)
+                                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--ui-primary-5)] border border-[var(--ui-primary)]/20">
+                                        @svg('heroicon-o-sparkles', 'w-4 h-4 text-[var(--ui-primary)]')
+                                        <span class="text-sm font-semibold text-[var(--ui-primary)]">{{ $task->story_points->points() }} SP</span>
+                                    </div>
+                                @endif
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="flex items-center gap-3">
-                    @if($task->is_done)
-                        <x-ui-badge variant="success" size="lg">Erledigt</x-ui-badge>
-                    @endif
-                    @if($task->is_frog)
-                        <x-ui-badge variant="danger" size="lg">Frosch</x-ui-badge>
-                    @endif
+                    
+                    {{-- Status Badges --}}
+                    <div class="flex flex-col items-end gap-2 flex-shrink-0">
+                        @if($task->is_done)
+                            <x-ui-badge variant="success" size="lg">Erledigt</x-ui-badge>
+                        @endif
+                        @if($task->is_frog)
+                            <x-ui-badge variant="danger" size="lg">Frosch</x-ui-badge>
+                        @endif
+                    </div>
                 </div>
             </div>
         </div>
         {{-- Form Section --}}
-        <div class="bg-white rounded-lg border border-[var(--ui-border)]/60 p-8">
-            <x-ui-form-grid :cols="2" :gap="6">
-                <div>
-                        <x-ui-input-text
-                            name="task.title"
-                            label="Titel"
-                            wire:model.live.debounce.1000ms="task.title"
-                            placeholder="Aufgabentitel eingeben..."
-                            required
-                            :errorKey="'task.title'"
-                        />
+        <div class="bg-white rounded-xl border border-[var(--ui-border)]/60 shadow-sm overflow-hidden">
+            <div class="p-6 lg:p-8">
+                {{-- Grundinformationen --}}
+                <div class="mb-8">
+                    <h2 class="text-lg font-semibold text-[var(--ui-secondary)] mb-4">Grundinformationen</h2>
+                    <x-ui-form-grid :cols="2" :gap="6">
+                        <div class="col-span-2">
+                            <x-ui-input-text
+                                name="task.title"
+                                label="Titel"
+                                wire:model.live.debounce.1000ms="task.title"
+                                placeholder="Aufgabentitel eingeben..."
+                                required
+                                :errorKey="'task.title'"
+                            />
+                        </div>
+                        <div>
+                            <x-ui-input-select
+                                name="task.priority"
+                                label="Priorität"
+                                :options="\Platform\Planner\Enums\TaskPriority::cases()"
+                                optionValue="value"
+                                optionLabel="label"
+                                :nullable="false"
+                                wire:model.live="task.priority"
+                            />
+                        </div>
+                        <div>
+                            <x-ui-input-select
+                                name="task.story_points"
+                                label="Story Points"
+                                :options="\Platform\Planner\Enums\TaskStoryPoints::cases()"
+                                optionValue="value"
+                                optionLabel="label"
+                                :nullable="true"
+                                nullLabel="– Story Points auswählen –"
+                                wire:model.live="task.story_points"
+                            />
+                        </div>
+                    </x-ui-form-grid>
                 </div>
-                <div>
-                    <x-ui-input-select
-                        name="task.priority"
-                        label="Priorität"
-                        :options="\Platform\Planner\Enums\TaskPriority::cases()"
-                        optionValue="value"
-                        optionLabel="label"
-                        :nullable="false"
-                        wire:model.live="task.priority"
-                    />
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-2">
-                        Fälligkeitsdatum
-                    </label>
-                    <button
-                        type="button"
-                        wire:click="openDueDateModal"
-                        class="w-full px-4 py-2.5 text-left bg-[var(--ui-surface)] border border-[var(--ui-border)]/60 rounded-lg hover:border-[var(--ui-primary)]/60 hover:bg-[var(--ui-primary-5)] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--ui-primary)]/20 focus:border-[var(--ui-primary)] flex items-center justify-between group"
-                    >
-                        <span class="flex items-center gap-2 text-sm text-[var(--ui-secondary)]">
-                            @svg('heroicon-o-calendar', 'w-4 h-4 text-[var(--ui-muted)] group-hover:text-[var(--ui-primary)] transition-colors')
-                            @if($task->due_date)
-                                <span class="font-medium">{{ $task->due_date->format('d.m.Y H:i') }}</span>
-                            @else
-                                <span class="text-[var(--ui-muted)]">Kein Datum gesetzt</span>
-                            @endif
-                        </span>
-                        @svg('heroicon-o-chevron-right', 'w-4 h-4 text-[var(--ui-muted)] group-hover:text-[var(--ui-primary)] transition-colors')
-                    </button>
-                </div>
-                <div>
-                    <x-ui-input-select
-                        name="task.story_points"
-                        label="Story Points"
-                        :options="\Platform\Planner\Enums\TaskStoryPoints::cases()"
-                        optionValue="value"
-                        optionLabel="label"
-                        :nullable="true"
-                        nullLabel="– Story Points auswählen –"
-                        wire:model.live="task.story_points"
-                    />
-                </div>
-                <div>
-                    <x-ui-input-select
-                        name="task.user_in_charge_id"
-                        label="Verantwortlicher"
-                        :options="$teamUsers"
-                        optionValue="id"
-                        optionLabel="name"
-                        :nullable="true"
-                        nullLabel="– Verantwortlichen auswählen –"
-                        wire:model.live="task.user_in_charge_id"
-                    />
-                </div>
-            </x-ui-form-grid>
 
-            
+                {{-- Fälligkeit & Verantwortung --}}
+                <div class="mb-8 pb-8 border-b border-[var(--ui-border)]/60">
+                    <h2 class="text-lg font-semibold text-[var(--ui-secondary)] mb-4">Fälligkeit & Verantwortung</h2>
+                    <x-ui-form-grid :cols="2" :gap="6">
+                        <div>
+                            <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-2">
+                                Fälligkeitsdatum
+                            </label>
+                            <button
+                                type="button"
+                                wire:click="openDueDateModal"
+                                class="w-full px-4 py-2.5 text-left bg-[var(--ui-surface)] border border-[var(--ui-border)]/60 rounded-lg hover:border-[var(--ui-primary)]/60 hover:bg-[var(--ui-primary-5)] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--ui-primary)]/20 focus:border-[var(--ui-primary)] flex items-center justify-between group"
+                            >
+                                <span class="flex items-center gap-2 text-sm text-[var(--ui-secondary)]">
+                                    @svg('heroicon-o-calendar', 'w-4 h-4 text-[var(--ui-muted)] group-hover:text-[var(--ui-primary)] transition-colors')
+                                    @if($task->due_date)
+                                        <span class="font-medium">{{ $task->due_date->format('d.m.Y H:i') }}</span>
+                                    @else
+                                        <span class="text-[var(--ui-muted)]">Kein Datum gesetzt</span>
+                                    @endif
+                                </span>
+                                @svg('heroicon-o-chevron-right', 'w-4 h-4 text-[var(--ui-muted)] group-hover:text-[var(--ui-primary)] transition-colors')
+                            </button>
+                        </div>
+                        <div>
+                            <x-ui-input-select
+                                name="task.user_in_charge_id"
+                                label="Verantwortlicher"
+                                :options="$teamUsers"
+                                optionValue="id"
+                                optionLabel="name"
+                                :nullable="true"
+                                nullLabel="– Verantwortlichen auswählen –"
+                                wire:model.live="task.user_in_charge_id"
+                            />
+                        </div>
+                    </x-ui-form-grid>
+                </div>
 
-            {{-- Description --}}
-            <div class="mt-8 pt-8 border-t border-[var(--ui-border)]/60">
+                {{-- Beschreibung --}}
+                <div>
+                    <h2 class="text-lg font-semibold text-[var(--ui-secondary)] mb-4">Beschreibung</h2>
                     <x-ui-input-textarea
                         name="task.description"
-                        label="Beschreibung"
+                        label=""
                         wire:model.live.debounce.1000ms="task.description"
                         placeholder="Aufgabenbeschreibung (optional)"
-                        rows="4"
+                        rows="6"
                         :errorKey="'task.description'"
                     />
+                </div>
             </div>
         </div>
     </x-ui-page-container>
@@ -151,9 +188,48 @@
     <x-slot name="sidebar">
         <x-ui-page-sidebar title="Übersicht" width="w-80" :defaultOpen="true">
             <div class="p-6 space-y-6">
-                {{-- Aktionen (Save/Print) --}}
+                {{-- Status Toggles --}}
                 <div>
-                    <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-4">Aktionen</h3>
+                    <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--ui-muted)] mb-3">Status</h3>
+                    <div class="space-y-2">
+                        <button type="button" wire:click="toggleDone" class="w-full text-left flex items-center justify-between py-3 px-4 rounded-lg bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40 hover:bg-[var(--ui-primary-5)] hover:border-[var(--ui-primary)]/40 transition-all cursor-pointer group">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-[var(--ui-success-10)] flex items-center justify-center group-hover:bg-[var(--ui-success-20)] transition-colors">
+                                    @svg('heroicon-o-check-circle', 'w-5 h-5 text-[var(--ui-success)]')
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-[var(--ui-secondary)]">Status</div>
+                                    <div class="text-xs text-[var(--ui-muted)]">{{ $task->is_done ? 'Aufgabe ist erledigt' : 'Aufgabe ist offen' }}</div>
+                                </div>
+                            </div>
+                            <div class="flex-shrink-0">
+                                <div class="w-10 h-6 rounded-full transition-colors {{ $task->is_done ? 'bg-[var(--ui-success)]' : 'bg-[var(--ui-muted)]' }}">
+                                    <div class="w-5 h-5 bg-white rounded-full shadow-sm transform transition-transform {{ $task->is_done ? 'translate-x-4' : 'translate-x-0.5' }} mt-0.5"></div>
+                                </div>
+                            </div>
+                        </button>
+                        <button type="button" wire:click="toggleFrog" class="w-full text-left flex items-center justify-between py-3 px-4 rounded-lg bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40 hover:bg-[var(--ui-warning-5)] hover:border-[var(--ui-warning)]/40 transition-all cursor-pointer group">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-[var(--ui-warning-10)] flex items-center justify-center group-hover:bg-[var(--ui-warning-20)] transition-colors">
+                                    @svg('heroicon-o-exclamation-triangle', 'w-5 h-5 text-[var(--ui-warning)]')
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-[var(--ui-secondary)]">Frosch</div>
+                                    <div class="text-xs text-[var(--ui-muted)]">{{ $task->is_frog ? 'Wichtige Aufgabe' : 'Normale Aufgabe' }}</div>
+                                </div>
+                            </div>
+                            <div class="flex-shrink-0">
+                                <div class="w-10 h-6 rounded-full transition-colors {{ $task->is_frog ? 'bg-[var(--ui-warning)]' : 'bg-[var(--ui-muted)]' }}">
+                                    <div class="w-5 h-5 bg-white rounded-full shadow-sm transform transition-transform {{ $task->is_frog ? 'translate-x-4' : 'translate-x-0.5' }} mt-0.5"></div>
+                                </div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                {{-- Aktionen --}}
+                <div>
+                    <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--ui-muted)] mb-3">Aktionen</h3>
                     <div class="space-y-2">
                         @can('update', $task)
                             @if($this->isDirty())
@@ -186,45 +262,26 @@
                     </div>
                 </div>
 
-                {{-- Quick Links --}}
-                <div class="space-y-2">
-                    @if($task->project && $this->canAccessProject)
-                        <x-ui-button variant="secondary-outline" size="sm" :href="route('planner.projects.show', ['plannerProject' => $task->project->id])" wire:navigate class="w-full">
+                {{-- Navigation --}}
+                <div>
+                    <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--ui-muted)] mb-3">Navigation</h3>
+                    <div class="space-y-2">
+                        @if($task->project && $this->canAccessProject)
+                            <x-ui-button variant="secondary-outline" size="sm" :href="route('planner.projects.show', ['plannerProject' => $task->project->id])" wire:navigate class="w-full">
+                                <span class="flex items-center gap-2">
+                                    @svg('heroicon-o-folder', 'w-4 h-4')
+                                    Zum Projekt
+                                </span>
+                            </x-ui-button>
+                        @endif
+                        <x-ui-button variant="secondary-outline" size="sm" :href="route('planner.my-tasks')" wire:navigate class="w-full">
                             <span class="flex items-center gap-2">
-                                @svg('heroicon-o-folder', 'w-4 h-4')
-                                Zum Projekt
+                                @svg('heroicon-o-clipboard-document-list', 'w-4 h-4')
+                                Zu meinen Aufgaben
                             </span>
                         </x-ui-button>
-                    @endif
-                    <x-ui-button variant="secondary-outline" size="sm" :href="route('planner.my-tasks')" wire:navigate class="w-full">
-                        <span class="flex items-center gap-2">
-                            @svg('heroicon-o-clipboard-document-list', 'w-4 h-4')
-                            Zu meinen Aufgaben
-                        </span>
-                    </x-ui-button>
+                    </div>
                 </div>
-
-                {{-- Status (interaktiv, stile wie Statistiken) --}}
-                <div class="space-y-2">
-                    <button type="button" wire:click="toggleDone" class="w-full text-left flex items-center justify-between py-2 px-3 rounded-lg bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40 hover:bg-[var(--ui-primary-5)] transition-colors cursor-pointer">
-                        <div class="flex items-center gap-2">
-                            @svg('heroicon-o-check-circle', 'w-4 h-4 text-[var(--ui-success)]')
-                            <span class="text-sm text-[var(--ui-secondary)]">Status</span>
-                        </div>
-                        <span class="text-sm font-semibold text-[var(--ui-secondary)]">{{ $task->is_done ? 'Erledigt' : 'Offen' }}</span>
-                    </button>
-                    <button type="button" wire:click="toggleFrog" class="w-full text-left flex items-center justify-between py-2 px-3 rounded-lg bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40 hover:bg-[var(--ui-primary-5)] transition-colors cursor-pointer">
-                        <div class="flex items-center gap-2">
-                            @svg('heroicon-o-exclamation-triangle', 'w-4 h-4 text-[var(--ui-warning)]')
-                            <span class="text-sm text-[var(--ui-secondary)]">Frosch</span>
-                        </div>
-                        <span class="text-sm font-semibold text-[var(--ui-secondary)]">{{ $task->is_frog ? 'Ja' : 'Nein' }}</span>
-                    </button>
-                </div>
-
-                
-
-                
             </div>
         </x-ui-page-sidebar>
     </x-slot>
