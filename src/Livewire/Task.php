@@ -57,6 +57,22 @@ class Task extends Component
         return count($this->task->getDirty()) > 0;
     }
 
+    #[Computed]
+    public function canAccessProject(): bool
+    {
+        if (!$this->task || !$this->task->project) {
+            return false;
+        }
+
+        $user = Auth::user();
+        if (!$user || !$user->current_team_id) {
+            return false;
+        }
+
+        // Prüfe ob das Projekt zum aktuellen Team gehört
+        return $this->task->project->team_id === $user->current_team_id;
+    }
+
     public function rendered()
     {
         // Wenn Task gelöscht wurde, nichts tun (wird nach Redirect nicht mehr aufgerufen)
@@ -166,9 +182,11 @@ class Task extends Component
         $taskTitle = $this->task->title;
         $projectId = $this->task->project_id;
         $hasProject = $this->task->project !== null;
+        $canAccessProject = $hasProject && $this->canAccessProject;
         
         // Zielroute vor dem Löschen bestimmen
-        if (!$hasProject) {
+        // Nur zum Projekt redirecten, wenn es zum aktuellen Team gehört
+        if (!$hasProject || !$canAccessProject) {
             $redirectUrl = route('planner.my-tasks');
         } else {
             // Projekt-ID direkt verwenden, um Model-Binding zu vermeiden
@@ -206,9 +224,10 @@ class Task extends Component
         
         // Projekt-ID vor dem Löschen speichern
         $projectId = $this->task->project_id;
+        $canAccessProject = $projectId && $this->canAccessProject;
         
-        if (!$projectId) {
-            // Fallback zu MyTasks wenn kein Projekt vorhanden
+        if (!$projectId || !$canAccessProject) {
+            // Fallback zu MyTasks wenn kein Projekt vorhanden oder nicht zum aktuellen Team
             $this->task->delete();
             $this->task = null;
             return $this->redirect(route('planner.my-tasks'), navigate: true);

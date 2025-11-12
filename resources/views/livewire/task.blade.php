@@ -172,7 +172,7 @@
 
                 {{-- Quick Links --}}
                 <div class="space-y-2">
-                    @if($task->project)
+                    @if($task->project && $this->canAccessProject)
                         <x-ui-button variant="secondary-outline" size="sm" :href="route('planner.projects.show', ['plannerProject' => $task->project->id])" wire:navigate class="w-full">
                             <span class="flex items-center gap-2">
                                 @svg('heroicon-o-folder', 'w-4 h-4')
