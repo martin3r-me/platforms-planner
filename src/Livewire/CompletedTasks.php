@@ -57,8 +57,10 @@ class CompletedTasks extends Component
         // Erledigte Aufgaben abrufen:
         // 1. Private Aufgaben des Benutzers (user_id = userId, kein project_id)
         // 2. Aufgaben aus Projekten, in denen der Benutzer Mitglied ist (unabhängig vom Team)
+        // WICHTIG: Nur Aufgaben mit done_at anzeigen (ältere Aufgaben ohne done_at werden ignoriert)
         $completedTasks = PlannerTask::query()
             ->where('is_done', true)
+            ->whereNotNull('done_at') // Nur Aufgaben mit done_at
             ->where(function ($q) use ($userId, $projectIds) {
                 // Private Aufgaben des Benutzers
                 $q->where(function ($q) use ($userId) {
@@ -71,25 +73,15 @@ class CompletedTasks extends Component
                       ->whereIn('project_id', $projectIds);
                 });
             })
-            ->where(function ($q) use ($sinceDate) {
-                // Nach done_at filtern, falls vorhanden, sonst updated_at
-                $q->where(function ($q) use ($sinceDate) {
-                    $q->whereNotNull('done_at')
-                      ->where('done_at', '>=', $sinceDate);
-                })
-                ->orWhere(function ($q) use ($sinceDate) {
-                    $q->whereNull('done_at')
-                      ->where('updated_at', '>=', $sinceDate);
-                });
-            })
+            ->where('done_at', '>=', $sinceDate) // Nach done_at filtern
             ->with(['user', 'userInCharge', 'project', 'team'])
             ->orderByDesc('done_at') // Neueste zuerst (zuletzt erledigt)
-            ->orderByDesc('updated_at') // Fallback für Tasks ohne done_at
             ->get();
 
         // Gruppierung nach Datum (heute, gestern, diese Woche, etc.)
+        // done_at ist immer vorhanden, da wir nur Tasks mit done_at laden
         $groupedTasks = $completedTasks->groupBy(function ($task) {
-            $date = $task->done_at ?? $task->updated_at;
+            $date = $task->done_at;
             
             if ($date->isToday()) {
                 return 'Heute';
