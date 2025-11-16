@@ -33,6 +33,13 @@
             @svg('heroicon-o-check-circle', 'w-4 h-4 text-[var(--ui-secondary)]')
             <span class="ml-2 text-sm">Erledigte Aufgaben</span>
         </x-ui-sidebar-item>
+    </x-ui-sidebar-list>
+
+    {{-- Trennlinie --}}
+    <div class="my-2 border-t border-[var(--ui-border)]/40"></div>
+
+    {{-- Neues Projekt --}}
+    <x-ui-sidebar-list label="">
         <x-ui-sidebar-item wire:click="createProject">
             @svg('heroicon-o-plus-circle', 'w-4 h-4 text-[var(--ui-secondary)]')
             <span class="ml-2 text-sm">Neues Projekt</span>
@@ -54,10 +61,12 @@
             <a href="{{ route('planner.completed-tasks') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]">
                 @svg('heroicon-o-check-circle', 'w-5 h-5')
             </a>
-            <button type="button" wire:click="createProject" class="flex items-center justify-center p-2 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]">
-                @svg('heroicon-o-plus-circle', 'w-5 h-5')
-            </button>
         </div>
+        {{-- Trennlinie --}}
+        <div class="my-2 border-t border-[var(--ui-border)]/40"></div>
+        <button type="button" wire:click="createProject" class="flex items-center justify-center p-2 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]">
+            @svg('heroicon-o-plus-circle', 'w-5 h-5')
+        </button>
     </div>
 
     {{-- Abschnitt: Projekte --}}
