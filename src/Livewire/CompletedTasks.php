@@ -6,11 +6,13 @@ use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Models\PlannerProjectUser;
+use Platform\Planner\Enums\TaskStoryPoints;
 use Livewire\Attributes\On;
 
 class CompletedTasks extends Component
 {
     public $daysFilter = 30; // Standard: letzte 30 Tage
+    public $userFilter = null; // Filter nach Person (user_in_charge_id)
 
     #[On('updateDashboard')] 
     public function updateDashboard()
@@ -54,11 +56,8 @@ class CompletedTasks extends Component
         // Zeitfilter: letzte X Tage
         $sinceDate = now()->subDays($this->daysFilter);
 
-        // Erledigte Aufgaben abrufen:
-        // 1. Private Aufgaben des Benutzers (user_id = userId, kein project_id)
-        // 2. Aufgaben aus Projekten, in denen der Benutzer Mitglied ist (unabhängig vom Team)
-        // WICHTIG: Nur Aufgaben mit done_at anzeigen (ältere Aufgaben ohne done_at werden ignoriert)
-        $completedTasks = PlannerTask::query()
+        // Basis-Query für alle Aufgaben im Zeitraum (für Personenfilter)
+        $baseQuery = PlannerTask::query()
             ->where('is_done', true)
             ->whereNotNull('done_at') // Nur Aufgaben mit done_at
             ->where(function ($q) use ($userId, $projectIds) {
@@ -73,7 +72,25 @@ class CompletedTasks extends Component
                       ->whereIn('project_id', $projectIds);
                 });
             })
-            ->where('done_at', '>=', $sinceDate) // Nach done_at filtern
+            ->where('done_at', '>=', $sinceDate); // Nach done_at filtern
+
+        // Alle verfügbaren Personen für Filter (aus allen Aufgaben im Zeitraum, unabhängig vom Personenfilter)
+        $allTasksForUsers = (clone $baseQuery)
+            ->with('userInCharge')
+            ->get();
+        
+        $availableUsers = $allTasksForUsers
+            ->pluck('userInCharge')
+            ->filter()
+            ->unique('id')
+            ->sortBy('name')
+            ->values();
+
+        // Erledigte Aufgaben abrufen (mit Personenfilter)
+        $completedTasks = (clone $baseQuery)
+            ->when($this->userFilter, function ($q) {
+                $q->where('user_in_charge_id', $this->userFilter);
+            })
             ->with(['user', 'userInCharge', 'project', 'team'])
             ->orderByDesc('done_at') // Neueste zuerst (zuletzt erledigt)
             ->get();
@@ -98,13 +115,15 @@ class CompletedTasks extends Component
 
         // Statistiken
         $totalCount = $completedTasks->count();
-        $totalPoints = $completedTasks->sum(fn ($task) => $task->story_points instanceof \App\Enums\StoryPoints ? $task->story_points->points() : 1);
+        $totalPoints = $completedTasks->sum(fn ($task) => $task->story_points instanceof TaskStoryPoints ? $task->story_points->points() : ($task->story_points ? 1 : 0));
 
         return view('planner::livewire.completed-tasks', [
             'groupedTasks' => $groupedTasks,
             'totalCount' => $totalCount,
             'totalPoints' => $totalPoints,
             'daysFilter' => $this->daysFilter,
+            'userFilter' => $this->userFilter,
+            'availableUsers' => $availableUsers,
         ])->layout('platform::layouts.app');
     }
 }

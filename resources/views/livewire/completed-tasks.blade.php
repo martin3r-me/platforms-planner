@@ -41,6 +41,40 @@
                     </div>
                 </div>
 
+                {{-- Personenfilter --}}
+                @if($availableUsers->isNotEmpty())
+                    <div>
+                        <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Person</h3>
+                        <div class="space-y-2">
+                            <button 
+                                type="button"
+                                wire:click="$set('userFilter', null)"
+                                class="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors {{ $userFilter === null ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)] border border-[var(--ui-primary)]/20' : 'bg-[var(--ui-muted-5)] text-[var(--ui-secondary)] hover:bg-[var(--ui-muted)]' }}"
+                            >
+                                Alle Personen
+                            </button>
+                            @foreach($availableUsers as $user)
+                                <button 
+                                    type="button"
+                                    wire:click="$set('userFilter', {{ $user->id }})"
+                                    class="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors {{ $userFilter == $user->id ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)] border border-[var(--ui-primary)]/20' : 'bg-[var(--ui-muted-5)] text-[var(--ui-secondary)] hover:bg-[var(--ui-muted)]' }}"
+                                >
+                                    <div class="flex items-center gap-2">
+                                        @if($user->avatar)
+                                            <img src="{{ $user->avatar }}" alt="{{ $user->name }}" class="w-5 h-5 rounded-full object-cover">
+                                        @else
+                                            <div class="w-5 h-5 rounded-full bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/60 flex items-center justify-center text-xs text-[var(--ui-secondary)]">
+                                                {{ mb_strtoupper(mb_substr($user->name ?? $user->email ?? 'U', 0, 1)) }}
+                                            </div>
+                                        @endif
+                                        <span class="truncate">{{ $user->fullname ?? $user->name }}</span>
+                                    </div>
+                                </button>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
                 {{-- Statistiken --}}
                 <div>
                     <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Statistiken</h3>
