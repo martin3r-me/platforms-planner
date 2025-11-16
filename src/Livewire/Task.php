@@ -283,7 +283,7 @@ class Task extends Component
         // Task löschen
         $this->task->delete();
         
-        // Task-Property auf null setzen, damit rendered() Hook nicht mehr darauf zugreift
+        // Task-Property auf null setzen, damit render() und rendered() nicht mehr darauf zugreifen
         $this->task = null;
         
         // Notification dispatchen (wird nach Redirect verarbeitet)
@@ -293,8 +293,8 @@ class Task extends Component
             'message' => "Die Aufgabe '{$taskTitle}' wurde gelöscht.",
         ]);
         
-        // Sofort redirecten, ohne View zu rendern
-        return $this->redirect($redirectUrl, navigate: true);
+        // Sofort redirecten - render() wird übersprungen, da $this->task null ist
+        $this->redirect($redirectUrl, navigate: true);
     }
 
     public function deleteTaskAndReturnToDashboard()
@@ -591,7 +591,13 @@ class Task extends Component
     }
 
 	public function render()
-    {        
+    {
+        // Wenn Task gelöscht wurde, sofort redirecten (verhindert 404)
+        if (!$this->task) {
+            // Fallback-Redirect zu MyTasks
+            return $this->redirect(route('planner.my-tasks'), navigate: true);
+        }
+        
         $this->printingAvailable = interface_exists('Platform\\Printing\\Contracts\\PrintingServiceInterface')
             && app()->bound('Platform\\Printing\\Contracts\\PrintingServiceInterface');
 
