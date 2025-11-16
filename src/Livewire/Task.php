@@ -40,8 +40,14 @@ class Task extends Component
         'task.project_id' => 'nullable|integer',
     ];
 
-    public function mount(PlannerTask $plannerTask)
+    public function mount($plannerTask)
     {
+        // Wenn Task nicht existiert (z.B. wurde gelöscht), weiterleiten
+        if (!$plannerTask || !($plannerTask instanceof PlannerTask)) {
+            $this->redirect(route('planner.my-tasks'), navigate: true);
+            return;
+        }
+        
         $this->authorize('view', $plannerTask);
         $this->task = $plannerTask->load(['user', 'userInCharge', 'project', 'team']);
         $this->dueDateInput = $plannerTask->due_date ? $plannerTask->due_date->format('Y-m-d H:i') : '';

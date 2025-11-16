@@ -91,6 +91,9 @@ class PlannerServiceProvider extends ServiceProvider
         // Policies mit standardisierter Registrierung
         $this->registerPolicies();
 
+        // Custom Route Model Binding für PlannerTask - leitet bei fehlenden Tasks weiter
+        $this->registerCustomRouteBindings();
+
         // Modelle-Scan & Schema-Registry-Meta entfernt (war für Agent)
 
         // Commands entfernt - Sidebar soll leer sein
@@ -349,5 +352,27 @@ class PlannerServiceProvider extends ServiceProvider
                 Gate::policy($model, $policy);
             }
         }
+    }
+
+    /**
+     * Registriert Custom Route Model Bindings
+     * Verhindert 404-Fehler bei gelöschten Tasks durch Weiterleitung
+     */
+    protected function registerCustomRouteBindings(): void
+    {
+        Route::bind('plannerTask', function ($value) {
+            $task = PlannerTask::find($value);
+            
+            // Wenn Task nicht existiert (z.B. wurde gelöscht), weiterleiten statt 404
+            if (!$task) {
+                // Versuche, zur MyTasks-Seite zu redirecten
+                // Da wir hier in einem Route-Binding sind, können wir nicht direkt redirecten
+                // Stattdessen werfen wir eine spezielle Exception, die in der mount() behandelt wird
+                // Oder wir geben null zurück und lassen mount() damit umgehen
+                return null;
+            }
+            
+            return $task;
+        });
     }
 }
