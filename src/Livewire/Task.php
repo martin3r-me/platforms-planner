@@ -257,6 +257,14 @@ class Task extends Component
     {
         $this->authorize('update', $this->task);
         $this->task->is_done = (bool)!$this->task->is_done;
+        
+        // done_at automatisch setzen/löschen
+        if ($this->task->is_done && !$this->task->done_at) {
+            $this->task->done_at = now();
+        } elseif (!$this->task->is_done) {
+            $this->task->done_at = null;
+        }
+        
         $this->task->save();
     }
 

@@ -33,6 +33,7 @@ class PlannerTask extends Model implements HasTimeAncestors, HasDisplayName
         'planned_minutes',
         'status',
         'is_done',
+        'done_at',
         'is_frog',
         'story_points',
         'order',
@@ -48,7 +49,8 @@ class PlannerTask extends Model implements HasTimeAncestors, HasDisplayName
     protected $casts = [
         'priority' => TaskPriority::class,
         'story_points' => TaskStoryPoints::class,
-        'due_date' => 'datetime'
+        'due_date' => 'datetime',
+        'done_at' => 'datetime'
     ];
 
     protected static function booted(): void

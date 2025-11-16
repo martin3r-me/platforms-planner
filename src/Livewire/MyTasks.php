@@ -261,9 +261,18 @@ class MyTasks extends Component
             abort(403);
         }
 
-        $task->update([
-            'is_done' => ! $task->is_done,
-        ]);
+        $isDone = ! $task->is_done;
+        
+        $updateData = ['is_done' => $isDone];
+        
+        // done_at automatisch setzen/löschen
+        if ($isDone && !$task->done_at) {
+            $updateData['done_at'] = now();
+        } elseif (!$isDone) {
+            $updateData['done_at'] = null;
+        }
+
+        $task->update($updateData);
     }
 
     public function updateTaskOrder($groups)

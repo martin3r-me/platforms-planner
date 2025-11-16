@@ -91,6 +91,9 @@ class PlannerServiceProvider extends ServiceProvider
         // Policies mit standardisierter Registrierung
         $this->registerPolicies();
 
+        // Observer registrieren
+        $this->registerObservers();
+
         // Custom Route Model Binding für PlannerTask - leitet bei fehlenden Tasks weiter
         $this->registerCustomRouteBindings();
 
@@ -352,6 +355,14 @@ class PlannerServiceProvider extends ServiceProvider
                 Gate::policy($model, $policy);
             }
         }
+    }
+
+    /**
+     * Registriert Observer für Models
+     */
+    protected function registerObservers(): void
+    {
+        PlannerTask::observe(\Platform\Planner\Observers\PlannerTaskObserver::class);
     }
 
     /**
