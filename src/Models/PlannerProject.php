@@ -11,12 +11,13 @@ use Illuminate\Support\Facades\Log;
 use Platform\Organization\Traits\HasTimeEntries;
 use Platform\Organization\Traits\HasOrganizationContexts;
 use Platform\Core\Contracts\HasTimeAncestors;
+use Platform\Core\Contracts\HasKeyResultAncestors;
 use Platform\Core\Contracts\HasDisplayName;
 
 /**
  * @ai.description Projekt bündelt Aufgaben (Tasks) und Sprints. Dient als Container für Planung, Ressourcen und Fortschritt eines Vorhabens im Team.
  */
-class PlannerProject extends Model implements HasTimeAncestors, HasDisplayName
+class PlannerProject extends Model implements HasTimeAncestors, HasKeyResultAncestors, HasDisplayName
 {
     use HasTimeEntries, HasOrganizationContexts;
 
@@ -110,6 +111,20 @@ class PlannerProject extends Model implements HasTimeAncestors, HasDisplayName
         // Bei Projects ist das Project selbst der Root-Kontext
         // Wir geben ein leeres Array zurück, da das Project selbst bereits als context_type/context_id gesetzt ist
         // und in StoreTimeEntry wird das Project dann als root_context gesetzt, wenn keine Ancestors vorhanden sind
+        return [];
+    }
+
+    /**
+     * Gibt alle Vorfahren-Kontexte für die KeyResult-Kaskade zurück.
+     * Project → Project selbst (als Root)
+     * 
+     * Wenn direkt auf Project-Level ein KeyResult verknüpft wird, ist das Project selbst der Root-Kontext.
+     */
+    public function keyResultAncestors(): array
+    {
+        // Bei Projects ist das Project selbst der Root-Kontext
+        // Wir geben ein leeres Array zurück, da das Project selbst bereits als context_type/context_id gesetzt ist
+        // und in StoreKeyResultContext wird das Project dann als root_context gesetzt, wenn keine Ancestors vorhanden sind
         return [];
     }
 

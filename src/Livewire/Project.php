@@ -81,6 +81,12 @@ class Project extends Component
             // Verfügbare Relations für Children-Cascade (z.B. Tasks mit/ohne Slots)
             'include_children_relations' => ['tasks', 'projectSlots.tasks'],
         ]);
+
+        // KeyResult-Kontext setzen - ermöglicht Verknüpfung von KeyResults mit diesem Project
+        $this->dispatch('keyresult', [
+            'context_type' => get_class($this->project),
+            'context_id' => $this->project->id,
+        ]);
     }
 
     public function render()
