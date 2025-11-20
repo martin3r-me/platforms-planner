@@ -13,12 +13,13 @@ use Platform\ActivityLog\Traits\LogsActivity;
 use Platform\Media\Traits\HasMedia;
 use Platform\Organization\Traits\HasTimeEntries;
 use Platform\Core\Contracts\HasTimeAncestors;
+use Platform\Core\Contracts\HasKeyResultAncestors;
 use Platform\Core\Contracts\HasDisplayName;
 
 /**
  * @ai.description Aufgaben können optional einem Projekt zugeordnet sein (über ProjectSlot). Ohne Projekt sind es persönliche Aufgaben des Nutzers. TaskGroups und Slots dienen der Planung und Strukturierung der Arbeit.
  */
-class PlannerTask extends Model implements HasTimeAncestors, HasDisplayName
+class PlannerTask extends Model implements HasTimeAncestors, HasKeyResultAncestors, HasDisplayName
 {
     use HasFactory, SoftDeletes, LogsActivity, HasMedia, HasTimeEntries;
 
@@ -143,6 +144,27 @@ class PlannerTask extends Model implements HasTimeAncestors, HasDisplayName
      * Task → Project (als Root)
      */
     public function timeAncestors(): array
+    {
+        $ancestors = [];
+
+        // Projekt als Root-Kontext (bei Tasks ist das Project immer der Root)
+        if ($this->project) {
+            $ancestors[] = [
+                'type' => get_class($this->project),
+                'id' => $this->project->id,
+                'is_root' => true, // Project ist Root-Kontext für Tasks
+                'label' => $this->project->name,
+            ];
+        }
+
+        return $ancestors;
+    }
+
+    /**
+     * Gibt alle Vorfahren-Kontexte für die KeyResult-Kaskade zurück.
+     * Task → Project (als Root)
+     */
+    public function keyResultAncestors(): array
     {
         $ancestors = [];
 

@@ -197,6 +197,12 @@ class Task extends Component
             'allow_context_management' => false,
             'can_link_to_entity' => false,
         ]);
+
+        // KeyResult-Kontext setzen - ermöglicht Verknüpfung von KeyResults mit dieser Task
+        $this->dispatch('keyresult', [
+            'context_type' => get_class($this->task),
+            'context_id' => $this->task->id,
+        ]);
     }
 
     public function updatedDueDateInput($value)
