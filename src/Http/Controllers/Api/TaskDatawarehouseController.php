@@ -48,6 +48,8 @@ class TaskDatawarehouseController extends ApiController
 
         // ===== PAGINATION =====
         $perPage = min($request->get('per_page', 100), 1000); // Max 1000 pro Seite
+        // Projekt-Relation laden für Projekt-Namen
+        $query->with('project:id,name');
         $tasks = $query->paginate($perPage);
 
         // ===== FORMATTING =====
@@ -62,6 +64,7 @@ class TaskDatawarehouseController extends ApiController
                 'user_id' => $task->user_id,
                 'user_in_charge_id' => $task->user_in_charge_id,
                 'project_id' => $task->project_id,
+                'project_name' => $task->project?->name, // Projekt-Name mitliefern
                 'task_group_id' => $task->task_group_id,
                 'is_done' => $task->is_done,
                 'done_at' => $task->done_at?->toIso8601String(),
@@ -87,10 +90,13 @@ class TaskDatawarehouseController extends ApiController
      */
     protected function applyFilters($query, Request $request): void
     {
-        // Team-Filter mit Kind-Teams Option
+        // Team-Filter mit Kind-Teams Option (standardmäßig aktiviert)
         if ($request->has('team_id')) {
             $teamId = $request->team_id;
-            $includeChildren = $request->boolean('include_child_teams', false);
+            // Standardmäßig Kind-Teams inkludieren (wenn nicht explizit false)
+            $includeChildren = $request->has('include_child_teams') 
+                ? $request->boolean('include_child_teams') 
+                : true;
             
             if ($includeChildren) {
                 // Team mit Kind-Teams laden
@@ -105,7 +111,7 @@ class TaskDatawarehouseController extends ApiController
                     $query->whereRaw('1 = 0');
                 }
             } else {
-                // Nur das genannte Team
+                // Nur das genannte Team (wenn explizit deaktiviert)
                 $query->where('team_id', $teamId);
             }
         }
