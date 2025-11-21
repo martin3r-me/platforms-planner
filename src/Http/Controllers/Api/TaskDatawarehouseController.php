@@ -123,9 +123,10 @@ class TaskDatawarehouseController extends ApiController
             // Standardmäßig Kind-Teams inkludieren (wenn nicht explizit false)
             // Unterstützt String-Werte '1'/'0' und Boolean
             $includeChildrenValue = $request->input('include_child_teams');
+            // Prüfe ob include_child_teams explizit gesetzt wurde (auch als '0')
             $includeChildren = $request->has('include_child_teams') 
-                ? ($includeChildrenValue === '1' || $includeChildrenValue === 'true' || $includeChildrenValue === true)
-                : true; // Default: true
+                ? ($includeChildrenValue === '1' || $includeChildrenValue === 'true' || $includeChildrenValue === true || $includeChildrenValue === 1)
+                : true; // Default: true (wenn nicht gesetzt)
             
             if ($includeChildren) {
                 // Team mit Kind-Teams laden
