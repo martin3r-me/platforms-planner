@@ -5,6 +5,7 @@ namespace Platform\Planner\Http\Controllers\Api;
 use Platform\Core\Http\Controllers\ApiController;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Core\Models\Team;
+use Platform\Okr\Models\KeyResultContext;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -48,13 +49,38 @@ class TaskDatawarehouseController extends ApiController
 
         // ===== PAGINATION =====
         $perPage = min($request->get('per_page', 100), 1000); // Max 1000 pro Seite
-        // Projekt-Relation laden für Projekt-Namen
+        // Projekt-Relation laden für Projekt-Namen und KeyResult-Prüfung
         $query->with('project:id,name');
         $tasks = $query->paginate($perPage);
+        
+        // KeyResult-IDs für alle Projects sammeln (für has_key_result Flag)
+        $projectIds = $tasks->pluck('project_id')->filter()->unique();
+        $projectKeyResults = [];
+        if ($projectIds->isNotEmpty()) {
+            $keyResultContexts = KeyResultContext::where('context_type', 'Platform\Planner\Models\PlannerProject')
+                ->whereIn('context_id', $projectIds)
+                ->where('is_primary', true)
+                ->get();
+            
+            // Gruppiere nach project_id
+            foreach ($keyResultContexts as $context) {
+                $projectId = $context->context_id;
+                if (!isset($projectKeyResults[$projectId])) {
+                    $projectKeyResults[$projectId] = [];
+                }
+                $projectKeyResults[$projectId][] = $context->key_result_id;
+            }
+        }
 
         // ===== FORMATTING =====
         // Datawarehouse-freundliches Format
-        $formatted = $tasks->map(function ($task) {
+        $formatted = $tasks->map(function ($task) use ($projectKeyResults) {
+            // Prüfe ob Task über Project einen KeyResult-Bezug hat
+            $hasKeyResult = false;
+            if ($task->project_id && isset($projectKeyResults[$task->project_id])) {
+                $hasKeyResult = !empty($projectKeyResults[$task->project_id]);
+            }
+            
             return [
                 'id' => $task->id,
                 'uuid' => $task->uuid,
@@ -76,6 +102,7 @@ class TaskDatawarehouseController extends ApiController
                 'priority' => $task->priority?->value,
                 'is_frog' => $task->is_frog,
                 'planned_minutes' => $task->planned_minutes,
+                'has_key_result' => $hasKeyResult, // KeyResult-Bezug über Project
             ];
         });
 
@@ -94,9 +121,11 @@ class TaskDatawarehouseController extends ApiController
         if ($request->has('team_id')) {
             $teamId = $request->team_id;
             // Standardmäßig Kind-Teams inkludieren (wenn nicht explizit false)
+            // Unterstützt String-Werte '1'/'0' und Boolean
+            $includeChildrenValue = $request->input('include_child_teams');
             $includeChildren = $request->has('include_child_teams') 
-                ? $request->boolean('include_child_teams') 
-                : true;
+                ? ($includeChildrenValue === '1' || $includeChildrenValue === 'true' || $includeChildrenValue === true)
+                : true; // Default: true
             
             if ($includeChildren) {
                 // Team mit Kind-Teams laden
@@ -115,6 +144,9 @@ class TaskDatawarehouseController extends ApiController
                 $query->where('team_id', $teamId);
             }
         }
+        
+        // WICHTIG: Kein Standard-Filter für is_done - alle Tasks werden zurückgegeben
+        // Nur wenn explizit gefiltert wird
 
         // Erledigte Aufgaben (done_at)
         if ($request->has('is_done')) {

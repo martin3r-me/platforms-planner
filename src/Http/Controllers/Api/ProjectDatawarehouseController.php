@@ -78,9 +78,11 @@ class ProjectDatawarehouseController extends ApiController
         if ($request->has('team_id')) {
             $teamId = $request->team_id;
             // Standardmäßig Kind-Teams inkludieren (wenn nicht explizit false)
+            // Unterstützt String-Werte '1'/'0' und Boolean
+            $includeChildrenValue = $request->input('include_child_teams');
             $includeChildren = $request->has('include_child_teams') 
-                ? $request->boolean('include_child_teams') 
-                : true;
+                ? ($includeChildrenValue === '1' || $includeChildrenValue === 'true' || $includeChildrenValue === true)
+                : true; // Default: true
             
             if ($includeChildren) {
                 // Team mit Kind-Teams laden
@@ -99,6 +101,9 @@ class ProjectDatawarehouseController extends ApiController
                 $query->where('team_id', $teamId);
             }
         }
+        
+        // WICHTIG: Kein Standard-Filter für done - alle Projects werden zurückgegeben
+        // Nur wenn explizit gefiltert wird
 
         // Erledigte Projekte (done)
         if ($request->has('is_done')) {
