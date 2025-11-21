@@ -65,6 +65,11 @@ class PlannerServiceProvider extends ServiceProvider
                 $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
             });
 
+            // API-Routen registrieren
+            ModuleRouter::apiGroup('planner', function () {
+                $this->loadRoutesFrom(__DIR__.'/../routes/api.php');
+            });
+
             // Embedded Routes OHNE Modul-Routing (keine Auth-Middleware)
             Route::domain(parse_url(config('app.url'), PHP_URL_HOST))
                 ->middleware(['web', 'teams.sdk.auth']) // Teams SDK Auth hinzufügen
