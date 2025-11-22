@@ -49,8 +49,8 @@ class TaskDatawarehouseController extends ApiController
 
         // ===== PAGINATION =====
         $perPage = min($request->get('per_page', 100), 1000); // Max 1000 pro Seite
-        // Projekt-Relation laden für Projekt-Namen und KeyResult-Prüfung
-        $query->with('project:id,name');
+        // Projekt- und Team-Relationen laden für Namen und KeyResult-Prüfung
+        $query->with('project:id,name', 'team:id,name');
         $tasks = $query->paginate($perPage);
         
         // KeyResult-IDs für alle Projects sammeln (für has_key_result Flag)
@@ -87,6 +87,7 @@ class TaskDatawarehouseController extends ApiController
                 'title' => $task->title,
                 'description' => $task->description,
                 'team_id' => $task->team_id,
+                'team_name' => $task->team?->name, // Team-Name mitliefern (denormalisiert)
                 'user_id' => $task->user_id,
                 'user_in_charge_id' => $task->user_in_charge_id,
                 'project_id' => $task->project_id,

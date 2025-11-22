@@ -42,6 +42,8 @@ class ProjectDatawarehouseController extends ApiController
 
         // ===== PAGINATION =====
         $perPage = min($request->get('per_page', 100), 1000); // Max 1000 pro Seite
+        // Team-Relation laden für Team-Name
+        $query->with('team:id,name');
         $projects = $query->paginate($perPage);
 
         // ===== FORMATTING =====
@@ -53,6 +55,7 @@ class ProjectDatawarehouseController extends ApiController
                 'name' => $project->name,
                 'description' => $project->description ?? null,
                 'team_id' => $project->team_id,
+                'team_name' => $project->team?->name, // Team-Name mitliefern (denormalisiert)
                 'user_id' => $project->user_id,
                 'project_type' => $project->project_type?->value,
                 'done' => $project->done,
