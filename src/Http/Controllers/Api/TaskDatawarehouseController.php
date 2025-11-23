@@ -92,6 +92,7 @@ class TaskDatawarehouseController extends ApiController
                 'user_in_charge_id' => $task->user_in_charge_id,
                 'project_id' => $task->project_id,
                 'project_name' => $task->project?->name, // Projekt-Name mitliefern
+                'project_slot_id' => $task->project_slot_id, // Für Backlog-Berechnung
                 'task_group_id' => $task->task_group_id,
                 'is_done' => $task->is_done,
                 'done_at' => $task->done_at?->toIso8601String(),
@@ -102,6 +103,7 @@ class TaskDatawarehouseController extends ApiController
                 'story_points_numeric' => $task->story_points?->points(),
                 'priority' => $task->priority?->value,
                 'is_frog' => $task->is_frog,
+                'is_backlog' => $task->is_backlog, // Berechnetes Attribut
                 'planned_minutes' => $task->planned_minutes,
                 'has_key_result' => $hasKeyResult, // KeyResult-Bezug über Project
             ];
@@ -403,6 +405,83 @@ class TaskDatawarehouseController extends ApiController
 
         $count = $query->count();
         return $this->success(['count' => $count], 'Anzahl Tasks');
+    }
+
+    /**
+     * Health Check Endpoint
+     * Gibt einen Beispiel-Datensatz zurück für Tests
+     */
+    public function health(Request $request)
+    {
+        try {
+            // Versuche einen Beispiel-Datensatz zu finden
+            $example = PlannerTask::with('project:id,name', 'team:id,name')
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            if (!$example) {
+                return $this->success([
+                    'status' => 'ok',
+                    'message' => 'API ist erreichbar, aber keine Tasks vorhanden',
+                    'example' => null,
+                    'timestamp' => now()->toIso8601String(),
+                ], 'Health Check');
+            }
+
+            // Formatiere Beispiel-Datensatz (analog zu index())
+            $projectIds = collect([$example->project_id])->filter()->unique();
+            $projectKeyResults = [];
+            if ($projectIds->isNotEmpty()) {
+                $keyResultContexts = KeyResultContext::where('context_type', 'Platform\Planner\Models\PlannerProject')
+                    ->whereIn('context_id', $projectIds)
+                    ->where('is_primary', true)
+                    ->get();
+                
+                foreach ($keyResultContexts as $context) {
+                    $projectId = $context->context_id;
+                    if (!isset($projectKeyResults[$projectId])) {
+                        $projectKeyResults[$projectId] = [];
+                    }
+                    $projectKeyResults[$projectId][] = $context->key_result_id;
+                }
+            }
+
+            $hasKeyResult = false;
+            if ($example->project_id && isset($projectKeyResults[$example->project_id])) {
+                $hasKeyResult = true;
+            }
+
+            $exampleData = [
+                'id' => $example->id,
+                'uuid' => $example->uuid,
+                'team_id' => $example->team_id,
+                'team_name' => $example->team?->name,
+                'user_id' => $example->user_id,
+                'project_id' => $example->project_id,
+                'project_name' => $example->project?->name,
+                'title' => $example->title,
+                'is_done' => $example->is_done,
+                'done_at' => $example->done_at?->toIso8601String(),
+                'due_date' => $example->due_date?->format('Y-m-d'),
+                'is_frog' => $example->is_frog,
+                'is_backlog' => $example->is_backlog,
+                'planned_minutes' => $example->planned_minutes,
+                'has_key_result' => $hasKeyResult,
+                'project_slot_id' => $example->project_slot_id,
+                'created_at' => $example->created_at->toIso8601String(),
+                'updated_at' => $example->updated_at->toIso8601String(),
+            ];
+
+            return $this->success([
+                'status' => 'ok',
+                'message' => 'API ist erreichbar',
+                'example' => $exampleData,
+                'timestamp' => now()->toIso8601String(),
+            ], 'Health Check');
+
+        } catch (\Exception $e) {
+            return $this->error('Health Check fehlgeschlagen: ' . $e->getMessage(), 500);
+        }
     }
 }
 

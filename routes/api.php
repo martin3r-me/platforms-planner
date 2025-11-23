@@ -10,5 +10,7 @@ use Platform\Planner\Http\Controllers\Api\ProjectDatawarehouseController;
  * Datawarehouse-Endpunkte für Tasks und Projects
  */
 Route::get('/tasks/datawarehouse', [TaskDatawarehouseController::class, 'index']);
+Route::get('/tasks/datawarehouse/health', [TaskDatawarehouseController::class, 'health']);
 Route::get('/projects/datawarehouse', [ProjectDatawarehouseController::class, 'index']);
+Route::get('/projects/datawarehouse/health', [ProjectDatawarehouseController::class, 'health']);
 

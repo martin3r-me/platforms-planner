@@ -188,4 +188,28 @@ class PlannerTask extends Model implements HasTimeAncestors, HasKeyResultAncesto
     {
         return $this->title;
     }
+
+    /**
+     * Prüft ob eine Task ein Backlog-Item ist
+     * 
+     * Backlog-Aufgaben sind:
+     * - Aufgaben mit Projekt-Bezug (project_id), aber ohne Slot (project_slot_id = null)
+     * - Persönliche Aufgaben (kein project_id), aber ohne Task Group (task_group_id = null)
+     * 
+     * @return bool
+     */
+    public function getIsBacklogAttribute(): bool
+    {
+        // Hat Projekt-Bezug, aber keinen Slot = Backlog
+        if ($this->project_id && !$this->project_slot_id) {
+            return true;
+        }
+        
+        // Persönliche Aufgabe (kein Projekt), aber keine Task Group = Backlog
+        if (!$this->project_id && !$this->task_group_id) {
+            return true;
+        }
+        
+        return false;
+    }
 }
