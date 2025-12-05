@@ -299,10 +299,11 @@ class Task extends Component
     private function loadProjectMoveOptions(): void
     {
         $user = Auth::user();
+        $taskTeamId = $this->task?->team_id ?? $user->currentTeam?->id;
 
         $projects = PlannerProject::query()
             ->with(['projectSlots' => fn ($q) => $q->orderBy('order')])
-            ->where('team_id', $user->currentTeam?->id)
+            ->where('team_id', $taskTeamId)
             ->where(function ($query) use ($user) {
                 // Projekte, in denen der User Mitglied ist oder Aufgaben hat
                 $query->whereHas('projectUsers', fn ($q) => $q->where('user_id', $user->id))
@@ -377,6 +378,15 @@ class Task extends Component
         // Zugriffsprüfung: nur Projekte, die der User sehen darf
         if (! Auth::user()->can('view', $targetProject)) {
             abort(403, 'Kein Zugriff auf das Zielprojekt.');
+        }
+
+        // Team-Konsistenz: nur Projekte im gleichen Team wie die Aufgabe
+        if ($targetProject->team_id !== $this->task->team_id) {
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Das Zielprojekt gehört zu einem anderen Team.',
+            ]);
+            return;
         }
 
         $targetSlotId = $this->targetSlotId ? (int) $this->targetSlotId : null;
