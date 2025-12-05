@@ -302,6 +302,7 @@ class Task extends Component
 
         $projects = PlannerProject::query()
             ->with(['projectSlots' => fn ($q) => $q->orderBy('order')])
+            ->where('team_id', $user->currentTeam?->id)
             ->where(function ($query) use ($user) {
                 // Projekte, in denen der User Mitglied ist oder Aufgaben hat
                 $query->whereHas('projectUsers', fn ($q) => $q->where('user_id', $user->id))
@@ -404,8 +405,7 @@ class Task extends Component
         $this->task->project_slot_id = $targetSlotId;
         $this->task->project_slot_order = $newOrder;
         $this->task->team_id = $targetProject->team_id;
-        // Beim Wechsel in ein Projekt keine persönlichen/Delegations-Gruppen mitziehen
-        $this->task->task_group_id = null;
+        // Persönliche Gruppierungen nicht anfassen; Delegations-Gruppen zurücksetzen
         $this->task->delegated_group_id = null;
         $this->task->delegated_group_order = 0;
 
