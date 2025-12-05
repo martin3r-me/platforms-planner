@@ -121,6 +121,54 @@
                     </x-ui-form-grid>
                 </div>
 
+                {{-- Projekt & Slot --}}
+                <div class="mb-8 pb-8 border-b border-[var(--ui-border)]/60">
+                    <h2 class="text-lg font-semibold text-[var(--ui-secondary)] mb-4">Projekt &amp; Slot</h2>
+                    <x-ui-form-grid :cols="3" :gap="6">
+                        <div class="col-span-3 lg:col-span-2">
+                            <x-ui-input-select
+                                name="targetProjectId"
+                                label="Zielprojekt"
+                                :options="$projectMoveOptions"
+                                optionValue="id"
+                                optionLabel="name"
+                                :nullable="true"
+                                nullLabel="– Projekt wählen –"
+                                wire:model.live="targetProjectId"
+                            />
+                            <p class="mt-2 text-xs text-[var(--ui-muted)]">Es werden nur Projekte angezeigt, für die du eine Ansicht-Berechtigung hast.</p>
+                        </div>
+                        <div>
+                            <x-ui-input-select
+                                name="targetSlotId"
+                                label="Slot im Zielprojekt"
+                                :options="$projectSlotOptions"
+                                optionValue="id"
+                                optionLabel="name"
+                                :nullable="true"
+                                nullLabel="Backlog (kein Slot)"
+                                wire:model.live="targetSlotId"
+                                :disabled="!$targetProjectId"
+                            />
+                        </div>
+                        <div class="col-span-3 flex justify-end">
+                            <x-ui-button
+                                variant="primary"
+                                size="sm"
+                                wire:click="moveTaskToProject"
+                                wire:loading.attr="disabled"
+                                wire:target="moveTaskToProject"
+                                :disabled="!$targetProjectId"
+                            >
+                                <span class="inline-flex items-center gap-2">
+                                    @svg('heroicon-o-arrow-right-circle', 'w-4 h-4')
+                                    In Projekt verschieben
+                                </span>
+                            </x-ui-button>
+                        </div>
+                    </x-ui-form-grid>
+                </div>
+
                 {{-- Fälligkeit & Verantwortung --}}
                 <div class="mb-8 pb-8 border-b border-[var(--ui-border)]/60">
                     <h2 class="text-lg font-semibold text-[var(--ui-secondary)] mb-4">Fälligkeit & Verantwortung</h2>

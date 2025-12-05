@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Computed;
 use Platform\Planner\Models\PlannerTask;
+use Platform\Planner\Models\PlannerProject;
+use Platform\Planner\Models\PlannerProjectSlot;
 
 
 class Task extends Component
@@ -26,6 +28,10 @@ class Task extends Component
     public $selectedPrinterId = null;
     public $selectedPrinterGroupId = null;
     public $printingAvailable = false;
+    public $targetProjectId = null;
+    public $targetSlotId = null;
+    public array $projectMoveOptions = [];
+    public array $projectSlotOptions = [];
 
 	protected $rules = [
         'task.title' => 'required|string|max:255',
@@ -51,6 +57,10 @@ class Task extends Component
         $this->authorize('view', $plannerTask);
         $this->task = $plannerTask->load(['user', 'userInCharge', 'project', 'team']);
         $this->dueDateInput = $plannerTask->due_date ? $plannerTask->due_date->format('Y-m-d H:i') : '';
+        $this->targetProjectId = $plannerTask->project_id;
+        $this->targetSlotId = $plannerTask->project_slot_id;
+        $this->loadProjectMoveOptions();
+        $this->syncProjectSlotOptions();
     }
 
     #[Computed]
@@ -256,6 +266,149 @@ class Task extends Component
             ],
             'noticable_type' => get_class($this->task),
             'noticable_id' => $this->task->id,
+        ]);
+    }
+
+    public function updatedTargetProjectId($value): void
+    {
+        $this->targetProjectId = $value ? (int) $value : null;
+        $this->targetSlotId = null; // Standard: Backlog im Zielprojekt
+        $this->syncProjectSlotOptions();
+    }
+
+    public function updatedTargetSlotId($value): void
+    {
+        $this->targetSlotId = $value ? (int) $value : null;
+    }
+
+    /**
+     * Lädt alle Projekte, die der aktuelle User sehen darf (Policy: view).
+     * Nur diese Projekte stehen als Ziel für einen Move zur Verfügung.
+     */
+    private function loadProjectMoveOptions(): void
+    {
+        $user = Auth::user();
+
+        $projects = PlannerProject::query()
+            ->with(['projectSlots' => fn ($q) => $q->orderBy('order')])
+            ->where(function ($query) use ($user) {
+                // Projekte, in denen der User Mitglied ist oder Aufgaben hat
+                $query->whereHas('projectUsers', fn ($q) => $q->where('user_id', $user->id))
+                      ->orWhereHas('tasks', fn ($q) => $q->where('user_in_charge_id', $user->id))
+                      ->orWhereHas('projectSlots.tasks', fn ($q) => $q->where('user_in_charge_id', $user->id));
+            })
+            ->orderBy('name')
+            ->get()
+            ->filter(fn ($project) => $user->can('view', $project))
+            ->values();
+
+        $this->projectMoveOptions = $projects->map(function ($project) {
+            return [
+                'id' => $project->id,
+                'name' => $project->name,
+                'team_id' => $project->team_id,
+                'slots' => $project->projectSlots->map(fn ($slot) => [
+                    'id' => $slot->id,
+                    'name' => $slot->name,
+                    'order' => $slot->order,
+                ])->values()->toArray(),
+            ];
+        })->toArray();
+    }
+
+    /**
+     * Baut Slot-Optionen für das aktuell gewählte Ziel-Projekt auf.
+     */
+    private function syncProjectSlotOptions(): void
+    {
+        $selectedProject = collect($this->projectMoveOptions)
+            ->firstWhere('id', $this->targetProjectId);
+
+        $slots = collect($selectedProject['slots'] ?? [])
+            ->map(fn ($slot) => [
+                'id' => $slot['id'],
+                'name' => $slot['name'],
+            ]);
+
+        // Backlog-Option immer anbieten
+        $this->projectSlotOptions = collect([
+            ['id' => null, 'name' => 'Backlog'],
+        ])->concat($slots)->values()->toArray();
+    }
+
+    /**
+     * Verschiebt die Aufgabe in ein anderes Projekt und optional in einen Slot.
+     * Nur Projekte, die der User laut Policy sehen darf, sind erlaubt.
+     */
+    public function moveTaskToProject(): void
+    {
+        $this->authorize('update', $this->task);
+
+        if (! $this->targetProjectId) {
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Bitte wähle ein Zielprojekt aus.',
+            ]);
+            return;
+        }
+
+        $targetProject = PlannerProject::with('projectSlots')->find($this->targetProjectId);
+
+        if (! $targetProject) {
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Zielprojekt wurde nicht gefunden.',
+            ]);
+            return;
+        }
+
+        // Zugriffsprüfung: nur Projekte, die der User sehen darf
+        if (! Auth::user()->can('view', $targetProject)) {
+            abort(403, 'Kein Zugriff auf das Zielprojekt.');
+        }
+
+        $targetSlotId = $this->targetSlotId ? (int) $this->targetSlotId : null;
+
+        if ($targetSlotId) {
+            $slotBelongsToProject = $targetProject->projectSlots->contains(fn (PlannerProjectSlot $slot) => $slot->id === $targetSlotId);
+            if (! $slotBelongsToProject) {
+                $this->dispatch('notify', [
+                    'type' => 'error',
+                    'message' => 'Der ausgewählte Slot gehört nicht zum Zielprojekt.',
+                ]);
+                return;
+            }
+        }
+
+        // Neuen Order-Wert im Ziel-Slot bestimmen (oben einreihen)
+        $lowestOrder = PlannerTask::query()
+            ->where('project_id', $targetProject->id)
+            ->where('project_slot_id', $targetSlotId)
+            ->min('project_slot_order');
+
+        $newOrder = $lowestOrder === null ? 0 : $lowestOrder - 1;
+
+        // Aufgabe aktualisieren
+        $this->task->project_id = $targetProject->id;
+        $this->task->project_slot_id = $targetSlotId;
+        $this->task->project_slot_order = $newOrder;
+        $this->task->team_id = $targetProject->team_id;
+        // Beim Wechsel in ein Projekt keine persönlichen/Delegations-Gruppen mitziehen
+        $this->task->task_group_id = null;
+        $this->task->delegated_group_id = null;
+        $this->task->delegated_group_order = null;
+
+        $this->task->save();
+        $this->task->load(['user', 'userInCharge', 'project', 'team']);
+
+        // UI-State angleichen
+        $this->targetProjectId = $this->task->project_id;
+        $this->targetSlotId = $this->task->project_slot_id;
+        $this->syncProjectSlotOptions();
+
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => 'Aufgabe wurde verschoben.',
         ]);
     }
 
