@@ -30,6 +30,7 @@ class Task extends Component
     public $printingAvailable = false;
     public $targetProjectId = null;
     public $targetSlotId = null;
+    public bool $moveModalOpen = false;
     public array $projectMoveOptions = [];
     public array $projectSlotOptions = [];
 
@@ -281,6 +282,16 @@ class Task extends Component
         $this->targetSlotId = $value ? (int) $value : null;
     }
 
+    public function openMoveModal(): void
+    {
+        $this->moveModalOpen = true;
+    }
+
+    public function closeMoveModal(): void
+    {
+        $this->moveModalOpen = false;
+    }
+
     /**
      * Lädt alle Projekte, die der aktuelle User sehen darf (Policy: view).
      * Nur diese Projekte stehen als Ziel für einen Move zur Verfügung.
@@ -396,7 +407,7 @@ class Task extends Component
         // Beim Wechsel in ein Projekt keine persönlichen/Delegations-Gruppen mitziehen
         $this->task->task_group_id = null;
         $this->task->delegated_group_id = null;
-        $this->task->delegated_group_order = null;
+        $this->task->delegated_group_order = 0;
 
         $this->task->save();
         $this->task->load(['user', 'userInCharge', 'project', 'team']);
@@ -405,6 +416,7 @@ class Task extends Component
         $this->targetProjectId = $this->task->project_id;
         $this->targetSlotId = $this->task->project_slot_id;
         $this->syncProjectSlotOptions();
+        $this->closeMoveModal();
 
         $this->dispatch('notify', [
             'type' => 'success',

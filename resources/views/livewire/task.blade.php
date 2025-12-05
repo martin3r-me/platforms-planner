@@ -121,54 +121,6 @@
                     </x-ui-form-grid>
                 </div>
 
-                {{-- Projekt & Slot --}}
-                <div class="mb-8 pb-8 border-b border-[var(--ui-border)]/60">
-                    <h2 class="text-lg font-semibold text-[var(--ui-secondary)] mb-4">Projekt &amp; Slot</h2>
-                    <x-ui-form-grid :cols="3" :gap="6">
-                        <div class="col-span-3 lg:col-span-2">
-                            <x-ui-input-select
-                                name="targetProjectId"
-                                label="Zielprojekt"
-                                :options="$projectMoveOptions"
-                                optionValue="id"
-                                optionLabel="name"
-                                :nullable="true"
-                                nullLabel="– Projekt wählen –"
-                                wire:model.live="targetProjectId"
-                            />
-                            <p class="mt-2 text-xs text-[var(--ui-muted)]">Es werden nur Projekte angezeigt, für die du eine Ansicht-Berechtigung hast.</p>
-                        </div>
-                        <div>
-                            <x-ui-input-select
-                                name="targetSlotId"
-                                label="Slot im Zielprojekt"
-                                :options="$projectSlotOptions"
-                                optionValue="id"
-                                optionLabel="name"
-                                :nullable="true"
-                                nullLabel="Backlog (kein Slot)"
-                                wire:model.live="targetSlotId"
-                                :disabled="!$targetProjectId"
-                            />
-                        </div>
-                        <div class="col-span-3 flex justify-end">
-                            <x-ui-button
-                                variant="primary"
-                                size="sm"
-                                wire:click="moveTaskToProject"
-                                wire:loading.attr="disabled"
-                                wire:target="moveTaskToProject"
-                                :disabled="!$targetProjectId"
-                            >
-                                <span class="inline-flex items-center gap-2">
-                                    @svg('heroicon-o-arrow-right-circle', 'w-4 h-4')
-                                    In Projekt verschieben
-                                </span>
-                            </x-ui-button>
-                        </div>
-                    </x-ui-form-grid>
-                </div>
-
                 {{-- Fälligkeit & Verantwortung --}}
                 <div class="mb-8 pb-8 border-b border-[var(--ui-border)]/60">
                     <h2 class="text-lg font-semibold text-[var(--ui-secondary)] mb-4">Fälligkeit & Verantwortung</h2>
@@ -249,6 +201,14 @@
                                 </span>
                             </x-ui-button>
                         @endif
+                        @can('update', $task)
+                            <x-ui-button variant="secondary-outline" size="sm" wire:click="openMoveModal" class="w-full">
+                                <span class="inline-flex items-center gap-2">
+                                    @svg('heroicon-o-arrows-right-left', 'w-4 h-4')
+                                    Verschieben
+                                </span>
+                            </x-ui-button>
+                        @endcan
                         @can('delete', $task)
                             <x-ui-confirm-button 
                                 action="deleteTask" 
@@ -344,6 +304,75 @@
 
     <!-- Print Modal direkt hier einbinden -->
     <livewire:planner.print-modal />
+
+    <!-- Move Task Modal -->
+    <x-ui-modal size="md" wire:model="moveModalOpen" :backdropClosable="true" :escClosable="true">
+        <x-slot name="header">
+            <div class="flex items-center gap-3">
+                <div class="flex-shrink-0">
+                    <div class="w-10 h-10 bg-[var(--ui-primary-10)] rounded-lg flex items-center justify-center">
+                        @svg('heroicon-o-arrows-right-left', 'w-5 h-5 text-[var(--ui-primary)]')
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-[var(--ui-secondary)]">Aufgabe verschieben</h3>
+                    <p class="text-sm text-[var(--ui-muted)]">Projekt und Slot auswählen</p>
+                </div>
+            </div>
+        </x-slot>
+
+        <div class="space-y-6">
+            <x-ui-form-grid :cols="2" :gap="6">
+                <div class="col-span-2">
+                    <x-ui-input-select
+                        name="targetProjectId"
+                        label="Zielprojekt"
+                        :options="$projectMoveOptions"
+                        optionValue="id"
+                        optionLabel="name"
+                        :nullable="true"
+                        nullLabel="– Projekt wählen –"
+                        wire:model.live="targetProjectId"
+                    />
+                    <p class="mt-2 text-xs text-[var(--ui-muted)]">Nur Projekte mit Berechtigung werden angezeigt.</p>
+                </div>
+                <div class="col-span-2">
+                    <x-ui-input-select
+                        name="targetSlotId"
+                        label="Slot im Zielprojekt"
+                        :options="$projectSlotOptions"
+                        optionValue="id"
+                        optionLabel="name"
+                        :nullable="true"
+                        nullLabel="Backlog (kein Slot)"
+                        wire:model.live="targetSlotId"
+                        :disabled="!$targetProjectId"
+                    />
+                </div>
+            </x-ui-form-grid>
+        </div>
+
+        <x-slot name="footer">
+            <div class="flex justify-end gap-3">
+                <x-ui-button variant="secondary-outline" size="sm" wire:click="closeMoveModal">
+                    Abbrechen
+                </x-ui-button>
+                <x-ui-button
+                    variant="primary"
+                    size="sm"
+                    wire:click="moveTaskToProject"
+                    wire:loading.attr="disabled"
+                    wire:target="moveTaskToProject"
+                    :disabled="!$targetProjectId"
+                >
+                    <span class="inline-flex items-center gap-2">
+                        @svg('heroicon-o-check', 'w-4 h-4')
+                        Verschieben
+                    </span>
+                </x-ui-button>
+            </div>
+        </x-slot>
+    </x-ui-modal>
 
     <!-- Due Date Modal -->
     <x-ui-modal size="md" wire:model="dueDateModalShow" :backdropClosable="true" :escClosable="true">
