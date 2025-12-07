@@ -38,6 +38,7 @@ class Task extends Component
         'task.title' => 'required|string|max:255',
         'task.description' => 'nullable|string',
         'task.is_frog' => 'boolean',
+        'task.is_forced_frog' => 'boolean',
         'task.is_done' => 'boolean',
         'task.due_date' => 'nullable|date',
         'task.planned_minutes' => 'nullable|integer|min:0',
@@ -445,6 +446,13 @@ class Task extends Component
     public function toggleFrog(): void
     {
         $this->authorize('update', $this->task);
+        if ($this->task->is_forced_frog) {
+            $this->dispatch('notify', [
+                'type' => 'warning',
+                'message' => 'Frosch-Status ist gesperrt (Zwangs-Frosch).',
+            ]);
+            return;
+        }
         $this->task->is_frog = (bool)!$this->task->is_frog;
         $this->task->save();
     }

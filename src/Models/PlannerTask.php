@@ -38,6 +38,7 @@ class PlannerTask extends Model implements HasTimeAncestors, HasKeyResultAncesto
         'is_done',
         'done_at',
         'is_frog',
+        'is_forced_frog',
         'story_points',
         'order',
         'project_slot_order',
@@ -54,7 +55,8 @@ class PlannerTask extends Model implements HasTimeAncestors, HasKeyResultAncesto
         'story_points' => TaskStoryPoints::class,
         'due_date' => 'datetime',
         'original_due_date' => 'datetime',
-        'done_at' => 'datetime'
+        'done_at' => 'datetime',
+        'is_forced_frog' => 'boolean',
     ];
 
     protected static function booted(): void
