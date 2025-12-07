@@ -244,7 +244,6 @@ class Dashboard extends Component
             
             // Zeiten für dieses Projekt berechnen (Root-Context) - Gesamt
             $baseTimeEntries = OrganizationTimeEntry::query()
-                ->where('team_id', $team->id)
                 ->where('root_context_type', \Platform\Planner\Models\PlannerProject::class)
                 ->where('root_context_id', $project->id);
 
