@@ -22,12 +22,6 @@
     <!-- Meta: Projekt • Verantwortlicher • Story Points -->
     <div class="flex items-center justify-between mb-2 gap-2">
         <div class="flex items-center gap-2 text-xs text-[var(--ui-secondary)] min-w-0">
-            @if($task->is_frog)
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--ui-success)] text-[var(--ui-on-success)]">
-                    @svg('heroicon-o-exclamation-triangle','w-3 h-3')
-                    Frosch
-                </span>
-            @endif
             @if($task->project)
                 <span class="inline-flex items-center gap-1 min-w-0">
                     @svg('heroicon-o-folder','w-3.5 h-3.5')
@@ -103,7 +97,7 @@
 
         <div class="flex items-center gap-1 ml-auto">
             @if(($task->is_frog ?? false))
-                <span class="inline-flex items-center gap-1 text-[10px] text-[var(--ui-warning)]">
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-[var(--ui-success)] text-[var(--ui-on-success)]">
                     @svg('heroicon-o-exclamation-triangle','w-3 h-3') Frosch
                 </span>
             @endif
