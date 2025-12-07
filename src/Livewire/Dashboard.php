@@ -242,37 +242,20 @@ class Dashboard extends Component
                     ->get();
             }
             
-            // Root-Kontext des Projekts (inkl. Fallback falls root_* nicht gesetzt, aber direkt auf Projekt gebucht wurde)
-            $projectClass = \Platform\Planner\Models\PlannerProject::class;
-            $projectId = $project->id;
-            $rootMatch = function ($q) use ($projectClass, $projectId) {
-                $q->where(function ($rq) use ($projectClass, $projectId) {
-                    $rq->where('root_context_type', $projectClass)
-                       ->where('root_context_id', $projectId);
-                })->orWhere(function ($rq) use ($projectClass, $projectId) {
-                    // Fallback: root_context_* leer, aber direkt auf Projekt gebucht
-                    $rq->whereNull('root_context_type')
-                       ->where('context_type', $projectClass)
-                       ->where('context_id', $projectId);
-                });
-            };
-
             // Zeiten für dieses Projekt berechnen (Root-Context) - Gesamt
-            $totalMinutes = (int) OrganizationTimeEntry::query()
+            $baseTimeEntries = OrganizationTimeEntry::query()
                 ->where('team_id', $team->id)
-                ->where($rootMatch)
-                ->sum('minutes');
+                ->where('root_context_type', \Platform\Planner\Models\PlannerProject::class)
+                ->where('root_context_id', $project->id);
+
+            $totalMinutes = (int) (clone $baseTimeEntries)->sum('minutes');
             
             // Zeiten des laufenden Monats
-            $monthlyMinutes = (int) OrganizationTimeEntry::query()
-                ->where('team_id', $team->id)
-                ->where($rootMatch)
+            $monthlyMinutes = (int) (clone $baseTimeEntries)
                 ->whereBetween('work_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
                 ->sum('minutes');
             
-            $billedMinutes = (int) OrganizationTimeEntry::query()
-                ->where('team_id', $team->id)
-                ->where($rootMatch)
+            $billedMinutes = (int) (clone $baseTimeEntries)
                 ->where('is_billed', true)
                 ->sum('minutes');
             
