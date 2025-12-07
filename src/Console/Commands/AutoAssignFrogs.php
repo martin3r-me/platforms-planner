@@ -39,58 +39,46 @@ class AutoAssignFrogs extends Command
 
         $this->info("📋 Prüfe {$total} offene Task(s) auf Frosch-Kandidaten...");
 
-        $updated = 0;
         $forced = 0;
 
-        $query->orderBy('id')->chunkById(200, function ($tasks) use ($dryRun, &$updated, &$forced) {
+        $query->orderBy('id')->chunkById(200, function ($tasks) use ($dryRun, &$forced) {
             foreach ($tasks as $task) {
                 $postpones = (int)($task->postpone_count ?? 0);
                 $points = $this->storyPointValue($task->story_points);
 
-                $score = ($postpones * 2) + $points;
+                // Nur Zwangs-Frosch setzen, keine "normalen" Frösche.
+                // Kriterien:
+                //   - >=4 Verschiebungen
+                //   - oder >=2 Verschiebungen UND Punkte >=13
+                $shouldForce = ($postpones >= 4)
+                    || ($postpones >= 2 && $points >= 13);
 
-                $shouldForce = $score >= 14
-                    || $postpones >= 4
-                    || ($points >= 13 && $postpones >= 2);
-
-                $shouldFrog = $shouldForce
-                    || $score >= 8
-                    || ($postpones >= 2 && $points >= 5)
-                    || $postpones >= 3;
-
-                if (! $shouldFrog) {
+                if (! $shouldForce) {
                     continue;
                 }
 
                 if (! $dryRun) {
                     $task->is_frog = true;
-                    if ($shouldForce) {
-                        $task->is_forced_frog = true;
-                    }
+                    $task->is_forced_frog = true;
                     $task->save();
                 }
 
-                $updated++;
-                if ($shouldForce) {
-                    $forced++;
-                }
+                $forced++;
 
                 $this->line(sprintf(
-                    '  • Task #%d (%s): score=%d, postpones=%d, points=%d -> %s',
+                    '  • Task #%d (%s): postpones=%d, points=%d -> Zwangs-Frosch',
                     $task->id,
                     $task->title,
-                    $score,
                     $postpones,
-                    $points,
-                    $shouldForce ? 'Zwangs-Frosch' : 'Frosch'
+                    $points
                 ));
             }
         });
 
         if ($dryRun) {
-            $this->warn("🔍 DRY-RUN: {$updated} Task(s) würden auf Frosch gestellt, davon {$forced} als Zwangs-Frosch.");
+            $this->warn("🔍 DRY-RUN: {$forced} Task(s) würden als Zwangs-Frosch gesetzt.");
         } else {
-            $this->info("✅ {$updated} Task(s) aktualisiert, davon {$forced} als Zwangs-Frosch.");
+            $this->info("✅ {$forced} Task(s) als Zwangs-Frosch gesetzt.");
         }
 
         return Command::SUCCESS;
