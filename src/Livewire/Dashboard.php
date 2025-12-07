@@ -242,22 +242,22 @@ class Dashboard extends Component
                     ->get();
             }
             
-            // Zeiten für dieses Projekt berechnen (über Kontext-Kaskade) - Gesamt
+            // Zeiten für dieses Projekt berechnen (Root-Context) - Gesamt
             $totalMinutes = (int) OrganizationTimeEntry::query()
                 ->where('team_id', $team->id)
-                ->forContext(get_class($project), $project->id)
+                ->forRootContext(get_class($project), $project->id)
                 ->sum('minutes');
             
             // Zeiten des laufenden Monats
             $monthlyMinutes = (int) OrganizationTimeEntry::query()
                 ->where('team_id', $team->id)
-                ->forContext(get_class($project), $project->id)
+                ->forRootContext(get_class($project), $project->id)
                 ->whereBetween('work_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
                 ->sum('minutes');
             
             $billedMinutes = (int) OrganizationTimeEntry::query()
                 ->where('team_id', $team->id)
-                ->forContext(get_class($project), $project->id)
+                ->forRootContext(get_class($project), $project->id)
                 ->where('is_billed', true)
                 ->sum('minutes');
             
