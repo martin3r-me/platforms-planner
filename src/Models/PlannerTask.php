@@ -31,6 +31,8 @@ class PlannerTask extends Model implements HasTimeAncestors, HasKeyResultAncesto
         'title',
         'description',
         'due_date',
+        'original_due_date',
+        'postpone_count',
         'planned_minutes',
         'status',
         'is_done',
@@ -51,6 +53,7 @@ class PlannerTask extends Model implements HasTimeAncestors, HasKeyResultAncesto
         'priority' => TaskPriority::class,
         'story_points' => TaskStoryPoints::class,
         'due_date' => 'datetime',
+        'original_due_date' => 'datetime',
         'done_at' => 'datetime'
     ];
 
