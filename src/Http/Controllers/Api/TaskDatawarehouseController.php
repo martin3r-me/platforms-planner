@@ -40,7 +40,7 @@ class TaskDatawarehouseController extends ApiController
         $sortDir = $request->get('sort_dir', 'desc');
         
         // Validierung der Sort-Spalte (Security)
-        $allowedSortColumns = ['id', 'created_at', 'updated_at', 'done_at', 'due_date', 'title'];
+        $allowedSortColumns = ['id', 'created_at', 'updated_at', 'done_at', 'due_date', 'original_due_date', 'title', 'postpone_count'];
         if (in_array($sortBy, $allowedSortColumns)) {
             $query->orderBy($sortBy, $sortDir === 'asc' ? 'asc' : 'desc');
         } else {
@@ -99,10 +99,13 @@ class TaskDatawarehouseController extends ApiController
                 'created_at' => $task->created_at->toIso8601String(),
                 'updated_at' => $task->updated_at->toIso8601String(),
                 'due_date' => $task->due_date?->toIso8601String(),
+                'original_due_date' => $task->original_due_date?->toIso8601String(),
+                'postpone_count' => $task->postpone_count,
                 'story_points' => $task->story_points?->value,
                 'story_points_numeric' => $task->story_points?->points(),
                 'priority' => $task->priority?->value,
                 'is_frog' => $task->is_frog,
+                'is_forced_frog' => $task->is_forced_frog,
                 'is_backlog' => $task->is_backlog, // Berechnetes Attribut
                 'planned_minutes' => $task->planned_minutes,
                 'has_key_result' => $hasKeyResult, // KeyResult-Bezug über Project
