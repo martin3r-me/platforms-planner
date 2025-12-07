@@ -33,6 +33,7 @@ class PlannerServiceProvider extends ServiceProvider
                 \Platform\Planner\Console\Commands\MoveProjectToTeam::class,
                 \Platform\Planner\Console\Commands\GenerateRecurringTasks::class,
                 \Platform\Planner\Console\Commands\PostponeOverdueTasks::class,
+                \Platform\Planner\Console\Commands\AssignDueDatesForUndatedTasks::class,
             ]);
         }
     }
