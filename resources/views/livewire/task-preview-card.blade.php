@@ -1,7 +1,7 @@
 @props(['task'])
 
 @php
-    $frogClass = ($task->is_frog ?? false) ? 'ring-2 ring-[var(--ui-warning)]/60 ring-offset-1 ring-offset-[var(--ui-surface)]' : '';
+    $frogClass = ($task->is_frog ?? false) ? 'ring-2 ring-[var(--ui-success)]/60 ring-offset-1 ring-offset-[var(--ui-surface)]' : '';
 @endphp
 <x-ui-kanban-card 
     :title="$task->title" 
@@ -23,7 +23,7 @@
     <div class="flex items-center justify-between mb-2 gap-2">
         <div class="flex items-center gap-2 text-xs text-[var(--ui-secondary)] min-w-0">
             @if($task->is_frog)
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--ui-warning)] text-[var(--ui-on-warning)]">
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--ui-success)] text-[var(--ui-on-success)]">
                     @svg('heroicon-o-exclamation-triangle','w-3 h-3')
                     Frosch
                 </span>

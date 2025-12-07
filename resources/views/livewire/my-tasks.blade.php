@@ -9,7 +9,7 @@
                 {{-- Meine Frösche (Verantwortung) --}}
                 @php 
                     $myFrogs = $groups->flatMap(fn($g) => $g->tasks)
-                        ->filter(fn($t) => $t->is_frog && ($t->user_in_charge_id ?? null) === auth()->id());
+                        ->filter(fn($t) => $t->is_frog && !$t->is_done && ($t->user_in_charge_id ?? null) === auth()->id());
                 @endphp
                 @if($myFrogs->isNotEmpty())
                     <div>
@@ -117,15 +117,17 @@
                     <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Statistiken</h3>
                     <div class="space-y-2">
                         @php 
+                            $allTasks = $groups->flatMap(fn($g) => $g->tasks);
                             $stats = [
-                                ['title' => 'Story Points (offen)', 'count' => $groups->filter(fn($g) => !($g->isDoneGroup ?? false))->flatMap(fn($g) => $g->tasks)->sum(fn($t) => $t->story_points?->points() ?? 0), 'icon' => 'chart-bar', 'variant' => 'warning'],
-                                ['title' => 'Story Points (erledigt)', 'count' => $groups->filter(fn($g) => $g->isDoneGroup ?? false)->flatMap(fn($g) => $g->tasks)->sum(fn($t) => $t->story_points?->points() ?? 0), 'icon' => 'check-circle', 'variant' => 'success'],
-                                ['title' => 'Offen', 'count' => $groups->filter(fn($g) => !($g->isDoneGroup ?? false))->sum(fn($g) => $g->tasks->count()), 'icon' => 'clock', 'variant' => 'warning'],
-                                ['title' => 'Gesamt', 'count' => $groups->flatMap(fn($g) => $g->tasks)->count(), 'icon' => 'document-text', 'variant' => 'secondary'],
-                                ['title' => 'Erledigt', 'count' => $groups->filter(fn($g) => $g->isDoneGroup ?? false)->sum(fn($g) => $g->tasks->count()), 'icon' => 'check-circle', 'variant' => 'success'],
-                                ['title' => 'Ohne Fälligkeit', 'count' => $groups->flatMap(fn($g) => $g->tasks)->filter(fn($t) => !$t->due_date)->count(), 'icon' => 'calendar', 'variant' => 'neutral'],
-                                ['title' => 'Frösche', 'count' => $groups->flatMap(fn($g) => $g->tasks)->filter(fn($t) => $t->is_frog)->count(), 'icon' => 'exclamation-triangle', 'variant' => 'danger'],
-                                ['title' => 'Überfällig', 'count' => $groups->flatMap(fn($g) => $g->tasks)->filter(fn($t) => $t->due_date && $t->due_date->isPast() && !$t->is_done)->count(), 'icon' => 'exclamation-circle', 'variant' => 'danger'],
+                                ['title' => 'Story Points (offen)', 'count' => $allTasks->filter(fn($t) => !$t->is_done)->sum(fn($t) => $t->story_points?->points() ?? 0), 'icon' => 'chart-bar', 'variant' => 'warning'],
+                                ['title' => 'Story Points (erledigt)', 'count' => $allTasks->filter(fn($t) => $t->is_done)->sum(fn($t) => $t->story_points?->points() ?? 0), 'icon' => 'check-circle', 'variant' => 'success'],
+                                ['title' => 'Offen', 'count' => $allTasks->filter(fn($t) => !$t->is_done)->count(), 'icon' => 'clock', 'variant' => 'warning'],
+                                ['title' => 'Gesamt', 'count' => $allTasks->count(), 'icon' => 'document-text', 'variant' => 'secondary'],
+                                ['title' => 'Erledigt', 'count' => $allTasks->filter(fn($t) => $t->is_done)->count(), 'icon' => 'check-circle', 'variant' => 'success'],
+                                ['title' => 'Ohne Fälligkeit', 'count' => $allTasks->filter(fn($t) => !$t->due_date)->count(), 'icon' => 'calendar', 'variant' => 'neutral'],
+                                ['title' => 'Frösche offen', 'count' => $allTasks->filter(fn($t) => $t->is_frog && !$t->is_done)->count(), 'icon' => 'exclamation-triangle', 'variant' => 'danger'],
+                                ['title' => 'Frösche erledigt', 'count' => $allTasks->filter(fn($t) => $t->is_frog && $t->is_done)->count(), 'icon' => 'exclamation-triangle', 'variant' => 'success'],
+                                ['title' => 'Überfällig', 'count' => $allTasks->filter(fn($t) => $t->due_date && $t->due_date->isPast() && !$t->is_done)->count(), 'icon' => 'exclamation-circle', 'variant' => 'danger'],
                             ];
                         @endphp
                         @foreach($stats as $stat)
