@@ -103,14 +103,17 @@
                                     {{ $project['subtitle'] ?? '' }}
                                 </div>
                             </div>
-                            <div class="text-sm text-[var(--ui-secondary)]">
-                                @if(isset($project['monthly_minutes']) && $project['monthly_minutes'] > 0)
-                                    <span class="mr-4 text-[var(--ui-primary)] font-semibold">{{ number_format($project['monthly_minutes'] / 60, 1, ',', '.') }}h</span>
-                                @elseif(isset($project['total_minutes']) && $project['total_minutes'] > 0)
-                                    <span class="mr-4 text-[var(--ui-primary)] font-semibold">{{ number_format($project['total_minutes'] / 60, 1, ',', '.') }}h</span>
+                            <div class="text-sm text-[var(--ui-secondary)] flex items-center gap-3 flex-wrap">
+                                <span class="text-[var(--ui-primary)] font-semibold">
+                                    {{ number_format(($project['total_minutes'] ?? 0) / 60, 1, ',', '.') }}h
+                                </span>
+                                @if(isset($project['monthly_minutes']))
+                                    <span class="text-[var(--ui-muted)]">
+                                        (Monat: {{ number_format(($project['monthly_minutes'] ?? 0) / 60, 1, ',', '.') }}h)
+                                    </span>
                                 @endif
-                                <span class="mr-4"><strong>{{ $project['tasks'] ?? 0 }}</strong> Aufgaben</span>
-                                <span class="mr-4"><strong>{{ $project['points'] ?? 0 }}</strong> SP</span>
+                                <span><strong>{{ $project['tasks'] ?? 0 }}</strong> Aufgaben</span>
+                                <span><strong>{{ $project['points'] ?? 0 }}</strong> SP</span>
                             </div>
                         </a>
                     @empty
