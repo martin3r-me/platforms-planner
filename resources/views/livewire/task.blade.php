@@ -63,6 +63,22 @@
                                     </span>
                                 @endif
                             </div>
+
+                            {{-- Zusatzinfos: Ursprungs-Datum & Verschiebungen --}}
+                            @if($task->original_due_date || ($task->postpone_count ?? 0) > 0)
+                                <div class="flex flex-wrap items-center gap-6 text-sm text-[var(--ui-muted)]">
+                                    @if($task->original_due_date)
+                                        <span class="flex items-center gap-2">
+                                            @svg('heroicon-o-arrow-uturn-left', 'w-4 h-4')
+                                            <span>Ursprünglich: <span class="text-[var(--ui-secondary)]">{{ $task->original_due_date->format('d.m.Y H:i') }}</span></span>
+                                        </span>
+                                    @endif
+                                    <span class="flex items-center gap-2">
+                                        @svg('heroicon-o-arrow-path', 'w-4 h-4')
+                                        <span>Verschoben: <span class="text-[var(--ui-secondary)]">{{ $task->postpone_count ?? 0 }}×</span></span>
+                                    </span>
+                                </div>
+                            @endif
                         </div>
                     </div>
                     
