@@ -84,7 +84,45 @@
             </x-ui-detail-stats-grid>
 
             <x-ui-panel class="mb-8" title="Team-Mitglieder Übersicht" subtitle="Aufgaben und Story Points pro Team-Mitglied">
-                <x-ui-team-members-list :members="$teamMembers" />
+                <div class="space-y-2">
+                    @forelse($teamMembers as $member)
+                        <div class="flex items-center gap-3 p-3 rounded-md border border-[var(--ui-border)] bg-white">
+                            <div class="w-8 h-8 rounded-full bg-[var(--ui-primary-10)] text-[var(--ui-primary)] font-semibold flex items-center justify-center">
+                                {{ strtoupper(mb_substr($member['name'] ?? '??', 0, 2)) }}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="font-medium text-[var(--ui-secondary)] truncate">
+                                    {{ $member['name'] ?? 'Mitglied' }}
+                                </div>
+                                <div class="text-xs text-[var(--ui-muted)] truncate">
+                                    {{ $member['email'] ?? '' }}
+                                </div>
+                                <div class="mt-1 flex flex-wrap items-center gap-3 text-xs text-[var(--ui-muted)]">
+                                    <span><strong>{{ $member['open_tasks'] ?? 0 }}</strong> offen</span>
+                                    <span><strong>{{ $member['completed_tasks'] ?? 0 }}</strong> erledigt</span>
+                                    <span><strong>{{ $member['total_tasks'] ?? 0 }}</strong> gesamt</span>
+                                    <span><strong>{{ $member['open_story_points'] ?? 0 }}</strong> SP offen</span>
+                                    <span><strong>{{ $member['completed_story_points'] ?? 0 }}</strong> SP erledigt</span>
+                                    <span><strong>{{ $member['points'] ?? 0 }}</strong> SP gesamt</span>
+                                </div>
+                            </div>
+                            <div class="text-sm text-[var(--ui-secondary)] text-right">
+                                <div class="font-semibold">{{ number_format(($member['total_minutes'] ?? 0) / 60, 1, ',', '.') }}h</div>
+                                <div class="text-[var(--ui-muted)] text-xs">
+                                    Monat: {{ number_format(($member['monthly_minutes'] ?? 0) / 60, 1, ',', '.') }}h
+                                </div>
+                                <div class="text-[var(--ui-muted)] text-xs">
+                                    Abgerechnet: {{ number_format(($member['billed_minutes'] ?? 0) / 60, 1, ',', '.') }}h
+                                </div>
+                                <div class="text-[var(--ui-muted)] text-xs">
+                                    Offen: {{ number_format(($member['unbilled_minutes'] ?? 0) / 60, 1, ',', '.') }}h
+                                </div>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="p-3 text-sm text-[var(--ui-muted)] bg-white rounded-md border border-[var(--ui-border)]">Keine Team-Mitglieder gefunden.</div>
+                    @endforelse
+                </div>
             </x-ui-panel>
 
             <x-ui-panel title="Meine aktiven Projekte" subtitle="Top 5 Projekte nach offenen Aufgaben">
