@@ -1,9 +1,13 @@
 @props(['task'])
 
+@php
+    $frogClass = ($task->is_frog ?? false) ? 'ring-2 ring-[var(--ui-warning)]/60 ring-offset-1 ring-offset-[var(--ui-surface)]' : '';
+@endphp
 <x-ui-kanban-card 
     :title="$task->title" 
     :sortable-id="$task->id" 
     :href="route('planner.tasks.show', $task)"
+    :class="$frogClass"
 >
     <!-- Team (eigene Zeile) -->
     @if($task->team)
@@ -18,6 +22,12 @@
     <!-- Meta: Projekt • Verantwortlicher • Story Points -->
     <div class="flex items-center justify-between mb-2 gap-2">
         <div class="flex items-center gap-2 text-xs text-[var(--ui-secondary)] min-w-0">
+            @if($task->is_frog)
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--ui-warning)] text-[var(--ui-on-warning)]">
+                    @svg('heroicon-o-exclamation-triangle','w-3 h-3')
+                    Frosch
+                </span>
+            @endif
             @if($task->project)
                 <span class="inline-flex items-center gap-1 min-w-0">
                     @svg('heroicon-o-folder','w-3.5 h-3.5')
