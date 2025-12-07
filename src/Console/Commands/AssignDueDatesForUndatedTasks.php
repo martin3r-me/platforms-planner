@@ -78,26 +78,29 @@ class AssignDueDatesForUndatedTasks extends Command
         return Command::SUCCESS;
     }
 
-    /**
-     * Berechnet das Ziel-Fälligkeitsdatum:
-     * - Wenn aktueller Tag >= 15: 15. des Folgemonats, 12:00
-     * - Sonst: Ende des aktuellen Monats, 12:00
-     * - Immer mindestens 14 Tage in der Zukunft; sonst auf +14 Tage (12:00) verschieben.
-     */
     private function calculateTargetDate(Carbon $now): Carbon
     {
-        if ($now->day >= 15) {
-            $target = $now->copy()->addMonthNoOverflow()->day(15)->setTime(12, 0, 0);
-        } else {
-            $target = $now->copy()->endOfMonth()->setTime(12, 0, 0);
+        $candidate = $this->lastWorkingDayOfMonth($now->copy());
+
+        if ($candidate->diffInDays($now) < 14) {
+            $candidate = $this->lastWorkingDayOfMonth($now->copy()->addMonthNoOverflow());
         }
 
-        // Sicherstellen, dass mindestens 14 Tage Puffer bleiben
-        if ($target->diffInDays($now) < 14) {
-            $target = $now->copy()->addDays(14)->setTime(12, 0, 0);
+        return $candidate->setTime(12, 0, 0);
+    }
+
+    /**
+     * Ermittelt den letzten Werktag (Mo–Fr) des Monats für das gegebene Datum.
+     */
+    private function lastWorkingDayOfMonth(Carbon $date): Carbon
+    {
+        $day = $date->copy()->endOfMonth();
+
+        while ($day->isWeekend()) {
+            $day->subDay();
         }
 
-        return $target;
+        return $day;
     }
 }
 
