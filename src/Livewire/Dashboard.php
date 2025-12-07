@@ -242,10 +242,19 @@ class Dashboard extends Component
                     ->get();
             }
             
-            // Nur Root-Kontext des Projekts berücksichtigen
-            $rootMatch = function ($q) use ($project) {
-                $q->where('root_context_type', get_class($project))
-                  ->where('root_context_id', $project->id);
+            // Root-Kontext des Projekts (inkl. Fallback falls root_* nicht gesetzt, aber direkt auf Projekt gebucht wurde)
+            $projectClass = \Platform\Planner\Models\PlannerProject::class;
+            $projectId = $project->id;
+            $rootMatch = function ($q) use ($projectClass, $projectId) {
+                $q->where(function ($rq) use ($projectClass, $projectId) {
+                    $rq->where('root_context_type', $projectClass)
+                       ->where('root_context_id', $projectId);
+                })->orWhere(function ($rq) use ($projectClass, $projectId) {
+                    // Fallback: root_context_* leer, aber direkt auf Projekt gebucht
+                    $rq->whereNull('root_context_type')
+                       ->where('context_type', $projectClass)
+                       ->where('context_id', $projectId);
+                });
             };
 
             // Zeiten für dieses Projekt berechnen (Root-Context) - Gesamt
