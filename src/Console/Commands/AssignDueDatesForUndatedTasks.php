@@ -80,27 +80,8 @@ class AssignDueDatesForUndatedTasks extends Command
 
     private function calculateTargetDate(Carbon $now): Carbon
     {
-        $candidate = $this->lastWorkingDayOfMonth($now->copy());
-
-        if ($candidate->diffInDays($now) < 14) {
-            $candidate = $this->lastWorkingDayOfMonth($now->copy()->addMonthNoOverflow());
-        }
-
-        return $candidate->setTime(12, 0, 0);
-    }
-
-    /**
-     * Ermittelt den letzten Werktag (Mo–Fr) des Monats für das gegebene Datum.
-     */
-    private function lastWorkingDayOfMonth(Carbon $date): Carbon
-    {
-        $day = $date->copy()->endOfMonth();
-
-        while ($day->isWeekend()) {
-            $day->subDay();
-        }
-
-        return $day;
+        // 5 Werktage (Mo–Fr) in die Zukunft, 12:00 Uhr
+        return $now->copy()->addWeekdays(5)->setTime(12, 0, 0);
     }
 }
 
