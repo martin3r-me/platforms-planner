@@ -22,6 +22,19 @@ class PlannerTaskObserver
         if ($task->isDirty('is_done') && !$task->is_done) {
             $task->done_at = null;
         }
+
+        // Manuelles Verschieben der Fälligkeit wie automatisches Postpone behandeln
+        if ($task->isDirty('due_date') && !$task->is_done) {
+            $previousDue = $task->getOriginal('due_date');
+
+            if ($previousDue) {
+                if (!$task->original_due_date) {
+                    $task->original_due_date = $previousDue;
+                }
+
+                $task->postpone_count = (int)($task->postpone_count ?? 0) + 1;
+            }
+        }
     }
 }
 
