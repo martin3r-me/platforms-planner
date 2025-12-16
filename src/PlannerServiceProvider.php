@@ -20,6 +20,8 @@ use Platform\Planner\Policies\PlannerProjectPolicy;
 
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
+use Platform\Comms\Registry\ContextPresenterRegistry;
+use Platform\Planner\Comms\PlannerContextPresenter;
 
 class PlannerServiceProvider extends ServiceProvider
 {
@@ -78,6 +80,11 @@ class PlannerServiceProvider extends ServiceProvider
                 ->middleware(['web', 'teams.sdk.auth']) // Teams SDK Auth hinzufügen
                 ->prefix('planner')
                 ->group(__DIR__.'/../routes/embedded.php');
+        }
+
+        // Comms: Kontext-Resolver registrieren (Inbox / Badges)
+        if (class_exists(ContextPresenterRegistry::class) && class_exists(PlannerContextPresenter::class)) {
+            ContextPresenterRegistry::add(PlannerContextPresenter::class);
         }
 
         // Config veröffentlichen & zusammenführen
