@@ -193,6 +193,10 @@ class Task extends Component
             'url' => route('planner.tasks.show', $this->task),                // absolute URL zum Task
             'source' => 'planner.task.view',                                 // eindeutiger Quell-Identifier (frei wählbar)
             'recipients' => [$this->task->user_in_charge_id],                // falls vorhanden, sonst leer
+            'capabilities' => [
+                'manage_channels' => false,
+                'threads' => true,
+            ],
             'meta' => [
                 'priority' => $this->task->priority,
                 'due_date' => $this->task->due_date,

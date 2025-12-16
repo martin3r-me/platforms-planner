@@ -59,6 +59,10 @@ class Project extends Component
             'url' => route('planner.projects.show', $this->project),
             'source' => 'planner.project.view',
             'recipients' => [],
+            'capabilities' => [
+                'manage_channels' => true,
+                'threads' => false,
+            ],
             'meta' => [
                 'project_type' => $this->project->project_type,
                 'created_at' => $this->project->created_at,
