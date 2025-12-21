@@ -219,6 +219,12 @@ class Task extends Component
             'context_type' => get_class($this->task),
             'context_id' => $this->task->id,
         ]);
+
+        // Tagging-Kontext setzen - ermöglicht Tagging dieser Task
+        $this->dispatch('tagging', [
+            'context_type' => get_class($this->task),
+            'context_id' => $this->task->id,
+        ]);
     }
 
     public function updatedDueDateInput($value)

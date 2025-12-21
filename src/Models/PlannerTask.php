@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Platform\ActivityLog\Traits\LogsActivity;
 use Platform\Media\Traits\HasMedia;
 use Platform\Organization\Traits\HasTimeEntries;
+use Platform\Core\Traits\HasTags;
 use Platform\Core\Contracts\HasTimeAncestors;
 use Platform\Core\Contracts\HasKeyResultAncestors;
 use Platform\Core\Contracts\HasDisplayName;
@@ -21,7 +22,7 @@ use Platform\Core\Contracts\HasDisplayName;
  */
 class PlannerTask extends Model implements HasTimeAncestors, HasKeyResultAncestors, HasDisplayName
 {
-    use HasFactory, SoftDeletes, LogsActivity, HasMedia, HasTimeEntries;
+    use HasFactory, SoftDeletes, LogsActivity, HasMedia, HasTimeEntries, HasTags;
 
     protected $fillable = [
         'uuid',

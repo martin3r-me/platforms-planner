@@ -235,6 +235,12 @@
                                 class="w-full"
                             />
                         @endcan
+                        <x-ui-button variant="secondary-outline" size="sm" x-data @click="$dispatch('tagging:open')" class="w-full">
+                            <span class="inline-flex items-center gap-2">
+                                @svg('heroicon-o-tag', 'w-4 h-4')
+                                Tags verwalten
+                            </span>
+                        </x-ui-button>
                     </div>
                 </div>
 
