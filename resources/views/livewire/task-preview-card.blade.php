@@ -3,24 +3,30 @@
 @php
     $isDone = $task->is_done ?? false;
     $isFrog = $task->is_frog ?? false;
-    $frogClass = $isFrog ? 'ring-1 ring-[var(--ui-success)]/30' : '';
 @endphp
 <x-ui-kanban-card 
     :title="''" 
     :sortable-id="$task->id" 
     :href="route('planner.tasks.show', $task)"
-    :class="$frogClass"
 >
     <!-- Titel (durchgestrichen wenn erledigt) -->
-    <div class="mb-2">
-        <h4 class="text-sm font-medium text-[var(--ui-secondary)] m-0 {{ $isDone ? 'line-through text-[var(--ui-muted)]' : '' }}">
-            {{ $task->title }}
-        </h4>
+    <div class="mb-3">
+        <div class="flex items-center gap-2">
+            <h4 class="text-sm font-medium text-[var(--ui-secondary)] m-0 {{ $isDone ? 'line-through text-[var(--ui-muted)]' : '' }}">
+                {{ $task->title }}
+            </h4>
+            @if($isFrog)
+                <span class="inline-flex items-center gap-1 text-xs text-[var(--ui-muted)]">
+                    @svg('heroicon-o-exclamation-triangle','w-3 h-3')
+                    <span>Frosch</span>
+                </span>
+            @endif
+        </div>
     </div>
 
     <!-- Meta: Team -->
     @if($task->team)
-        <div class="mb-1.5">
+        <div class="mb-2.5">
             <span class="inline-flex items-center gap-1 text-xs text-[var(--ui-muted)]">
                 @svg('heroicon-o-user-group','w-3 h-3')
                 <span>{{ $task->team->name }}</span>
@@ -29,7 +35,7 @@
     @endif
 
     <!-- Meta: Projekt • Verantwortlicher -->
-    <div class="flex items-center gap-2 mb-1.5 text-xs text-[var(--ui-muted)] min-w-0">
+    <div class="flex items-center gap-2 mb-2.5 text-xs text-[var(--ui-muted)] min-w-0">
         @if($task->project)
             <span class="inline-flex items-center gap-1 min-w-0">
                 @svg('heroicon-o-folder','w-3 h-3')
@@ -58,32 +64,24 @@
 
     <!-- Description (truncated) -->
     @if($task->description)
-        <div class="text-xs text-[var(--ui-muted)] mb-1.5 line-clamp-2">
+        <div class="text-xs text-[var(--ui-muted)] mb-2.5 line-clamp-2">
             {{ Str::limit($task->description, 80) }}
         </div>
     @endif
 
-    <!-- Footer: Fälligkeitsdatum, Story Points, Frosch -->
-    <div class="flex items-center justify-between gap-2 text-xs text-[var(--ui-muted)]">
-        <div class="flex items-center gap-2 min-w-0">
-            @if($task->due_date)
-                <span class="inline-flex items-center gap-1">
-                    @svg('heroicon-o-calendar','w-3 h-3')
-                    <span>{{ $task->due_date->format('d.m.Y') }}</span>
-                </span>
-            @endif
+    <!-- Footer: Fälligkeitsdatum, Story Points -->
+    <div class="flex items-center gap-2 text-xs text-[var(--ui-muted)]">
+        @if($task->due_date)
+            <span class="inline-flex items-center gap-1">
+                @svg('heroicon-o-calendar','w-3 h-3')
+                <span>{{ $task->due_date->format('d.m.Y') }}</span>
+            </span>
+        @endif
 
-            @if($task->story_points)
-                <span class="inline-flex items-center gap-1">
-                    @svg('heroicon-o-sparkles','w-3 h-3')
-                    <span>SP {{ is_object($task->story_points) ? ($task->story_points->points() ?? $task->story_points) : $task->story_points }}</span>
-                </span>
-            @endif
-        </div>
-
-        @if($isFrog)
-            <span class="inline-flex items-center gap-1 flex-shrink-0 text-[var(--ui-success)]/70" title="Frosch">
-                @svg('heroicon-o-exclamation-triangle','w-3 h-3')
+        @if($task->story_points)
+            <span class="inline-flex items-center gap-1">
+                @svg('heroicon-o-sparkles','w-3 h-3')
+                <span>SP {{ is_object($task->story_points) ? ($task->story_points->points() ?? $task->story_points) : $task->story_points }}</span>
             </span>
         @endif
     </div>
