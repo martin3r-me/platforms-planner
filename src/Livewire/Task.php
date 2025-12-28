@@ -14,6 +14,8 @@ use Platform\Planner\Models\PlannerProjectSlot;
 class Task extends Component
 {
 	public $task;
+    public $description; // Separate Property für entschlüsselte description
+    public $dod; // Separate Property für entschlüsselte dod
     public $dueDateInput; // Separate Property für das Datum
     public $dueDateModalShow = false;
     public $dueDateInputModal; // Temporärer Wert für das Modal
@@ -36,8 +38,8 @@ class Task extends Component
 
 	protected $rules = [
         'task.title' => 'required|string|max:255',
-        'task.description' => 'nullable|string',
-        'task.dod' => 'nullable|string',
+        'description' => 'nullable|string',
+        'dod' => 'nullable|string',
         'task.is_frog' => 'boolean',
         'task.is_forced_frog' => 'boolean',
         'task.is_done' => 'boolean',
@@ -61,26 +63,9 @@ class Task extends Component
         $this->task = $plannerTask->load(['user', 'userInCharge', 'project', 'team']);
         
         // Verschüsselte Felder explizit lesen über den Cast (löst Entschlüsselung aus)
-        // Dann in die Attributes schreiben, damit Livewire die entschlüsselten Werte serialisiert
-        $decryptedDescription = $this->task->description; // Löst Cast aus -> entschlüsselt
-        $decryptedDod = $this->task->dod; // Löst Cast aus -> entschlüsselt
-        
-        // Setze die entschlüsselten Werte direkt in die Attributes
-        // (Livewire serialisiert die rohen Attributes, nicht die gecasteten Werte)
-        $reflection = new \ReflectionClass($this->task);
-        $attributesProperty = $reflection->getProperty('attributes');
-        $attributesProperty->setAccessible(true);
-        $attributes = $attributesProperty->getValue($this->task);
-        
-        // Setze entschlüsselte Werte in Attributes
-        $attributes['description'] = $decryptedDescription;
-        $attributes['dod'] = $decryptedDod;
-        
-        // Setze die modifizierten Attributes zurück
-        $attributesProperty->setValue($this->task, $attributes);
-        
-        // Stelle sicher, dass die entschlüsselten Werte auch in den Original-Attributes sind
-        $this->task->syncOriginal();
+        // In separate Properties speichern (wie bei Checkin mit Arrays)
+        $this->description = $this->task->description; // Löst Cast aus -> entschlüsselt
+        $this->dod = $this->task->dod; // Löst Cast aus -> entschlüsselt
         
         $this->dueDateInput = $plannerTask->due_date ? $plannerTask->due_date->format('Y-m-d H:i') : '';
         $this->targetProjectId = $plannerTask->project_id;
@@ -257,29 +242,36 @@ class Task extends Component
         $this->dueDateInput = $value;
     }
 
+    public function updatedDescription($value)
+    {
+        $this->validateOnly('description');
+        $this->task->description = $value; // Cast verschlüsselt automatisch
+        if ($this->task->isDirty('description')) {
+            $this->task->save();
+        }
+    }
+
+    public function updatedDod($value)
+    {
+        $this->validateOnly('dod');
+        $this->task->dod = $value; // Cast verschlüsselt automatisch
+        if ($this->task->isDirty('dod')) {
+            $this->task->save();
+        }
+    }
+
     public function updatedTask($property, $value)
     {
+        // Überspringe description und dod, die haben eigene Handler
+        if (in_array($property, ['description', 'dod'])) {
+            return;
+        }
+        
         $this->validateOnly("task.$property");
         
         // Nur speichern wenn sich wirklich was geändert hat
         if ($this->task->isDirty($property)) {
             $this->task->save();
-            
-            // Stelle sicher, dass verschlüsselte Felder wieder entschlüsselt werden
-            // (nur wenn description oder dod geändert wurden)
-            if (in_array($property, ['description', 'dod'])) {
-                $decryptedValue = $this->task->$property; // Löst Cast aus -> entschlüsselt
-                
-                // Setze entschlüsselten Wert in Attributes
-                $reflection = new \ReflectionClass($this->task);
-                $attributesProperty = $reflection->getProperty('attributes');
-                $attributesProperty->setAccessible(true);
-                $attributes = $attributesProperty->getValue($this->task);
-                $attributes[$property] = $decryptedValue;
-                $attributesProperty->setValue($this->task, $attributes);
-                $this->task->syncOriginal();
-            }
-            
             // Auto-Save läuft still im Hintergrund
         }
     }
@@ -302,29 +294,22 @@ class Task extends Component
             $this->task->due_date = null;
         }
         
+        // Speichere verschlüsselte Felder über separate Properties
+        if (isset($this->description)) {
+            $this->task->description = $this->description;
+        }
+        if (isset($this->dod)) {
+            $this->task->dod = $this->dod;
+        }
+        
         $this->task->save();
         
         // Lade die Task neu für die Anzeige
         $this->task = $this->task->fresh(['user', 'userInCharge', 'project', 'team']);
         
-        // Stelle sicher, dass verschlüsselte Felder wieder entschlüsselt werden
-        // (für Livewire wire:model - wichtig: Livewire serialisiert die rohen Attributes)
-        $decryptedDescription = $this->task->description; // Löst Cast aus -> entschlüsselt
-        $decryptedDod = $this->task->dod; // Löst Cast aus -> entschlüsselt
-        
-        // Setze die entschlüsselten Werte direkt in die Attributes
-        $reflection = new \ReflectionClass($this->task);
-        $attributesProperty = $reflection->getProperty('attributes');
-        $attributesProperty->setAccessible(true);
-        $attributes = $attributesProperty->getValue($this->task);
-        
-        // Setze entschlüsselte Werte in Attributes
-        $attributes['description'] = $decryptedDescription;
-        $attributes['dod'] = $decryptedDod;
-        
-        // Setze die modifizierten Attributes zurück
-        $attributesProperty->setValue($this->task, $attributes);
-        $this->task->syncOriginal();
+        // Lade entschlüsselte Werte wieder in separate Properties
+        $this->description = $this->task->description;
+        $this->dod = $this->task->dod;
         
         // Toast-Notification über das Notification-System
         $this->dispatch('notifications:store', [

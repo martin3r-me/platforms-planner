@@ -188,12 +188,12 @@
                         <p class="text-xs text-[var(--ui-muted)]">Zusätzliche Notizen und Informationen zur Aufgabe</p>
                     </div>
                     <x-ui-input-textarea
-                        name="task.description"
+                        name="description"
                         label=""
-                        wire:model.live.debounce.1000ms="task.description"
-                        :placeholder="empty($task->description) ? 'Zusätzliche Notizen und Informationen zur Aufgabe (optional)' : ''"
+                        wire:model.live.debounce.1000ms="description"
+                        :placeholder="empty($description) ? 'Zusätzliche Notizen und Informationen zur Aufgabe (optional)' : ''"
                         rows="6"
-                        :errorKey="'task.description'"
+                        :errorKey="'description'"
                     />
                 </div>
 
@@ -209,12 +209,12 @@
                         <p class="text-xs text-[var(--ui-muted)]">Kriterien, die erfüllt sein müssen, damit die Aufgabe als erledigt gilt</p>
                     </div>
                     <x-ui-input-textarea
-                        name="task.dod"
+                        name="dod"
                         label=""
-                        wire:model.live.debounce.1000ms="task.dod"
-                        :placeholder="empty($task->dod) ? 'Kriterien, die erfüllt sein müssen, damit die Aufgabe als erledigt gilt (optional)' : ''"
+                        wire:model.live.debounce.1000ms="dod"
+                        :placeholder="empty($dod) ? 'Kriterien, die erfüllt sein müssen, damit die Aufgabe als erledigt gilt (optional)' : ''"
                         rows="6"
-                        :errorKey="'task.dod'"
+                        :errorKey="'dod'"
                     />
                 </div>
             </div>
