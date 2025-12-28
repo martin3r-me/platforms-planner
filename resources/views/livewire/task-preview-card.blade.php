@@ -1,111 +1,90 @@
 @props(['task'])
 
 @php
-    $frogClass = ($task->is_frog ?? false) ? 'ring-2 ring-[var(--ui-success)]/60 ring-offset-1 ring-offset-[var(--ui-surface)]' : '';
+    $isDone = $task->is_done ?? false;
+    $isFrog = $task->is_frog ?? false;
+    $frogClass = $isFrog ? 'ring-1 ring-[var(--ui-success)]/30' : '';
 @endphp
 <x-ui-kanban-card 
-    :title="$task->title" 
+    :title="''" 
     :sortable-id="$task->id" 
     :href="route('planner.tasks.show', $task)"
     :class="$frogClass"
 >
-    <!-- Team (eigene Zeile) -->
+    <!-- Titel (durchgestrichen wenn erledigt) -->
+    <div class="mb-2">
+        <h4 class="text-sm font-medium text-[var(--ui-secondary)] m-0 {{ $isDone ? 'line-through text-[var(--ui-muted)]' : '' }}">
+            {{ $task->title }}
+        </h4>
+    </div>
+
+    <!-- Meta: Team -->
     @if($task->team)
-        <div class="mb-2">
+        <div class="mb-1.5">
             <span class="inline-flex items-center gap-1 text-xs text-[var(--ui-muted)]">
-                @svg('heroicon-o-user-group','w-3.5 h-3.5')
-                <span class="font-medium">{{ $task->team->name }}</span>
+                @svg('heroicon-o-user-group','w-3 h-3')
+                <span>{{ $task->team->name }}</span>
             </span>
         </div>
     @endif
 
-    <!-- Meta: Projekt • Verantwortlicher • Story Points -->
-    <div class="flex items-center justify-between mb-2 gap-2">
-        <div class="flex items-center gap-2 text-xs text-[var(--ui-secondary)] min-w-0">
+    <!-- Meta: Projekt • Verantwortlicher -->
+    <div class="flex items-center gap-2 mb-1.5 text-xs text-[var(--ui-muted)] min-w-0">
+        @if($task->project)
+            <span class="inline-flex items-center gap-1 min-w-0">
+                @svg('heroicon-o-folder','w-3 h-3')
+                <span class="truncate max-w-[9rem]">{{ $task->project->name }}</span>
+            </span>
+        @endif
+
+        @php
+            $userInCharge = $task->userInCharge ?? null;
+            $initials = $userInCharge ? mb_strtoupper(mb_substr($userInCharge->name ?? $userInCharge->email ?? 'U', 0, 1)) : null;
+        @endphp
+        @if($userInCharge)
             @if($task->project)
-                <span class="inline-flex items-center gap-1 min-w-0">
-                    @svg('heroicon-o-folder','w-3.5 h-3.5')
-                    <span class="truncate max-w-[9rem] font-medium">{{ $task->project->name }}</span>
-                </span>
+                <span class="text-[var(--ui-muted)]">•</span>
             @endif
-
-            @php
-                $userInCharge = $task->userInCharge ?? null;
-                $initials = $userInCharge ? mb_strtoupper(mb_substr($userInCharge->name ?? $userInCharge->email ?? 'U', 0, 1)) : null;
-            @endphp
-            @if($userInCharge)
-                @if($task->project)
-                    <span class="text-[var(--ui-muted)]">•</span>
+            <span class="inline-flex items-center gap-1 min-w-0">
+                @if($userInCharge->avatar)
+                    <img src="{{ $userInCharge->avatar }}" alt="{{ $userInCharge->name ?? $userInCharge->email }}" class="w-3.5 h-3.5 rounded-full object-cover">
+                @else
+                    <span class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40 text-[10px] text-[var(--ui-muted)]">{{ $initials }}</span>
                 @endif
-                <span class="inline-flex items-center gap-1 min-w-0">
-                    @if($userInCharge->avatar)
-                        <img src="{{ $userInCharge->avatar }}" alt="{{ $userInCharge->name ?? $userInCharge->email }}" class="w-4 h-4 rounded-full object-cover">
-                    @else
-                        <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/60 text-[10px] text-[var(--ui-secondary)]">{{ $initials }}</span>
-                    @endif
-                    <span class="truncate max-w-[7rem]">{{ $userInCharge->name ?? $userInCharge->email }}</span>
-                </span>
-            @endif
-        </div>
-
-        <div class="flex items-center gap-1 flex-shrink-0">
-            @if($task->story_points)
-                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] bg-[var(--ui-primary-5)] text-[color:var(--ui-primary)]">
-                    @svg('heroicon-o-sparkles','w-3 h-3')
-                    SP {{ is_object($task->story_points) ? ($task->story_points->points() ?? $task->story_points) : $task->story_points }}
-                </span>
-            @endif
-        </div>
+                <span class="truncate max-w-[7rem]">{{ $userInCharge->name ?? $userInCharge->email }}</span>
+            </span>
+        @endif
     </div>
 
     <!-- Description (truncated) -->
     @if($task->description)
-        <div class="text-xs text-[var(--ui-muted)] mb-2 line-clamp-2">
+        <div class="text-xs text-[var(--ui-muted)] mb-1.5 line-clamp-2">
             {{ Str::limit($task->description, 80) }}
         </div>
     @endif
 
-    <!-- Due date / Flags -->
-    <div class="text-xs text-[var(--ui-muted)] flex items-center gap-2">
-        @if($task->due_date)
-            @php
-                $isDueSoon = $task->due_date->lte(now()->addDay()->endOfDay());
-                $isOverdue = $task->due_date->isPast();
-                $isToday = $task->due_date->isToday();
-                $isTomorrow = $task->due_date->isTomorrow();
-            @endphp
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md transition-colors
-                @if($isOverdue)
-                    bg-[var(--ui-danger-5)] text-[var(--ui-danger)] border border-[var(--ui-danger)]/30
-                @elseif($isToday)
-                    bg-[var(--ui-warning-5)] text-[var(--ui-warning)] border border-[var(--ui-warning)]/30
-                @elseif($isTomorrow)
-                    bg-[var(--ui-warning-5)] text-[var(--ui-warning)] border border-[var(--ui-warning)]/20
-                @elseif($isDueSoon)
-                    bg-[var(--ui-warning-5)] text-[var(--ui-warning)] border border-[var(--ui-warning)]/20
-                @endif
-            ">
-                @svg('heroicon-o-calendar','w-3 h-3')
-                {{ $task->due_date->format('d.m.Y') }}
-            </span>
-        @else
-            <span class="inline-flex items-center gap-1">
-                @svg('heroicon-o-calendar','w-3 h-3')
-                Keine Fälligkeit
-            </span>
-        @endif
-
-        <div class="flex items-center gap-1 ml-auto">
-            @if(($task->is_frog ?? false))
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-[var(--ui-success)] text-[var(--ui-on-success)]">
-                    @svg('heroicon-o-exclamation-triangle','w-3 h-3') Frosch
+    <!-- Footer: Fälligkeitsdatum, Story Points, Frosch -->
+    <div class="flex items-center justify-between gap-2 text-xs text-[var(--ui-muted)]">
+        <div class="flex items-center gap-2 min-w-0">
+            @if($task->due_date)
+                <span class="inline-flex items-center gap-1">
+                    @svg('heroicon-o-calendar','w-3 h-3')
+                    <span>{{ $task->due_date->format('d.m.Y') }}</span>
                 </span>
             @endif
-            @if(($task->is_done ?? false))
-                <span class="inline-flex items-center gap-1 text-[10px] text-[var(--ui-success)]">
-                    @svg('heroicon-o-check-circle','w-3 h-3') Erledigt
+
+            @if($task->story_points)
+                <span class="inline-flex items-center gap-1">
+                    @svg('heroicon-o-sparkles','w-3 h-3')
+                    <span>SP {{ is_object($task->story_points) ? ($task->story_points->points() ?? $task->story_points) : $task->story_points }}</span>
                 </span>
             @endif
         </div>
+
+        @if($isFrog)
+            <span class="inline-flex items-center gap-1 flex-shrink-0 text-[var(--ui-success)]/70" title="Frosch">
+                @svg('heroicon-o-exclamation-triangle','w-3 h-3')
+            </span>
+        @endif
     </div>
 </x-ui-kanban-card>
