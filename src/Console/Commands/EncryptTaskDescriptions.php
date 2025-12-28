@@ -5,7 +5,9 @@ namespace Platform\Planner\Console\Commands;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Crypt;
 use Platform\Planner\Models\PlannerTask;
+use Platform\Core\Support\FieldHasher;
 
 class EncryptTaskDescriptions extends Command
 {
@@ -110,14 +112,29 @@ class EncryptTaskDescriptions extends Command
 
                 if ($needsUpdate) {
                     if (!$isDryRun) {
-                        // Plain-Text-Werte setzen - Encryptable Trait verschlüsselt automatisch
+                        // Verschlüsselung direkt über DB durchführen
+                        // Das umgeht Probleme mit dem Cast, der versucht zu entschlüsseln
+                        $updates = [];
+                        $teamSalt = $task->team_id ? (string) $task->team_id : null;
+                        
                         if ($plainDescription !== null) {
-                            $task->description = $plainDescription;
+                            $encryptedDesc = Crypt::encryptString($plainDescription);
+                            $updates['description'] = $encryptedDesc;
+                            $updates['description_hash'] = FieldHasher::hmacSha256($plainDescription, $teamSalt);
                         }
+                        
                         if ($plainDod !== null) {
-                            $task->dod = $plainDod;
+                            $encryptedDod = Crypt::encryptString($plainDod);
+                            $updates['dod'] = $encryptedDod;
+                            $updates['dod_hash'] = FieldHasher::hmacSha256($plainDod, $teamSalt);
                         }
-                        $task->save();
+                        
+                        if (!empty($updates)) {
+                            $updates['updated_at'] = now();
+                            DB::table('planner_tasks')
+                                ->where('id', $task->id)
+                                ->update($updates);
+                        }
                     }
                     $encrypted++;
                 } else {
