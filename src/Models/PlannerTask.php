@@ -14,6 +14,7 @@ use Platform\Media\Traits\HasMedia;
 use Platform\Organization\Traits\HasTimeEntries;
 use Platform\Core\Traits\HasTags;
 use Platform\Core\Traits\HasColors;
+use Platform\Core\Traits\Encryptable;
 use Platform\Core\Contracts\HasTimeAncestors;
 use Platform\Core\Contracts\HasKeyResultAncestors;
 use Platform\Core\Contracts\HasDisplayName;
@@ -23,7 +24,7 @@ use Platform\Core\Contracts\HasDisplayName;
  */
 class PlannerTask extends Model implements HasTimeAncestors, HasKeyResultAncestors, HasDisplayName
 {
-    use HasFactory, SoftDeletes, LogsActivity, HasMedia, HasTimeEntries, HasTags, HasColors;
+    use HasFactory, SoftDeletes, LogsActivity, HasMedia, HasTimeEntries, HasTags, HasColors, Encryptable;
 
     protected $fillable = [
         'uuid',
@@ -32,6 +33,7 @@ class PlannerTask extends Model implements HasTimeAncestors, HasKeyResultAncesto
         'team_id',
         'title',
         'description',
+        'dod',
         'due_date',
         'original_due_date',
         'postpone_count',
@@ -59,6 +61,11 @@ class PlannerTask extends Model implements HasTimeAncestors, HasKeyResultAncesto
         'original_due_date' => 'datetime',
         'done_at' => 'datetime',
         'is_forced_frog' => 'boolean',
+    ];
+
+    protected array $encryptable = [
+        'description' => 'string',
+        'dod' => 'string',
     ];
 
     protected static function booted(): void

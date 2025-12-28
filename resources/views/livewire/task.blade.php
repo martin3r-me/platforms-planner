@@ -177,8 +177,13 @@
                 </div>
 
                 {{-- Beschreibung --}}
-                <div>
-                    <h2 class="text-lg font-semibold text-[var(--ui-secondary)] mb-4">Beschreibung</h2>
+                <div class="mb-8 pb-8 border-b border-[var(--ui-border)]/60">
+                    <div class="flex items-center gap-2 mb-4">
+                        <h2 class="text-lg font-semibold text-[var(--ui-secondary)]">Beschreibung</h2>
+                        <span class="text-xs text-[var(--ui-muted)] px-2 py-0.5 bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
+                            Verschlüsselt
+                        </span>
+                    </div>
                     <x-ui-input-textarea
                         name="task.description"
                         label=""
@@ -186,6 +191,24 @@
                         placeholder="Aufgabenbeschreibung (optional)"
                         rows="6"
                         :errorKey="'task.description'"
+                    />
+                </div>
+
+                {{-- Definition of Done --}}
+                <div>
+                    <div class="flex items-center gap-2 mb-4">
+                        <h2 class="text-lg font-semibold text-[var(--ui-secondary)]">Definition of Done</h2>
+                        <span class="text-xs text-[var(--ui-muted)] px-2 py-0.5 bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
+                            Verschlüsselt
+                        </span>
+                    </div>
+                    <x-ui-input-textarea
+                        name="task.dod"
+                        label=""
+                        wire:model.live.debounce.1000ms="task.dod"
+                        placeholder="Definition of Done (optional)"
+                        rows="6"
+                        :errorKey="'task.dod'"
                     />
                 </div>
             </div>

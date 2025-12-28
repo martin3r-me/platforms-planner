@@ -37,6 +37,7 @@ class PlannerServiceProvider extends ServiceProvider
                 \Platform\Planner\Console\Commands\PostponeOverdueTasks::class,
                 \Platform\Planner\Console\Commands\AssignDueDatesForUndatedTasks::class,
                 \Platform\Planner\Console\Commands\AutoAssignFrogs::class,
+                \Platform\Planner\Console\Commands\EncryptTaskDescriptions::class,
             ]);
         }
     }

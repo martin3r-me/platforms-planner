@@ -37,6 +37,7 @@ class Task extends Component
 	protected $rules = [
         'task.title' => 'required|string|max:255',
         'task.description' => 'nullable|string',
+        'task.dod' => 'nullable|string',
         'task.is_frog' => 'boolean',
         'task.is_forced_frog' => 'boolean',
         'task.is_done' => 'boolean',
