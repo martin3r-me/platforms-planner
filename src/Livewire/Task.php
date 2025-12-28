@@ -242,8 +242,35 @@ class Task extends Component
         $this->dueDateInput = $value;
     }
 
-    // Keine automatischen updatedDescription/updatedDod Methoden mehr
-    // Speichern erfolgt nur über den save() Button
+    public function updatedDescription($value)
+    {
+        $this->validateOnly('description');
+        $this->task->description = $value; // Cast verschlüsselt automatisch
+        if ($this->task->isDirty('description')) {
+            $this->task->save();
+            
+            // Dezentes Feedback
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => 'Anmerkung gespeichert',
+            ]);
+        }
+    }
+
+    public function updatedDod($value)
+    {
+        $this->validateOnly('dod');
+        $this->task->dod = $value; // Cast verschlüsselt automatisch
+        if ($this->task->isDirty('dod')) {
+            $this->task->save();
+            
+            // Dezentes Feedback
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => 'Definition of Done gespeichert',
+            ]);
+        }
+    }
 
     public function updatedTask($property, $value)
     {
@@ -257,7 +284,12 @@ class Task extends Component
         // Nur speichern wenn sich wirklich was geändert hat
         if ($this->task->isDirty($property)) {
             $this->task->save();
-            // Auto-Save läuft still im Hintergrund
+            
+            // Dezentes Feedback für Auto-Save
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => 'Änderungen gespeichert',
+            ]);
         }
     }
 
