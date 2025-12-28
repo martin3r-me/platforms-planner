@@ -59,6 +59,12 @@ class Task extends Component
         
         $this->authorize('view', $plannerTask);
         $this->task = $plannerTask->load(['user', 'userInCharge', 'project', 'team']);
+        
+        // Verschüsselte Felder explizit lesen, damit sie entschlüsselt werden
+        // (für Livewire wire:model)
+        $this->task->description;
+        $this->task->dod;
+        
         $this->dueDateInput = $plannerTask->due_date ? $plannerTask->due_date->format('Y-m-d H:i') : '';
         $this->targetProjectId = $plannerTask->project_id;
         $this->targetSlotId = $plannerTask->project_slot_id;
