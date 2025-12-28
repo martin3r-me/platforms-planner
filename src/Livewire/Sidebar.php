@@ -57,8 +57,8 @@ class Sidebar extends Component
         //     'role' => \Platform\Planner\Enums\ProjectRole::OWNER->value,
         // ]);
 
-        // 2. Standard-Project-Slots erzeugen: To Do, Doing, Done
-        $defaultSlots = ['To Do', 'Doing', 'Done'];
+        // 2. Standard-Project-Slots erzeugen: To Do, Doing, On Hold
+        $defaultSlots = ['To Do', 'Doing', 'On Hold'];
         foreach ($defaultSlots as $index => $name) {
             ProjectSlot::create([
                 'project_id' => $project->id,
