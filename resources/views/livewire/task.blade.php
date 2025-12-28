@@ -111,6 +111,28 @@
                                 :errorKey="'task.title'"
                             />
                         </div>
+                        
+                        {{-- Definition of Done direkt unter Titel --}}
+                        <div class="col-span-2">
+                            <div class="mb-4">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <label class="text-sm font-semibold text-[var(--ui-secondary)]">Definition of Done</label>
+                                    <span class="text-xs text-[var(--ui-muted)] px-1.5 py-0.5 bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
+                                        Verschlüsselt
+                                    </span>
+                                </div>
+                                <p class="text-xs text-[var(--ui-muted)]">Kriterien, die erfüllt sein müssen, damit die Aufgabe als erledigt gilt</p>
+                            </div>
+                            <x-ui-input-textarea
+                                name="dod"
+                                label=""
+                                wire:model.live.debounce.1000ms="dod"
+                                :placeholder="empty($dod) ? 'Kriterien, die erfüllt sein müssen, damit die Aufgabe als erledigt gilt (optional)' : ''"
+                                rows="6"
+                                :errorKey="'dod'"
+                            />
+                        </div>
+                        
                         <div>
                             <x-ui-input-select
                                 name="task.priority"
@@ -177,7 +199,7 @@
                 </div>
 
                 {{-- Anmerkung --}}
-                <div class="mb-8 pb-8 border-b border-[var(--ui-border)]/60">
+                <div>
                     <div class="mb-4">
                         <div class="flex items-center gap-2 mb-1">
                             <label class="text-sm font-semibold text-[var(--ui-secondary)]">Anmerkung</label>
@@ -194,27 +216,6 @@
                         :placeholder="empty($description) ? 'Zusätzliche Notizen und Informationen zur Aufgabe (optional)' : ''"
                         rows="6"
                         :errorKey="'description'"
-                    />
-                </div>
-
-                {{-- Definition of Done --}}
-                <div>
-                    <div class="mb-4">
-                        <div class="flex items-center gap-2 mb-1">
-                            <label class="text-sm font-semibold text-[var(--ui-secondary)]">Definition of Done</label>
-                            <span class="text-xs text-[var(--ui-muted)] px-1.5 py-0.5 bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
-                                Verschlüsselt
-                            </span>
-                        </div>
-                        <p class="text-xs text-[var(--ui-muted)]">Kriterien, die erfüllt sein müssen, damit die Aufgabe als erledigt gilt</p>
-                    </div>
-                    <x-ui-input-textarea
-                        name="dod"
-                        label=""
-                        wire:model.live.debounce.1000ms="dod"
-                        :placeholder="empty($dod) ? 'Kriterien, die erfüllt sein müssen, damit die Aufgabe als erledigt gilt (optional)' : ''"
-                        rows="6"
-                        :errorKey="'dod'"
                     />
                 </div>
             </div>
