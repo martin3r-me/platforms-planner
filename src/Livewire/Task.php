@@ -81,12 +81,16 @@ class Task extends Component
             return false;
         }
         
-        // Prüfe Model-Änderungen
+        // Prüfe Model-Änderungen (nur wenn wirklich ungespeichert)
         $modelDirty = count($this->task->getDirty()) > 0;
         
         // Prüfe verschlüsselte Felder (separate Properties)
-        $descriptionDirty = isset($this->description) && $this->description !== ($this->task->description ?? '');
-        $dodDirty = isset($this->dod) && $this->dod !== ($this->task->dod ?? '');
+        // Vergleiche mit entschlüsselten Werten aus dem Model
+        $currentDescription = $this->task->description ?? '';
+        $currentDod = $this->task->dod ?? '';
+        
+        $descriptionDirty = isset($this->description) && $this->description !== $currentDescription;
+        $dodDirty = isset($this->dod) && $this->dod !== $currentDod;
         
         return $modelDirty || $descriptionDirty || $dodDirty;
     }
@@ -316,14 +320,23 @@ class Task extends Component
         
         // Nur speichern wenn sich wirklich was geändert hat
         if ($this->task->isDirty($property)) {
-            $this->task->save();
-            
-            // Dezentes Feedback für Auto-Save (nur bei wichtigen Feldern)
-            $importantFields = ['title', 'priority', 'story_points', 'user_in_charge_id'];
-            if (in_array($property, $importantFields)) {
+            try {
+                $this->task->save();
+                
+                // Dezentes Feedback für Auto-Save (nur bei wichtigen Feldern)
+                $importantFields = ['title', 'priority', 'story_points', 'user_in_charge_id'];
+                if (in_array($property, $importantFields)) {
+                    $this->dispatch('notify', [
+                        'type' => 'success',
+                        'message' => 'Änderungen gespeichert',
+                    ]);
+                }
+            } catch (\Exception $e) {
+                // Bei Fehler: Benutzer kann manuell speichern
+                // Der Speichern-Button wird durch isDirty() angezeigt
                 $this->dispatch('notify', [
-                    'type' => 'success',
-                    'message' => 'Änderungen gespeichert',
+                    'type' => 'error',
+                    'message' => 'Auto-Save fehlgeschlagen. Bitte manuell speichern.',
                 ]);
             }
         }
