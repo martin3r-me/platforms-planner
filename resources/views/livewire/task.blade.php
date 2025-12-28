@@ -11,6 +11,32 @@
                     <div class="flex-1 min-w-0">
                         <h1 class="text-3xl font-bold text-[var(--ui-secondary)] mb-4 tracking-tight leading-tight">{{ $task->title }}</h1>
                         
+                        {{-- Anmerkung (verschlüsselt) --}}
+                        @if($task->description)
+                            <div class="mb-3">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-xs font-medium text-[var(--ui-muted)]">Anmerkung</span>
+                                    <span class="text-xs text-[var(--ui-muted)] px-1.5 py-0.5 bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
+                                        Verschlüsselt
+                                    </span>
+                                </div>
+                                <div class="text-sm text-[var(--ui-secondary)] whitespace-pre-wrap">{{ $task->description }}</div>
+                            </div>
+                        @endif
+                        
+                        {{-- Definition of Done (verschlüsselt) --}}
+                        @if($task->dod)
+                            <div class="mb-3">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-xs font-medium text-[var(--ui-muted)]">Definition of Done</span>
+                                    <span class="text-xs text-[var(--ui-muted)] px-1.5 py-0.5 bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
+                                        Verschlüsselt
+                                    </span>
+                                </div>
+                                <div class="text-sm text-[var(--ui-secondary)] whitespace-pre-wrap">{{ $task->dod }}</div>
+                            </div>
+                        @endif
+                        
                         {{-- Meta Informationen -- schlicht ohne Rahmen --}}
                         <div class="space-y-2">
                             {{-- Erste Zeile: Team & Projekt --}}
@@ -176,19 +202,22 @@
                     </x-ui-form-grid>
                 </div>
 
-                {{-- Beschreibung --}}
+                {{-- Anmerkung --}}
                 <div class="mb-8 pb-8 border-b border-[var(--ui-border)]/60">
-                    <div class="flex items-center gap-2 mb-4">
-                        <h2 class="text-lg font-semibold text-[var(--ui-secondary)]">Beschreibung</h2>
-                        <span class="text-xs text-[var(--ui-muted)] px-2 py-0.5 bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
-                            Verschlüsselt
-                        </span>
+                    <div class="mb-4">
+                        <div class="flex items-center gap-2 mb-1">
+                            <label class="text-sm font-semibold text-[var(--ui-secondary)]">Anmerkung</label>
+                            <span class="text-xs text-[var(--ui-muted)] px-1.5 py-0.5 bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
+                                Verschlüsselt
+                            </span>
+                        </div>
+                        <p class="text-xs text-[var(--ui-muted)]">Zusätzliche Notizen und Informationen zur Aufgabe</p>
                     </div>
                     <x-ui-input-textarea
                         name="task.description"
                         label=""
                         wire:model.live.debounce.1000ms="task.description"
-                        placeholder="Aufgabenbeschreibung (optional)"
+                        :placeholder="empty($task->description) ? 'Zusätzliche Notizen und Informationen zur Aufgabe (optional)' : ''"
                         rows="6"
                         :errorKey="'task.description'"
                     />
@@ -196,17 +225,20 @@
 
                 {{-- Definition of Done --}}
                 <div>
-                    <div class="flex items-center gap-2 mb-4">
-                        <h2 class="text-lg font-semibold text-[var(--ui-secondary)]">Definition of Done</h2>
-                        <span class="text-xs text-[var(--ui-muted)] px-2 py-0.5 bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
-                            Verschlüsselt
-                        </span>
+                    <div class="mb-4">
+                        <div class="flex items-center gap-2 mb-1">
+                            <label class="text-sm font-semibold text-[var(--ui-secondary)]">Definition of Done</label>
+                            <span class="text-xs text-[var(--ui-muted)] px-1.5 py-0.5 bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
+                                Verschlüsselt
+                            </span>
+                        </div>
+                        <p class="text-xs text-[var(--ui-muted)]">Kriterien, die erfüllt sein müssen, damit die Aufgabe als erledigt gilt</p>
                     </div>
                     <x-ui-input-textarea
                         name="task.dod"
                         label=""
                         wire:model.live.debounce.1000ms="task.dod"
-                        placeholder="Definition of Done (optional)"
+                        :placeholder="empty($task->dod) ? 'Kriterien, die erfüllt sein müssen, damit die Aufgabe als erledigt gilt (optional)' : ''"
                         rows="6"
                         :errorKey="'task.dod'"
                     />

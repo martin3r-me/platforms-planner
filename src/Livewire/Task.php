@@ -60,10 +60,47 @@ class Task extends Component
         $this->authorize('view', $plannerTask);
         $this->task = $plannerTask->load(['user', 'userInCharge', 'project', 'team']);
         
-        // Verschüsselte Felder explizit lesen, damit sie entschlüsselt werden
-        // (für Livewire wire:model)
-        $this->task->description;
-        $this->task->dod;
+        // Verschüsselte Felder explizit lesen und in Attributes schreiben
+        // (für Livewire wire:model - wichtig: Livewire serialisiert die rohen Attributes)
+        // Wir müssen die entschlüsselten Werte explizit in die Attributes schreiben
+        $reflection = new \ReflectionClass($this->task);
+        $attributesProperty = $reflection->getProperty('attributes');
+        $attributesProperty->setAccessible(true);
+        $attributes = $attributesProperty->getValue($this->task);
+        
+        // Lese und entschlüssele description (nur wenn verschlüsselt)
+        if (isset($attributes['description']) && $attributes['description'] !== null && $attributes['description'] !== '') {
+            try {
+                // Prüfe ob bereits entschlüsselt (einfache Heuristik)
+                $isEncrypted = $this->isEncryptedValue($attributes['description']);
+                if ($isEncrypted) {
+                    $decrypted = \Illuminate\Support\Facades\Crypt::decryptString($attributes['description']);
+                    $attributes['description'] = $decrypted;
+                }
+            } catch (\Throwable $e) {
+                // Falls Entschlüsselung fehlschlägt, bleibt der Wert wie er ist
+            }
+        }
+        
+        // Lese und entschlüssele dod (nur wenn verschlüsselt)
+        if (isset($attributes['dod']) && $attributes['dod'] !== null && $attributes['dod'] !== '') {
+            try {
+                // Prüfe ob bereits entschlüsselt (einfache Heuristik)
+                $isEncrypted = $this->isEncryptedValue($attributes['dod']);
+                if ($isEncrypted) {
+                    $decrypted = \Illuminate\Support\Facades\Crypt::decryptString($attributes['dod']);
+                    $attributes['dod'] = $decrypted;
+                }
+            } catch (\Throwable $e) {
+                // Falls Entschlüsselung fehlschlägt, bleibt der Wert wie er ist
+            }
+        }
+        
+        // Setze die modifizierten Attributes zurück
+        $attributesProperty->setValue($this->task, $attributes);
+        
+        // Stelle sicher, dass die entschlüsselten Werte auch in den Original-Attributes sind
+        $this->task->syncOriginal();
         
         $this->dueDateInput = $plannerTask->due_date ? $plannerTask->due_date->format('Y-m-d H:i') : '';
         $this->targetProjectId = $plannerTask->project_id;
@@ -868,5 +905,25 @@ class Task extends Component
             'teamUsers' => $teamUsers,
             'activities' => $this->activities,
         ])->layout('platform::layouts.app');
+    }
+
+    /**
+     * Prüft ob ein Wert bereits verschlüsselt ist
+     */
+    private function isEncryptedValue(?string $value): bool
+    {
+        if (empty($value)) {
+            return false;
+        }
+
+        // Laravel Crypt erzeugt base64-kodierte Strings
+        $decoded = base64_decode($value, true);
+        if ($decoded === false) {
+            return false;
+        }
+
+        // Verschlüsselte Werte haben typischerweise eine Mindestlänge
+        // und enthalten nicht-printable Zeichen nach Decodierung
+        return strlen($decoded) > 16 && !ctype_print($decoded);
     }
 }
