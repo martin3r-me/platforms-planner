@@ -118,7 +118,32 @@ class PlannerServiceProvider extends ServiceProvider
         // Commands entfernt - Sidebar soll leer sein
 
         // RouteToolExporter entfernt - Sidebar soll leer sein
+        
+        // Tools registrieren (loose gekoppelt - für AI/Chat)
+        // Beispiel: $this->registerTools();
     }
+    
+    /**
+     * Registriert Planner-Tools für die AI/Chat-Funktionalität
+     * 
+     * Beispiel-Implementierung:
+     * 
+     * protected function registerTools(): void
+     * {
+     *     try {
+     *         $registry = resolve(\Platform\Core\Tools\ToolRegistry::class);
+     *         
+     *         // Beispiel: Projekt-Tool
+     *         $registry->register(new \Platform\Planner\Tools\ProjectTool());
+     *         
+     *         // Beispiel: Task-Tool
+     *         $registry->register(new \Platform\Planner\Tools\TaskTool());
+     *     } catch (\Throwable $e) {
+     *         // Silent fail - ToolRegistry möglicherweise nicht verfügbar
+     *         \Log::warning('Planner: Tool-Registrierung fehlgeschlagen', ['error' => $e->getMessage()]);
+     *     }
+     * }
+     */
 
     protected function registerLivewireComponents(): void
     {
