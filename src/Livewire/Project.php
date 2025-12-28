@@ -16,6 +16,7 @@ class Project extends Component
 {
     public PlannerProject $project;
     public $sprint; // Aktueller Sprint des Projekts
+    public bool $showDoneColumn = false; // Erledigt-Spalte ein/ausblenden
 
     #[On('updateProject')] 
     public function updateProject()
@@ -302,5 +303,13 @@ class Project extends Component
 
         // Nach Update optional State refresh
         $this->mount($this->project);
+    }
+
+    /**
+     * Toggle für die Anzeige der Erledigt-Spalte
+     */
+    public function toggleShowDoneColumn()
+    {
+        $this->showDoneColumn = !$this->showDoneColumn;
     }
 }

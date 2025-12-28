@@ -164,7 +164,20 @@
 
                     <!-- Projekt-Statistiken: Erledigt -->
                     <div>
-                        <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Erledigt</h3>
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)]">Erledigt</h3>
+                            <button 
+                                wire:click="toggleShowDoneColumn"
+                                class="text-xs text-[var(--ui-muted)] hover:text-[var(--ui-primary)] transition-colors"
+                                title="{{ $showDoneColumn ? 'Erledigt-Spalte ausblenden' : 'Erledigt-Spalte anzeigen' }}"
+                            >
+                                @if($showDoneColumn)
+                                    @svg('heroicon-o-eye-slash', 'w-4 h-4')
+                                @else
+                                    @svg('heroicon-o-eye', 'w-4 h-4')
+                                @endif
+                            </button>
+                        </div>
                         <div class="space-y-2">
                             @foreach($statsDone as $stat)
                                 <div class="flex items-center justify-between py-2 px-3 bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
@@ -352,6 +365,22 @@
                 </x-ui-kanban-column>
             @endforeach
 
+            {{-- Erledigt (nur wenn aktiviert) --}}
+            @if($showDoneColumn)
+                @php $done = $groups->first(fn($g) => ($g->isDoneGroup ?? false)); @endphp
+                @if($done)
+                    <x-ui-kanban-column :title="($done->label ?? 'Erledigt')" :sortable-id="null" :scrollable="true" :muted="true">
+                        <x-slot name="headerActions">
+                            <span class="text-xs text-[var(--ui-muted)] font-medium">
+                                {{ $done->tasks->count() }}
+                            </span>
+                        </x-slot>
+                        @foreach($done->tasks as $task)
+                            @include('planner::livewire.task-preview-card', ['task' => $task])
+                        @endforeach
+                    </x-ui-kanban-column>
+                @endif
+            @endif
             </x-ui-kanban-container>
         {{-- Modals innerhalb des Page-Roots halten (ein Root-Element) --}}
         <livewire:planner.project-settings-modal/>
