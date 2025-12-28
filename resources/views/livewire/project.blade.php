@@ -52,6 +52,12 @@
                 'variant' => 'success'
             ],
             [
+                'title' => 'Frösche',
+                'count' => $doneTasks->filter(fn($t) => $t->is_frog)->count(),
+                'icon' => 'exclamation-triangle',
+                'variant' => 'success'
+            ],
+            [
                 'title' => 'Verschiebungen',
                 'count' => $allTasks->sum(fn($t) => $t->postpone_count ?? 0),
                 'icon' => 'arrow-path',
