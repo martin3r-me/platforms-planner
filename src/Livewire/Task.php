@@ -264,6 +264,22 @@ class Task extends Component
         // Nur speichern wenn sich wirklich was geändert hat
         if ($this->task->isDirty($property)) {
             $this->task->save();
+            
+            // Stelle sicher, dass verschlüsselte Felder wieder entschlüsselt werden
+            // (nur wenn description oder dod geändert wurden)
+            if (in_array($property, ['description', 'dod'])) {
+                $decryptedValue = $this->task->$property; // Löst Cast aus -> entschlüsselt
+                
+                // Setze entschlüsselten Wert in Attributes
+                $reflection = new \ReflectionClass($this->task);
+                $attributesProperty = $reflection->getProperty('attributes');
+                $attributesProperty->setAccessible(true);
+                $attributes = $attributesProperty->getValue($this->task);
+                $attributes[$property] = $decryptedValue;
+                $attributesProperty->setValue($this->task, $attributes);
+                $this->task->syncOriginal();
+            }
+            
             // Auto-Save läuft still im Hintergrund
         }
     }
@@ -289,7 +305,26 @@ class Task extends Component
         $this->task->save();
         
         // Lade die Task neu für die Anzeige
-        $this->task = $this->task->fresh();
+        $this->task = $this->task->fresh(['user', 'userInCharge', 'project', 'team']);
+        
+        // Stelle sicher, dass verschlüsselte Felder wieder entschlüsselt werden
+        // (für Livewire wire:model - wichtig: Livewire serialisiert die rohen Attributes)
+        $decryptedDescription = $this->task->description; // Löst Cast aus -> entschlüsselt
+        $decryptedDod = $this->task->dod; // Löst Cast aus -> entschlüsselt
+        
+        // Setze die entschlüsselten Werte direkt in die Attributes
+        $reflection = new \ReflectionClass($this->task);
+        $attributesProperty = $reflection->getProperty('attributes');
+        $attributesProperty->setAccessible(true);
+        $attributes = $attributesProperty->getValue($this->task);
+        
+        // Setze entschlüsselte Werte in Attributes
+        $attributes['description'] = $decryptedDescription;
+        $attributes['dod'] = $decryptedDod;
+        
+        // Setze die modifizierten Attributes zurück
+        $attributesProperty->setValue($this->task, $attributes);
+        $this->task->syncOriginal();
         
         // Toast-Notification über das Notification-System
         $this->dispatch('notifications:store', [
