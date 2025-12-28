@@ -242,23 +242,8 @@ class Task extends Component
         $this->dueDateInput = $value;
     }
 
-    public function updatedDescription($value)
-    {
-        $this->validateOnly('description');
-        $this->task->description = $value; // Cast verschlüsselt automatisch
-        if ($this->task->isDirty('description')) {
-            $this->task->save();
-        }
-    }
-
-    public function updatedDod($value)
-    {
-        $this->validateOnly('dod');
-        $this->task->dod = $value; // Cast verschlüsselt automatisch
-        if ($this->task->isDirty('dod')) {
-            $this->task->save();
-        }
-    }
+    // Keine automatischen updatedDescription/updatedDod Methoden mehr
+    // Speichern erfolgt nur über den save() Button
 
     public function updatedTask($property, $value)
     {

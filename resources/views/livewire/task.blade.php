@@ -190,7 +190,7 @@
                     <x-ui-input-textarea
                         name="description"
                         label=""
-                        wire:model.live.debounce.1000ms="description"
+                        wire:model="description"
                         :placeholder="empty($description) ? 'Zusätzliche Notizen und Informationen zur Aufgabe (optional)' : ''"
                         rows="6"
                         :errorKey="'description'"
@@ -211,7 +211,7 @@
                     <x-ui-input-textarea
                         name="dod"
                         label=""
-                        wire:model.live.debounce.1000ms="dod"
+                        wire:model="dod"
                         :placeholder="empty($dod) ? 'Kriterien, die erfüllt sein müssen, damit die Aufgabe als erledigt gilt (optional)' : ''"
                         rows="6"
                         :errorKey="'dod'"
