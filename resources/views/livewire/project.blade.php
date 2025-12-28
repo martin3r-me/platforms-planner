@@ -1,55 +1,62 @@
 {{-- Root auf x-ui-page umstellen, damit volle Höhe/Sidebars korrekt funktionieren --}}
     @php 
         $completedTasks = $groups->filter(fn($g) => $g->isDoneGroup ?? false)->flatMap(fn($g) => $g->tasks);
-        $stats = [
-            [
-                'title' => 'Story Points (offen)',
-                'count' => $groups->filter(fn($g) => !($g->isDoneGroup ?? false))->flatMap(fn($g) => $g->tasks)->sum(fn($t) => $t->story_points?->points() ?? 0),
-                'icon' => 'chart-bar',
-                'variant' => 'warning'
-            ],
-            [
-                'title' => 'Story Points (erledigt)',
-                'count' => $groups->filter(fn($g) => $g->isDoneGroup ?? false)->flatMap(fn($g) => $g->tasks)->sum(fn($t) => $t->story_points?->points() ?? 0),
-                'icon' => 'check-circle',
-                'variant' => 'success'
-            ],
+        $allTasks = $groups->flatMap(fn($g) => $g->tasks);
+        $openTasks = $groups->filter(fn($g) => !($g->isDoneGroup ?? false))->flatMap(fn($g) => $g->tasks);
+        $doneTasks = $groups->filter(fn($g) => $g->isDoneGroup ?? false)->flatMap(fn($g) => $g->tasks);
+        
+        $statsOpen = [
             [
                 'title' => 'Offen',
-                'count' => $groups->filter(fn($g) => !($g->isDoneGroup ?? false))->sum(fn($g) => $g->tasks->count()),
+                'count' => $openTasks->count(),
                 'icon' => 'clock',
                 'variant' => 'warning'
             ],
             [
-                'title' => 'Gesamt',
-                'count' => $groups->flatMap(fn($g) => $g->tasks)->count(),
-                'icon' => 'document-text',
-                'variant' => 'secondary'
-            ],
-            [
-                'title' => 'Erledigt',
-                'count' => $groups->filter(fn($g) => $g->isDoneGroup ?? false)->sum(fn($g) => $g->tasks->count()),
-                'icon' => 'check-circle',
-                'variant' => 'success'
-            ],
-            [
-                'title' => 'Ohne Fälligkeit',
-                'count' => $groups->flatMap(fn($g) => $g->tasks)->filter(fn($t) => !$t->due_date)->count(),
-                'icon' => 'calendar',
-                'variant' => 'neutral'
+                'title' => 'Story Points',
+                'count' => $openTasks->sum(fn($t) => $t->story_points?->points() ?? 0),
+                'icon' => 'sparkles',
+                'variant' => 'warning'
             ],
             [
                 'title' => 'Frösche',
-                'count' => $groups->flatMap(fn($g) => $g->tasks)->filter(fn($t) => $t->is_frog)->count(),
+                'count' => $openTasks->filter(fn($t) => $t->is_frog)->count(),
                 'icon' => 'exclamation-triangle',
                 'variant' => 'danger'
             ],
             [
                 'title' => 'Überfällig',
-                'count' => $groups->flatMap(fn($g) => $g->tasks)->filter(fn($t) => $t->due_date && $t->due_date->isPast() && !$t->is_done)->count(),
+                'count' => $openTasks->filter(fn($t) => $t->due_date && $t->due_date->isPast() && !$t->is_done)->count(),
                 'icon' => 'exclamation-circle',
                 'variant' => 'danger'
-            ]
+            ],
+            [
+                'title' => 'Ohne Fälligkeit',
+                'count' => $openTasks->filter(fn($t) => !$t->due_date)->count(),
+                'icon' => 'calendar',
+                'variant' => 'neutral'
+            ],
+        ];
+        
+        $statsDone = [
+            [
+                'title' => 'Erledigt',
+                'count' => $doneTasks->count(),
+                'icon' => 'check-circle',
+                'variant' => 'success'
+            ],
+            [
+                'title' => 'Story Points',
+                'count' => $doneTasks->sum(fn($t) => $t->story_points?->points() ?? 0),
+                'icon' => 'sparkles',
+                'variant' => 'success'
+            ],
+            [
+                'title' => 'Verschiebungen',
+                'count' => $allTasks->sum(fn($t) => $t->postpone_count ?? 0),
+                'icon' => 'arrow-path',
+                'variant' => 'secondary'
+            ],
         ];
         $actions = [
             [
@@ -137,12 +144,30 @@
                             @endif
                         </div>
                     </div>
-                    <!-- Projekt-Statistiken -->
+                    <!-- Projekt-Statistiken: Offen -->
                     <div>
-                        <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Statistiken</h3>
+                        <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Offen</h3>
                         <div class="space-y-2">
-                            @foreach($stats as $stat)
-                                <div class="flex items-center justify-between py-2 px-3 rounded-lg bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
+                            @foreach($statsOpen as $stat)
+                                <div class="flex items-center justify-between py-2 px-3 bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
+                                    <div class="flex items-center gap-2">
+                                        @svg('heroicon-o-' . $stat['icon'], 'w-4 h-4 text-[var(--ui-' . $stat['variant'] . ')]')
+                                        <span class="text-sm text-[var(--ui-secondary)]">{{ $stat['title'] }}</span>
+                                    </div>
+                                    <span class="text-sm font-semibold text-[var(--ui-' . $stat['variant'] . ')]">
+                                        {{ $stat['count'] }}
+                                    </span>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <!-- Projekt-Statistiken: Erledigt -->
+                    <div>
+                        <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Erledigt</h3>
+                        <div class="space-y-2">
+                            @foreach($statsDone as $stat)
+                                <div class="flex items-center justify-between py-2 px-3 bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
                                     <div class="flex items-center gap-2">
                                         @svg('heroicon-o-' . $stat['icon'], 'w-4 h-4 text-[var(--ui-' . $stat['variant'] . ')]')
                                         <span class="text-sm text-[var(--ui-secondary)]">{{ $stat['title'] }}</span>
@@ -327,20 +352,6 @@
                 </x-ui-kanban-column>
             @endforeach
 
-            {{-- Erledigt (nicht sortierbar als Gruppe) --}}
-            @php $done = $groups->first(fn($g) => ($g->isDoneGroup ?? false)); @endphp
-            @if($done)
-                <x-ui-kanban-column :title="($done->label ?? 'Erledigt')" :sortable-id="null" :scrollable="true" :muted="true">
-                    <x-slot name="headerActions">
-                        <span class="text-xs text-[var(--ui-muted)] font-medium">
-                            {{ $done->tasks->count() }}
-                        </span>
-                    </x-slot>
-                    @foreach($done->tasks as $task)
-                        @include('planner::livewire.task-preview-card', ['task' => $task])
-                    @endforeach
-                </x-ui-kanban-column>
-            @endif
             </x-ui-kanban-container>
         {{-- Modals innerhalb des Page-Roots halten (ein Root-Element) --}}
         <livewire:planner.project-settings-modal/>
