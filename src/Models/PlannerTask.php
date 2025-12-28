@@ -61,6 +61,10 @@ class PlannerTask extends Model implements HasTimeAncestors, HasKeyResultAncesto
         'original_due_date' => 'datetime',
         'done_at' => 'datetime',
         'is_forced_frog' => 'boolean',
+        // Verschlüsselte Felder werden automatisch vom Encryptable Trait hinzugefügt
+        // aber wir setzen sie hier explizit, um sicherzustellen, dass sie funktionieren
+        'description' => \Platform\Core\Casts\EncryptedString::class,
+        'dod' => \Platform\Core\Casts\EncryptedString::class,
     ];
 
     protected array $encryptable = [
