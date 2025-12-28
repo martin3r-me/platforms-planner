@@ -25,6 +25,7 @@ class PlannerProject extends Model implements HasTimeAncestors, HasKeyResultAnce
     protected $fillable = [
         'uuid',
         'name',
+        'description',
         'order',
         'planned_minutes',
         'customer_cost_center',
