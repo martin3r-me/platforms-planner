@@ -60,41 +60,21 @@ class Task extends Component
         $this->authorize('view', $plannerTask);
         $this->task = $plannerTask->load(['user', 'userInCharge', 'project', 'team']);
         
-        // Verschüsselte Felder explizit lesen und in Attributes schreiben
-        // (für Livewire wire:model - wichtig: Livewire serialisiert die rohen Attributes)
-        // Wir müssen die entschlüsselten Werte explizit in die Attributes schreiben
+        // Verschüsselte Felder explizit lesen über den Cast (löst Entschlüsselung aus)
+        // Dann in die Attributes schreiben, damit Livewire die entschlüsselten Werte serialisiert
+        $decryptedDescription = $this->task->description; // Löst Cast aus -> entschlüsselt
+        $decryptedDod = $this->task->dod; // Löst Cast aus -> entschlüsselt
+        
+        // Setze die entschlüsselten Werte direkt in die Attributes
+        // (Livewire serialisiert die rohen Attributes, nicht die gecasteten Werte)
         $reflection = new \ReflectionClass($this->task);
         $attributesProperty = $reflection->getProperty('attributes');
         $attributesProperty->setAccessible(true);
         $attributes = $attributesProperty->getValue($this->task);
         
-        // Lese und entschlüssele description (nur wenn verschlüsselt)
-        if (isset($attributes['description']) && $attributes['description'] !== null && $attributes['description'] !== '') {
-            try {
-                // Prüfe ob bereits entschlüsselt (einfache Heuristik)
-                $isEncrypted = $this->isEncryptedValue($attributes['description']);
-                if ($isEncrypted) {
-                    $decrypted = \Illuminate\Support\Facades\Crypt::decryptString($attributes['description']);
-                    $attributes['description'] = $decrypted;
-                }
-            } catch (\Throwable $e) {
-                // Falls Entschlüsselung fehlschlägt, bleibt der Wert wie er ist
-            }
-        }
-        
-        // Lese und entschlüssele dod (nur wenn verschlüsselt)
-        if (isset($attributes['dod']) && $attributes['dod'] !== null && $attributes['dod'] !== '') {
-            try {
-                // Prüfe ob bereits entschlüsselt (einfache Heuristik)
-                $isEncrypted = $this->isEncryptedValue($attributes['dod']);
-                if ($isEncrypted) {
-                    $decrypted = \Illuminate\Support\Facades\Crypt::decryptString($attributes['dod']);
-                    $attributes['dod'] = $decrypted;
-                }
-            } catch (\Throwable $e) {
-                // Falls Entschlüsselung fehlschlägt, bleibt der Wert wie er ist
-            }
-        }
+        // Setze entschlüsselte Werte in Attributes
+        $attributes['description'] = $decryptedDescription;
+        $attributes['dod'] = $decryptedDod;
         
         // Setze die modifizierten Attributes zurück
         $attributesProperty->setValue($this->task, $attributes);
