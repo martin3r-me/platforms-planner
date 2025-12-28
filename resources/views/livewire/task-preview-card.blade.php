@@ -11,19 +11,21 @@
 >
     <!-- Story Points, Frosch und Datum (oben in eigene Zeile) -->
     @if($isFrog || $task->story_points || $task->due_date)
-        <div class="mb-3 flex items-start gap-2 flex-wrap">
-            @if($isFrog)
-                <span class="inline-flex items-start gap-1 text-xs text-[var(--ui-muted)]">
-                    @svg('heroicon-o-exclamation-triangle','w-3 h-3 mt-0.5')
-                    <span>Frosch</span>
-                </span>
-            @endif
-            @if($task->story_points)
-                <span class="inline-flex items-start gap-1 text-xs text-[var(--ui-muted)]">
-                    @svg('heroicon-o-sparkles','w-3 h-3 mt-0.5')
-                    <span>SP {{ is_object($task->story_points) ? ($task->story_points->points() ?? $task->story_points) : $task->story_points }}</span>
-                </span>
-            @endif
+        <div class="mb-3 flex items-start justify-between gap-2">
+            <div class="flex items-start gap-2">
+                @if($isFrog)
+                    <span class="inline-flex items-start gap-1 text-xs text-[var(--ui-muted)]">
+                        @svg('heroicon-o-exclamation-triangle','w-3 h-3 mt-0.5')
+                        <span>Frosch</span>
+                    </span>
+                @endif
+                @if($task->story_points)
+                    <span class="inline-flex items-start gap-1 text-xs text-[var(--ui-muted)]">
+                        @svg('heroicon-o-sparkles','w-3 h-3 mt-0.5')
+                        <span>SP {{ is_object($task->story_points) ? ($task->story_points->points() ?? $task->story_points) : $task->story_points }}</span>
+                    </span>
+                @endif
+            </div>
             @if($task->due_date)
                 <span class="text-xs text-[var(--ui-muted)]">
                     {{ $task->due_date->format('d.m.Y') }}
