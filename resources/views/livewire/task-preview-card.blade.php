@@ -32,7 +32,7 @@
                     @if($task->postpone_count > 0)
                         <span class="inline-flex items-center gap-0.5" title="Verschoben: {{ $task->postpone_count }}x">
                             @svg('heroicon-o-arrow-path','w-3 h-3')
-                            <span>({{ $task->postpone_count }})</span>
+                            <span>{{ $task->postpone_count }}</span>
                         </span>
                     @endif
                 </span>

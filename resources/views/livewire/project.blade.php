@@ -286,6 +286,11 @@
             @php $backlog = $groups->first(fn($g) => ($g->isBacklog ?? false)); @endphp
             @if($backlog)
                 <x-ui-kanban-column :title="($backlog->label ?? 'Backlog')" :sortable-id="null" :scrollable="true" :muted="true">
+                    <x-slot name="headerActions">
+                        <span class="text-xs text-[var(--ui-muted)] font-medium">
+                            {{ $backlog->tasks->count() }}
+                        </span>
+                    </x-slot>
                     @foreach($backlog->tasks as $task)
                         @include('planner::livewire.task-preview-card', ['task' => $task])
                     @endforeach
@@ -326,6 +331,11 @@
             @php $done = $groups->first(fn($g) => ($g->isDoneGroup ?? false)); @endphp
             @if($done)
                 <x-ui-kanban-column :title="($done->label ?? 'Erledigt')" :sortable-id="null" :scrollable="true" :muted="true">
+                    <x-slot name="headerActions">
+                        <span class="text-xs text-[var(--ui-muted)] font-medium">
+                            {{ $done->tasks->count() }}
+                        </span>
+                    </x-slot>
                     @foreach($done->tasks as $task)
                         @include('planner::livewire.task-preview-card', ['task' => $task])
                     @endforeach
