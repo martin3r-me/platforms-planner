@@ -28,7 +28,7 @@
             </div>
             @if($task->due_date)
                 <span class="text-xs text-[var(--ui-muted)]">
-                    {{ $task->due_date->format('d.m.Y') }}
+                    {{ $task->due_date->format('d.m.Y') }}@if($task->postpone_count > 0) ({{ $task->postpone_count }})@endif
                 </span>
             @endif
         </div>
