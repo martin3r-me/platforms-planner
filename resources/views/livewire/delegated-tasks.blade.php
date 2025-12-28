@@ -5,86 +5,134 @@
 
     <x-slot name="sidebar">
         <x-ui-page-sidebar title="Übersicht" width="w-80" :defaultOpen="true">
-            <div class="p-4 space-y-4">
-                {{-- Fällige Aufgaben --}}
-                @php $dueGroup = $groups->first(fn($g) => ($g->isDueGroup ?? false)); @endphp
-                @if($dueGroup && $dueGroup->tasks->isNotEmpty())
-                    <div>
-                        <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Fällig</h3>
-                        <div class="space-y-2 max-h-96 overflow-y-auto">
-                            @foreach($dueGroup->tasks as $task)
-                                <a 
-                                    href="{{ route('planner.tasks.show', $task) }}" 
-                                    wire:navigate
-                                    class="block p-3 rounded-lg bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40 hover:bg-[var(--ui-muted)] hover:border-[var(--ui-primary)]/40 transition-colors"
-                                >
-                                    <div class="flex items-start justify-between gap-2">
-                                        <div class="flex-1 min-w-0">
-                                            <div class="text-sm font-medium text-[var(--ui-secondary)] truncate mb-1">
-                                                {{ $task->title }}
-                                            </div>
-                                            <div class="flex items-center gap-2 text-xs text-[var(--ui-muted)]">
-                                                <span class="inline-flex items-center gap-1">
-                                                    @svg('heroicon-o-calendar', 'w-3 h-3')
-                                                    {{ $task->due_date->format('d.m.Y') }}
-                                                </span>
-                                                @if($task->due_date->isPast())
-                                                    <span class="text-[var(--ui-danger)] font-semibold">Überfällig</span>
-                                                @elseif($task->due_date->isToday())
-                                                    <span class="text-[var(--ui-warning)] font-semibold">Heute</span>
-                                                @elseif($task->due_date->isTomorrow())
-                                                    <span class="text-[var(--ui-warning)] font-semibold">Morgen</span>
-                                                @endif
-                                                @if($task->userInCharge)
-                                                    <span class="inline-flex items-center gap-1">
-                                                        @svg('heroicon-o-user', 'w-3 h-3')
-                                                        {{ $task->userInCharge->name }}
-                                                    </span>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    </div>
-                                </a>
-                            @endforeach
-                        </div>
-                    </div>
-                @endif
-
-                {{-- Quick Actions verschoben aus Navbar --}}
+            <div class="p-4 space-y-6">
+                {{-- Aktionen --}}
                 <div>
                     <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Aktionen</h3>
-                    <div class="flex items-center gap-2">
-                        <x-ui-button variant="secondary" size="sm" wire:click="createTaskGroup">
-                            <span class="inline-flex items-center gap-2">
-                                @svg('heroicon-o-square-2-stack','w-4 h-4 inline-block align-middle')
-                                <span class="hidden sm:inline">Spalte</span>
-                            </span>
-                        </x-ui-button>
+                    <div class="flex flex-col gap-2">
                         <x-ui-button variant="secondary" size="sm" wire:click="createTask()">
                             <span class="inline-flex items-center gap-2">
-                                @svg('heroicon-o-plus','w-4 h-4 inline-block align-middle')
-                                <span class="hidden sm:inline">Aufgabe</span>
+                                @svg('heroicon-o-plus','w-4 h-4')
+                                <span>Aufgabe</span>
+                            </span>
+                        </x-ui-button>
+                        <x-ui-button variant="secondary" size="sm" wire:click="createTaskGroup">
+                            <span class="inline-flex items-center gap-2">
+                                @svg('heroicon-o-square-2-stack','w-4 h-4')
+                                <span>Spalte</span>
                             </span>
                         </x-ui-button>
                     </div>
                 </div>
+
+                {{-- Projekt-Statistiken: Offen --}}
+                @php 
+                    $allTasks = $groups->flatMap(fn($g) => $g->tasks);
+                    $openTasks = $groups->filter(fn($g) => !($g->isDoneGroup ?? false))->flatMap(fn($g) => $g->tasks);
+                    $doneTasks = $groups->filter(fn($g) => ($g->isDoneGroup ?? false))->flatMap(fn($g) => $g->tasks);
+                    
+                    $statsOpen = [
+                        [
+                            'title' => 'Offen',
+                            'count' => $openTasks->count(),
+                            'icon' => 'clock',
+                            'variant' => 'warning'
+                        ],
+                        [
+                            'title' => 'Story Points',
+                            'count' => $openTasks->sum(fn($t) => $t->story_points?->points() ?? 0),
+                            'icon' => 'sparkles',
+                            'variant' => 'warning'
+                        ],
+                        [
+                            'title' => 'Frösche',
+                            'count' => $openTasks->filter(fn($t) => $t->is_frog)->count(),
+                            'icon' => 'exclamation-triangle',
+                            'variant' => 'danger'
+                        ],
+                        [
+                            'title' => 'Überfällig',
+                            'count' => $openTasks->filter(fn($t) => $t->due_date && $t->due_date->isPast() && !$t->is_done)->count(),
+                            'icon' => 'exclamation-circle',
+                            'variant' => 'danger'
+                        ],
+                        [
+                            'title' => 'Ohne Fälligkeit',
+                            'count' => $openTasks->filter(fn($t) => !$t->due_date)->count(),
+                            'icon' => 'calendar',
+                            'variant' => 'neutral'
+                        ],
+                    ];
+                    
+                    $statsDone = [
+                        [
+                            'title' => 'Erledigt',
+                            'count' => $doneTasks->count(),
+                            'icon' => 'check-circle',
+                            'variant' => 'success'
+                        ],
+                        [
+                            'title' => 'Story Points',
+                            'count' => $doneTasks->sum(fn($t) => $t->story_points?->points() ?? 0),
+                            'icon' => 'sparkles',
+                            'variant' => 'success'
+                        ],
+                        [
+                            'title' => 'Frösche',
+                            'count' => $doneTasks->filter(fn($t) => $t->is_frog)->count(),
+                            'icon' => 'exclamation-triangle',
+                            'variant' => 'success'
+                        ],
+                        [
+                            'title' => 'Verschiebungen',
+                            'count' => $allTasks->sum(fn($t) => $t->postpone_count ?? 0),
+                            'icon' => 'arrow-path',
+                            'variant' => 'secondary'
+                        ],
+                    ];
+                @endphp
                 <div>
-                    <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Statistiken</h3>
+                    <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Offen</h3>
                     <div class="space-y-2">
-                        @php 
-                            $stats = [
-                                ['title' => 'Story Points (offen)', 'count' => $groups->filter(fn($g) => !($g->isDoneGroup ?? false))->flatMap(fn($g) => $g->tasks)->sum(fn($t) => $t->story_points?->points() ?? 0), 'icon' => 'chart-bar', 'variant' => 'warning'],
-                                ['title' => 'Story Points (erledigt)', 'count' => $groups->filter(fn($g) => $g->isDoneGroup ?? false)->flatMap(fn($g) => $g->tasks)->sum(fn($t) => $t->story_points?->points() ?? 0), 'icon' => 'check-circle', 'variant' => 'success'],
-                                ['title' => 'Offen', 'count' => $groups->filter(fn($g) => !($g->isDoneGroup ?? false))->sum(fn($g) => $g->tasks->count()), 'icon' => 'clock', 'variant' => 'warning'],
-                                ['title' => 'Gesamt', 'count' => $groups->flatMap(fn($g) => $g->tasks)->count(), 'icon' => 'document-text', 'variant' => 'secondary'],
-                                ['title' => 'Erledigt', 'count' => $groups->filter(fn($g) => $g->isDoneGroup ?? false)->sum(fn($g) => $g->tasks->count()), 'icon' => 'check-circle', 'variant' => 'success'],
-                                ['title' => 'Ohne Fälligkeit', 'count' => $groups->flatMap(fn($g) => $g->tasks)->filter(fn($t) => !$t->due_date)->count(), 'icon' => 'calendar', 'variant' => 'neutral'],
-                                ['title' => 'Frösche', 'count' => $groups->flatMap(fn($g) => $g->tasks)->filter(fn($t) => $t->is_frog)->count(), 'icon' => 'exclamation-triangle', 'variant' => 'danger'],
-                                ['title' => 'Überfällig', 'count' => $groups->flatMap(fn($g) => $g->tasks)->filter(fn($t) => $t->due_date && $t->due_date->isPast() && !$t->is_done)->count(), 'icon' => 'exclamation-circle', 'variant' => 'danger'],
-                            ];
-                        @endphp
-                        @foreach($stats as $stat)
-                            <div class="flex items-center justify-between py-2 px-3 rounded-lg bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
+                        @foreach($statsOpen as $stat)
+                            <div class="flex items-center justify-between py-2 px-3 bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
+                                <div class="flex items-center gap-2">
+                                    @svg('heroicon-o-' . $stat['icon'], 'w-4 h-4 text-[var(--ui-' . $stat['variant'] . ')]')
+                                    <span class="text-sm text-[var(--ui-secondary)]">{{ $stat['title'] }}</span>
+                                </div>
+                                <span class="text-sm font-semibold text-[var(--ui-' . $stat['variant'] . ')]">
+                                    {{ $stat['count'] }}
+                                </span>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                {{-- Projekt-Statistiken: Erledigt --}}
+                <div>
+                    <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Erledigt</h3>
+                    <button 
+                        wire:click="toggleShowDoneColumn"
+                        class="w-full flex items-center justify-between py-2.5 px-4 mb-3 bg-[var(--ui-primary-5)] hover:bg-[var(--ui-primary-10)] border border-[var(--ui-primary)]/30 transition-colors group"
+                    >
+                        <span class="inline-flex items-center gap-2 text-sm font-medium text-[var(--ui-primary)]">
+                            @if($showDoneColumn)
+                                @svg('heroicon-o-eye-slash', 'w-4 h-4')
+                                <span>Erledigte ausblenden</span>
+                            @else
+                                @svg('heroicon-o-eye', 'w-4 h-4')
+                                <span>Erledigte anzeigen</span>
+                            @endif
+                        </span>
+                        @if($doneTasks->count() > 0)
+                            <span class="text-xs font-semibold text-[var(--ui-primary)] bg-[var(--ui-primary)]/20 px-2 py-0.5 rounded">
+                                {{ $doneTasks->count() }}
+                            </span>
+                        @endif
+                    </button>
+                    <div class="space-y-2">
+                        @foreach($statsDone as $stat)
+                            <div class="flex items-center justify-between py-2 px-3 bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
                                 <div class="flex items-center gap-2">
                                     @svg('heroicon-o-' . $stat['icon'], 'w-4 h-4 text-[var(--ui-' . $stat['variant'] . ')]')
                                     <span class="text-sm text-[var(--ui-secondary)]">{{ $stat['title'] }}</span>
@@ -122,6 +170,11 @@
             @php $backlog = $groups->first(fn($g) => ($g->isBacklog ?? false)); @endphp
             @if($backlog)
                 <x-ui-kanban-column :title="($backlog->label ?? 'Posteingang')" :sortable-id="null" :scrollable="true" :muted="true">
+                    <x-slot name="headerActions">
+                        <span class="text-xs text-[var(--ui-muted)] font-medium">
+                            {{ $backlog->tasks->count() }}
+                        </span>
+                    </x-slot>
                     @foreach(($backlog->tasks ?? []) as $task)
                         @include('planner::livewire.task-preview-card', ['task' => $task])
                     @endforeach
@@ -153,14 +206,21 @@
                 </x-ui-kanban-column>
             @endforeach
 
-            {{-- Erledigt (nicht sortierbar) --}}
-            @php $done = $groups->first(fn($g) => ($g->isDoneGroup ?? false)); @endphp
-            @if($done)
-                <x-ui-kanban-column :title="($done->label ?? 'Erledigt')" :sortable-id="null" :scrollable="true" :muted="true">
-                    @foreach(($done->tasks ?? []) as $task)
-                        @include('planner::livewire.task-preview-card', ['task' => $task])
-                    @endforeach
-                </x-ui-kanban-column>
+            {{-- Erledigt (nur wenn aktiviert) --}}
+            @if($showDoneColumn)
+                @php $done = $groups->first(fn($g) => ($g->isDoneGroup ?? false)); @endphp
+                @if($done)
+                    <x-ui-kanban-column :title="($done->label ?? 'Erledigt')" :sortable-id="null" :scrollable="true" :muted="true">
+                        <x-slot name="headerActions">
+                            <span class="text-xs text-[var(--ui-muted)] font-medium">
+                                {{ $done->tasks->count() }}
+                            </span>
+                        </x-slot>
+                        @foreach(($done->tasks ?? []) as $task)
+                            @include('planner::livewire.task-preview-card', ['task' => $task])
+                        @endforeach
+                    </x-ui-kanban-column>
+                @endif
             @endif
 
     </x-ui-kanban-container>

@@ -10,6 +10,7 @@ use Livewire\Attributes\On;
 
 class DelegatedTasks extends Component
 {
+    public bool $showDoneColumn = false; // Erledigt-Spalte ein/ausblenden
 
     #[On('updateDashboard')] 
     public function updateDashboard()
@@ -270,6 +271,14 @@ class DelegatedTasks extends Component
                 $taskGroupDb->save();
             }
         }
+    }
+
+    /**
+     * Toggle für die Anzeige der Erledigt-Spalte
+     */
+    public function toggleShowDoneColumn()
+    {
+        $this->showDoneColumn = !$this->showDoneColumn;
     }
 }
 
