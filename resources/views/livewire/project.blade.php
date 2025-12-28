@@ -101,28 +101,28 @@
 
         <x-slot name="sidebar">
             <x-ui-page-sidebar title="Projekt-Übersicht" width="w-80" :defaultOpen="true">
-                <div class="p-4 space-y-5">
+                <div class="p-4 space-y-6">
                     {{-- Aktionen --}}
                     <div>
                         <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Aktionen</h3>
-                        <div class="grid grid-cols-2 gap-2">
+                        <div class="flex flex-col gap-2">
                             @can('update', $project)
-                                <x-ui-button variant="secondary" size="sm" wire:click="createTask()" class="w-full">
-                                    <span class="inline-flex items-center gap-1.5">
+                                <x-ui-button variant="secondary" size="sm" wire:click="createTask()">
+                                    <span class="inline-flex items-center gap-2">
                                         @svg('heroicon-o-plus','w-4 h-4')
                                         <span>Aufgabe</span>
                                     </span>
                                 </x-ui-button>
-                                <x-ui-button variant="secondary" size="sm" wire:click="createProjectSlot" class="w-full">
-                                    <span class="inline-flex items-center gap-1.5">
+                                <x-ui-button variant="secondary" size="sm" wire:click="createProjectSlot">
+                                    <span class="inline-flex items-center gap-2">
                                         @svg('heroicon-o-square-2-stack','w-4 h-4')
                                         <span>Spalte</span>
                                     </span>
                                 </x-ui-button>
                             @endcan
                             @can('settings', $project)
-                                <x-ui-button variant="secondary-outline" size="sm" x-data @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })" class="w-full">
-                                    <span class="inline-flex items-center gap-1.5">
+                                <x-ui-button variant="secondary-outline" size="sm" x-data @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })">
+                                    <span class="inline-flex items-center gap-2">
                                         @svg('heroicon-o-cog-6-tooth','w-4 h-4')
                                         <span>Einstellungen</span>
                                     </span>
@@ -133,8 +133,8 @@
                                     $companyId = $project->customerProject?->company_id;
                                     $companyName = $companyId ? app(\Platform\Core\Contracts\CrmCompanyResolverInterface::class)->displayName($companyId) : null;
                                 @endphp
-                                <x-ui-button variant="secondary-outline" size="sm" x-data @click="$dispatch('open-modal-customer-project', { projectId: {{ $project->id }} })" class="w-full">
-                                    <span class="inline-flex items-center gap-1.5">
+                                <x-ui-button variant="secondary-outline" size="sm" x-data @click="$dispatch('open-modal-customer-project', { projectId: {{ $project->id }} })">
+                                    <span class="inline-flex items-center gap-2">
                                         @svg('heroicon-o-user-group','w-4 h-4')
                                         <span>{{ $companyName ?? 'Kunden' }}</span>
                                     </span>
@@ -145,11 +145,11 @@
                     <!-- Projekt-Statistiken: Offen -->
                     <div>
                         <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Offen</h3>
-                        <div class="space-y-1.5">
+                        <div class="space-y-2">
                             @foreach($statsOpen as $stat)
-                                <div class="flex items-center justify-between py-1.5 px-3 bg-[var(--ui-muted-5)]">
+                                <div class="flex items-center justify-between py-2 px-3 bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
                                     <div class="flex items-center gap-2">
-                                        @svg('heroicon-o-' . $stat['icon'], 'w-3.5 h-3.5 text-[var(--ui-' . $stat['variant'] . ')]')
+                                        @svg('heroicon-o-' . $stat['icon'], 'w-4 h-4 text-[var(--ui-' . $stat['variant'] . ')]')
                                         <span class="text-sm text-[var(--ui-secondary)]">{{ $stat['title'] }}</span>
                                     </div>
                                     <span class="text-sm font-semibold text-[var(--ui-' . $stat['variant'] . ')]">
@@ -162,12 +162,10 @@
 
                     <!-- Projekt-Statistiken: Erledigt -->
                     <div>
-                        <div class="flex items-center justify-between mb-3">
-                            <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)]">Erledigt</h3>
-                        </div>
+                        <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Erledigt</h3>
                         <button 
                             wire:click="toggleShowDoneColumn"
-                            class="w-full flex items-center justify-between py-2 px-3 mb-3 bg-[var(--ui-primary-5)] hover:bg-[var(--ui-primary-10)] border border-[var(--ui-primary)]/30 rounded-md transition-colors group"
+                            class="w-full flex items-center justify-between py-2.5 px-4 mb-3 bg-[var(--ui-primary-5)] hover:bg-[var(--ui-primary-10)] border border-[var(--ui-primary)]/30 transition-colors group"
                         >
                             <span class="inline-flex items-center gap-2 text-sm font-medium text-[var(--ui-primary)]">
                                 @if($showDoneColumn)
@@ -184,11 +182,11 @@
                                 </span>
                             @endif
                         </button>
-                        <div class="space-y-1.5">
+                        <div class="space-y-2">
                             @foreach($statsDone as $stat)
-                                <div class="flex items-center justify-between py-1.5 px-3 bg-[var(--ui-muted-5)]">
+                                <div class="flex items-center justify-between py-2 px-3 bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
                                     <div class="flex items-center gap-2">
-                                        @svg('heroicon-o-' . $stat['icon'], 'w-3.5 h-3.5 text-[var(--ui-' . $stat['variant'] . ')]')
+                                        @svg('heroicon-o-' . $stat['icon'], 'w-4 h-4 text-[var(--ui-' . $stat['variant'] . ')]')
                                         <span class="text-sm text-[var(--ui-secondary)]">{{ $stat['title'] }}</span>
                                     </div>
                                     <span class="text-sm font-semibold text-[var(--ui-' . $stat['variant'] . ')]">
@@ -202,21 +200,21 @@
                     <!-- Projekt-Details -->
                     <div>
                         <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Details</h3>
-                        <div class="space-y-1.5">
-                            <div class="flex justify-between items-center py-1.5 px-3 bg-[var(--ui-muted-5)]">
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center py-2 px-3 bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
                                 <span class="text-sm text-[var(--ui-muted)]">Typ</span>
                                 <span class="text-sm text-[var(--ui-secondary)] font-medium">
                                     {{ $project->project_type?->value ?? $project->project_type ?? '–' }}
                                 </span>
                             </div>
-                            <div class="flex justify-between items-center py-1.5 px-3 bg-[var(--ui-muted-5)]">
+                            <div class="flex justify-between items-center py-2 px-3 bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
                                 <span class="text-sm text-[var(--ui-muted)]">Erstellt</span>
                                 <span class="text-sm text-[var(--ui-secondary)] font-medium">
                                     {{ $project->created_at->format('d.m.Y') }}
                                 </span>
                             </div>
                             @if($project->planned_minutes)
-                                <div class="flex justify-between items-center py-1.5 px-3 bg-[var(--ui-muted-5)]">
+                                <div class="flex justify-between items-center py-2 px-3 bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
                                     <span class="text-sm text-[var(--ui-muted)]">Geplant</span>
                                     <span class="text-sm text-[var(--ui-secondary)] font-medium">
                                         {{ number_format($project->planned_minutes / 60, 2, ',', '.') }} h
@@ -224,7 +222,7 @@
                                 </div>
                             @endif
                             @if($project->customer_cost_center)
-                                <div class="flex justify-between items-center py-1.5 px-3 bg-[var(--ui-muted-5)]">
+                                <div class="flex justify-between items-center py-2 px-3 bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
                                     <span class="text-sm text-[var(--ui-muted)]">Kostenstelle</span>
                                     <span class="text-sm text-[var(--ui-secondary)] font-medium">
                                         {{ $project->customer_cost_center }}
@@ -238,16 +236,16 @@
                     @if($currentUserRole ?? null || $hasAnyTasks ?? false)
                         <div>
                             <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Status</h3>
-                            <div class="space-y-1.5">
+                            <div class="space-y-2">
                                 @if($currentUserRole ?? null)
-                                    <div class="flex justify-between items-center py-1.5 px-3 bg-[var(--ui-muted-5)]">
+                                    <div class="flex justify-between items-center py-2 px-3 bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
                                         <span class="text-sm text-[var(--ui-muted)]">Rolle</span>
                                         <span class="text-xs font-medium px-2 py-0.5 rounded bg-[var(--ui-primary-5)] text-[var(--ui-primary)]">
                                             {{ ucfirst($currentUserRole) }}
                                         </span>
                                     </div>
                                 @elseif($hasAnyTasks ?? false)
-                                    <div class="flex justify-between items-center py-1.5 px-3 bg-[var(--ui-muted-5)]">
+                                    <div class="flex justify-between items-center py-2 px-3 bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
                                         <span class="text-sm text-[var(--ui-muted)]">Status</span>
                                         <span class="text-xs font-medium px-2 py-0.5 rounded bg-[var(--ui-warning-5)] text-[var(--ui-warning)]">
                                             Mit Aufgaben
