@@ -27,8 +27,14 @@
                 @endif
             </div>
             @if($task->due_date)
-                <span class="text-xs text-[var(--ui-muted)]">
-                    {{ $task->due_date->format('d.m.Y') }}@if($task->postpone_count > 0) ({{ $task->postpone_count }})@endif
+                <span class="inline-flex items-center gap-1 text-xs text-[var(--ui-muted)]">
+                    <span>{{ $task->due_date->format('d.m.Y') }}</span>
+                    @if($task->postpone_count > 0)
+                        <span class="inline-flex items-center gap-0.5" title="Verschoben: {{ $task->postpone_count }}x">
+                            @svg('heroicon-o-arrow-path','w-3 h-3')
+                            <span>({{ $task->postpone_count }})</span>
+                        </span>
+                    @endif
                 </span>
             @endif
         </div>
