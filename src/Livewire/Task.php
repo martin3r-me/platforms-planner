@@ -80,8 +80,15 @@ class Task extends Component
         if (!$this->task) {
             return false;
         }
-        // Nur echte, noch nicht gespeicherte Änderungen berücksichtigen
-        return count($this->task->getDirty()) > 0;
+        
+        // Prüfe Model-Änderungen
+        $modelDirty = count($this->task->getDirty()) > 0;
+        
+        // Prüfe verschlüsselte Felder (separate Properties)
+        $descriptionDirty = isset($this->description) && $this->description !== ($this->task->description ?? '');
+        $dodDirty = isset($this->dod) && $this->dod !== ($this->task->dod ?? '');
+        
+        return $modelDirty || $descriptionDirty || $dodDirty;
     }
 
     #[Computed]
@@ -244,10 +251,21 @@ class Task extends Component
 
     public function updatedDescription($value)
     {
+        if (!$this->task) {
+            return;
+        }
+        
         $this->validateOnly('description');
-        $this->task->description = $value; // Cast verschlüsselt automatisch
+        
+        // Setze Wert im Model (Cast verschlüsselt automatisch)
+        $this->task->description = $value;
+        
+        // Prüfe ob wirklich geändert (verhindert unnötige Speicherungen)
         if ($this->task->isDirty('description')) {
             $this->task->save();
+            
+            // Lade entschlüsselten Wert wieder in Property
+            $this->description = $this->task->description;
             
             // Dezentes Feedback
             $this->dispatch('notify', [
@@ -259,10 +277,21 @@ class Task extends Component
 
     public function updatedDod($value)
     {
+        if (!$this->task) {
+            return;
+        }
+        
         $this->validateOnly('dod');
-        $this->task->dod = $value; // Cast verschlüsselt automatisch
+        
+        // Setze Wert im Model (Cast verschlüsselt automatisch)
+        $this->task->dod = $value;
+        
+        // Prüfe ob wirklich geändert (verhindert unnötige Speicherungen)
         if ($this->task->isDirty('dod')) {
             $this->task->save();
+            
+            // Lade entschlüsselten Wert wieder in Property
+            $this->dod = $this->task->dod;
             
             // Dezentes Feedback
             $this->dispatch('notify', [
@@ -274,6 +303,10 @@ class Task extends Component
 
     public function updatedTask($property, $value)
     {
+        if (!$this->task) {
+            return;
+        }
+        
         // Überspringe description und dod, die haben eigene Handler
         if (in_array($property, ['description', 'dod'])) {
             return;
@@ -285,16 +318,23 @@ class Task extends Component
         if ($this->task->isDirty($property)) {
             $this->task->save();
             
-            // Dezentes Feedback für Auto-Save
-            $this->dispatch('notify', [
-                'type' => 'success',
-                'message' => 'Änderungen gespeichert',
-            ]);
+            // Dezentes Feedback für Auto-Save (nur bei wichtigen Feldern)
+            $importantFields = ['title', 'priority', 'story_points', 'user_in_charge_id'];
+            if (in_array($property, $importantFields)) {
+                $this->dispatch('notify', [
+                    'type' => 'success',
+                    'message' => 'Änderungen gespeichert',
+                ]);
+            }
         }
     }
 
     public function save()
     {
+        if (!$this->task) {
+            return;
+        }
+        
         $this->authorize('update', $this->task);
         
         $this->validate();
@@ -328,17 +368,10 @@ class Task extends Component
         $this->description = $this->task->description;
         $this->dod = $this->task->dod;
         
-        // Toast-Notification über das Notification-System
-        $this->dispatch('notifications:store', [
-            'notice_type' => 'success',
-            'title' => 'Aufgabe gespeichert',
-            'message' => 'Die Aufgabe wurde erfolgreich gespeichert.',
-            'properties' => [
-                'task_id' => $this->task->id,
-                'task_title' => $this->task->title,
-            ],
-            'noticable_type' => get_class($this->task),
-            'noticable_id' => $this->task->id,
+        // Toast-Notification
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => 'Alle Änderungen gespeichert',
         ]);
     }
 
