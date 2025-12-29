@@ -102,10 +102,16 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract
             }
 
             // Team bestimmen: aus Argumenten oder Context
+            // WICHTIG: Prüfe auch auf 0, da OpenAI manchmal 0 statt null sendet
+            $teamId = $arguments['team_id'] ?? null;
+            if ($teamId === 0 || $teamId === '0') {
+                $teamId = null; // Behandle 0 als "nicht gesetzt"
+            }
+            
             $team = null;
-            if (!empty($arguments['team_id'])) {
+            if (!empty($teamId)) {
                 // Prüfe, ob User Zugriff auf dieses Team hat
-                $team = $context->user->teams()->find($arguments['team_id']);
+                $team = $context->user->teams()->find($teamId);
                 if (!$team) {
                     return ToolResult::error('TEAM_NOT_FOUND', 'Das angegebene Team wurde nicht gefunden oder du hast keinen Zugriff darauf. Nutze das Tool "core.teams.list" um alle verfügbaren Teams zu sehen.');
                 }
@@ -221,16 +227,23 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract
                 [
                     'tool_name' => 'core.teams.list',
                     'condition' => function(array $arguments, ToolContext $context): bool {
-                        // Führe Dependency aus, wenn team_id fehlt
-                        return empty($arguments['team_id']);
+                        // Führe Dependency aus, wenn team_id fehlt oder 0 ist
+                        // OpenAI sendet manchmal 0 statt null/leer
+                        return empty($arguments['team_id']) || ($arguments['team_id'] ?? null) === 0;
                     },
                     'args' => function(array $arguments, ToolContext $context): array {
                         // Argumente für core.teams.list
                         return ['include_personal' => true];
                     },
                     'merge_result' => function(string $mainToolName, ToolResult $depResult, array $arguments): ?array {
+                        // Prüfe auch auf 0, da OpenAI manchmal 0 statt null sendet
+                        $teamId = $arguments['team_id'] ?? null;
+                        if ($teamId === 0 || $teamId === '0') {
+                            $teamId = null;
+                        }
+                        
                         // Wenn team_id noch fehlt, gib Dependency-Ergebnis zurück (AI soll Teams zeigen)
-                        if (empty($arguments['team_id']) && $depResult->success) {
+                        if (empty($teamId) && $depResult->success) {
                             // null = Dependency-Ergebnis direkt zurückgeben (AI zeigt Teams)
                             return null;
                         }
