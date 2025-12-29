@@ -245,6 +245,12 @@ class Task extends Component
             'context_type' => get_class($this->task),
             'context_id' => $this->task->id,
         ]);
+
+        // Files-Kontext setzen - ermöglicht Datei-Upload für diese Task
+        $this->dispatch('files', [
+            'context_type' => get_class($this->task),
+            'context_id' => $this->task->id,
+        ]);
     }
 
     public function updatedDueDateInput($value)
