@@ -3,6 +3,7 @@
 namespace Platform\Planner\Tools;
 
 use Platform\Core\Contracts\ToolContract;
+use Platform\Core\Contracts\ToolDependencyContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Planner\Models\PlannerProject;
@@ -20,8 +21,10 @@ use Platform\Planner\Enums\ProjectType;
  * - Projekttyp (internal, customer, event, cooking)
  * - Projekt-Owner (falls nicht der aktuelle Nutzer)
  * - Weitere Projektmitglieder mit Rollen (optional)
+ * 
+ * LOOSE COUPLED: Definiert seine Dependencies selbst via ToolDependencyContract.
  */
-class CreateProjectTool implements ToolContract
+class CreateProjectTool implements ToolContract, ToolDependencyContract
 {
     public function getName(): string
     {
@@ -203,6 +206,41 @@ class CreateProjectTool implements ToolContract
         } catch (\Throwable $e) {
             return ToolResult::error('EXECUTION_ERROR', 'Fehler beim Erstellen des Projekts: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Definiert die Dependencies dieses Tools (loose coupled)
+     * 
+     * Wenn team_id fehlt, wird automatisch core.teams.list aufgerufen.
+     */
+    public function getDependencies(): array
+    {
+        return [
+            'required_fields' => [], // team_id ist optional im Schema, aber wird benötigt
+            'dependencies' => [
+                [
+                    'tool_name' => 'core.teams.list',
+                    'condition' => function(array $arguments, ToolContext $context): bool {
+                        // Führe Dependency aus, wenn team_id fehlt
+                        return empty($arguments['team_id']);
+                    },
+                    'args' => function(array $arguments, ToolContext $context): array {
+                        // Argumente für core.teams.list
+                        return ['include_personal' => true];
+                    },
+                    'merge_result' => function(string $mainToolName, ToolResult $depResult, array $arguments): ?array {
+                        // Wenn team_id noch fehlt, gib Dependency-Ergebnis zurück (AI soll Teams zeigen)
+                        if (empty($arguments['team_id']) && $depResult->success) {
+                            // null = Dependency-Ergebnis direkt zurückgeben (AI zeigt Teams)
+                            return null;
+                        }
+                        
+                        // team_id ist vorhanden oder wurde gesetzt, weiter mit Haupt-Tool
+                        return $arguments;
+                    }
+                ]
+            ]
+        ];
     }
 }
 
