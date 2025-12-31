@@ -126,10 +126,10 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract
             // Owner bestimmen (Standard: aktueller User)
             $ownerUserId = $arguments['owner_user_id'] ?? $context->user->id;
 
-            // Projekttyp bestimmen
-            $projectType = null;
+            // Projekttyp bestimmen (Standard: internal)
+            $projectType = ProjectType::INTERNAL; // Default
             if (!empty($arguments['project_type'])) {
-                $projectType = ProjectType::tryFrom($arguments['project_type']);
+                $projectType = ProjectType::tryFrom($arguments['project_type']) ?? ProjectType::INTERNAL;
             }
 
             // Order berechnen (neues Projekt kommt ans Ende)
