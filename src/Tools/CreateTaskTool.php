@@ -139,19 +139,31 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
             // User in Charge bestimmen
             $userInChargeId = $arguments['user_in_charge_id'] ?? $context->user->id;
 
-            // Order berechnen (neue Aufgabe kommt ans Ende)
+            // Order berechnen (neue Aufgabe kommt an den Anfang)
             $order = null;
+            $projectSlotOrder = 0; // Default für Backlog-Aufgaben (ohne Slot)
+            
             if ($slot) {
-                // Order innerhalb des Slots
-                $maxOrder = PlannerTask::where('project_slot_id', $slot->id)
-                    ->max('project_slot_order') ?? 0;
-                $order = $maxOrder + 1;
+                // Order innerhalb des Slots - neue Aufgabe kommt an den Anfang
+                $minOrder = PlannerTask::where('project_slot_id', $slot->id)
+                    ->min('project_slot_order') ?? 0;
+                $projectSlotOrder = $minOrder - 1; // Kann auch negativ sein
+                $order = $projectSlotOrder;
             } else {
-                // Order für Backlog oder persönliche Aufgaben
-                $maxOrder = PlannerTask::where('project_id', $project?->id)
+                // Order für Backlog oder persönliche Aufgaben - neue Aufgabe kommt an den Anfang
+                $minOrder = PlannerTask::where('project_id', $project?->id)
                     ->whereNull('project_slot_id')
-                    ->max('order') ?? 0;
-                $order = $maxOrder + 1;
+                    ->min('order') ?? 0;
+                $order = $minOrder - 1; // Kann auch negativ sein
+                // project_slot_order bleibt 0 für Backlog-Aufgaben (ohne Slot)
+            }
+
+            // Handle project_slot_id: Wenn 0 oder leer, setze auf null (Backlog)
+            $projectSlotId = null;
+            if (!empty($arguments['project_slot_id']) && $arguments['project_slot_id'] !== 0) {
+                $projectSlotId = $arguments['project_slot_id'];
+            } elseif ($slot) {
+                $projectSlotId = $slot->id;
             }
 
             // Aufgabe erstellen
@@ -161,13 +173,13 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
                 'dod' => $arguments['dod'] ?? null,
                 'due_date' => $dueDate,
                 'project_id' => $project?->id,
-                'project_slot_id' => $slot?->id,
+                'project_slot_id' => $projectSlotId, // null für Backlog, Slot-ID für Slot-Aufgaben
                 'user_id' => $context->user->id,
                 'user_in_charge_id' => $userInChargeId,
                 'team_id' => $teamId,
                 'planned_minutes' => $arguments['planned_minutes'] ?? null,
                 'order' => $order,
-                'project_slot_order' => $slot ? $order : null,
+                'project_slot_order' => $projectSlotOrder, // 0 für Backlog, >0 für Slot-Aufgaben
             ]);
 
             // Response zusammenstellen
