@@ -171,7 +171,7 @@ class UpdateTaskTool implements ToolContract
                 if (empty($arguments['project_slot_id']) || $arguments['project_slot_id'] === 0) {
                     // Aus Slot ins Backlog verschieben
                     $updateData['project_slot_id'] = null;
-                    $updateData['project_slot_order'] = null;
+                    $updateData['project_slot_order'] = 0; // Backlog-Aufgaben haben project_slot_order = 0 (nicht null!)
                     $slotChanged = true;
                 } else {
                     // Neuen Slot prüfen
@@ -188,10 +188,10 @@ class UpdateTaskTool implements ToolContract
 
                     $updateData['project_slot_id'] = $newSlot->id;
                     
-                    // Order im neuen Slot berechnen
-                    $maxOrder = PlannerTask::where('project_slot_id', $newSlot->id)
-                        ->max('project_slot_order') ?? 0;
-                    $updateData['project_slot_order'] = $maxOrder + 1;
+                    // Order im neuen Slot berechnen (neue Aufgabe kommt an den Anfang: min - 1)
+                    $minOrder = PlannerTask::where('project_slot_id', $newSlot->id)
+                        ->min('project_slot_order');
+                    $updateData['project_slot_order'] = ($minOrder === null) ? 0 : $minOrder - 1;
                     $slotChanged = true;
                 }
             }
@@ -199,8 +199,12 @@ class UpdateTaskTool implements ToolContract
             // Wenn Projekt geändert wurde, aber Slot nicht explizit gesetzt, Slot entfernen
             if ($projectChanged && !isset($arguments['project_slot_id'])) {
                 $updateData['project_slot_id'] = null;
-                $updateData['project_slot_order'] = null;
+                $updateData['project_slot_order'] = 0; // Backlog-Aufgaben haben project_slot_order = 0 (nicht null!)
             }
+            
+            // WICHTIG: Wenn nur andere Felder geändert werden (z.B. description, dod), 
+            // NICHT project_slot_order setzen - es behält seinen aktuellen Wert
+            // Nur wenn project_slot_id geändert wird, wird project_slot_order auch aktualisiert
 
             if (isset($arguments['user_in_charge_id'])) {
                 $updateData['user_in_charge_id'] = $arguments['user_in_charge_id'];

@@ -88,18 +88,37 @@ class ListTasksTool implements ToolContract
             }
             
             // Legacy: user_in_charge_id (Standard: aktueller User)
-            $userInChargeId = $arguments['user_in_charge_id'] ?? $context->user->id;
-            if (empty($arguments['filters']) || !$this->hasFilterForField($arguments['filters'], 'user_in_charge_id')) {
+            // WICHTIG: 0 bedeutet "nicht gesetzt", nicht "User mit ID 0"
+            $userInChargeId = null;
+            if (isset($arguments['user_in_charge_id']) && $arguments['user_in_charge_id'] !== 0 && $arguments['user_in_charge_id'] !== '0') {
+                $userInChargeId = (int)$arguments['user_in_charge_id'];
+            }
+            
+            // Prüfe, ob user_in_charge_id bereits in Standard-Filters ist
+            $hasUserFilterInStandard = $this->hasFilterForField($arguments['filters'] ?? [], 'user_in_charge_id');
+            
+            // Wenn explizit angegeben: IMMER filtern (auch wenn project_id gesetzt ist)
+            if ($userInChargeId !== null && !$hasUserFilterInStandard) {
                 $query->where('user_in_charge_id', $userInChargeId);
+            } elseif ($userInChargeId === null && !$hasUserFilterInStandard) {
+                // Wenn NICHT angegeben: Standard-Verhalten
+                $hasProjectFilter = !empty($arguments['project_id']) || $this->hasFilterForField($arguments['filters'] ?? [], 'project_id');
+                if (!$hasProjectFilter) {
+                    // Kein Projekt-Filter: Zeige nur Aufgaben des aktuellen Users (Standard)
+                    $query->where('user_in_charge_id', $context->user->id);
+                }
+                // Wenn Projekt-Filter vorhanden: Zeige ALLE Aufgaben des Projekts (kein User-Filter)
             }
             
             // Legacy: is_done (für Backwards-Kompatibilität)
-            if (isset($arguments['is_done'])) {
-                $query->where('is_done', $arguments['is_done']);
+            // WICHTIG: Nur anwenden, wenn explizit gesetzt (nicht wenn null)
+            if (isset($arguments['is_done']) && $arguments['is_done'] !== null) {
+                $query->where('is_done', (bool)$arguments['is_done']);
             }
             
             // Legacy: is_personal (für Backwards-Kompatibilität)
-            if (isset($arguments['is_personal'])) {
+            // WICHTIG: Nur anwenden, wenn explizit gesetzt (nicht wenn null)
+            if (isset($arguments['is_personal']) && $arguments['is_personal'] !== null) {
                 if ($arguments['is_personal']) {
                     $query->whereNull('project_id');
                 } else {
@@ -174,6 +193,10 @@ class ListTasksTool implements ToolContract
      */
     private function hasFilterForField(array $filters, string $field): bool
     {
+        if (empty($filters) || !is_array($filters)) {
+            return false;
+        }
+        
         foreach ($filters as $filter) {
             if (($filter['field'] ?? null) === $field) {
                 return true;
