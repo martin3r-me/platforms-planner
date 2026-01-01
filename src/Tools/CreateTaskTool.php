@@ -30,7 +30,7 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
 
     public function getDescription(): string
     {
-        return 'Erstellt eine neue Aufgabe. Aufgaben können in einem Projekt-Slot (strukturiert), im Projekt-Backlog (ohne Slot) oder als persönliche Aufgabe (ohne Projekt) erstellt werden. RUF DIESES TOOL AUF, wenn der Nutzer eine Aufgabe erstellen möchte. Der Titel ist erforderlich. Wenn der Nutzer ein Projekt oder einen Slot erwähnt, nutze "planner.projects.GET" und "planner.project_slots.GET" um die IDs zu finden. Wenn nichts angegeben ist, erstelle eine persönliche Aufgabe.';
+        return 'Erstellt eine neue Aufgabe. Aufgaben können in einem Projekt-Slot (strukturiert), im Projekt-Backlog (ohne Slot) oder als persönliche Aufgabe (ohne Projekt) erstellt werden. RUF DIESES TOOL AUF, wenn der Nutzer eine Aufgabe erstellen möchte. Der Titel ist erforderlich. Wenn der Nutzer ein Projekt oder einen Slot erwähnt, nutze "planner.projects.GET" und "planner.project_slots.GET" um die IDs zu finden. Wenn nichts angegeben ist, erstelle eine persönliche Aufgabe. Du kannst dieses Tool mehrfach aufrufen, um mehrere Aufgaben zu erstellen.';
     }
 
     public function getSchema(): array
@@ -40,19 +40,19 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
             'properties' => [
                 'title' => [
                     'type' => 'string',
-                    'description' => 'Titel der Aufgabe (ERFORDERLICH). Frage den Nutzer explizit nach dem Titel, wenn er nicht angegeben wurde.'
+                    'description' => 'Titel der Aufgabe (ERFORDERLICH).'
                 ],
                 'description' => [
                     'type' => 'string',
-                    'description' => 'Optional: Beschreibung der Aufgabe. Frage nach, wenn der Nutzer Details erwähnt, aber keine Beschreibung angibt.'
+                    'description' => 'Optional: Beschreibung der Aufgabe.'
                 ],
                 'dod' => [
                     'type' => 'string',
-                    'description' => 'Optional: Definition of Done (DoD) - Kriterien, wann die Aufgabe als erledigt gilt. Frage nach, wenn der Nutzer DoD-Kriterien erwähnt.'
+                    'description' => 'Optional: Definition of Done (DoD) - Kriterien, wann die Aufgabe als erledigt gilt.'
                 ],
                 'due_date' => [
                     'type' => 'string',
-                    'description' => 'Optional: Fälligkeitsdatum im Format YYYY-MM-DD oder ISO 8601 (z.B. "2025-01-20" oder "2025-01-20T10:00:00Z"). Frage nach, wenn der Nutzer ein Datum erwähnt (z.B. "bis nächste Woche", "bis Freitag").'
+                    'description' => 'Optional: Fälligkeitsdatum im Format YYYY-MM-DD oder ISO 8601 (z.B. "2025-01-20" oder "2025-01-20T10:00:00Z").'
                 ],
                 'project_id' => [
                     'type' => 'integer',
@@ -68,7 +68,7 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
                 ],
                 'planned_minutes' => [
                     'type' => 'integer',
-                    'description' => 'Optional: Geplante Minuten für die Aufgabe. Frage nach, wenn der Nutzer eine Zeitangabe macht.'
+                    'description' => 'Optional: Geplante Minuten für die Aufgabe.'
                 ]
             ],
             'required' => ['title']

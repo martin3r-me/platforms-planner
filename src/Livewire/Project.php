@@ -120,23 +120,32 @@ class Project extends Component
 
         // === 2. PROJECT-SLOTS ===
         $slots = PlannerProjectSlot::with(['tasks' => function ($q) {
-                $q->where('is_done', false)->orderBy('project_slot_order');
+                $q->where('is_done', false)
+                  ->whereNotNull('project_slot_id') // Explizit: Nur Tasks mit project_slot_id (nicht NULL)
+                  ->orderBy('project_slot_order');
             }])
             ->where('project_id', $this->project->id)
             ->orderBy('order')
             ->get()
-            ->map(fn ($slot) => (object) [
-                'id' => $slot->id,
-                'label' => $slot->name,
-                'isBacklog' => false,
-                'tasks' => $slot->tasks,
-                'open_count' => $slot->tasks->count(),
-                'open_points' => $slot->tasks->sum(
-                    fn ($task) => $task->story_points instanceof StoryPoints
-                        ? $task->story_points->points()
-                        : 1
-                ),
-            ]);
+            ->map(function ($slot) {
+                // Zusätzliche Sicherheit: Filtere Tasks explizit nach project_slot_id
+                $tasks = $slot->tasks->filter(function ($task) use ($slot) {
+                    return $task->project_slot_id === $slot->id && $task->project_slot_id !== null;
+                });
+                
+                return (object) [
+                    'id' => $slot->id,
+                    'label' => $slot->name,
+                    'isBacklog' => false,
+                    'tasks' => $tasks,
+                    'open_count' => $tasks->count(),
+                    'open_points' => $tasks->sum(
+                        fn ($task) => $task->story_points instanceof StoryPoints
+                            ? $task->story_points->points()
+                            : 1
+                    ),
+                ];
+            });
 
         // === 3. ERLEDIGTE AUFGABEN ===
         $doneTasks = PlannerTask::where('project_id', $this->project->id)
