@@ -76,13 +76,13 @@ class Project extends Component
             'project_name' => $this->project->name
         ]);
 
-        // Organization-Kontext setzen - beides erlauben: Zeiten + Entity-Verknüpfung
+        // Organization-Kontext setzen - beides erlauben: Zeiten + Entity-Verknüpfung + Dimensionen
         $this->dispatch('organization', [
             'context_type' => get_class($this->project),
             'context_id' => $this->project->id,
             'allow_time_entry' => true,
-            'allow_context_management' => true,
-            'can_link_to_entity' => true,
+            'allow_entities' => true,
+            'allow_dimensions' => true,
             // Verfügbare Relations für Children-Cascade (z.B. Tasks mit/ohne Slots)
             'include_children_relations' => ['tasks', 'projectSlots.tasks'],
         ]);
