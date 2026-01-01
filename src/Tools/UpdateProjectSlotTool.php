@@ -5,6 +5,7 @@ namespace Platform\Planner\Tools;
 use Platform\Core\Contracts\ToolContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
+use Platform\Core\Tools\Concerns\HasStandardizedWriteOperations;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectSlot;
 
@@ -13,6 +14,7 @@ use Platform\Planner\Models\PlannerProjectSlot;
  */
 class UpdateProjectSlotTool implements ToolContract
 {
+    use HasStandardizedWriteOperations;
     public function getName(): string
     {
         return 'planner.project_slots.PUT';
@@ -48,30 +50,41 @@ class UpdateProjectSlotTool implements ToolContract
     public function execute(array $arguments, ToolContext $context): ToolResult
     {
         try {
-            if (empty($arguments['slot_id'])) {
-                return ToolResult::error('VALIDATION_ERROR', 'Slot-ID ist erforderlich. Nutze "planner.project_slots.GET" um Slots zu finden.');
+            // Nutze standardisierte ID-Validierung (loose coupled - optional)
+            $validation = $this->validateAndFindModel(
+                $arguments,
+                $context,
+                'slot_id',
+                PlannerProjectSlot::class,
+                'SLOT_NOT_FOUND',
+                'Der angegebene Slot wurde nicht gefunden.'
+            );
+            
+            if ($validation['error']) {
+                return $validation['error'];
             }
-
-            // Slot finden
-            $slot = PlannerProjectSlot::find($arguments['slot_id']);
-            if (!$slot) {
-                return ToolResult::error('SLOT_NOT_FOUND', 'Der angegebene Slot wurde nicht gefunden. Nutze "planner.project_slots.GET" um alle verfügbaren Slots zu sehen.');
-            }
-
+            
+            $slot = $validation['model'];
+            
             // Projekt laden
             $project = $slot->project;
             if (!$project) {
                 return ToolResult::error('PROJECT_NOT_FOUND', 'Das zugehörige Projekt wurde nicht gefunden.');
             }
 
-            // Prüfe Zugriff
-            $hasAccess = $project->projectUsers()
-                ->where('user_id', $context->user->id)
-                ->whereIn('role', ['owner', 'admin'])
-                ->exists();
+            // Prüfe Zugriff über Projekt (optional - kann überschrieben werden)
+            $accessCheck = $this->checkAccess($project, $context, function($model, $ctx) {
+                // Custom Access-Check: Owner oder Admin des Projekts
+                $hasAccess = $model->projectUsers()
+                    ->where('user_id', $ctx->user->id)
+                    ->whereIn('role', ['owner', 'admin'])
+                    ->exists();
+                
+                return $hasAccess || $model->user_id === $ctx->user->id;
+            });
             
-            if (!$hasAccess && $project->user_id !== $context->user->id) {
-                return ToolResult::error('ACCESS_DENIED', 'Du hast keine Berechtigung, diesen Slot zu bearbeiten. Nur Owner und Admins können Slots bearbeiten.');
+            if ($accessCheck) {
+                return $accessCheck;
             }
 
             // Update-Daten sammeln

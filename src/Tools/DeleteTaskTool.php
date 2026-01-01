@@ -5,6 +5,7 @@ namespace Platform\Planner\Tools;
 use Platform\Core\Contracts\ToolContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
+use Platform\Core\Tools\Concerns\HasStandardizedWriteOperations;
 use Platform\Planner\Models\PlannerTask;
 
 /**
@@ -14,6 +15,7 @@ use Platform\Planner\Models\PlannerTask;
  */
 class DeleteTaskTool implements ToolContract
 {
+    use HasStandardizedWriteOperations;
     public function getName(): string
     {
         return 'planner.tasks.DELETE';
@@ -45,12 +47,15 @@ class DeleteTaskTool implements ToolContract
     public function execute(array $arguments, ToolContext $context): ToolResult
     {
         try {
-            if (empty($arguments['task_id'])) {
+            // Nutze standardisierte ID-Validierung (loose coupled - optional)
+            // Für Delete mit Soft-Delete müssen wir withTrashed verwenden
+            $taskId = $arguments['task_id'] ?? null;
+            if (empty($taskId)) {
                 return ToolResult::error('VALIDATION_ERROR', 'Task-ID ist erforderlich. Nutze "planner.tasks.GET" um Aufgaben zu finden.');
             }
-
-            // Task finden (auch gelöschte Tasks können gefunden werden, aber wir prüfen trotzdem)
-            $task = PlannerTask::withTrashed()->find($arguments['task_id']);
+            
+            // Task finden (auch gelöschte Tasks können gefunden werden)
+            $task = PlannerTask::withTrashed()->find($taskId);
             if (!$task) {
                 return ToolResult::error('TASK_NOT_FOUND', 'Die angegebene Aufgabe wurde nicht gefunden. Nutze "planner.tasks.GET" um alle verfügbaren Aufgaben zu sehen.');
             }
@@ -60,21 +65,28 @@ class DeleteTaskTool implements ToolContract
                 return ToolResult::error('ALREADY_DELETED', 'Die Aufgabe wurde bereits gelöscht.');
             }
 
-            // Prüfe Zugriff
-            if ($task->user_in_charge_id !== $context->user->id && $task->user_id !== $context->user->id) {
-                if ($task->project_id) {
-                    $project = $task->project;
+            // Prüfe Zugriff (optional - kann überschrieben werden)
+            $accessCheck = $this->checkAccess($task, $context, function($model, $ctx) {
+                // Custom Access-Check: User muss Owner der Aufgabe sein oder Zugriff auf das Projekt haben
+                if ($model->user_in_charge_id === $ctx->user->id || $model->user_id === $ctx->user->id) {
+                    return true;
+                }
+                
+                if ($model->project_id) {
+                    $project = $model->project;
                     $hasAccess = $project->projectUsers()
-                        ->where('user_id', $context->user->id)
+                        ->where('user_id', $ctx->user->id)
                         ->whereIn('role', ['owner', 'admin'])
                         ->exists();
                     
-                    if (!$hasAccess && $project->user_id !== $context->user->id) {
-                        return ToolResult::error('ACCESS_DENIED', 'Du hast keine Berechtigung, diese Aufgabe zu löschen.');
-                    }
-                } else {
-                    return ToolResult::error('ACCESS_DENIED', 'Du hast keine Berechtigung, diese Aufgabe zu löschen.');
+                    return $hasAccess || $project->user_id === $ctx->user->id;
                 }
+                
+                return false;
+            });
+            
+            if ($accessCheck) {
+                return $accessCheck;
             }
 
             // Bestätigung prüfen (wenn Aufgabe wichtig erscheint)

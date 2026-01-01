@@ -5,6 +5,7 @@ namespace Platform\Planner\Tools;
 use Platform\Core\Contracts\ToolContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
+use Platform\Core\Tools\Concerns\HasStandardizedWriteOperations;
 use Platform\Planner\Models\PlannerProject;
 
 /**
@@ -12,6 +13,7 @@ use Platform\Planner\Models\PlannerProject;
  */
 class DeleteProjectTool implements ToolContract
 {
+    use HasStandardizedWriteOperations;
     public function getName(): string
     {
         return 'planner.projects.DELETE';
@@ -43,26 +45,39 @@ class DeleteProjectTool implements ToolContract
     public function execute(array $arguments, ToolContext $context): ToolResult
     {
         try {
-            if (empty($arguments['project_id'])) {
-                return ToolResult::error('VALIDATION_ERROR', 'Projekt-ID ist erforderlich. Nutze "planner.projects.GET" um Projekte zu finden.');
+            // Nutze standardisierte ID-Validierung (loose coupled - optional)
+            $validation = $this->validateAndFindModel(
+                $arguments,
+                $context,
+                'project_id',
+                PlannerProject::class,
+                'PROJECT_NOT_FOUND',
+                'Das angegebene Projekt wurde nicht gefunden.'
+            );
+            
+            if ($validation['error']) {
+                return $validation['error'];
             }
-
-            // Projekt finden
-            $project = PlannerProject::find($arguments['project_id']);
-            if (!$project) {
-                return ToolResult::error('PROJECT_NOT_FOUND', 'Das angegebene Projekt wurde nicht gefunden. Nutze "planner.projects.GET" um alle verfügbaren Projekte zu sehen.');
-            }
-
-            // Prüfe Zugriff (nur Owner kann löschen)
-            if ($project->user_id !== $context->user->id) {
-                $isAdmin = $project->projectUsers()
-                    ->where('user_id', $context->user->id)
+            
+            $project = $validation['model'];
+            
+            // Prüfe Zugriff (nur Owner oder Admin kann löschen)
+            $accessCheck = $this->checkAccess($project, $context, function($model, $ctx) {
+                // Custom Access-Check: Owner oder Admin
+                if ($model->user_id === $ctx->user->id) {
+                    return true;
+                }
+                
+                $isAdmin = $model->projectUsers()
+                    ->where('user_id', $ctx->user->id)
                     ->where('role', 'admin')
                     ->exists();
                 
-                if (!$isAdmin) {
-                    return ToolResult::error('ACCESS_DENIED', 'Du hast keine Berechtigung, dieses Projekt zu löschen. Nur der Projekt-Owner kann Projekte löschen.');
-                }
+                return $isAdmin;
+            });
+            
+            if ($accessCheck) {
+                return $accessCheck;
             }
 
             // Prüfe Anzahl der Aufgaben (für Warnung)

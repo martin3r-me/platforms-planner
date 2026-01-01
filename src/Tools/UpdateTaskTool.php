@@ -5,6 +5,7 @@ namespace Platform\Planner\Tools;
 use Platform\Core\Contracts\ToolContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
+use Platform\Core\Tools\Concerns\HasStandardizedWriteOperations;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectSlot;
 use Platform\Planner\Models\PlannerTask;
@@ -17,6 +18,7 @@ use Carbon\Carbon;
  */
 class UpdateTaskTool implements ToolContract
 {
+    use HasStandardizedWriteOperations;
     public function getName(): string
     {
         return 'planner.tasks.PUT';
@@ -80,14 +82,42 @@ class UpdateTaskTool implements ToolContract
     public function execute(array $arguments, ToolContext $context): ToolResult
     {
         try {
-            if (empty($arguments['task_id'])) {
-                return ToolResult::error('VALIDATION_ERROR', 'Task-ID ist erforderlich. Nutze "planner.tasks.GET" um Aufgaben zu finden.');
+            // Nutze standardisierte ID-Validierung (loose coupled - optional)
+            $validation = $this->validateAndFindModel(
+                $arguments,
+                $context,
+                'task_id',
+                PlannerTask::class,
+                'TASK_NOT_FOUND',
+                'Die angegebene Aufgabe wurde nicht gefunden.'
+            );
+            
+            if ($validation['error']) {
+                return $validation['error'];
             }
-
-            // Task finden
-            $task = PlannerTask::find($arguments['task_id']);
-            if (!$task) {
-                return ToolResult::error('TASK_NOT_FOUND', 'Die angegebene Aufgabe wurde nicht gefunden. Nutze "planner.tasks.GET" um alle verfügbaren Aufgaben zu sehen.');
+            
+            $task = $validation['model'];
+            
+            // Prüfe Zugriff (optional - kann überschrieben werden)
+            $accessCheck = $this->checkAccess($task, $context, function($model, $ctx) {
+                // Custom Access-Check: User muss Owner der Aufgabe sein oder Zugriff auf das Projekt haben
+                if ($model->user_in_charge_id !== $ctx->user->id && $model->user_id !== $ctx->user->id) {
+                    if ($model->project_id) {
+                        $project = $model->project;
+                        $hasAccess = $project->projectUsers()
+                            ->where('user_id', $ctx->user->id)
+                            ->whereIn('role', ['owner', 'admin'])
+                            ->exists();
+                        
+                        return $hasAccess || $project->user_id === $ctx->user->id;
+                    }
+                    return false;
+                }
+                return true;
+            });
+            
+            if ($accessCheck) {
+                return $accessCheck;
             }
 
             // Prüfe Zugriff (User muss Owner der Aufgabe sein oder Zugriff auf das Projekt haben)
