@@ -23,7 +23,7 @@ class DeleteTaskTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'Löscht eine Aufgabe. RUF DIESES TOOL AUF, wenn der Nutzer eine Aufgabe löschen möchte. Die Task-ID ist erforderlich. Nutze "planner.tasks.GET" um Aufgaben zu finden. WICHTIG: Aufgaben werden soft-deleted (gelöscht), können aber wiederhergestellt werden. Frage den Nutzer nach Bestätigung, wenn die Aufgabe wichtig erscheint.';
+        return 'Löscht eine Aufgabe. Die Task-ID ist erforderlich. Nutze "planner.tasks.GET" um Aufgaben zu finden. Aufgaben werden soft-deleted (gelöscht), können aber wiederhergestellt werden. Wenn mehrere Aufgaben gelöscht werden sollen, kann dieses Tool mehrfach aufgerufen werden. Frage den Nutzer nach Bestätigung, wenn die Aufgabe wichtig erscheint.';
     }
 
     public function getSchema(): array
