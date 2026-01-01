@@ -76,9 +76,21 @@ class DeleteProjectTool implements ToolContract
 
             $projectName = $project->name;
             $projectId = $project->id;
+            $teamId = $project->team_id;
 
             // Projekt löschen (Cascade löscht automatisch Slots und Tasks)
             $project->delete();
+
+            // Cache invalidieren für planner.projects.GET (damit gelöschte Projekte nicht mehr angezeigt werden)
+            try {
+                $cacheService = app(\Platform\Core\Services\ToolCacheService::class);
+                if ($cacheService) {
+                    // Invalidiere Cache für planner.projects.GET mit diesem Team
+                    $cacheService->invalidate('planner.projects.GET', $context->user->id, $teamId);
+                }
+            } catch (\Throwable $e) {
+                // Silent fail - Cache-Invalidierung ist nicht kritisch
+            }
 
             return ToolResult::success([
                 'project_id' => $projectId,

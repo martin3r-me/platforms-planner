@@ -25,7 +25,7 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'Listet alle Projekte auf, auf die der aktuelle User Zugriff hat (entweder als Mitglied oder durch Aufgaben). RUF DIESES TOOL AUF, wenn der Nutzer nach Projekten fragt oder wenn du ein Projekt finden musst, bevor du eine Aufgabe oder einen Slot erstellst. Wenn der Nutzer nur einen Projektnamen angibt, nutze dieses Tool, um die Projekt-ID zu finden.';
+        return 'Listet alle Projekte auf, auf die der aktuelle User Zugriff hat (entweder als Mitglied oder durch Aufgaben). RUF DIESES TOOL AUF, wenn der Nutzer nach Projekten fragt, wenn du prüfen musst, ob ein Projekt noch existiert, oder wenn du ein Projekt finden musst, bevor du eine Aufgabe oder einen Slot erstellst. Wenn der Nutzer nur einen Projektnamen angibt, nutze dieses Tool, um die Projekt-ID zu finden. WICHTIG: Wenn du prüfen musst, ob ein Projekt existiert, rufe dieses Tool auf - nicht planner.tasks.GET!';
     }
 
     public function getSchema(): array
