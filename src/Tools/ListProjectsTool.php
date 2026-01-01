@@ -8,6 +8,7 @@ use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Tools\Concerns\HasStandardGetOperations;
 use Platform\Planner\Models\PlannerProject;
+use Platform\Planner\Models\PlannerTask;
 
 /**
  * Tool zum Auflisten von Projekten im Planner-Modul
@@ -68,7 +69,7 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
             // Query aufbauen
             $query = PlannerProject::query()
                 ->where('team_id', $teamId)
-                ->with(['user', 'team', 'projectUsers.user']);
+                ->with(['user', 'team', 'projectUsers.user', 'projectSlots']);
 
             // Standard-Operationen anwenden
             $this->applyStandardFilters($query, $arguments, [
@@ -99,7 +100,7 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
             // Projekte holen (nur solche, auf die User Zugriff hat)
             $projects = $query->get();
 
-            // Projekte formatieren
+            // Projekte formatieren mit Slots- und Backlog-Statistiken
             $projectsList = $projects->map(function($project) use ($context) {
                 $projectUsers = $project->projectUsers->map(function($pu) {
                     return [
@@ -108,6 +109,25 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
                         'role' => $pu->role,
                     ];
                 })->toArray();
+
+                // Slots-Statistiken
+                $slots = $project->projectSlots;
+                $slotsCount = $slots->count();
+                $totalTasksInSlots = $slots->sum(function($slot) {
+                    return $slot->tasks()->count();
+                });
+                
+                // Backlog-Aufgaben (Aufgaben mit Projekt, aber ohne Slot)
+                $backlogTasksCount = PlannerTask::where('project_id', $project->id)
+                    ->whereNull('project_slot_id')
+                    ->count();
+                $backlogTasksOpen = PlannerTask::where('project_id', $project->id)
+                    ->whereNull('project_slot_id')
+                    ->where('is_done', false)
+                    ->count();
+                
+                // Gesamt-Aufgaben im Projekt
+                $totalTasks = PlannerTask::where('project_id', $project->id)->count();
 
                 return [
                     'id' => $project->id,
@@ -121,6 +141,15 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
                     'members' => $projectUsers,
                     'done' => $project->done,
                     'created_at' => $project->created_at->toIso8601String(),
+                    // Struktur-Informationen
+                    'structure' => [
+                        'slots_count' => $slotsCount,
+                        'tasks_in_slots' => $totalTasksInSlots,
+                        'backlog_tasks' => $backlogTasksCount,
+                        'backlog_tasks_open' => $backlogTasksOpen,
+                        'total_tasks' => $totalTasks,
+                        'note' => 'Backlog-Aufgaben sind Aufgaben mit Projekt-Bezug, aber ohne Slot-Zuordnung. Nutze "planner.project_slots.GET" mit project_id, um alle Slots und Backlog-Aufgaben zu sehen.'
+                    ],
                 ];
             })->values()->toArray();
 
