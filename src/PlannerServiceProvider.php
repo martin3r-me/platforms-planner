@@ -125,14 +125,32 @@ class PlannerServiceProvider extends ServiceProvider
     
     /**
      * Registriert Planner-Tools für die AI/Chat-Funktionalität
+     * 
+     * HINWEIS: Tools werden auch automatisch via Auto-Discovery gefunden,
+     * aber manuelle Registrierung stellt sicher, dass sie verfügbar sind.
      */
     protected function registerTools(): void
     {
         try {
             $registry = resolve(\Platform\Core\Tools\ToolRegistry::class);
             
-            // Projekt-Tool: Projekte erstellen
+            // Projekt-Tools
             $registry->register(new \Platform\Planner\Tools\CreateProjectTool());
+            $registry->register(new \Platform\Planner\Tools\ListProjectsTool());
+            $registry->register(new \Platform\Planner\Tools\UpdateProjectTool());
+            $registry->register(new \Platform\Planner\Tools\DeleteProjectTool());
+            
+            // Slot-Tools
+            $registry->register(new \Platform\Planner\Tools\CreateProjectSlotTool());
+            $registry->register(new \Platform\Planner\Tools\ListProjectSlotsTool());
+            $registry->register(new \Platform\Planner\Tools\UpdateProjectSlotTool());
+            $registry->register(new \Platform\Planner\Tools\DeleteProjectSlotTool());
+            
+            // Task-Tools
+            $registry->register(new \Platform\Planner\Tools\CreateTaskTool());
+            $registry->register(new \Platform\Planner\Tools\ListTasksTool());
+            $registry->register(new \Platform\Planner\Tools\UpdateTaskTool());
+            $registry->register(new \Platform\Planner\Tools\DeleteTaskTool());
         } catch (\Throwable $e) {
             // Silent fail - ToolRegistry möglicherweise nicht verfügbar
             \Log::warning('Planner: Tool-Registrierung fehlgeschlagen', ['error' => $e->getMessage()]);

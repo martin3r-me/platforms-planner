@@ -33,7 +33,7 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract
 
     public function getDescription(): string
     {
-        return 'Erstellt ein neues Projekt im Planner-Modul. WICHTIG: Frage den Nutzer nach allen wichtigen Informationen (Name, Team, Beschreibung, Typ, Owner, Mitglieder), bevor du das Tool aufrufst. Wenn Informationen fehlen, frage explizit nach. Der Projektname ist erforderlich. Wenn kein Team angegeben ist, nutze das Tool "core.teams.list" um alle verfügbaren Teams anzuzeigen und frage dann nach dem gewünschten Team. Alle anderen Felder sind optional.';
+        return 'Erstellt ein neues Projekt im Planner-Modul. RUF DIESES TOOL AUF, wenn der Nutzer ein Projekt erstellen möchte. Der Projektname ist erforderlich. Wenn der Nutzer nur den Namen angibt, rufe zuerst "core.teams.list" auf, um die verfügbaren Teams zu sehen. Wenn es mehrere Teams gibt, frage dialog-mäßig nach dem gewünschten Team (z.B. "Soll ich das aktuelle Team verwenden?"). Wenn nur ein Team verfügbar ist, verwende es automatisch. Alle anderen Felder (Beschreibung, Typ, Owner, Mitglieder) sind optional - frage nur nach, wenn der Nutzer sie erwähnt oder wenn sie für den Kontext wichtig sind.';
     }
 
     public function getSchema(): array
@@ -59,17 +59,17 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract
                 ],
                 'owner_user_id' => [
                     'type' => 'integer',
-                    'description' => 'Optional: ID des Projekt-Owners. Wenn nicht angegeben, wird der aktuelle Nutzer als Owner gesetzt. Frage nach, wenn der Nutzer einen anderen Owner wünscht.'
+                    'description' => 'Optional: ID des Projekt-Owners. WICHTIG: Wenn der Nutzer sagt "nimm mich selbst" oder "nimm nur mich", LASS DIESEN PARAMETER WEG oder setze ihn auf null. Das Tool verwendet dann automatisch die User-ID des aktuellen Nutzers aus dem Kontext. Verwende NIEMALS hardcoded IDs wie 1 oder 0. Wenn nicht angegeben, wird automatisch der aktuelle Nutzer als Owner gesetzt. Frage nur nach, wenn der Nutzer explizit einen anderen Owner wünscht.'
                 ],
                 'members' => [
                     'type' => 'array',
-                    'description' => 'Optional: Array von Projektmitgliedern. Jedes Mitglied ist ein Objekt mit "user_id" (integer, erforderlich) und "role" (string: "owner", "admin", "member", "viewer", Standard: "member"). Frage nach, wenn der Nutzer weitere Mitglieder hinzufügen möchte.',
+                    'description' => 'Optional: Array von Projektmitgliedern. WICHTIG: Wenn der Nutzer sagt "nimm nur mich" oder "nimm mich selbst", LASS DIESEN PARAMETER WEG oder setze ihn auf null. Das Tool fügt automatisch den aktuellen Nutzer als Owner hinzu. Jedes Mitglied ist ein Objekt mit "user_id" (integer, erforderlich) und "role" (string: "owner", "admin", "member", "viewer", Standard: "member"). Verwende NIEMALS hardcoded User-IDs wie 1 oder 0. Frage nur nach, wenn der Nutzer explizit weitere Mitglieder hinzufügen möchte.',
                     'items' => [
                         'type' => 'object',
                         'properties' => [
                             'user_id' => [
                                 'type' => 'integer',
-                                'description' => 'ID des Benutzers'
+                                'description' => 'ID des Benutzers. WICHTIG: Verwende NIEMALS hardcoded IDs wie 1 oder 0. Nutze "core.teams.users.list" um User-IDs zu finden.'
                             ],
                             'role' => [
                                 'type' => 'string',
@@ -124,7 +124,15 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract
             }
 
             // Owner bestimmen (Standard: aktueller User)
-            $ownerUserId = $arguments['owner_user_id'] ?? $context->user->id;
+            // WICHTIG: Prüfe auch auf 1, da OpenAI manchmal 1 als Default sendet
+            $ownerUserId = $arguments['owner_user_id'] ?? null;
+            if ($ownerUserId === 0 || $ownerUserId === '0' || $ownerUserId === 1 || $ownerUserId === '1') {
+                $ownerUserId = null; // Behandle 0/1 als "nicht gesetzt"
+            }
+            // Wenn nicht gesetzt, verwende aktuellen User aus Kontext
+            if (!$ownerUserId) {
+                $ownerUserId = $context->user->id;
+            }
 
             // Projekttyp bestimmen (Standard: internal)
             $projectType = ProjectType::INTERNAL; // Default
