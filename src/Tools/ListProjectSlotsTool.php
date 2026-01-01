@@ -5,6 +5,7 @@ namespace Platform\Planner\Tools;
 use Platform\Core\Contracts\ToolContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
+use Platform\Core\Tools\Concerns\HasStandardGetOperations;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectSlot;
 
@@ -15,41 +16,44 @@ use Platform\Planner\Models\PlannerProjectSlot;
  */
 class ListProjectSlotsTool implements ToolContract
 {
+    use HasStandardGetOperations;
     public function getName(): string
     {
-        return 'planner.project_slots.list';
+        return 'planner.project_slots.GET';
     }
 
     public function getDescription(): string
     {
-        return 'Listet alle Slots eines Projekts auf. RUF DIESES TOOL AUF, wenn der Nutzer nach Slots fragt oder wenn du wissen musst, welche Slots in einem Projekt verfügbar sind, bevor du eine Aufgabe erstellst. Wenn kein Projekt angegeben ist, nutze "planner.projects.list" um Projekte zu finden.';
+        return 'Listet alle Slots eines Projekts auf. RUF DIESES TOOL AUF, wenn der Nutzer nach Slots fragt oder wenn du wissen musst, welche Slots in einem Projekt verfügbar sind, bevor du eine Aufgabe erstellst. Wenn kein Projekt angegeben ist, nutze "planner.projects.GET" um Projekte zu finden.';
     }
 
     public function getSchema(): array
     {
-        return [
-            'type' => 'object',
-            'properties' => [
-                'project_id' => [
-                    'type' => 'integer',
-                    'description' => 'ID des Projekts, dessen Slots aufgelistet werden sollen (ERFORDERLICH). Wenn nicht angegeben, nutze "planner.projects.list" um Projekte zu finden.'
-                ]
-            ],
-            'required' => ['project_id']
-        ];
+        return $this->mergeSchemas(
+            $this->getStandardGetSchema(),
+            [
+                'properties' => [
+                    'project_id' => [
+                        'type' => 'integer',
+                        'description' => 'ID des Projekts, dessen Slots aufgelistet werden sollen (ERFORDERLICH). Wenn nicht angegeben, nutze "planner.projects.GET" um Projekte zu finden.'
+                    ]
+                ],
+                'required' => ['project_id']
+            ]
+        );
     }
 
     public function execute(array $arguments, ToolContext $context): ToolResult
     {
         try {
             if (empty($arguments['project_id'])) {
-                return ToolResult::error('VALIDATION_ERROR', 'Projekt-ID ist erforderlich. Nutze "planner.projects.list" um Projekte zu finden.');
+                return ToolResult::error('VALIDATION_ERROR', 'Projekt-ID ist erforderlich. Nutze "planner.projects.GET" um Projekte zu finden.');
             }
 
             // Projekt prüfen
             $project = PlannerProject::find($arguments['project_id']);
             if (!$project) {
-                return ToolResult::error('PROJECT_NOT_FOUND', 'Das angegebene Projekt wurde nicht gefunden. Nutze "planner.projects.list" um alle verfügbaren Projekte zu sehen.');
+                return ToolResult::error('PROJECT_NOT_FOUND', 'Das angegebene Projekt wurde nicht gefunden. Nutze "planner.projects.GET" um alle verfügbaren Projekte zu sehen.');
             }
 
             // Prüfe, ob User Zugriff auf Projekt hat
@@ -58,13 +62,27 @@ class ListProjectSlotsTool implements ToolContract
                 ->exists();
             
             if (!$hasAccess && $project->user_id !== $context->user->id) {
-                return ToolResult::error('ACCESS_DENIED', 'Du hast keinen Zugriff auf dieses Projekt. Nutze "planner.projects.list" um alle verfügbaren Projekte zu sehen.');
+                return ToolResult::error('ACCESS_DENIED', 'Du hast keinen Zugriff auf dieses Projekt. Nutze "planner.projects.GET" um alle verfügbaren Projekte zu sehen.');
             }
 
+            // Query aufbauen
+            $query = PlannerProjectSlot::where('project_id', $project->id);
+            
+            // Standard-Operationen anwenden
+            $this->applyStandardFilters($query, $arguments, [
+                'name', 'order', 'created_at', 'updated_at'
+            ]);
+            
+            $this->applyStandardSearch($query, $arguments, ['name']);
+            
+            $this->applyStandardSort($query, $arguments, [
+                'name', 'order', 'created_at', 'updated_at'
+            ], 'order', 'asc');
+            
+            $this->applyStandardPagination($query, $arguments);
+            
             // Slots holen
-            $slots = PlannerProjectSlot::where('project_id', $project->id)
-                ->orderBy('order')
-                ->get();
+            $slots = $query->get();
 
             // Slots formatieren
             $slotsList = $slots->map(function($slot) {

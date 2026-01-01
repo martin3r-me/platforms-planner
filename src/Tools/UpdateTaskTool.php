@@ -19,12 +19,12 @@ class UpdateTaskTool implements ToolContract
 {
     public function getName(): string
     {
-        return 'planner.tasks.update';
+        return 'planner.tasks.PUT';
     }
 
     public function getDescription(): string
     {
-        return 'Bearbeitet eine bestehende Aufgabe. RUF DIESES TOOL AUF, wenn der Nutzer eine Aufgabe ändern möchte (Titel, Beschreibung, DoD, Fälligkeitsdatum, etc.) oder wenn eine Aufgabe in einen anderen Slot oder ein anderes Projekt verschoben werden soll. Die Task-ID ist erforderlich. Nutze "planner.tasks.list" um Aufgaben zu finden. WICHTIG: Um eine Aufgabe in einen anderen Slot zu verschieben, setze "project_slot_id" auf die neue Slot-ID. Um eine Aufgabe in ein anderes Projekt zu verschieben, setze "project_id" auf die neue Projekt-ID.';
+        return 'Bearbeitet eine bestehende Aufgabe. RUF DIESES TOOL AUF, wenn der Nutzer eine Aufgabe ändern möchte (Titel, Beschreibung, DoD, Fälligkeitsdatum, etc.) oder wenn eine Aufgabe in einen anderen Slot oder ein anderes Projekt verschoben werden soll. Die Task-ID ist erforderlich. Nutze "planner.tasks.GET" um Aufgaben zu finden. WICHTIG: Um eine Aufgabe in einen anderen Slot zu verschieben, setze "project_slot_id" auf die neue Slot-ID. Um eine Aufgabe in ein anderes Projekt zu verschieben, setze "project_id" auf die neue Projekt-ID.';
     }
 
     public function getSchema(): array
@@ -34,7 +34,7 @@ class UpdateTaskTool implements ToolContract
             'properties' => [
                 'task_id' => [
                     'type' => 'integer',
-                    'description' => 'ID der zu bearbeitenden Aufgabe (ERFORDERLICH). Nutze "planner.tasks.list" um Aufgaben zu finden.'
+                    'description' => 'ID der zu bearbeitenden Aufgabe (ERFORDERLICH). Nutze "planner.tasks.GET" um Aufgaben zu finden.'
                 ],
                 'title' => [
                     'type' => 'string',
@@ -54,11 +54,11 @@ class UpdateTaskTool implements ToolContract
                 ],
                 'project_id' => [
                     'type' => 'integer',
-                    'description' => 'Optional: Neue Projekt-ID. Nutze "planner.projects.list" um Projekte zu finden. Setze auf null, um die Aufgabe zu einer persönlichen Aufgabe zu machen. WICHTIG: Wenn du project_id änderst, wird project_slot_id automatisch auf null gesetzt, es sei denn, du setzt auch project_slot_id.'
+                    'description' => 'Optional: Neue Projekt-ID. Nutze "planner.projects.GET" um Projekte zu finden. Setze auf null, um die Aufgabe zu einer persönlichen Aufgabe zu machen. WICHTIG: Wenn du project_id änderst, wird project_slot_id automatisch auf null gesetzt, es sei denn, du setzt auch project_slot_id.'
                 ],
                 'project_slot_id' => [
                     'type' => 'integer',
-                    'description' => 'Optional: Neue Slot-ID. Nutze "planner.project_slots.list" um Slots zu finden. Setze auf null, um die Aufgabe aus dem Slot ins Backlog zu verschieben. WICHTIG: Um eine Aufgabe in einen anderen Slot zu verschieben, setze diese ID. Der Slot muss zum gleichen Projekt gehören wie project_id.'
+                    'description' => 'Optional: Neue Slot-ID. Nutze "planner.project_slots.GET" um Slots zu finden. Setze auf null, um die Aufgabe aus dem Slot ins Backlog zu verschieben. WICHTIG: Um eine Aufgabe in einen anderen Slot zu verschieben, setze diese ID. Der Slot muss zum gleichen Projekt gehören wie project_id.'
                 ],
                 'user_in_charge_id' => [
                     'type' => 'integer',
@@ -81,13 +81,13 @@ class UpdateTaskTool implements ToolContract
     {
         try {
             if (empty($arguments['task_id'])) {
-                return ToolResult::error('VALIDATION_ERROR', 'Task-ID ist erforderlich. Nutze "planner.tasks.list" um Aufgaben zu finden.');
+                return ToolResult::error('VALIDATION_ERROR', 'Task-ID ist erforderlich. Nutze "planner.tasks.GET" um Aufgaben zu finden.');
             }
 
             // Task finden
             $task = PlannerTask::find($arguments['task_id']);
             if (!$task) {
-                return ToolResult::error('TASK_NOT_FOUND', 'Die angegebene Aufgabe wurde nicht gefunden. Nutze "planner.tasks.list" um alle verfügbaren Aufgaben zu sehen.');
+                return ToolResult::error('TASK_NOT_FOUND', 'Die angegebene Aufgabe wurde nicht gefunden. Nutze "planner.tasks.GET" um alle verfügbaren Aufgaben zu sehen.');
             }
 
             // Prüfe Zugriff (User muss Owner der Aufgabe sein oder Zugriff auf das Projekt haben)
@@ -147,7 +147,7 @@ class UpdateTaskTool implements ToolContract
                     // Neues Projekt prüfen
                     $newProject = PlannerProject::find($arguments['project_id']);
                     if (!$newProject) {
-                        return ToolResult::error('PROJECT_NOT_FOUND', 'Das angegebene Projekt wurde nicht gefunden. Nutze "planner.projects.list" um alle verfügbaren Projekte zu sehen.');
+                        return ToolResult::error('PROJECT_NOT_FOUND', 'Das angegebene Projekt wurde nicht gefunden. Nutze "planner.projects.GET" um alle verfügbaren Projekte zu sehen.');
                     }
 
                     // Prüfe Zugriff auf neues Projekt
@@ -177,7 +177,7 @@ class UpdateTaskTool implements ToolContract
                     // Neuen Slot prüfen
                     $newSlot = PlannerProjectSlot::find($arguments['project_slot_id']);
                     if (!$newSlot) {
-                        return ToolResult::error('SLOT_NOT_FOUND', 'Der angegebene Slot wurde nicht gefunden. Nutze "planner.project_slots.list" um alle verfügbaren Slots zu sehen.');
+                        return ToolResult::error('SLOT_NOT_FOUND', 'Der angegebene Slot wurde nicht gefunden. Nutze "planner.project_slots.GET" um alle verfügbaren Slots zu sehen.');
                     }
 
                     // Prüfe, ob Slot zum Projekt gehört

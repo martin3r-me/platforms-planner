@@ -21,12 +21,12 @@ class CreateProjectSlotTool implements ToolContract, ToolDependencyContract
 {
     public function getName(): string
     {
-        return 'planner.project_slots.create';
+        return 'planner.project_slots.POST';
     }
 
     public function getDescription(): string
     {
-        return 'Erstellt einen neuen Slot in einem Projekt. Slots strukturieren Aufgaben innerhalb eines Projekts (z.B. "To Do", "Hold", "In Progress"). RUF DIESES TOOL AUF, wenn der Nutzer einen Slot erstellen möchte oder wenn ein Projekt noch keine Slots hat und welche benötigt werden. Der Slot-Name ist erforderlich. Wenn kein Projekt angegeben ist, frage dialog-mäßig nach dem Projekt oder nutze "planner.projects.list" um Projekte zu finden.';
+        return 'Erstellt einen neuen Slot in einem Projekt. Slots strukturieren Aufgaben innerhalb eines Projekts (z.B. "To Do", "Hold", "In Progress"). RUF DIESES TOOL AUF, wenn der Nutzer einen Slot erstellen möchte oder wenn ein Projekt noch keine Slots hat und welche benötigt werden. Der Slot-Name ist erforderlich. Wenn kein Projekt angegeben ist, frage dialog-mäßig nach dem Projekt oder nutze "planner.projects.GET" um Projekte zu finden.';
     }
 
     public function getSchema(): array
@@ -36,7 +36,7 @@ class CreateProjectSlotTool implements ToolContract, ToolDependencyContract
             'properties' => [
                 'project_id' => [
                     'type' => 'integer',
-                    'description' => 'ID des Projekts, in dem der Slot erstellt werden soll (ERFORDERLICH). Wenn nicht angegeben, nutze "planner.projects.list" um Projekte zu finden und frage dann nach der Projekt-ID.'
+                    'description' => 'ID des Projekts, in dem der Slot erstellt werden soll (ERFORDERLICH). Wenn nicht angegeben, nutze "planner.projects.GET" um Projekte zu finden und frage dann nach der Projekt-ID.'
                 ],
                 'name' => [
                     'type' => 'string',
@@ -60,13 +60,13 @@ class CreateProjectSlotTool implements ToolContract, ToolDependencyContract
             }
 
             if (empty($arguments['project_id'])) {
-                return ToolResult::error('VALIDATION_ERROR', 'Projekt-ID ist erforderlich. Nutze "planner.projects.list" um Projekte zu finden.');
+                return ToolResult::error('VALIDATION_ERROR', 'Projekt-ID ist erforderlich. Nutze "planner.projects.GET" um Projekte zu finden.');
             }
 
             // Projekt prüfen
             $project = PlannerProject::find($arguments['project_id']);
             if (!$project) {
-                return ToolResult::error('PROJECT_NOT_FOUND', 'Das angegebene Projekt wurde nicht gefunden. Nutze "planner.projects.list" um alle verfügbaren Projekte zu sehen.');
+                return ToolResult::error('PROJECT_NOT_FOUND', 'Das angegebene Projekt wurde nicht gefunden. Nutze "planner.projects.GET" um alle verfügbaren Projekte zu sehen.');
             }
 
             // Prüfe, ob User Zugriff auf Projekt hat
@@ -75,7 +75,7 @@ class CreateProjectSlotTool implements ToolContract, ToolDependencyContract
                 ->exists();
             
             if (!$hasAccess && $project->user_id !== $context->user->id) {
-                return ToolResult::error('ACCESS_DENIED', 'Du hast keinen Zugriff auf dieses Projekt. Nutze "planner.projects.list" um alle verfügbaren Projekte zu sehen.');
+                return ToolResult::error('ACCESS_DENIED', 'Du hast keinen Zugriff auf dieses Projekt. Nutze "planner.projects.GET" um alle verfügbaren Projekte zu sehen.');
             }
 
             // Team aus Projekt holen
@@ -118,7 +118,7 @@ class CreateProjectSlotTool implements ToolContract, ToolDependencyContract
     /**
      * Definiert die Dependencies dieses Tools (loose coupled)
      * 
-     * Wenn project_id fehlt, wird automatisch planner.projects.list aufgerufen.
+     * Wenn project_id fehlt, wird automatisch planner.projects.GET aufgerufen.
      */
     public function getDependencies(): array
     {
@@ -126,7 +126,7 @@ class CreateProjectSlotTool implements ToolContract, ToolDependencyContract
             'required_fields' => ['project_id'],
             'dependencies' => [
                 [
-                    'tool_name' => 'planner.projects.list',
+                    'tool_name' => 'planner.projects.GET',
                     'condition' => function(array $arguments, ToolContext $context): bool {
                         return empty($arguments['project_id']) || ($arguments['project_id'] ?? null) === 0;
                     },

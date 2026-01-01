@@ -15,12 +15,12 @@ class UpdateProjectTool implements ToolContract
 {
     public function getName(): string
     {
-        return 'planner.projects.update';
+        return 'planner.projects.PUT';
     }
 
     public function getDescription(): string
     {
-        return 'Bearbeitet ein bestehendes Projekt. RUF DIESES TOOL AUF, wenn der Nutzer ein Projekt ändern möchte (Name, Beschreibung, Typ, etc.). Die Projekt-ID ist erforderlich. Nutze "planner.projects.list" um Projekte zu finden, wenn der Nutzer nur den Namen angibt.';
+        return 'Bearbeitet ein bestehendes Projekt. RUF DIESES TOOL AUF, wenn der Nutzer ein Projekt ändern möchte (Name, Beschreibung, Typ, etc.). Die Projekt-ID ist erforderlich. Nutze "planner.projects.GET" um Projekte zu finden, wenn der Nutzer nur den Namen angibt.';
     }
 
     public function getSchema(): array
@@ -30,7 +30,7 @@ class UpdateProjectTool implements ToolContract
             'properties' => [
                 'project_id' => [
                     'type' => 'integer',
-                    'description' => 'ID des zu bearbeitenden Projekts (ERFORDERLICH). Nutze "planner.projects.list" um Projekte zu finden.'
+                    'description' => 'ID des zu bearbeitenden Projekts (ERFORDERLICH). Nutze "planner.projects.GET" um Projekte zu finden.'
                 ],
                 'name' => [
                     'type' => 'string',
@@ -70,13 +70,13 @@ class UpdateProjectTool implements ToolContract
     {
         try {
             if (empty($arguments['project_id'])) {
-                return ToolResult::error('VALIDATION_ERROR', 'Projekt-ID ist erforderlich. Nutze "planner.projects.list" um Projekte zu finden.');
+                return ToolResult::error('VALIDATION_ERROR', 'Projekt-ID ist erforderlich. Nutze "planner.projects.GET" um Projekte zu finden.');
             }
 
             // Projekt finden
             $project = PlannerProject::find($arguments['project_id']);
             if (!$project) {
-                return ToolResult::error('PROJECT_NOT_FOUND', 'Das angegebene Projekt wurde nicht gefunden. Nutze "planner.projects.list" um alle verfügbaren Projekte zu sehen.');
+                return ToolResult::error('PROJECT_NOT_FOUND', 'Das angegebene Projekt wurde nicht gefunden. Nutze "planner.projects.GET" um alle verfügbaren Projekte zu sehen.');
             }
 
             // Prüfe Zugriff

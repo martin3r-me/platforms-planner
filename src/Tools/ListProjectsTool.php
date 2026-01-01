@@ -5,6 +5,8 @@ namespace Platform\Planner\Tools;
 use Platform\Core\Contracts\ToolContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
+use Platform\Core\Contracts\ToolMetadataContract;
+use Platform\Core\Tools\Concerns\HasStandardGetOperations;
 use Platform\Planner\Models\PlannerProject;
 
 /**
@@ -12,11 +14,12 @@ use Platform\Planner\Models\PlannerProject;
  * 
  * Ermöglicht es der AI, Projekte zu finden, bevor Tasks oder Slots erstellt werden.
  */
-class ListProjectsTool implements ToolContract
+class ListProjectsTool implements ToolContract, ToolMetadataContract
 {
+    use HasStandardGetOperations;
     public function getName(): string
     {
-        return 'planner.projects.list';
+        return 'planner.projects.GET';
     }
 
     public function getDescription(): string
@@ -26,25 +29,27 @@ class ListProjectsTool implements ToolContract
 
     public function getSchema(): array
     {
-        return [
-            'type' => 'object',
-            'properties' => [
-                'team_id' => [
-                    'type' => 'integer',
-                    'description' => 'Optional: Filter nach Team-ID. Wenn nicht angegeben, wird das aktuelle Team aus dem Kontext verwendet.'
-                ],
-                'project_type' => [
-                    'type' => 'string',
-                    'description' => 'Optional: Filter nach Projekttyp. Mögliche Werte: "internal", "customer", "event", "cooking".',
-                    'enum' => ['internal', 'customer', 'event', 'cooking']
-                ],
-                'name_search' => [
-                    'type' => 'string',
-                    'description' => 'Optional: Suche nach Projektnamen (teilweise Übereinstimmung).'
+        return $this->mergeSchemas(
+            $this->getStandardGetSchema(),
+            [
+                'properties' => [
+                    'team_id' => [
+                        'type' => 'integer',
+                        'description' => 'Optional: Filter nach Team-ID. Wenn nicht angegeben, wird das aktuelle Team aus dem Kontext verwendet.'
+                    ],
+                    // Legacy-Parameter (für Backwards-Kompatibilität)
+                    'project_type' => [
+                        'type' => 'string',
+                        'description' => 'Optional: Filter nach Projekttyp (Legacy - nutze stattdessen filters mit field="project_type" und op="eq"). Mögliche Werte: "internal", "customer", "event", "cooking".',
+                        'enum' => ['internal', 'customer', 'event', 'cooking']
+                    ],
+                    'name_search' => [
+                        'type' => 'string',
+                        'description' => 'Optional: Suche nach Projektnamen (Legacy - nutze stattdessen search Parameter).'
+                    ]
                 ]
-            ],
-            'required' => []
-        ];
+            ]
+        );
     }
 
     public function execute(array $arguments, ToolContext $context): ToolResult
@@ -57,7 +62,7 @@ class ListProjectsTool implements ToolContract
             // Team bestimmen
             $teamId = $arguments['team_id'] ?? $context->team?->id;
             if (!$teamId) {
-                return ToolResult::error('MISSING_TEAM', 'Kein Team angegeben und kein Team im Kontext gefunden. Nutze das Tool "core.teams.list" um alle verfügbaren Teams zu sehen.');
+                return ToolResult::error('MISSING_TEAM', 'Kein Team angegeben und kein Team im Kontext gefunden. Nutze das Tool "core.teams.GET" um alle verfügbaren Teams zu sehen.');
             }
 
             // Query aufbauen
@@ -65,18 +70,34 @@ class ListProjectsTool implements ToolContract
                 ->where('team_id', $teamId)
                 ->with(['user', 'team', 'projectUsers.user']);
 
-            // Filter: Projekttyp
+            // Standard-Operationen anwenden
+            $this->applyStandardFilters($query, $arguments, [
+                'project_type', 'name', 'description', 'done', 'created_at', 'updated_at'
+            ]);
+            
+            // Legacy: project_type (für Backwards-Kompatibilität)
             if (!empty($arguments['project_type'])) {
                 $query->where('project_type', $arguments['project_type']);
             }
-
-            // Filter: Name-Suche
+            
+            // Standard-Suche anwenden
+            $this->applyStandardSearch($query, $arguments, ['name', 'description']);
+            
+            // Legacy: name_search (für Backwards-Kompatibilität)
             if (!empty($arguments['name_search'])) {
                 $query->where('name', 'like', '%' . $arguments['name_search'] . '%');
             }
+            
+            // Standard-Sortierung anwenden
+            $this->applyStandardSort($query, $arguments, [
+                'name', 'created_at', 'updated_at', 'project_type', 'done'
+            ], 'name', 'asc');
+            
+            // Standard-Pagination anwenden
+            $this->applyStandardPagination($query, $arguments);
 
             // Projekte holen (nur solche, auf die User Zugriff hat)
-            $projects = $query->orderBy('name')->get();
+            $projects = $query->get();
 
             // Projekte formatieren
             $projectsList = $projects->map(function($project) use ($context) {
@@ -114,6 +135,19 @@ class ListProjectsTool implements ToolContract
         } catch (\Throwable $e) {
             return ToolResult::error('EXECUTION_ERROR', 'Fehler beim Laden der Projekte: ' . $e->getMessage());
         }
+    }
+
+    public function getMetadata(): array
+    {
+        return [
+            'category' => 'query',
+            'tags' => ['planner', 'project', 'list'],
+            'read_only' => true, // Explizit: Nur Lese-Operation
+            'requires_auth' => true,
+            'requires_team' => false, // Team kann optional sein
+            'risk_level' => 'safe',
+            'idempotent' => true,
+        ];
     }
 }
 

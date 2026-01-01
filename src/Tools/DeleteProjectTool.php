@@ -14,12 +14,12 @@ class DeleteProjectTool implements ToolContract
 {
     public function getName(): string
     {
-        return 'planner.projects.delete';
+        return 'planner.projects.DELETE';
     }
 
     public function getDescription(): string
     {
-        return 'Löscht ein Projekt. RUF DIESES TOOL AUF, wenn der Nutzer ein Projekt löschen möchte. Die Projekt-ID ist erforderlich. Nutze "planner.projects.list" um Projekte zu finden, wenn der Nutzer nur den Namen angibt. WICHTIG: Beim Löschen eines Projekts werden auch alle zugehörigen Slots und Aufgaben gelöscht. Frage den Nutzer nach Bestätigung, wenn das Projekt viele Aufgaben hat.';
+        return 'Löscht ein Projekt. RUF DIESES TOOL AUF, wenn der Nutzer ein Projekt löschen möchte. Die Projekt-ID ist erforderlich. Nutze "planner.projects.GET" um Projekte zu finden, wenn der Nutzer nur den Namen angibt. WICHTIG: Beim Löschen eines Projekts werden auch alle zugehörigen Slots und Aufgaben gelöscht. Frage den Nutzer nach Bestätigung, wenn das Projekt viele Aufgaben hat.';
     }
 
     public function getSchema(): array
@@ -29,7 +29,7 @@ class DeleteProjectTool implements ToolContract
             'properties' => [
                 'project_id' => [
                     'type' => 'integer',
-                    'description' => 'ID des zu löschenden Projekts (ERFORDERLICH). Nutze "planner.projects.list" um Projekte zu finden.'
+                    'description' => 'ID des zu löschenden Projekts (ERFORDERLICH). Nutze "planner.projects.GET" um Projekte zu finden.'
                 ],
                 'confirm' => [
                     'type' => 'boolean',
@@ -44,13 +44,13 @@ class DeleteProjectTool implements ToolContract
     {
         try {
             if (empty($arguments['project_id'])) {
-                return ToolResult::error('VALIDATION_ERROR', 'Projekt-ID ist erforderlich. Nutze "planner.projects.list" um Projekte zu finden.');
+                return ToolResult::error('VALIDATION_ERROR', 'Projekt-ID ist erforderlich. Nutze "planner.projects.GET" um Projekte zu finden.');
             }
 
             // Projekt finden
             $project = PlannerProject::find($arguments['project_id']);
             if (!$project) {
-                return ToolResult::error('PROJECT_NOT_FOUND', 'Das angegebene Projekt wurde nicht gefunden. Nutze "planner.projects.list" um alle verfügbaren Projekte zu sehen.');
+                return ToolResult::error('PROJECT_NOT_FOUND', 'Das angegebene Projekt wurde nicht gefunden. Nutze "planner.projects.GET" um alle verfügbaren Projekte zu sehen.');
             }
 
             // Prüfe Zugriff (nur Owner kann löschen)

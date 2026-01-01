@@ -16,12 +16,12 @@ class DeleteTaskTool implements ToolContract
 {
     public function getName(): string
     {
-        return 'planner.tasks.delete';
+        return 'planner.tasks.DELETE';
     }
 
     public function getDescription(): string
     {
-        return 'Löscht eine Aufgabe. RUF DIESES TOOL AUF, wenn der Nutzer eine Aufgabe löschen möchte. Die Task-ID ist erforderlich. Nutze "planner.tasks.list" um Aufgaben zu finden. WICHTIG: Aufgaben werden soft-deleted (gelöscht), können aber wiederhergestellt werden. Frage den Nutzer nach Bestätigung, wenn die Aufgabe wichtig erscheint.';
+        return 'Löscht eine Aufgabe. RUF DIESES TOOL AUF, wenn der Nutzer eine Aufgabe löschen möchte. Die Task-ID ist erforderlich. Nutze "planner.tasks.GET" um Aufgaben zu finden. WICHTIG: Aufgaben werden soft-deleted (gelöscht), können aber wiederhergestellt werden. Frage den Nutzer nach Bestätigung, wenn die Aufgabe wichtig erscheint.';
     }
 
     public function getSchema(): array
@@ -31,7 +31,7 @@ class DeleteTaskTool implements ToolContract
             'properties' => [
                 'task_id' => [
                     'type' => 'integer',
-                    'description' => 'ID der zu löschenden Aufgabe (ERFORDERLICH). Nutze "planner.tasks.list" um Aufgaben zu finden.'
+                    'description' => 'ID der zu löschenden Aufgabe (ERFORDERLICH). Nutze "planner.tasks.GET" um Aufgaben zu finden.'
                 ],
                 'confirm' => [
                     'type' => 'boolean',
@@ -46,13 +46,13 @@ class DeleteTaskTool implements ToolContract
     {
         try {
             if (empty($arguments['task_id'])) {
-                return ToolResult::error('VALIDATION_ERROR', 'Task-ID ist erforderlich. Nutze "planner.tasks.list" um Aufgaben zu finden.');
+                return ToolResult::error('VALIDATION_ERROR', 'Task-ID ist erforderlich. Nutze "planner.tasks.GET" um Aufgaben zu finden.');
             }
 
             // Task finden (auch gelöschte Tasks können gefunden werden, aber wir prüfen trotzdem)
             $task = PlannerTask::withTrashed()->find($arguments['task_id']);
             if (!$task) {
-                return ToolResult::error('TASK_NOT_FOUND', 'Die angegebene Aufgabe wurde nicht gefunden. Nutze "planner.tasks.list" um alle verfügbaren Aufgaben zu sehen.');
+                return ToolResult::error('TASK_NOT_FOUND', 'Die angegebene Aufgabe wurde nicht gefunden. Nutze "planner.tasks.GET" um alle verfügbaren Aufgaben zu sehen.');
             }
 
             // Prüfe, ob bereits gelöscht

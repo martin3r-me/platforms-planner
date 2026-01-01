@@ -5,6 +5,7 @@ namespace Platform\Planner\Tools;
 use Platform\Core\Contracts\ToolContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
+use Platform\Core\Tools\Concerns\HasStandardGetOperations;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectSlot;
 use Platform\Planner\Models\PlannerTask;
@@ -16,9 +17,10 @@ use Platform\Planner\Models\PlannerTask;
  */
 class ListTasksTool implements ToolContract
 {
+    use HasStandardGetOperations;
     public function getName(): string
     {
-        return 'planner.tasks.list';
+        return 'planner.tasks.GET';
     }
 
     public function getDescription(): string
@@ -28,36 +30,34 @@ class ListTasksTool implements ToolContract
 
     public function getSchema(): array
     {
-        return [
-            'type' => 'object',
-            'properties' => [
-                'project_id' => [
-                    'type' => 'integer',
-                    'description' => 'Optional: Filter nach Projekt-ID. Nutze "planner.projects.list" um Projekte zu finden.'
-                ],
-                'project_slot_id' => [
-                    'type' => 'integer',
-                    'description' => 'Optional: Filter nach Slot-ID. Nutze "planner.project_slots.list" um Slots zu finden.'
-                ],
-                'user_in_charge_id' => [
-                    'type' => 'integer',
-                    'description' => 'Optional: Filter nach User-ID (zuständiger User). Wenn nicht angegeben, werden Aufgaben des aktuellen Users angezeigt.'
-                ],
-                'is_done' => [
-                    'type' => 'boolean',
-                    'description' => 'Optional: Filter nach Status. true = erledigte Aufgaben, false = offene Aufgaben. Wenn nicht angegeben, werden alle Aufgaben angezeigt.'
-                ],
-                'is_personal' => [
-                    'type' => 'boolean',
-                    'description' => 'Optional: Filter nach persönlichen Aufgaben (ohne Projekt). true = nur persönliche Aufgaben, false = nur Projekt-Aufgaben. Wenn nicht angegeben, werden alle angezeigt.'
-                ],
-                'limit' => [
-                    'type' => 'integer',
-                    'description' => 'Optional: Maximale Anzahl der Ergebnisse. Standard: 50.'
+        return $this->mergeSchemas(
+            $this->getStandardGetSchema(),
+            [
+                'properties' => [
+                    // Legacy-Parameter (für Backwards-Kompatibilität und einfache Nutzung)
+                    'project_id' => [
+                        'type' => 'integer',
+                        'description' => 'Optional: Filter nach Projekt-ID (Legacy - nutze stattdessen filters mit field="project_id" und op="eq"). Nutze "planner.projects.GET" um Projekte zu finden.'
+                    ],
+                    'project_slot_id' => [
+                        'type' => 'integer',
+                        'description' => 'Optional: Filter nach Slot-ID (Legacy - nutze stattdessen filters mit field="project_slot_id" und op="eq"). Nutze "planner.project_slots.GET" um Slots zu finden.'
+                    ],
+                    'user_in_charge_id' => [
+                        'type' => 'integer',
+                        'description' => 'Optional: Filter nach User-ID (zuständiger User) (Legacy - nutze stattdessen filters mit field="user_in_charge_id" und op="eq"). Wenn nicht angegeben, werden Aufgaben des aktuellen Users angezeigt.'
+                    ],
+                    'is_done' => [
+                        'type' => 'boolean',
+                        'description' => 'Optional: Filter nach Status (Legacy - nutze stattdessen filters mit field="is_done" und op="eq"). true = erledigte Aufgaben, false = offene Aufgaben. Wenn nicht angegeben, werden alle Aufgaben angezeigt.'
+                    ],
+                    'is_personal' => [
+                        'type' => 'boolean',
+                        'description' => 'Optional: Filter nach persönlichen Aufgaben (Legacy - nutze stattdessen filters mit field="project_id" und op="is_null" für persönliche Aufgaben). true = nur persönliche Aufgaben, false = nur Projekt-Aufgaben. Wenn nicht angegeben, werden alle angezeigt.'
+                    ]
                 ]
-            ],
-            'required' => []
-        ];
+            ]
+        );
     }
 
     public function execute(array $arguments, ToolContext $context): ToolResult
@@ -71,26 +71,34 @@ class ListTasksTool implements ToolContract
             $query = PlannerTask::query()
                 ->with(['project', 'projectSlot', 'user', 'userInCharge']);
 
-            // Filter: Projekt
+            // Standard-Operationen anwenden
+            $this->applyStandardFilters($query, $arguments, [
+                'project_id', 'project_slot_id', 'user_in_charge_id', 'is_done', 
+                'title', 'description', 'due_date', 'created_at', 'updated_at'
+            ]);
+            
+            // Legacy: project_id (für Backwards-Kompatibilität)
             if (!empty($arguments['project_id'])) {
                 $query->where('project_id', $arguments['project_id']);
             }
-
-            // Filter: Slot
+            
+            // Legacy: project_slot_id (für Backwards-Kompatibilität)
             if (!empty($arguments['project_slot_id'])) {
                 $query->where('project_slot_id', $arguments['project_slot_id']);
             }
-
-            // Filter: User in Charge (Standard: aktueller User)
+            
+            // Legacy: user_in_charge_id (Standard: aktueller User)
             $userInChargeId = $arguments['user_in_charge_id'] ?? $context->user->id;
-            $query->where('user_in_charge_id', $userInChargeId);
-
-            // Filter: Status
+            if (empty($arguments['filters']) || !$this->hasFilterForField($arguments['filters'], 'user_in_charge_id')) {
+                $query->where('user_in_charge_id', $userInChargeId);
+            }
+            
+            // Legacy: is_done (für Backwards-Kompatibilität)
             if (isset($arguments['is_done'])) {
                 $query->where('is_done', $arguments['is_done']);
             }
-
-            // Filter: Persönliche Aufgaben
+            
+            // Legacy: is_personal (für Backwards-Kompatibilität)
             if (isset($arguments['is_personal'])) {
                 if ($arguments['is_personal']) {
                     $query->whereNull('project_id');
@@ -98,14 +106,23 @@ class ListTasksTool implements ToolContract
                     $query->whereNotNull('project_id');
                 }
             }
-
-            // Limit
-            $limit = $arguments['limit'] ?? 50;
-            $query->limit($limit);
-
-            // Sortierung: zuerst nach Fälligkeitsdatum, dann nach Erstellungsdatum
-            $query->orderBy('due_date', 'asc')
-                ->orderBy('created_at', 'desc');
+            
+            // Standard-Suche anwenden
+            $this->applyStandardSearch($query, $arguments, ['title', 'description']);
+            
+            // Standard-Sortierung anwenden (Default: due_date asc, dann created_at desc)
+            $this->applyStandardSort($query, $arguments, [
+                'title', 'description', 'due_date', 'created_at', 'updated_at', 
+                'is_done', 'done_at', 'user_in_charge_id'
+            ], 'due_date', 'asc');
+            
+            // Wenn keine explizite Sortierung, füge created_at desc hinzu
+            if (empty($arguments['sort'])) {
+                $query->orderBy('created_at', 'desc');
+            }
+            
+            // Standard-Pagination anwenden
+            $this->applyStandardPagination($query, $arguments);
 
             // Aufgaben holen
             $tasks = $query->get();
@@ -150,6 +167,19 @@ class ListTasksTool implements ToolContract
         } catch (\Throwable $e) {
             return ToolResult::error('EXECUTION_ERROR', 'Fehler beim Laden der Aufgaben: ' . $e->getMessage());
         }
+    }
+    
+    /**
+     * Prüft ob ein Filter für ein bestimmtes Feld vorhanden ist
+     */
+    private function hasFilterForField(array $filters, string $field): bool
+    {
+        foreach ($filters as $filter) {
+            if (($filter['field'] ?? null) === $field) {
+                return true;
+            }
+        }
+        return false;
     }
 }
 

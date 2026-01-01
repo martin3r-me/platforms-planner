@@ -15,12 +15,12 @@ class UpdateProjectSlotTool implements ToolContract
 {
     public function getName(): string
     {
-        return 'planner.project_slots.update';
+        return 'planner.project_slots.PUT';
     }
 
     public function getDescription(): string
     {
-        return 'Bearbeitet einen bestehenden Slot in einem Projekt. RUF DIESES TOOL AUF, wenn der Nutzer einen Slot ändern möchte (Name, Reihenfolge). Die Slot-ID ist erforderlich. Nutze "planner.project_slots.list" um Slots zu finden.';
+        return 'Bearbeitet einen bestehenden Slot in einem Projekt. RUF DIESES TOOL AUF, wenn der Nutzer einen Slot ändern möchte (Name, Reihenfolge). Die Slot-ID ist erforderlich. Nutze "planner.project_slots.GET" um Slots zu finden.';
     }
 
     public function getSchema(): array
@@ -30,7 +30,7 @@ class UpdateProjectSlotTool implements ToolContract
             'properties' => [
                 'slot_id' => [
                     'type' => 'integer',
-                    'description' => 'ID des zu bearbeitenden Slots (ERFORDERLICH). Nutze "planner.project_slots.list" um Slots zu finden.'
+                    'description' => 'ID des zu bearbeitenden Slots (ERFORDERLICH). Nutze "planner.project_slots.GET" um Slots zu finden.'
                 ],
                 'name' => [
                     'type' => 'string',
@@ -49,13 +49,13 @@ class UpdateProjectSlotTool implements ToolContract
     {
         try {
             if (empty($arguments['slot_id'])) {
-                return ToolResult::error('VALIDATION_ERROR', 'Slot-ID ist erforderlich. Nutze "planner.project_slots.list" um Slots zu finden.');
+                return ToolResult::error('VALIDATION_ERROR', 'Slot-ID ist erforderlich. Nutze "planner.project_slots.GET" um Slots zu finden.');
             }
 
             // Slot finden
             $slot = PlannerProjectSlot::find($arguments['slot_id']);
             if (!$slot) {
-                return ToolResult::error('SLOT_NOT_FOUND', 'Der angegebene Slot wurde nicht gefunden. Nutze "planner.project_slots.list" um alle verfügbaren Slots zu sehen.');
+                return ToolResult::error('SLOT_NOT_FOUND', 'Der angegebene Slot wurde nicht gefunden. Nutze "planner.project_slots.GET" um alle verfügbaren Slots zu sehen.');
             }
 
             // Projekt laden

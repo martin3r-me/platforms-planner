@@ -6,6 +6,7 @@ use Platform\Core\Contracts\ToolContract;
 use Platform\Core\Contracts\ToolDependencyContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
+use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectUser;
 use Platform\Planner\Enums\ProjectRole;
@@ -24,16 +25,16 @@ use Platform\Planner\Enums\ProjectType;
  * 
  * LOOSE COUPLED: Definiert seine Dependencies selbst via ToolDependencyContract.
  */
-class CreateProjectTool implements ToolContract, ToolDependencyContract
+class CreateProjectTool implements ToolContract, ToolDependencyContract, ToolMetadataContract
 {
     public function getName(): string
     {
-        return 'planner.projects.create';
+        return 'planner.projects.POST';
     }
 
     public function getDescription(): string
     {
-        return 'Erstellt ein neues Projekt im Planner-Modul. RUF DIESES TOOL AUF, wenn der Nutzer ein Projekt erstellen möchte. Der Projektname ist erforderlich. Wenn der Nutzer nur den Namen angibt, rufe zuerst "core.teams.list" auf, um die verfügbaren Teams zu sehen. Wenn es mehrere Teams gibt, frage dialog-mäßig nach dem gewünschten Team (z.B. "Soll ich das aktuelle Team verwenden?"). Wenn nur ein Team verfügbar ist, verwende es automatisch. Alle anderen Felder (Beschreibung, Typ, Owner, Mitglieder) sind optional - frage nur nach, wenn der Nutzer sie erwähnt oder wenn sie für den Kontext wichtig sind.';
+        return 'Erstellt ein neues Projekt im Planner-Modul. RUF DIESES TOOL AUF, wenn der Nutzer ein Projekt erstellen möchte. Der Projektname ist erforderlich. Wenn der Nutzer nur den Namen angibt, rufe zuerst "core.teams.GET" auf, um die verfügbaren Teams zu sehen. Wenn es mehrere Teams gibt, frage dialog-mäßig nach dem gewünschten Team (z.B. "Soll ich das aktuelle Team verwenden?"). Wenn nur ein Team verfügbar ist, verwende es automatisch. Alle anderen Felder (Beschreibung, Typ, Owner, Mitglieder) sind optional - frage nur nach, wenn der Nutzer sie erwähnt oder wenn sie für den Kontext wichtig sind.';
     }
 
     public function getSchema(): array
@@ -47,7 +48,7 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract
                 ],
                 'team_id' => [
                     'type' => 'integer',
-                    'description' => 'Optional: ID des Teams, in dem das Projekt erstellt werden soll. Wenn nicht angegeben, wird das aktuelle Team aus dem Kontext verwendet. Wenn der Nutzer ein anderes Team wünscht, nutze das Tool "core.teams.list" um alle verfügbaren Teams anzuzeigen und frage dann nach der Team-ID.'
+                    'description' => 'Optional: ID des Teams, in dem das Projekt erstellt werden soll. Wenn nicht angegeben, wird das aktuelle Team aus dem Kontext verwendet. Wenn der Nutzer ein anderes Team wünscht, nutze das Tool "core.teams.GET" um alle verfügbaren Teams anzuzeigen und frage dann nach der Team-ID.'
                 ],
                 'description' => [
                     'type' => 'string',
@@ -69,7 +70,7 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract
                         'properties' => [
                             'user_id' => [
                                 'type' => 'integer',
-                                'description' => 'ID des Benutzers. WICHTIG: Verwende NIEMALS hardcoded IDs wie 1 oder 0. Nutze "core.teams.users.list" um User-IDs zu finden.'
+                                'description' => 'ID des Benutzers. WICHTIG: Verwende NIEMALS hardcoded IDs wie 1 oder 0. Nutze "core.teams.users.GET" um User-IDs zu finden.'
                             ],
                             'role' => [
                                 'type' => 'string',
@@ -113,13 +114,13 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract
                 // Prüfe, ob User Zugriff auf dieses Team hat
                 $team = $context->user->teams()->find($teamId);
                 if (!$team) {
-                    return ToolResult::error('TEAM_NOT_FOUND', 'Das angegebene Team wurde nicht gefunden oder du hast keinen Zugriff darauf. Nutze das Tool "core.teams.list" um alle verfügbaren Teams zu sehen.');
+                    return ToolResult::error('TEAM_NOT_FOUND', 'Das angegebene Team wurde nicht gefunden oder du hast keinen Zugriff darauf. Nutze das Tool "core.teams.GET" um alle verfügbaren Teams zu sehen.');
                 }
             } else {
                 // Team aus Context holen
                 $team = $context->team;
                 if (!$team) {
-                    return ToolResult::error('MISSING_TEAM', 'Kein Team angegeben und kein Team im Kontext gefunden. Projekte benötigen ein Team. Nutze das Tool "core.teams.list" um alle verfügbaren Teams zu sehen und frage dann nach der Team-ID.');
+                    return ToolResult::error('MISSING_TEAM', 'Kein Team angegeben und kein Team im Kontext gefunden. Projekte benötigen ein Team. Nutze das Tool "core.teams.GET" um alle verfügbaren Teams zu sehen und frage dann nach der Team-ID.');
                 }
             }
 
@@ -225,7 +226,7 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract
     /**
      * Definiert die Dependencies dieses Tools (loose coupled)
      * 
-     * Wenn team_id fehlt, wird automatisch core.teams.list aufgerufen.
+     * Wenn team_id fehlt, wird automatisch core.teams.GET aufgerufen.
      */
     public function getDependencies(): array
     {
@@ -233,14 +234,14 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract
             'required_fields' => [], // team_id ist optional im Schema, aber wird benötigt
             'dependencies' => [
                 [
-                    'tool_name' => 'core.teams.list',
+                    'tool_name' => 'core.teams.GET',
                     'condition' => function(array $arguments, ToolContext $context): bool {
                         // Führe Dependency aus, wenn team_id fehlt oder 0 ist
                         // OpenAI sendet manchmal 0 statt null/leer
                         return empty($arguments['team_id']) || ($arguments['team_id'] ?? null) === 0;
                     },
                     'args' => function(array $arguments, ToolContext $context): array {
-                        // Argumente für core.teams.list
+                        // Argumente für core.teams.GET
                         return ['include_personal' => true];
                     },
                     'merge_result' => function(string $mainToolName, ToolResult $depResult, array $arguments): ?array {
@@ -261,6 +262,20 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract
                     }
                 ]
             ]
+        ];
+    }
+
+    public function getMetadata(): array
+    {
+        return [
+            'category' => 'action',
+            'tags' => ['planner', 'project', 'create'],
+            'read_only' => false, // Explizit: Schreib-Operation
+            'requires_auth' => true,
+            'requires_team' => false, // Team kann optional sein
+            'risk_level' => 'write',
+            'idempotent' => false,
+            'side_effects' => ['creates'],
         ];
     }
 }

@@ -15,12 +15,12 @@ class DeleteProjectSlotTool implements ToolContract
 {
     public function getName(): string
     {
-        return 'planner.project_slots.delete';
+        return 'planner.project_slots.DELETE';
     }
 
     public function getDescription(): string
     {
-        return 'Löscht einen Slot in einem Projekt. RUF DIESES TOOL AUF, wenn der Nutzer einen Slot löschen möchte. Die Slot-ID ist erforderlich. Nutze "planner.project_slots.list" um Slots zu finden. WICHTIG: Beim Löschen eines Slots werden alle zugehörigen Aufgaben in das Projekt-Backlog verschoben (project_slot_id wird auf null gesetzt). Frage den Nutzer nach Bestätigung, wenn der Slot viele Aufgaben hat.';
+        return 'Löscht einen Slot in einem Projekt. RUF DIESES TOOL AUF, wenn der Nutzer einen Slot löschen möchte. Die Slot-ID ist erforderlich. Nutze "planner.project_slots.GET" um Slots zu finden. WICHTIG: Beim Löschen eines Slots werden alle zugehörigen Aufgaben in das Projekt-Backlog verschoben (project_slot_id wird auf null gesetzt). Frage den Nutzer nach Bestätigung, wenn der Slot viele Aufgaben hat.';
     }
 
     public function getSchema(): array
@@ -30,7 +30,7 @@ class DeleteProjectSlotTool implements ToolContract
             'properties' => [
                 'slot_id' => [
                     'type' => 'integer',
-                    'description' => 'ID des zu löschenden Slots (ERFORDERLICH). Nutze "planner.project_slots.list" um Slots zu finden.'
+                    'description' => 'ID des zu löschenden Slots (ERFORDERLICH). Nutze "planner.project_slots.GET" um Slots zu finden.'
                 ],
                 'confirm' => [
                     'type' => 'boolean',
@@ -45,13 +45,13 @@ class DeleteProjectSlotTool implements ToolContract
     {
         try {
             if (empty($arguments['slot_id'])) {
-                return ToolResult::error('VALIDATION_ERROR', 'Slot-ID ist erforderlich. Nutze "planner.project_slots.list" um Slots zu finden.');
+                return ToolResult::error('VALIDATION_ERROR', 'Slot-ID ist erforderlich. Nutze "planner.project_slots.GET" um Slots zu finden.');
             }
 
             // Slot finden
             $slot = PlannerProjectSlot::find($arguments['slot_id']);
             if (!$slot) {
-                return ToolResult::error('SLOT_NOT_FOUND', 'Der angegebene Slot wurde nicht gefunden. Nutze "planner.project_slots.list" um alle verfügbaren Slots zu sehen.');
+                return ToolResult::error('SLOT_NOT_FOUND', 'Der angegebene Slot wurde nicht gefunden. Nutze "planner.project_slots.GET" um alle verfügbaren Slots zu sehen.');
             }
 
             // Projekt laden

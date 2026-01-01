@@ -25,12 +25,12 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
 {
     public function getName(): string
     {
-        return 'planner.tasks.create';
+        return 'planner.tasks.POST';
     }
 
     public function getDescription(): string
     {
-        return 'Erstellt eine neue Aufgabe. Aufgaben können in einem Projekt-Slot (strukturiert), im Projekt-Backlog (ohne Slot) oder als persönliche Aufgabe (ohne Projekt) erstellt werden. RUF DIESES TOOL AUF, wenn der Nutzer eine Aufgabe erstellen möchte. Der Titel ist erforderlich. Wenn der Nutzer ein Projekt oder einen Slot erwähnt, nutze "planner.projects.list" und "planner.project_slots.list" um die IDs zu finden. Wenn nichts angegeben ist, erstelle eine persönliche Aufgabe.';
+        return 'Erstellt eine neue Aufgabe. Aufgaben können in einem Projekt-Slot (strukturiert), im Projekt-Backlog (ohne Slot) oder als persönliche Aufgabe (ohne Projekt) erstellt werden. RUF DIESES TOOL AUF, wenn der Nutzer eine Aufgabe erstellen möchte. Der Titel ist erforderlich. Wenn der Nutzer ein Projekt oder einen Slot erwähnt, nutze "planner.projects.GET" und "planner.project_slots.GET" um die IDs zu finden. Wenn nichts angegeben ist, erstelle eine persönliche Aufgabe.';
     }
 
     public function getSchema(): array
@@ -56,11 +56,11 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
                 ],
                 'project_id' => [
                     'type' => 'integer',
-                    'description' => 'Optional: ID des Projekts. Wenn angegeben, wird die Aufgabe dem Projekt zugeordnet (Backlog, wenn project_slot_id fehlt). Wenn nicht angegeben, wird eine persönliche Aufgabe erstellt. Nutze "planner.projects.list" um Projekte zu finden.'
+                    'description' => 'Optional: ID des Projekts. Wenn angegeben, wird die Aufgabe dem Projekt zugeordnet (Backlog, wenn project_slot_id fehlt). Wenn nicht angegeben, wird eine persönliche Aufgabe erstellt. Nutze "planner.projects.GET" um Projekte zu finden.'
                 ],
                 'project_slot_id' => [
                     'type' => 'integer',
-                    'description' => 'Optional: ID des Projekt-Slots. Wenn angegeben, wird die Aufgabe dem Slot zugeordnet. project_id muss dann auch gesetzt sein. Nutze "planner.project_slots.list" um Slots zu finden.'
+                    'description' => 'Optional: ID des Projekt-Slots. Wenn angegeben, wird die Aufgabe dem Slot zugeordnet. project_id muss dann auch gesetzt sein. Nutze "planner.project_slots.GET" um Slots zu finden.'
                 ],
                 'user_in_charge_id' => [
                     'type' => 'integer',
@@ -88,7 +88,7 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
             if (!empty($arguments['project_id'])) {
                 $project = PlannerProject::find($arguments['project_id']);
                 if (!$project) {
-                    return ToolResult::error('PROJECT_NOT_FOUND', 'Das angegebene Projekt wurde nicht gefunden. Nutze "planner.projects.list" um alle verfügbaren Projekte zu sehen.');
+                    return ToolResult::error('PROJECT_NOT_FOUND', 'Das angegebene Projekt wurde nicht gefunden. Nutze "planner.projects.GET" um alle verfügbaren Projekte zu sehen.');
                 }
 
                 // Prüfe, ob User Zugriff auf Projekt hat
@@ -97,7 +97,7 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
                     ->exists();
                 
                 if (!$hasAccess && $project->user_id !== $context->user->id) {
-                    return ToolResult::error('ACCESS_DENIED', 'Du hast keinen Zugriff auf dieses Projekt. Nutze "planner.projects.list" um alle verfügbaren Projekte zu sehen.');
+                    return ToolResult::error('ACCESS_DENIED', 'Du hast keinen Zugriff auf dieses Projekt. Nutze "planner.projects.GET" um alle verfügbaren Projekte zu sehen.');
                 }
             }
 
@@ -106,7 +106,7 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
             if (!empty($arguments['project_slot_id'])) {
                 $slot = PlannerProjectSlot::find($arguments['project_slot_id']);
                 if (!$slot) {
-                    return ToolResult::error('SLOT_NOT_FOUND', 'Der angegebene Slot wurde nicht gefunden. Nutze "planner.project_slots.list" um alle verfügbaren Slots zu sehen.');
+                    return ToolResult::error('SLOT_NOT_FOUND', 'Der angegebene Slot wurde nicht gefunden. Nutze "planner.project_slots.GET" um alle verfügbaren Slots zu sehen.');
                 }
 
                 // Prüfe, ob Slot zum Projekt gehört (wenn project_id auch gesetzt ist)
@@ -213,7 +213,7 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
             'required_fields' => [],
             'dependencies' => [
                 [
-                    'tool_name' => 'planner.projects.list',
+                    'tool_name' => 'planner.projects.GET',
                     'condition' => function(array $arguments, ToolContext $context): bool {
                         // Wenn project_id erwähnt wird, aber nicht gesetzt ist, hole Projekte
                         // (Wir können nicht direkt prüfen, ob der User ein Projekt erwähnt hat,
@@ -228,7 +228,7 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
                     }
                 ],
                 [
-                    'tool_name' => 'planner.project_slots.list',
+                    'tool_name' => 'planner.project_slots.GET',
                     'condition' => function(array $arguments, ToolContext $context): bool {
                         // Wenn project_slot_id erwähnt wird, aber nicht gesetzt ist
                         return false; // Keine automatische Dependency - LLM entscheidet
