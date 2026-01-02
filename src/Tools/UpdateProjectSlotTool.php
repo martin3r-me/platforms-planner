@@ -22,7 +22,7 @@ class UpdateProjectSlotTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'Bearbeitet einen bestehenden Slot in einem Projekt. RUF DIESES TOOL AUF, wenn der Nutzer einen Slot ändern möchte (Name, Reihenfolge). Die Slot-ID ist erforderlich. Nutze "planner.project_slots.GET" um Slots zu finden.';
+        return 'PUT /project_slots/{id} - Aktualisiert einen bestehenden Slot. REST-Parameter: id (required, integer) - Slot-ID. name (optional, string) - Name. order (optional, integer) - Reihenfolge.';
     }
 
     public function getSchema(): array

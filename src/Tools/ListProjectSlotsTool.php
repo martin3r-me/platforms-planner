@@ -25,7 +25,7 @@ class ListProjectSlotsTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'GET /project_slots?project_id={id}&filters=[...]&search=...&sort=[...] - Listet Slots eines Projekts auf, inklusive Backlog-Aufgaben. REST-Parameter: project_id (required, integer) - ID des Projekts. filters (optional, array) - Filter-Array. search (optional, string) - Suchbegriff. sort (optional, array) - Sortierung. limit/offset (optional) - Pagination. Zeigt: 1) Alle Slots mit Aufgaben, 2) Backlog-Aufgaben (ohne Slot). RUF DIESES TOOL AUF, wenn der Nutzer nach Slots oder Backlog-Aufgaben fragt.';
+        return 'GET /project_slots?project_id={id}&filters=[...]&search=...&sort=[...] - Listet Slots eines Projekts auf, inklusive Backlog-Aufgaben. REST-Parameter: project_id (required, integer) - ID des Projekts. filters (optional, array) - Filter-Array mit field, op, value. search (optional, string) - Suchbegriff. sort (optional, array) - Sortierung mit field, dir. limit/offset (optional) - Pagination. Zeigt: 1) Alle Slots mit Aufgaben, 2) Backlog-Aufgaben (ohne Slot).';
     }
 
     public function getSchema(): array

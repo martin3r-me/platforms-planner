@@ -26,7 +26,7 @@ class CreateProjectSlotTool implements ToolContract, ToolDependencyContract
 
     public function getDescription(): string
     {
-        return 'Erstellt einen neuen Slot in einem Projekt. Slots strukturieren Aufgaben innerhalb eines Projekts (z.B. "To Do", "Hold", "In Progress"). RUF DIESES TOOL AUF, wenn der Nutzer einen Slot erstellen möchte oder wenn ein Projekt noch keine Slots hat und welche benötigt werden. Der Slot-Name ist erforderlich. Wenn kein Projekt angegeben ist, frage dialog-mäßig nach dem Projekt oder nutze "planner.projects.GET" um Projekte zu finden.';
+        return 'POST /project_slots - Erstellt einen neuen Slot in einem Projekt. REST-Parameter: name (required, string) - Name des Slots. project_id (required, integer) - Projekt-ID. order (optional, integer) - Reihenfolge.';
     }
 
     public function getSchema(): array

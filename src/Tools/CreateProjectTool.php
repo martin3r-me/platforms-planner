@@ -34,7 +34,7 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract, ToolMet
 
     public function getDescription(): string
     {
-        return 'Erstellt ein neues Projekt im Planner-Modul. RUF DIESES TOOL AUF, wenn der Nutzer ein Projekt erstellen möchte. Der Projektname ist erforderlich. Wenn der Nutzer nur den Namen angibt, rufe zuerst "core.teams.GET" auf, um die verfügbaren Teams zu sehen. Wenn es mehrere Teams gibt, frage dialog-mäßig nach dem gewünschten Team (z.B. "Soll ich das aktuelle Team verwenden?"). Wenn nur ein Team verfügbar ist, verwende es automatisch. Alle anderen Felder (Beschreibung, Typ, Owner, Mitglieder) sind optional - frage nur nach, wenn der Nutzer sie erwähnt oder wenn sie für den Kontext wichtig sind.';
+        return 'POST /projects - Erstellt ein neues Projekt. REST-Parameter: name (required, string) - Projektname. team_id (optional, integer) - wenn nicht angegeben, wird aktuelles Team verwendet. description (optional, string) - Beschreibung. project_type (optional, string) - Typ: internal, customer, event, cooking. owner_user_id (optional, integer) - Owner des Projekts. members (optional, array) - Array von User-IDs als Mitglieder.';
     }
 
     public function getSchema(): array

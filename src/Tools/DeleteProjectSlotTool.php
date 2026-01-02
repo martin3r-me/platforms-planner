@@ -22,7 +22,7 @@ class DeleteProjectSlotTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'Löscht einen Slot in einem Projekt. RUF DIESES TOOL AUF, wenn der Nutzer einen Slot löschen möchte. Die Slot-ID ist erforderlich. Nutze "planner.project_slots.GET" um Slots zu finden. WICHTIG: Beim Löschen eines Slots werden alle zugehörigen Aufgaben in das Projekt-Backlog verschoben (project_slot_id wird auf null gesetzt). Frage den Nutzer nach Bestätigung, wenn der Slot viele Aufgaben hat.';
+        return 'DELETE /project_slots/{id} - Löscht einen Slot. REST-Parameter: id (required, integer) - Slot-ID. Hinweis: Beim Löschen werden alle zugehörigen Aufgaben in das Projekt-Backlog verschoben (project_slot_id wird auf null gesetzt).';
     }
 
     public function getSchema(): array

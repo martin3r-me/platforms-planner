@@ -30,7 +30,7 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
 
     public function getDescription(): string
     {
-        return 'Erstellt eine neue Aufgabe. Aufgaben können in einem Projekt-Slot (strukturiert), im Projekt-Backlog (ohne Slot) oder als persönliche Aufgabe (ohne Projekt) erstellt werden. RUF DIESES TOOL AUF, wenn der Nutzer eine Aufgabe erstellen möchte. Der Titel ist erforderlich. Wenn der Nutzer ein Projekt oder einen Slot erwähnt, nutze "planner.projects.GET" und "planner.project_slots.GET" um die IDs zu finden. Wenn nichts angegeben ist, erstelle eine persönliche Aufgabe. Du kannst dieses Tool mehrfach aufrufen, um mehrere Aufgaben zu erstellen.';
+        return 'POST /tasks - Erstellt eine neue Aufgabe. REST-Parameter: title (required, string) - Titel der Aufgabe. project_id (optional, integer) - Projekt-ID. Wenn angegeben, wird Aufgabe dem Projekt zugeordnet. project_slot_id (optional, integer) - Slot-ID. Wenn angegeben, wird Aufgabe dem Slot zugeordnet. description (optional, string) - Beschreibung. definition_of_done (optional, string) - Definition of Done. due_date (optional, date) - Fälligkeitsdatum. user_in_charge_id (optional, integer) - verantwortlicher User.';
     }
 
     public function getSchema(): array

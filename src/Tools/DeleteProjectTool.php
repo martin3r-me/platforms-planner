@@ -21,7 +21,7 @@ class DeleteProjectTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'Löscht ein Projekt. RUF DIESES TOOL AUF, wenn der Nutzer ein Projekt löschen möchte. Die Projekt-ID ist erforderlich. Nutze "planner.projects.GET" um Projekte zu finden, wenn der Nutzer nur den Namen angibt. WICHTIG: Beim Löschen eines Projekts werden auch alle zugehörigen Slots und Aufgaben gelöscht. Frage den Nutzer nach Bestätigung, wenn das Projekt viele Aufgaben hat.';
+        return 'DELETE /projects/{id} - Löscht ein Projekt. REST-Parameter: id (required, integer) - Projekt-ID. Hinweis: Beim Löschen werden auch alle zugehörigen Slots und Aufgaben gelöscht.';
     }
 
     public function getSchema(): array

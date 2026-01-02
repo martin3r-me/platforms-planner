@@ -26,7 +26,7 @@ class UpdateTaskTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'Bearbeitet eine bestehende Aufgabe. RUF DIESES TOOL AUF, wenn der Nutzer eine Aufgabe ändern möchte (Titel, Beschreibung, DoD, Fälligkeitsdatum, etc.) oder wenn eine Aufgabe in einen anderen Slot oder ein anderes Projekt verschoben werden soll. Die Task-ID ist erforderlich. Nutze "planner.tasks.GET" um Aufgaben zu finden. WICHTIG: Um eine Aufgabe in einen anderen Slot zu verschieben, setze "project_slot_id" auf die neue Slot-ID. Um eine Aufgabe in ein anderes Projekt zu verschieben, setze "project_id" auf die neue Projekt-ID.';
+        return 'PUT /tasks/{id} - Aktualisiert eine bestehende Aufgabe. REST-Parameter: id (required, integer) - Task-ID. title (optional, string) - Titel. description (optional, string) - Beschreibung. definition_of_done (optional, string) - Definition of Done. due_date (optional, date) - Fälligkeitsdatum. project_id (optional, integer) - Projekt-ID (zum Verschieben in anderes Projekt). project_slot_id (optional, integer) - Slot-ID (zum Verschieben in anderen Slot). user_in_charge_id (optional, integer) - verantwortlicher User.';
     }
 
     public function getSchema(): array

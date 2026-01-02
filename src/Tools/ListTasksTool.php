@@ -25,7 +25,7 @@ class ListTasksTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'GET /tasks?project_id={id}&project_slot_id={id}&user_in_charge_id={id}&filters=[...]&search=...&sort=[...] - Listet Aufgaben auf. REST-Parameter: project_id (optional, integer) - Filter nach Projekt. project_slot_id (optional, integer) - Filter nach Slot. user_in_charge_id (optional, integer) - Filter nach User (wenn nicht angegeben, aktueller User). filters (optional, array) - Filter-Array mit field, op, value. search (optional, string) - Suchbegriff. sort (optional, array) - Sortierung. limit/offset (optional) - Pagination. RUF DIESES TOOL AUF, wenn der Nutzer nach Aufgaben fragt.';
+        return 'GET /tasks?project_id={id}&project_slot_id={id}&user_in_charge_id={id}&filters=[...]&search=...&sort=[...] - Listet Aufgaben auf. REST-Parameter: project_id (optional, integer) - Filter nach Projekt. project_slot_id (optional, integer) - Filter nach Slot. user_in_charge_id (optional, integer) - Filter nach User (wenn nicht angegeben, aktueller User). filters (optional, array) - Filter-Array mit field, op, value. search (optional, string) - Suchbegriff. sort (optional, array) - Sortierung mit field, dir. limit/offset (optional) - Pagination.';
     }
 
     public function getSchema(): array

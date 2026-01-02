@@ -22,7 +22,7 @@ class UpdateProjectTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'Bearbeitet ein bestehendes Projekt. RUF DIESES TOOL AUF, wenn der Nutzer ein Projekt ändern möchte (Name, Beschreibung, Typ, etc.). Die Projekt-ID ist erforderlich. Nutze "planner.projects.GET" um Projekte zu finden, wenn der Nutzer nur den Namen angibt.';
+        return 'PUT /projects/{id} - Aktualisiert ein bestehendes Projekt. REST-Parameter: id (required, integer) - Projekt-ID. name (optional, string) - Projektname. description (optional, string) - Beschreibung. project_type (optional, string) - Typ: internal, customer, event, cooking. owner_user_id (optional, integer) - Owner des Projekts. members (optional, array) - Array von User-IDs als Mitglieder.';
     }
 
     public function getSchema(): array

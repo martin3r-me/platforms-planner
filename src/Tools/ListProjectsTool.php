@@ -25,7 +25,7 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'GET /projects?team_id={id}&filters=[...]&search=...&sort=[...] - Listet Projekte auf. REST-Parameter: team_id (optional, integer) - LASS WEG wenn nicht explizit angegeben, verwendet automatisch aktuelles Team. filters/search/sort/limit/offset (optional) - Standard-Filter. WICHTIG: Rufe dieses Tool DIREKT auf, wenn der Nutzer nach Projekten fragt. Du musst "core.teams.GET" NICHT vorher aufrufen - dieses Tool verwendet automatisch das aktuelle Team aus dem Kontext.';
+        return 'GET /projects?team_id={id}&filters=[...]&search=...&sort=[...] - Listet Projekte auf. REST-Parameter: team_id (optional, integer) - Filter nach Team-ID. Wenn nicht angegeben, wird automatisch das aktuelle Team aus dem Kontext verwendet. filters (optional, array) - Filter-Array mit field, op, value. search (optional, string) - Suchbegriff. sort (optional, array) - Sortierung mit field, dir. limit/offset (optional) - Pagination.';
     }
 
     public function getSchema(): array
@@ -36,7 +36,7 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
                 'properties' => [
                     'team_id' => [
                         'type' => 'integer',
-                        'description' => 'REST-Parameter (optional): Filter nach Team-ID. Beispiel: team_id=9. Wenn nicht angegeben, wird aktuelles Team aus Kontext verwendet. Nutze "core.teams.GET" um verfügbare Team-IDs zu sehen.'
+                        'description' => 'REST-Parameter (optional): Filter nach Team-ID. Wenn nicht angegeben, wird automatisch das aktuelle Team aus dem Kontext verwendet.'
                     ],
                     // Legacy-Parameter (für Backwards-Kompatibilität)
                     'project_type' => [
