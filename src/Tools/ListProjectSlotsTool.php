@@ -25,7 +25,7 @@ class ListProjectSlotsTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'Listet alle Slots eines Projekts auf, inklusive Backlog-Aufgaben (Aufgaben ohne Slot). RUF DIESES TOOL AUF, wenn der Nutzer nach Slots fragt, nach Backlog-Aufgaben fragt, oder wenn du wissen musst, welche Slots in einem Projekt verfügbar sind, bevor du eine Aufgabe erstellst. Das Tool zeigt: 1) Alle Slots mit ihren Aufgaben, 2) Backlog-Aufgaben (Aufgaben mit Projekt-Bezug, aber ohne Slot). Wenn kein Projekt angegeben ist, nutze "planner.projects.GET" um Projekte zu finden.';
+        return 'GET /project_slots?project_id={id}&filters=[...]&search=...&sort=[...] - Listet Slots eines Projekts auf, inklusive Backlog-Aufgaben. REST-Parameter: project_id (required, integer) - ID des Projekts. filters (optional, array) - Filter-Array. search (optional, string) - Suchbegriff. sort (optional, array) - Sortierung. limit/offset (optional) - Pagination. Zeigt: 1) Alle Slots mit Aufgaben, 2) Backlog-Aufgaben (ohne Slot). RUF DIESES TOOL AUF, wenn der Nutzer nach Slots oder Backlog-Aufgaben fragt.';
     }
 
     public function getSchema(): array
@@ -36,7 +36,7 @@ class ListProjectSlotsTool implements ToolContract
                 'properties' => [
                     'project_id' => [
                         'type' => 'integer',
-                        'description' => 'ID des Projekts, dessen Slots aufgelistet werden sollen (ERFORDERLICH). Wenn nicht angegeben, nutze "planner.projects.GET" um Projekte zu finden.'
+                        'description' => 'REST-Parameter (required): ID des Projekts. Beispiel: project_id=123. Nutze "planner.projects.GET" um verfügbare Projekt-IDs zu sehen.'
                     ]
                 ],
                 'required' => ['project_id']

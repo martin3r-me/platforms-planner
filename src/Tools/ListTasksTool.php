@@ -25,7 +25,7 @@ class ListTasksTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'Listet Aufgaben auf. Aufgaben können nach Projekt, Slot, User oder Status gefiltert werden. RUF DIESES TOOL AUF, wenn der Nutzer nach Aufgaben fragt oder wenn du Aufgaben anzeigen musst. Wenn kein Filter angegeben ist, werden die Aufgaben des aktuellen Users angezeigt.';
+        return 'GET /tasks?project_id={id}&project_slot_id={id}&user_in_charge_id={id}&filters=[...]&search=...&sort=[...] - Listet Aufgaben auf. REST-Parameter: project_id (optional, integer) - Filter nach Projekt. project_slot_id (optional, integer) - Filter nach Slot. user_in_charge_id (optional, integer) - Filter nach User (wenn nicht angegeben, aktueller User). filters (optional, array) - Filter-Array mit field, op, value. search (optional, string) - Suchbegriff. sort (optional, array) - Sortierung. limit/offset (optional) - Pagination. RUF DIESES TOOL AUF, wenn der Nutzer nach Aufgaben fragt.';
     }
 
     public function getSchema(): array
@@ -37,15 +37,15 @@ class ListTasksTool implements ToolContract
                     // Legacy-Parameter (für Backwards-Kompatibilität und einfache Nutzung)
                     'project_id' => [
                         'type' => 'integer',
-                        'description' => 'Optional: Filter nach Projekt-ID (Legacy - nutze stattdessen filters mit field="project_id" und op="eq"). Nutze "planner.projects.GET" um Projekte zu finden.'
+                        'description' => 'REST-Parameter (optional): Filter nach Projekt-ID. Beispiel: project_id=123. Nutze "planner.projects.GET" um verfügbare Projekt-IDs zu sehen.'
                     ],
                     'project_slot_id' => [
                         'type' => 'integer',
-                        'description' => 'Optional: Filter nach Slot-ID (Legacy - nutze stattdessen filters mit field="project_slot_id" und op="eq"). Nutze "planner.project_slots.GET" um Slots zu finden.'
+                        'description' => 'REST-Parameter (optional): Filter nach Slot-ID. Beispiel: project_slot_id=456. Nutze "planner.project_slots.GET" um verfügbare Slot-IDs zu sehen.'
                     ],
                     'user_in_charge_id' => [
                         'type' => 'integer',
-                        'description' => 'Optional: Filter nach User-ID (zuständiger User) (Legacy - nutze stattdessen filters mit field="user_in_charge_id" und op="eq"). Wenn nicht angegeben, werden Aufgaben des aktuellen Users angezeigt.'
+                        'description' => 'REST-Parameter (optional): Filter nach User-ID (zuständiger User). Beispiel: user_in_charge_id=789. Wenn nicht angegeben, werden Aufgaben des aktuellen Users angezeigt.'
                     ],
                     'is_done' => [
                         'type' => 'boolean',

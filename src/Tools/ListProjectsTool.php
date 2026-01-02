@@ -25,7 +25,7 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'Listet alle Projekte auf, auf die der aktuelle User Zugriff hat (entweder als Mitglied oder durch Aufgaben). RUF DIESES TOOL DIREKT AUF, wenn der Nutzer nach Projekten fragt (z.B. "alle Projekte", "meine Projekte", "Projekte des aktuellen Teams"). Das Tool verwendet automatisch das aktuelle Team aus dem Kontext - du musst team_id NICHT angeben, es sei denn, der Nutzer fragt explizit nach Projekten eines anderen Teams. Wenn der Nutzer nur einen Projektnamen angibt, nutze dieses Tool, um die Projekt-ID zu finden. WICHTIG: Wenn du prüfen musst, ob ein Projekt existiert, rufe dieses Tool auf - nicht planner.tasks.GET!';
+        return 'GET /projects?team_id={id}&filters=[...]&search=...&sort=[...] - Listet Projekte auf, auf die der aktuelle User Zugriff hat. REST-Parameter: team_id (optional, integer) - wenn nicht angegeben, wird aktuelles Team verwendet. filters (optional, array) - Filter-Array mit field, op, value. search (optional, string) - Suchbegriff. sort (optional, array) - Sortierung mit field, dir. limit/offset (optional) - Pagination. RUF DIESES TOOL DIREKT AUF, wenn der Nutzer nach Projekten fragt.';
     }
 
     public function getSchema(): array
@@ -36,7 +36,7 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
                 'properties' => [
                     'team_id' => [
                         'type' => 'integer',
-                        'description' => 'Optional: Filter nach Team-ID. Wenn nicht angegeben, wird automatisch das aktuelle Team aus dem Kontext verwendet. Du musst diesen Parameter NICHT angeben, wenn der Nutzer nach Projekten des aktuellen Teams fragt.'
+                        'description' => 'REST-Parameter (optional): Filter nach Team-ID. Beispiel: team_id=9. Wenn nicht angegeben, wird aktuelles Team aus Kontext verwendet. Nutze "core.teams.GET" um verfügbare Team-IDs zu sehen.'
                     ],
                     // Legacy-Parameter (für Backwards-Kompatibilität)
                     'project_type' => [
@@ -60,15 +60,31 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
                 return ToolResult::error('AUTH_ERROR', 'Kein User im Kontext gefunden.');
             }
 
-            // Team bestimmen
-            $teamId = $arguments['team_id'] ?? $context->team?->id;
-            if (!$teamId) {
-                return ToolResult::error('MISSING_TEAM', 'Kein Team angegeben und kein Team im Kontext gefunden. Nutze das Tool "core.teams.GET" um alle verfügbaren Teams zu sehen.');
+            // Team-Filter bestimmen
+            // WICHTIG: Behandle 0 als "nicht gesetzt" (OpenAI sendet manchmal 0 statt null)
+            $teamIdArg = $arguments['team_id'] ?? null;
+            if ($teamIdArg === 0 || $teamIdArg === '0') {
+                $teamIdArg = null;
             }
-
-            // Query aufbauen
+            
+            // Wenn team_id nicht angegeben, verwende aktuelles Team aus Kontext
+            if ($teamIdArg === null) {
+                $teamIdArg = $context->team?->id;
+            }
+            
+            if (!$teamIdArg) {
+                return ToolResult::error('MISSING_TEAM', 'Kein Team angegeben und kein Team im Kontext gefunden. Nutze "core.teams.GET" um verfügbare Teams zu sehen, oder gib team_id explizit an.');
+            }
+            
+            // Prüfe, ob User Zugriff auf dieses Team hat
+            $userHasAccess = $context->user->teams()->where('teams.id', $teamIdArg)->exists();
+            if (!$userHasAccess) {
+                return ToolResult::error('ACCESS_DENIED', "Du hast keinen Zugriff auf Team-ID {$teamIdArg}. Nutze 'core.teams.GET' um verfügbare Teams zu sehen.");
+            }
+            
+            // Query aufbauen - nur Projekte dieses Teams
             $query = PlannerProject::query()
-                ->where('team_id', $teamId)
+                ->where('team_id', $teamIdArg)
                 ->with(['user', 'team', 'projectUsers.user', 'projectSlots']);
 
             // Standard-Operationen anwenden
@@ -156,10 +172,10 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
             return ToolResult::success([
                 'projects' => $projectsList,
                 'count' => count($projectsList),
-                'team_id' => $teamId,
+                'team_id' => $teamIdArg,
                 'message' => count($projectsList) > 0 
-                    ? count($projectsList) . ' Projekt(e) gefunden.'
-                    : 'Keine Projekte gefunden.'
+                    ? count($projectsList) . ' Projekt(e) gefunden (Team-ID: ' . $teamIdArg . ').'
+                    : 'Keine Projekte gefunden für Team-ID: ' . $teamIdArg . '.'
             ]);
         } catch (\Throwable $e) {
             return ToolResult::error('EXECUTION_ERROR', 'Fehler beim Laden der Projekte: ' . $e->getMessage());
