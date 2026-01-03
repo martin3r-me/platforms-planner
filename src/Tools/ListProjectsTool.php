@@ -164,7 +164,7 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
                         'backlog_tasks' => $backlogTasksCount,
                         'backlog_tasks_open' => $backlogTasksOpen,
                         'total_tasks' => $totalTasks,
-                        'note' => 'Backlog-Aufgaben sind Aufgaben mit Projekt-Bezug, aber ohne Slot-Zuordnung. Nutze "planner.project_slots.GET" mit project_id, um alle Slots und Backlog-Aufgaben zu sehen.'
+                        'note' => 'Backlog-Aufgaben sind Aufgaben mit Projekt-Bezug, aber ohne Slot-Zuordnung. Nutze "planner.project.GET" mit project_id, um die komplette Struktur eines Projekts zu sehen.'
                     ],
                 ];
             })->values()->toArray();

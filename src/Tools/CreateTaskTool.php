@@ -167,10 +167,11 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
             }
 
             // Aufgabe erstellen
+            // WICHTIG: description und dod werden automatisch durch EncryptedString Cast verschlüsselt
+            // Beim create() werden die Casts angewendet, aber wir setzen die verschlüsselten Felder
+            // explizit danach, um sicherzustellen, dass die Verschlüsselung funktioniert
             $task = PlannerTask::create([
                 'title' => $arguments['title'],
-                'description' => $arguments['description'] ?? null,
-                'dod' => $arguments['dod'] ?? null,
                 'due_date' => $dueDate,
                 'project_id' => $project?->id,
                 'project_slot_id' => $projectSlotId, // null für Backlog, Slot-ID für Slot-Aufgaben
@@ -181,6 +182,23 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
                 'order' => $order,
                 'project_slot_order' => $projectSlotOrder, // 0 für Backlog, >0 für Slot-Aufgaben
             ]);
+            
+            // Verschlüsselte Felder explizit setzen (Cast verschlüsselt automatisch beim setAttribute)
+            // Dies stellt sicher, dass die Verschlüsselung auch beim create() funktioniert
+            $needsUpdate = false;
+            if (isset($arguments['description'])) {
+                $task->description = $arguments['description'];
+                $needsUpdate = true;
+            }
+            if (isset($arguments['dod'])) {
+                $task->dod = $arguments['dod'];
+                $needsUpdate = true;
+            }
+            
+            // Nur speichern, wenn verschlüsselte Felder gesetzt wurden
+            if ($needsUpdate) {
+                $task->save();
+            }
 
             // Response zusammenstellen
             $response = [

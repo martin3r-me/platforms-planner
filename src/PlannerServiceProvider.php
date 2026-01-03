@@ -137,12 +137,14 @@ class PlannerServiceProvider extends ServiceProvider
             // Projekt-Tools
             $registry->register(new \Platform\Planner\Tools\CreateProjectTool());
             $registry->register(new \Platform\Planner\Tools\ListProjectsTool());
+            $registry->register(new \Platform\Planner\Tools\GetProjectTool());
             $registry->register(new \Platform\Planner\Tools\UpdateProjectTool());
             $registry->register(new \Platform\Planner\Tools\DeleteProjectTool());
             
             // Slot-Tools
             $registry->register(new \Platform\Planner\Tools\CreateProjectSlotTool());
             $registry->register(new \Platform\Planner\Tools\ListProjectSlotsTool());
+            $registry->register(new \Platform\Planner\Tools\GetProjectSlotTool());
             $registry->register(new \Platform\Planner\Tools\UpdateProjectSlotTool());
             $registry->register(new \Platform\Planner\Tools\DeleteProjectSlotTool());
             
