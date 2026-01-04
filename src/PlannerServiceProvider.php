@@ -134,6 +134,9 @@ class PlannerServiceProvider extends ServiceProvider
         try {
             $registry = resolve(\Platform\Core\Tools\ToolRegistry::class);
             
+            // Overview-Tool
+            $registry->register(new \Platform\Planner\Tools\PlannerOverviewTool());
+            
             // Projekt-Tools
             $registry->register(new \Platform\Planner\Tools\CreateProjectTool());
             $registry->register(new \Platform\Planner\Tools\ListProjectsTool());
