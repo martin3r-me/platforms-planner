@@ -25,7 +25,7 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'GET /projects?team_id={id}&filters=[...]&search=...&sort=[...] - Listet Projekte auf. REST-Parameter: team_id (optional, integer) - Filter nach Team-ID. Wenn nicht angegeben, wird automatisch das aktuelle Team aus dem Kontext verwendet. filters (optional, array) - Filter-Array mit field, op, value. search (optional, string) - Suchbegriff. sort (optional, array) - Sortierung mit field, dir. limit/offset (optional) - Pagination.';
+        return 'GET /projects?team_id={id}&filters=[...]&search=...&sort=[...] - Listet Projekte auf. REST-Parameter: team_id (optional, integer) - Filter nach Team-ID. WICHTIG: Wenn der User ein spezifisches Team nennt (z.B. "TAISTONE"), rufe zuerst "core.teams.GET" auf, um die Team-ID zu finden. Wenn das Team nicht gefunden wird, verwende NICHT automatisch das aktuelle Team - teile dem User stattdessen mit, dass das Team nicht gefunden wurde. Wenn team_id nicht angegeben ist und der User kein spezifisches Team nennt, wird automatisch das aktuelle Team aus dem Kontext verwendet. filters (optional, array) - Filter-Array mit field, op, value. search (optional, string) - Suchbegriff. sort (optional, array) - Sortierung mit field, dir. limit/offset (optional) - Pagination.';
     }
 
     public function getSchema(): array
@@ -36,7 +36,7 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
                 'properties' => [
                     'team_id' => [
                         'type' => 'integer',
-                        'description' => 'REST-Parameter (optional): Filter nach Team-ID. Wenn nicht angegeben, wird automatisch das aktuelle Team aus dem Kontext verwendet.'
+                        'description' => 'REST-Parameter (optional): Filter nach Team-ID. WICHTIG: Wenn der User ein spezifisches Team nennt (z.B. "TAISTONE"), rufe zuerst "core.teams.GET" auf, um die Team-ID zu finden. Wenn das Team nicht gefunden wird, verwende NICHT automatisch das aktuelle Team - teile dem User stattdessen mit, dass das Team nicht gefunden wurde. Wenn nicht angegeben und der User nennt kein spezifisches Team, wird automatisch das aktuelle Team aus dem Kontext verwendet.'
                     ],
                     // Legacy-Parameter (für Backwards-Kompatibilität)
                     'project_type' => [
