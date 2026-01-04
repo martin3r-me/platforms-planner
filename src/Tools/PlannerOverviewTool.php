@@ -43,6 +43,29 @@ class PlannerOverviewTool implements ToolContract, ToolMetadataContract
         try {
             return ToolResult::success([
                 'module' => 'planner',
+                'scope' => [
+                    'team_based' => [
+                        'description' => 'Projekte sind IMMER team-bezogen',
+                        'projects' => [
+                            'team_required' => true,
+                            'team_id' => 'Projekte benötigen immer ein team_id (aus Kontext oder explizit angegeben)',
+                            'access' => 'Nur User, die dem Team angehören, können auf Projekte zugreifen',
+                        ],
+                        'project_tasks' => [
+                            'team_inheritance' => 'Aufgaben in Projekten erben das Team vom Projekt (über project_id)',
+                            'team_id' => 'Wird automatisch vom Projekt übernommen',
+                        ],
+                    ],
+                    'user_based' => [
+                        'description' => 'Persönliche Aufgaben sind NICHT team-bezogen',
+                        'personal_tasks' => [
+                            'team_required' => false,
+                            'user_id' => 'Persönliche Aufgaben gehören nur zum User (user_id)',
+                            'team_id' => 'Kann vorhanden sein, ist aber nicht erforderlich',
+                            'access' => 'Nur der User selbst kann auf seine persönlichen Aufgaben zugreifen',
+                        ],
+                    ],
+                ],
                 'concepts' => [
                     'tasks' => [
                         'description' => 'Aufgaben (Tasks) können in Projekt-Slots oder persönlich sein',
