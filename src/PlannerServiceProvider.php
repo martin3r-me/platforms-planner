@@ -156,6 +156,7 @@ class PlannerServiceProvider extends ServiceProvider
             $registry->register(new \Platform\Planner\Tools\CreateTaskTool());
             $registry->register(new \Platform\Planner\Tools\ListTasksTool());
             $registry->register(new \Platform\Planner\Tools\UpdateTaskTool());
+            $registry->register(new \Platform\Planner\Tools\BulkCreateTasksTool());
             $registry->register(new \Platform\Planner\Tools\BulkUpdateTasksTool());
             $registry->register(new \Platform\Planner\Tools\DeleteTaskTool());
         } catch (\Throwable $e) {

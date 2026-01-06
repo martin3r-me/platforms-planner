@@ -155,6 +155,7 @@ class PlannerOverviewTool implements ToolContract, ToolMetadataContract
                         'list' => 'planner.tasks.GET - Listet Aufgaben auf (filterbar nach Projekt, Slot, User)',
                         'create' => 'planner.tasks.POST - Erstellt neue Aufgabe',
                         'update' => 'planner.tasks.PUT - Aktualisiert Aufgabe (kann zwischen Projekt/Slot verschoben werden)',
+                        'bulk_create' => 'planner.tasks.bulk.POST - Erstellt mehrere Aufgaben in einem Request (Batch-Anlage)',
                         'bulk_update' => 'planner.tasks.bulk.PUT - Aktualisiert mehrere Aufgaben in einem Request (Batch-Operation)',
                     ],
                 ],
