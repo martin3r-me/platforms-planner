@@ -54,6 +54,11 @@ class ListTasksTool implements ToolContract
                     'is_personal' => [
                         'type' => 'boolean',
                         'description' => 'Optional: Filter nach persönlichen Aufgaben (Legacy - nutze stattdessen filters mit field="project_id" und op="is_null" für persönliche Aufgaben). true = nur persönliche Aufgaben, false = nur Projekt-Aufgaben. Wenn nicht angegeben, werden alle angezeigt.'
+                    ],
+                    'story_points' => [
+                        'type' => 'string',
+                        'description' => 'Optional: Filter nach Story Points (Legacy). Nutze stattdessen filters mit field="story_points" und op="eq". Werte: xs|s|m|l|xl|xxl.',
+                        'enum' => ['xs', 's', 'm', 'l', 'xl', 'xxl']
                     ]
                 ]
             ]
@@ -74,7 +79,11 @@ class ListTasksTool implements ToolContract
             // Standard-Operationen anwenden
             $this->applyStandardFilters($query, $arguments, [
                 'project_id', 'project_slot_id', 'user_in_charge_id', 'is_done', 
-                'title', 'description', 'due_date', 'created_at', 'updated_at'
+                'title', 'description', 'due_date', 'created_at', 'updated_at',
+                // numeric effort/estimate field (used as proxy for points)
+                'planned_minutes',
+                // story points enum stored as string (xs..xxl)
+                'story_points',
             ]);
             
             // Legacy: project_id (für Backwards-Kompatibilität)
@@ -83,8 +92,13 @@ class ListTasksTool implements ToolContract
             }
             
             // Legacy: project_slot_id (für Backwards-Kompatibilität)
-            if (!empty($arguments['project_slot_id'])) {
-                $query->where('project_slot_id', $arguments['project_slot_id']);
+            // WICHTIG: 0 bedeutet "nicht gesetzt", nicht "Slot mit ID 0"
+            $projectSlotIdArg = $arguments['project_slot_id'] ?? null;
+            if ($projectSlotIdArg === 0 || $projectSlotIdArg === '0') {
+                $projectSlotIdArg = null;
+            }
+            if (!empty($projectSlotIdArg)) {
+                $query->where('project_slot_id', $projectSlotIdArg);
             }
             
             // Legacy: user_in_charge_id (Standard: aktueller User)
@@ -125,6 +139,11 @@ class ListTasksTool implements ToolContract
                     $query->whereNotNull('project_id');
                 }
             }
+
+            // Legacy: story_points (für Backwards-Kompatibilität)
+            if (isset($arguments['story_points']) && $arguments['story_points'] !== null && $arguments['story_points'] !== '') {
+                $query->where('story_points', (string)$arguments['story_points']);
+            }
             
             // Standard-Suche anwenden
             $this->applyStandardSearch($query, $arguments, ['title', 'description']);
@@ -132,7 +151,7 @@ class ListTasksTool implements ToolContract
             // Standard-Sortierung anwenden (Default: due_date asc, dann created_at desc)
             $this->applyStandardSort($query, $arguments, [
                 'title', 'description', 'due_date', 'created_at', 'updated_at', 
-                'is_done', 'done_at', 'user_in_charge_id'
+                'is_done', 'done_at', 'user_in_charge_id', 'planned_minutes'
             ], 'due_date', 'asc');
             
             // Wenn keine explizite Sortierung, füge created_at desc hinzu
@@ -165,6 +184,9 @@ class ListTasksTool implements ToolContract
                     'user_in_charge_name' => $task->userInCharge?->name ?? 'Unbekannt',
                     'is_personal' => $task->project_id === null,
                     'planned_minutes' => $task->planned_minutes,
+                    'story_points' => $task->story_points?->value,
+                    'story_points_label' => $task->story_points?->label(),
+                    'story_points_points' => $task->story_points?->points(),
                     'created_at' => $task->created_at->toIso8601String(),
                 ];
             })->values()->toArray();

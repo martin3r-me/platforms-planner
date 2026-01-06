@@ -141,6 +141,7 @@ class PlannerServiceProvider extends ServiceProvider
             $registry->register(new \Platform\Planner\Tools\CreateProjectTool());
             $registry->register(new \Platform\Planner\Tools\ListProjectsTool());
             $registry->register(new \Platform\Planner\Tools\GetProjectTool());
+            $registry->register(new \Platform\Planner\Tools\ListProjectMetricsTool());
             $registry->register(new \Platform\Planner\Tools\UpdateProjectTool());
             $registry->register(new \Platform\Planner\Tools\DeleteProjectTool());
             
@@ -155,6 +156,7 @@ class PlannerServiceProvider extends ServiceProvider
             $registry->register(new \Platform\Planner\Tools\CreateTaskTool());
             $registry->register(new \Platform\Planner\Tools\ListTasksTool());
             $registry->register(new \Platform\Planner\Tools\UpdateTaskTool());
+            $registry->register(new \Platform\Planner\Tools\BulkUpdateTasksTool());
             $registry->register(new \Platform\Planner\Tools\DeleteTaskTool());
         } catch (\Throwable $e) {
             // Silent fail - ToolRegistry möglicherweise nicht verfügbar

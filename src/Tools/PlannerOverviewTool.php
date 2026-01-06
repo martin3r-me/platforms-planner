@@ -142,6 +142,7 @@ class PlannerOverviewTool implements ToolContract, ToolMetadataContract
                 'related_tools' => [
                     'projects' => [
                         'list' => 'planner.projects.GET - Listet alle Projekte auf',
+                        'metrics' => 'planner.projects.metrics.GET - Aggregierte Projekt-Metriken (Tasks, Story Points, Minuten) + Ranking nach Komplexität',
                         'get' => 'planner.project.GET - Ruft einzelnes Projekt mit vollständiger Struktur ab',
                         'create' => 'planner.projects.POST - Erstellt neues Projekt',
                     ],
@@ -154,6 +155,7 @@ class PlannerOverviewTool implements ToolContract, ToolMetadataContract
                         'list' => 'planner.tasks.GET - Listet Aufgaben auf (filterbar nach Projekt, Slot, User)',
                         'create' => 'planner.tasks.POST - Erstellt neue Aufgabe',
                         'update' => 'planner.tasks.PUT - Aktualisiert Aufgabe (kann zwischen Projekt/Slot verschoben werden)',
+                        'bulk_update' => 'planner.tasks.bulk.PUT - Aktualisiert mehrere Aufgaben in einem Request (Batch-Operation)',
                     ],
                 ],
             ]);

@@ -70,6 +70,11 @@ class UpdateTaskTool implements ToolContract
                     'type' => 'integer',
                     'description' => 'Optional: Neue geplante Minuten. Frage nach, wenn der Nutzer die Zeit ändern möchte.'
                 ],
+                'story_points' => [
+                    'type' => 'string',
+                    'description' => 'Optional: Story Points der Aufgabe (xs|s|m|l|xl|xxl). Setze auf null/leeren String, um zu entfernen.',
+                    'enum' => ['xs', 's', 'm', 'l', 'xl', 'xxl']
+                ],
                 'is_done' => [
                     'type' => 'boolean',
                     'description' => 'Optional: Aufgabe als erledigt markieren. Frage nach, wenn der Nutzer die Aufgabe abschließen möchte.'
@@ -244,6 +249,15 @@ class UpdateTaskTool implements ToolContract
                 $updateData['planned_minutes'] = $arguments['planned_minutes'];
             }
 
+            if (array_key_exists('story_points', $arguments)) {
+                $sp = $arguments['story_points'];
+                if ($sp === null || $sp === '' || $sp === 'null') {
+                    $updateData['story_points'] = null;
+                } else {
+                    $updateData['story_points'] = (string) $sp;
+                }
+            }
+
             if (isset($arguments['is_done'])) {
                 $updateData['is_done'] = $arguments['is_done'];
                 if ($arguments['is_done']) {
@@ -276,6 +290,10 @@ class UpdateTaskTool implements ToolContract
                 'project_slot_name' => $task->projectSlot?->name,
                 'user_in_charge_id' => $task->user_in_charge_id,
                 'user_in_charge_name' => $task->userInCharge?->name ?? 'Unbekannt',
+                'planned_minutes' => $task->planned_minutes,
+                'story_points' => $task->story_points?->value,
+                'story_points_label' => $task->story_points?->label(),
+                'story_points_points' => $task->story_points?->points(),
                 'is_done' => $task->is_done,
                 'done_at' => $task->done_at?->toIso8601String(),
                 'is_personal' => $task->project_id === null,
