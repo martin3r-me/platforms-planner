@@ -23,7 +23,9 @@ class BulkCreateTasksTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'POST /planner/tasks/bulk - Erstellt mehrere Tasks in einem Request. Nützlich für Batch-Anlage (z.B. 15 Aufgaben für ein Projekt) ohne viele Toolcalls. Optional mit atomic=true in Transaktion.';
+        // NOTE: OpenAI tool descriptions are truncated to ~150 chars in OpenAiService.
+        // Keep the critical contract early: body must be an object with tasks[].
+        return 'POST /planner/tasks/bulk - Body MUSS {tasks:[{title,description,dod,project_id,project_slot_id?}], defaults?} enthalten. Erstellt viele Tasks.';
     }
 
     public function getSchema(): array
