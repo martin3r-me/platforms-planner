@@ -8,6 +8,8 @@ use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Tools\Concerns\HasStandardizedWriteOperations;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectSlot;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Auth\Access\AuthorizationException;
 
 /**
  * Tool zum Bearbeiten von Projekt-Slots
@@ -72,19 +74,11 @@ class UpdateProjectSlotTool implements ToolContract
                 return ToolResult::error('PROJECT_NOT_FOUND', 'Das zugehörige Projekt wurde nicht gefunden.');
             }
 
-            // Prüfe Zugriff über Projekt (optional - kann überschrieben werden)
-            $accessCheck = $this->checkAccess($project, $context, function($model, $ctx) {
-                // Custom Access-Check: Owner oder Admin des Projekts
-                $hasAccess = $model->projectUsers()
-                    ->where('user_id', $ctx->user->id)
-                    ->whereIn('role', ['owner', 'admin'])
-                    ->exists();
-                
-                return $hasAccess || $model->user_id === $ctx->user->id;
-            });
-            
-            if ($accessCheck) {
-                return $accessCheck;
+            // Policy wie UI: Slot bearbeiten = Projekt bearbeiten
+            try {
+                Gate::forUser($context->user)->authorize('update', $project);
+            } catch (AuthorizationException $e) {
+                return ToolResult::error('ACCESS_DENIED', 'Du darfst dieses Projekt nicht bearbeiten (Policy).');
             }
 
             // Update-Daten sammeln

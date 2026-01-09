@@ -7,6 +7,8 @@ use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Tools\Concerns\HasStandardizedWriteOperations;
 use Platform\Planner\Models\PlannerTask;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Auth\Access\AuthorizationException;
 
 /**
  * Tool zum Löschen von Aufgaben im Planner-Modul
@@ -65,28 +67,11 @@ class DeleteTaskTool implements ToolContract
                 return ToolResult::error('ALREADY_DELETED', 'Die Aufgabe wurde bereits gelöscht.');
             }
 
-            // Prüfe Zugriff (optional - kann überschrieben werden)
-            $accessCheck = $this->checkAccess($task, $context, function($model, $ctx) {
-                // Custom Access-Check: User muss Owner der Aufgabe sein oder Zugriff auf das Projekt haben
-                if ($model->user_in_charge_id === $ctx->user->id || $model->user_id === $ctx->user->id) {
-                    return true;
-                }
-                
-                if ($model->project_id) {
-                    $project = $model->project;
-                    $hasAccess = $project->projectUsers()
-                        ->where('user_id', $ctx->user->id)
-                        ->whereIn('role', ['owner', 'admin'])
-                        ->exists();
-                    
-                    return $hasAccess || $project->user_id === $ctx->user->id;
-                }
-                
-                return false;
-            });
-            
-            if ($accessCheck) {
-                return $accessCheck;
+            // Policy wie UI (Task-Livewire nutzt authorize('delete', $task) für Delete)
+            try {
+                Gate::forUser($context->user)->authorize('delete', $task);
+            } catch (AuthorizationException $e) {
+                return ToolResult::error('ACCESS_DENIED', 'Du hast keine Berechtigung, diese Aufgabe zu löschen (Policy).');
             }
 
             // Bestätigung prüfen (wenn Aufgabe wichtig erscheint)

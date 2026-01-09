@@ -9,6 +9,7 @@ use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerTask;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * Aggregations-Tool: Projekt-Metriken (Komplexität) für ein Team
@@ -94,6 +95,9 @@ class ListProjectMetricsTool implements ToolContract, ToolMetadataContract
             $projects = PlannerProject::query()
                 ->where('team_id', $teamId)
                 ->get(['id', 'name', 'done', 'user_id', 'created_at']);
+
+            // Policy: nur Projekte, die der User sehen darf (wie UI)
+            $projects = $projects->filter(fn($p) => Gate::forUser($context->user)->allows('view', $p))->values();
 
             if ($projects->isEmpty()) {
                 return ToolResult::success([

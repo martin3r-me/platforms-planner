@@ -9,6 +9,8 @@ use Platform\Core\Tools\Concerns\HasStandardGetOperations;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectSlot;
 use Platform\Planner\Models\PlannerTask;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Auth\Access\AuthorizationException;
 
 /**
  * Tool zum Auflisten von Projekt-Slots
@@ -57,13 +59,11 @@ class ListProjectSlotsTool implements ToolContract
                 return ToolResult::error('PROJECT_NOT_FOUND', 'Das angegebene Projekt wurde nicht gefunden. Nutze "planner.projects.GET" um alle verfügbaren Projekte zu sehen.');
             }
 
-            // Prüfe, ob User Zugriff auf Projekt hat
-            $hasAccess = $project->projectUsers()
-                ->where('user_id', $context->user->id)
-                ->exists();
-            
-            if (!$hasAccess && $project->user_id !== $context->user->id) {
-                return ToolResult::error('ACCESS_DENIED', 'Du hast keinen Zugriff auf dieses Projekt. Nutze "planner.projects.GET" um alle verfügbaren Projekte zu sehen.');
+            // Policy wie UI (Project::mount authorize('view'))
+            try {
+                Gate::forUser($context->user)->authorize('view', $project);
+            } catch (AuthorizationException $e) {
+                return ToolResult::error('ACCESS_DENIED', 'Du hast keinen Zugriff auf dieses Projekt (Policy).');
             }
 
             // Query aufbauen

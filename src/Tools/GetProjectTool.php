@@ -8,6 +8,8 @@ use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerTask;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Auth\Access\AuthorizationException;
 
 /**
  * Tool zum Abrufen eines einzelnen Projekts mit vollständiger Struktur
@@ -62,13 +64,11 @@ class GetProjectTool implements ToolContract, ToolMetadataContract
                 return ToolResult::error('PROJECT_NOT_FOUND', 'Das angegebene Projekt wurde nicht gefunden. Nutze "planner.projects.GET" um alle verfügbaren Projekte zu sehen.');
             }
 
-            // Prüfe, ob User Zugriff auf Projekt hat
-            $hasAccess = $project->projectUsers()
-                ->where('user_id', $context->user->id)
-                ->exists();
-            
-            if (!$hasAccess && $project->user_id !== $context->user->id) {
-                return ToolResult::error('ACCESS_DENIED', 'Du hast keinen Zugriff auf dieses Projekt. Nutze "planner.projects.GET" um alle verfügbaren Projekte zu sehen.');
+            // Policy wie in der UI: Project::mount() nutzt authorize('view', $project)
+            try {
+                Gate::forUser($context->user)->authorize('view', $project);
+            } catch (AuthorizationException $e) {
+                return ToolResult::error('ACCESS_DENIED', 'Du hast keinen Zugriff auf dieses Projekt (Policy).');
             }
 
             // Projekt-User formatieren

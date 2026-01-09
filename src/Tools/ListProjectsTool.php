@@ -9,6 +9,7 @@ use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Tools\Concerns\HasStandardGetOperations;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerTask;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * Tool zum Auflisten von Projekten im Planner-Modul
@@ -113,8 +114,14 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
             // Standard-Pagination anwenden
             $this->applyStandardPagination($query, $arguments);
 
-            // Projekte holen (nur solche, auf die User Zugriff hat)
-            $projects = $query->get();
+            // Projekte holen (Team-scope) und dann per Policy filtern (wie UI authorize('view'))
+            $projects = $query->get()->filter(function ($project) use ($context) {
+                try {
+                    return Gate::forUser($context->user)->allows('view', $project);
+                } catch (\Throwable $e) {
+                    return false;
+                }
+            })->values();
 
             // Projekte formatieren mit Slots- und Backlog-Statistiken
             $projectsList = $projects->map(function($project) use ($context) {

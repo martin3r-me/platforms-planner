@@ -11,6 +11,8 @@ use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectUser;
 use Platform\Planner\Enums\ProjectRole;
 use Platform\Planner\Enums\ProjectType;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Auth\Access\AuthorizationException;
 
 /**
  * Tool zum Erstellen von Projekten im Planner-Modul
@@ -101,6 +103,9 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract, ToolMet
             if (empty($arguments['name'])) {
                 return ToolResult::error('VALIDATION_ERROR', 'Projektname ist erforderlich');
             }
+            if (!$context->user) {
+                return ToolResult::error('AUTH_ERROR', 'Kein User im Kontext gefunden.');
+            }
 
             // Team bestimmen: aus Argumenten oder Context
             // WICHTIG: Prüfe auch auf 0, da OpenAI manchmal 0 statt null sendet
@@ -122,6 +127,13 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract, ToolMet
                 if (!$team) {
                     return ToolResult::error('MISSING_TEAM', 'Kein Team angegeben und kein Team im Kontext gefunden. Projekte benötigen ein Team. Nutze das Tool "core.teams.GET" um alle verfügbaren Teams zu sehen und frage dann nach der Team-ID.');
                 }
+            }
+
+            // Policy: Projekt erstellen
+            try {
+                Gate::forUser($context->user)->authorize('create', PlannerProject::class);
+            } catch (AuthorizationException $e) {
+                return ToolResult::error('ACCESS_DENIED', 'Du darfst keine Projekte erstellen (Policy).');
             }
 
             // Owner bestimmen (Standard: aktueller User)

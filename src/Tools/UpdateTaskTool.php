@@ -10,6 +10,8 @@ use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectSlot;
 use Platform\Planner\Models\PlannerTask;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Auth\Access\AuthorizationException;
 
 /**
  * Tool zum Bearbeiten von Aufgaben im Planner-Modul
@@ -103,43 +105,11 @@ class UpdateTaskTool implements ToolContract
             
             $task = $validation['model'];
             
-            // Prüfe Zugriff (optional - kann überschrieben werden)
-            $accessCheck = $this->checkAccess($task, $context, function($model, $ctx) {
-                // Custom Access-Check: User muss Owner der Aufgabe sein oder Zugriff auf das Projekt haben
-                if ($model->user_in_charge_id !== $ctx->user->id && $model->user_id !== $ctx->user->id) {
-                    if ($model->project_id) {
-                        $project = $model->project;
-                        $hasAccess = $project->projectUsers()
-                            ->where('user_id', $ctx->user->id)
-                            ->whereIn('role', ['owner', 'admin'])
-                            ->exists();
-                        
-                        return $hasAccess || $project->user_id === $ctx->user->id;
-                    }
-                    return false;
-                }
-                return true;
-            });
-            
-            if ($accessCheck) {
-                return $accessCheck;
-            }
-
-            // Prüfe Zugriff (User muss Owner der Aufgabe sein oder Zugriff auf das Projekt haben)
-            if ($task->user_in_charge_id !== $context->user->id && $task->user_id !== $context->user->id) {
-                if ($task->project_id) {
-                    $project = $task->project;
-                    $hasAccess = $project->projectUsers()
-                        ->where('user_id', $context->user->id)
-                        ->whereIn('role', ['owner', 'admin'])
-                        ->exists();
-                    
-                    if (!$hasAccess && $project->user_id !== $context->user->id) {
-                        return ToolResult::error('ACCESS_DENIED', 'Du hast keine Berechtigung, diese Aufgabe zu bearbeiten.');
-                    }
-                } else {
-                    return ToolResult::error('ACCESS_DENIED', 'Du hast keine Berechtigung, diese Aufgabe zu bearbeiten.');
-                }
+            // Policy wie UI (Task::mount + Editing Aktionen nutzen authorize('update', $task))
+            try {
+                Gate::forUser($context->user)->authorize('update', $task);
+            } catch (AuthorizationException $e) {
+                return ToolResult::error('ACCESS_DENIED', 'Du hast keine Berechtigung, diese Aufgabe zu bearbeiten (Policy).');
             }
 
             // Update-Daten sammeln
@@ -185,13 +155,11 @@ class UpdateTaskTool implements ToolContract
                         return ToolResult::error('PROJECT_NOT_FOUND', 'Das angegebene Projekt wurde nicht gefunden. Nutze "planner.projects.GET" um alle verfügbaren Projekte zu sehen.');
                     }
 
-                    // Prüfe Zugriff auf neues Projekt
-                    $hasAccess = $newProject->projectUsers()
-                        ->where('user_id', $context->user->id)
-                        ->exists();
-                    
-                    if (!$hasAccess && $newProject->user_id !== $context->user->id) {
-                        return ToolResult::error('ACCESS_DENIED', 'Du hast keinen Zugriff auf das angegebene Projekt.');
+                    // Policy: für Verschieben in anderes Projekt braucht man Update-Recht auf dem Zielprojekt
+                    try {
+                        Gate::forUser($context->user)->authorize('update', $newProject);
+                    } catch (AuthorizationException $e) {
+                        return ToolResult::error('ACCESS_DENIED', 'Du hast keinen Zugriff auf das angegebene Projekt (Policy).');
                     }
 
                     $updateData['project_id'] = $newProject->id;

@@ -9,6 +9,8 @@ use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectSlot;
 use Platform\Planner\Models\PlannerTask;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Auth\Access\AuthorizationException;
 
 /**
  * Tool zum Abrufen eines einzelnen Projekt-Slots mit vollständiger Struktur
@@ -69,12 +71,11 @@ class GetProjectSlotTool implements ToolContract, ToolMetadataContract
                 return ToolResult::error('PROJECT_NOT_FOUND', 'Das zugehörige Projekt wurde nicht gefunden.');
             }
 
-            $hasAccess = $project->projectUsers()
-                ->where('user_id', $context->user->id)
-                ->exists();
-            
-            if (!$hasAccess && $project->user_id !== $context->user->id) {
-                return ToolResult::error('ACCESS_DENIED', 'Du hast keinen Zugriff auf dieses Projekt. Nutze "planner.projects.GET" um alle verfügbaren Projekte zu sehen.');
+            // Policy wie in der UI (Project::mount authorize('view'))
+            try {
+                Gate::forUser($context->user)->authorize('view', $project);
+            } catch (AuthorizationException $e) {
+                return ToolResult::error('ACCESS_DENIED', 'Du hast keinen Zugriff auf dieses Projekt (Policy).');
             }
 
             // Aufgaben im Slot holen

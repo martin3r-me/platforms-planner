@@ -7,6 +7,8 @@ use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Tools\Concerns\HasStandardizedWriteOperations;
 use Platform\Planner\Models\PlannerProject;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Auth\Access\AuthorizationException;
 
 /**
  * Tool zum Löschen von Projekten im Planner-Modul
@@ -61,23 +63,11 @@ class DeleteProjectTool implements ToolContract
             
             $project = $validation['model'];
             
-            // Prüfe Zugriff (nur Owner oder Admin kann löschen)
-            $accessCheck = $this->checkAccess($project, $context, function($model, $ctx) {
-                // Custom Access-Check: Owner oder Admin
-                if ($model->user_id === $ctx->user->id) {
-                    return true;
-                }
-                
-                $isAdmin = $model->projectUsers()
-                    ->where('user_id', $ctx->user->id)
-                    ->where('role', 'admin')
-                    ->exists();
-                
-                return $isAdmin;
-            });
-            
-            if ($accessCheck) {
-                return $accessCheck;
+            // Policy wie UI: nur Owner darf löschen
+            try {
+                Gate::forUser($context->user)->authorize('delete', $project);
+            } catch (AuthorizationException $e) {
+                return ToolResult::error('ACCESS_DENIED', 'Du darfst dieses Projekt nicht löschen (Policy).');
             }
 
             // Prüfe Anzahl der Aufgaben (für Warnung)

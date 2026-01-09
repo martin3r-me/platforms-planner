@@ -9,6 +9,7 @@ use Platform\Core\Tools\Concerns\HasStandardGetOperations;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectSlot;
 use Platform\Planner\Models\PlannerTask;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * Tool zum Auflisten von Aufgaben im Planner-Modul
@@ -70,6 +71,26 @@ class ListTasksTool implements ToolContract
         try {
             if (!$context->user) {
                 return ToolResult::error('AUTH_ERROR', 'Kein User im Kontext gefunden.');
+            }
+
+            // Wenn explizit nach einem Projekt/Slot gefiltert wird, muss der User das Projekt sehen dürfen (Policy wie UI)
+            if (!empty($arguments['project_id'])) {
+                $project = PlannerProject::find($arguments['project_id']);
+                if (!$project) {
+                    return ToolResult::error('PROJECT_NOT_FOUND', 'Das angegebene Projekt wurde nicht gefunden. Nutze "planner.projects.GET" um alle verfügbaren Projekte zu sehen.');
+                }
+                if (!Gate::forUser($context->user)->allows('view', $project)) {
+                    return ToolResult::error('ACCESS_DENIED', 'Du hast keinen Zugriff auf dieses Projekt (Policy).');
+                }
+            }
+            if (!empty($arguments['project_slot_id']) && $arguments['project_slot_id'] !== 0 && $arguments['project_slot_id'] !== '0') {
+                $slot = PlannerProjectSlot::with('project')->find($arguments['project_slot_id']);
+                if (!$slot) {
+                    return ToolResult::error('SLOT_NOT_FOUND', 'Der angegebene Slot wurde nicht gefunden. Nutze "planner.project_slots.GET" um alle verfügbaren Slots zu sehen.');
+                }
+                if ($slot->project && !Gate::forUser($context->user)->allows('view', $slot->project)) {
+                    return ToolResult::error('ACCESS_DENIED', 'Du hast keinen Zugriff auf dieses Projekt (Policy).');
+                }
             }
 
             // Query aufbauen
@@ -163,7 +184,10 @@ class ListTasksTool implements ToolContract
             $this->applyStandardPagination($query, $arguments);
 
             // Aufgaben holen
-            $tasks = $query->get();
+            $tasks = $query->get()
+                // Safety-Net: selbst wenn Query zu breit wäre, nie Tasks zurückgeben, die Policy-seitig nicht sichtbar sind
+                ->filter(fn($task) => Gate::forUser($context->user)->allows('view', $task))
+                ->values();
 
             // Aufgaben formatieren
             $tasksList = $tasks->map(function($task) {

@@ -8,6 +8,8 @@ use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Tools\Concerns\HasStandardizedWriteOperations;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Enums\ProjectType;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Auth\Access\AuthorizationException;
 
 /**
  * Tool zum Bearbeiten von Projekten im Planner-Modul
@@ -87,19 +89,11 @@ class UpdateProjectTool implements ToolContract
             
             $project = $validation['model'];
             
-            // Prüfe Zugriff (optional - kann überschrieben werden)
-            $accessCheck = $this->checkAccess($project, $context, function($model, $ctx) {
-                // Custom Access-Check: Owner oder Admin
-                $hasAccess = $model->projectUsers()
-                    ->where('user_id', $ctx->user->id)
-                    ->whereIn('role', ['owner', 'admin'])
-                    ->exists();
-                
-                return $hasAccess || $model->user_id === $ctx->user->id;
-            });
-            
-            if ($accessCheck) {
-                return $accessCheck;
+            // Policy wie UI: Project::mount authorize('view'), mutierende Aktionen authorize('update')
+            try {
+                Gate::forUser($context->user)->authorize('update', $project);
+            } catch (AuthorizationException $e) {
+                return ToolResult::error('ACCESS_DENIED', 'Du darfst dieses Projekt nicht bearbeiten (Policy).');
             }
 
             // Update-Daten sammeln

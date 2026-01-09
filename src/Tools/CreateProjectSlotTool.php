@@ -8,6 +8,8 @@ use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectSlot;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Auth\Access\AuthorizationException;
 
 /**
  * Tool zum Erstellen von Projekt-Slots im Planner-Modul
@@ -69,13 +71,11 @@ class CreateProjectSlotTool implements ToolContract, ToolDependencyContract
                 return ToolResult::error('PROJECT_NOT_FOUND', 'Das angegebene Projekt wurde nicht gefunden. Nutze "planner.projects.GET" um alle verfügbaren Projekte zu sehen.');
             }
 
-            // Prüfe, ob User Zugriff auf Projekt hat
-            $hasAccess = $project->projectUsers()
-                ->where('user_id', $context->user->id)
-                ->exists();
-            
-            if (!$hasAccess && $project->user_id !== $context->user->id) {
-                return ToolResult::error('ACCESS_DENIED', 'Du hast keinen Zugriff auf dieses Projekt. Nutze "planner.projects.GET" um alle verfügbaren Projekte zu sehen.');
+            // Policy wie UI: Slot/Board Änderungen sind update am Projekt
+            try {
+                Gate::forUser($context->user)->authorize('update', $project);
+            } catch (AuthorizationException $e) {
+                return ToolResult::error('ACCESS_DENIED', 'Du darfst dieses Projekt nicht bearbeiten (Policy).');
             }
 
             // Team aus Projekt holen
