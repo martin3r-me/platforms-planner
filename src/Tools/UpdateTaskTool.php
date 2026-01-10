@@ -6,6 +6,7 @@ use Platform\Core\Contracts\ToolContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Tools\Concerns\HasStandardizedWriteOperations;
+use Platform\Planner\Enums\TaskStoryPoints;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectSlot;
 use Platform\Planner\Models\PlannerTask;
@@ -219,10 +220,23 @@ class UpdateTaskTool implements ToolContract
 
             if (array_key_exists('story_points', $arguments)) {
                 $sp = $arguments['story_points'];
-                if ($sp === null || $sp === '' || $sp === 'null') {
+                if (is_string($sp)) {
+                    $sp = trim($sp);
+                }
+
+                // Robust: 0/"0" wird häufig als "keine Story Points" gesendet → entfernen
+                if ($sp === null || $sp === '' || $sp === 'null' || $sp === 0 || $sp === '0') {
                     $updateData['story_points'] = null;
                 } else {
-                    $updateData['story_points'] = (string) $sp;
+                    $normalized = strtolower((string)$sp);
+                    $enum = TaskStoryPoints::tryFrom($normalized);
+                    if (!$enum) {
+                        return ToolResult::error(
+                            'VALIDATION_ERROR',
+                            'Ungültige story_points. Erlaubt: xs|s|m|l|xl|xxl (oder null/""/0 zum Entfernen).'
+                        );
+                    }
+                    $updateData['story_points'] = $enum->value;
                 }
             }
 

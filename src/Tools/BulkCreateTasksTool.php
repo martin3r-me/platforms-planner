@@ -46,6 +46,10 @@ class BulkCreateTasksTool implements ToolContract, ToolMetadataContract
                         'user_in_charge_id' => ['type' => 'integer'],
                         'planned_minutes' => ['type' => 'integer'],
                         'due_date' => ['type' => 'string'],
+                        'story_points' => [
+                            'type' => 'string',
+                            'enum' => ['xs', 's', 'm', 'l', 'xl', 'xxl'],
+                        ],
                     ],
                     'required' => [],
                 ],
@@ -63,6 +67,10 @@ class BulkCreateTasksTool implements ToolContract, ToolMetadataContract
                             'project_slot_id' => ['type' => 'integer'],
                             'user_in_charge_id' => ['type' => 'integer'],
                             'planned_minutes' => ['type' => 'integer'],
+                            'story_points' => [
+                                'type' => 'string',
+                                'enum' => ['xs', 's', 'm', 'l', 'xl', 'xxl'],
+                            ],
                         ],
                         'required' => ['title'],
                     ],

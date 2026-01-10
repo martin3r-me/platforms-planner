@@ -6,6 +6,7 @@ use Platform\Core\Contracts\ToolContract;
 use Platform\Core\Contracts\ToolDependencyContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
+use Platform\Planner\Enums\TaskStoryPoints;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectSlot;
 use Platform\Planner\Models\PlannerTask;
@@ -71,6 +72,11 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
                 'planned_minutes' => [
                     'type' => 'integer',
                     'description' => 'Optional: Geplante Minuten für die Aufgabe.'
+                ],
+                'story_points' => [
+                    'type' => 'string',
+                    'description' => 'Optional: Story Points (xs|s|m|l|xl|xxl). Setze auf null/""/0 um zu entfernen.',
+                    'enum' => ['xs', 's', 'm', 'l', 'xl', 'xxl'],
                 ]
             ],
             'required' => ['title']
@@ -140,6 +146,28 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
                 }
             }
 
+            // Story points normalisieren/validieren (damit der Enum-Cast nie knallt)
+            $storyPointsValue = null;
+            if (array_key_exists('story_points', $arguments)) {
+                $sp = $arguments['story_points'];
+                if (is_string($sp)) {
+                    $sp = trim($sp);
+                }
+                if ($sp === null || $sp === '' || $sp === 'null' || $sp === 0 || $sp === '0') {
+                    $storyPointsValue = null;
+                } else {
+                    $normalized = strtolower((string)$sp);
+                    $enum = TaskStoryPoints::tryFrom($normalized);
+                    if (!$enum) {
+                        return ToolResult::error(
+                            'VALIDATION_ERROR',
+                            'Ungültige story_points. Erlaubt: xs|s|m|l|xl|xxl (oder null/""/0 zum Entfernen).'
+                        );
+                    }
+                    $storyPointsValue = $enum->value;
+                }
+            }
+
             // Team bestimmen: aus Projekt oder Context
             $teamId = $project?->team_id ?? $context->team?->id;
             if (!$teamId) {
@@ -189,6 +217,7 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
                 'user_in_charge_id' => $userInChargeId,
                 'team_id' => $teamId,
                 'planned_minutes' => $arguments['planned_minutes'] ?? null,
+                'story_points' => $storyPointsValue,
                 'order' => $order,
                 'project_slot_order' => $projectSlotOrder, // 0 für Backlog, >0 für Slot-Aufgaben
             ]);
