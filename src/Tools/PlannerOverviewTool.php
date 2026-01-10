@@ -145,11 +145,14 @@ class PlannerOverviewTool implements ToolContract, ToolMetadataContract
                         'metrics' => 'planner.projects.metrics.GET - Aggregierte Projekt-Metriken (Tasks, Story Points, Minuten) + Ranking nach Komplexität',
                         'get' => 'planner.project.GET - Ruft einzelnes Projekt mit vollständiger Struktur ab',
                         'create' => 'planner.projects.POST - Erstellt neues Projekt',
+                        'transfer' => 'planner.projects.TRANSFER - Transferiert ein Projekt in ein anderes Team (ändert team_id + zieht Slots/Tasks/Sprints/TimeEntries mit). WICHTIG: zuerst Preview, dann confirm=true.',
                     ],
                     'slots' => [
                         'list' => 'planner.project_slots.GET - Listet Slots eines Projekts auf',
                         'get' => 'planner.project_slot.GET - Ruft einzelnen Slot mit vollständiger Struktur ab',
                         'create' => 'planner.project_slots.POST - Erstellt neuen Slot in Projekt',
+                        'transfer' => 'planner.project_slots.TRANSFER - Aktualisiert team_id eines Slots (nur wenn Projekt bereits im Ziel-Team ist). WICHTIG: Preview + confirm=true.',
+                        'move' => 'planner.project_slots.MOVE - Verschiebt einen Slot in ein anderes Projekt (ändert project_id) und zieht Tasks im Slot mit. WICHTIG: Preview + confirm=true.',
                     ],
                     'tasks' => [
                         'list' => 'planner.tasks.GET - Listet Aufgaben auf (filterbar nach Projekt, Slot, User)',
@@ -157,6 +160,7 @@ class PlannerOverviewTool implements ToolContract, ToolMetadataContract
                         'update' => 'planner.tasks.PUT - Aktualisiert Aufgabe (kann zwischen Projekt/Slot verschoben werden)',
                         'bulk_create' => 'planner.tasks.bulk.POST - Erstellt mehrere Aufgaben in einem Request (Batch-Anlage)',
                         'bulk_update' => 'planner.tasks.bulk.PUT - Aktualisiert mehrere Aufgaben in einem Request (Batch-Operation)',
+                        'transfer' => 'planner.tasks.TRANSFER - Transferiert eine persönliche Aufgabe (project_id=null) in ein anderes Team (ändert team_id). Projekt-Tasks: nicht erlaubt (nutze planner.projects.TRANSFER oder planner.tasks.PUT).',
                     ],
                 ],
             ]);

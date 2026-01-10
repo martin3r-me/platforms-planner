@@ -144,6 +144,7 @@ class PlannerServiceProvider extends ServiceProvider
             $registry->register(new \Platform\Planner\Tools\ListProjectMetricsTool());
             $registry->register(new \Platform\Planner\Tools\UpdateProjectTool());
             $registry->register(new \Platform\Planner\Tools\DeleteProjectTool());
+            $registry->register(new \Platform\Planner\Tools\TransferProjectTool());
 
             // Projekt-Teilnehmer (Team-Mitglieder)
             $registry->register(new \Platform\Planner\Tools\AddProjectUserTool());
@@ -155,6 +156,8 @@ class PlannerServiceProvider extends ServiceProvider
             $registry->register(new \Platform\Planner\Tools\GetProjectSlotTool());
             $registry->register(new \Platform\Planner\Tools\UpdateProjectSlotTool());
             $registry->register(new \Platform\Planner\Tools\DeleteProjectSlotTool());
+            $registry->register(new \Platform\Planner\Tools\TransferProjectSlotTool());
+            $registry->register(new \Platform\Planner\Tools\MoveProjectSlotTool());
             
             // Task-Tools
             $registry->register(new \Platform\Planner\Tools\CreateTaskTool());
@@ -163,6 +166,7 @@ class PlannerServiceProvider extends ServiceProvider
             $registry->register(new \Platform\Planner\Tools\BulkCreateTasksTool());
             $registry->register(new \Platform\Planner\Tools\BulkUpdateTasksTool());
             $registry->register(new \Platform\Planner\Tools\DeleteTaskTool());
+            $registry->register(new \Platform\Planner\Tools\TransferTaskTool());
         } catch (\Throwable $e) {
             // Silent fail - ToolRegistry möglicherweise nicht verfügbar
             \Log::warning('Planner: Tool-Registrierung fehlgeschlagen', ['error' => $e->getMessage()]);
