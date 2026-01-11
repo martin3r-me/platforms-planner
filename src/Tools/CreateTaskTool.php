@@ -33,7 +33,7 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
 
     public function getDescription(): string
     {
-        return 'POST /tasks - Erstellt eine neue Aufgabe. REST-Parameter: title (required, string) - Titel der Aufgabe. project_id (optional, integer) - Projekt-ID. Wenn angegeben, wird Aufgabe dem Projekt zugeordnet. project_slot_id (optional, integer) - Slot-ID. Wenn angegeben, wird Aufgabe dem Slot zugeordnet. description (optional, string) - Beschreibung. definition_of_done (optional, string) - Definition of Done. due_date (optional, date) - Fälligkeitsdatum. user_in_charge_id (optional, integer) - verantwortlicher User.';
+        return 'POST /tasks - Erstellt eine neue Aufgabe. REST-Parameter: title (required, string) - Titel der Aufgabe. project_id (optional, integer) - Projekt-ID. Wenn angegeben, wird Aufgabe dem Projekt zugeordnet. project_slot_id (optional, integer) - Slot-ID. Wenn angegeben, wird Aufgabe dem Slot zugeordnet. description (optional, string) - Beschreibung. definition_of_done (optional, string) - Definition of Done. due_date (optional, date) - Fälligkeitsdatum. user_in_charge_id (optional, integer) - verantwortlicher User. WICHTIG: user_id wird automatisch auf den aktuellen User gesetzt (der Ersteller) und kann nicht überschrieben werden.';
     }
 
     public function getSchema(): array
@@ -251,6 +251,7 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
                 'project_name' => $project?->name,
                 'project_slot_id' => $task->project_slot_id,
                 'project_slot_name' => $slot?->name,
+                'user_id' => $task->user_id, // Der User, der die Aufgabe ursprünglich erstellt hat (read-only)
                 'user_in_charge_id' => $task->user_in_charge_id,
                 'is_personal' => $task->project_id === null,
                 'created_at' => $task->created_at->toIso8601String(),

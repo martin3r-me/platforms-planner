@@ -204,6 +204,8 @@ class ListTasksTool implements ToolContract
                     'project_name' => $task->project?->name,
                     'project_slot_id' => $task->project_slot_id,
                     'project_slot_name' => $task->projectSlot?->name,
+                    'user_id' => $task->user_id, // Der User, der die Aufgabe ursprünglich erstellt hat (read-only)
+                    'user_name' => $task->user?->name ?? 'Unbekannt',
                     'user_in_charge_id' => $task->user_in_charge_id,
                     'user_in_charge_name' => $task->userInCharge?->name ?? 'Unbekannt',
                     'is_personal' => $task->project_id === null,
