@@ -16,7 +16,7 @@ use Platform\Planner\Models\PlannerTask;
 class ProcessAiAssignedTasks extends Command
 {
     protected $signature = 'planner:process-ai-tasks
-        {--limit=5 : Maximale Anzahl Tasks pro Run}
+        {--limit=5 : Maximale Anzahl Tasks pro Run (0 = ohne Limit)}
         {--max-runtime-seconds=1200 : Maximale Laufzeit pro Run (Sekunden); danach beendet sich der Command und macht im nächsten Scheduler-Run weiter}
         {--task-id= : Optional: nur eine konkrete Task-ID bearbeiten}
         {--dry-run : Zeigt nur, was bearbeitet würde}
@@ -30,8 +30,15 @@ class ProcessAiAssignedTasks extends Command
     {
         $dryRun = (bool)$this->option('dry-run');
         $limit = (int)$this->option('limit');
-        if ($limit < 1) { $limit = 1; }
-        if ($limit > 100) { $limit = 100; }
+        if ($limit < 0) { $limit = 1; }
+        if ($limit === 0) {
+            // unlimited (still bounded by max-runtime-seconds; we just keep picking next tasks)
+            $limit = 1000000;
+        } else {
+            // keep a safety cap for accidental extremes
+            if ($limit < 1) { $limit = 1; }
+            if ($limit > 100) { $limit = 100; }
+        }
 
         $maxRuntimeSeconds = (int)$this->option('max-runtime-seconds');
         if ($maxRuntimeSeconds < 10) { $maxRuntimeSeconds = 10; }
