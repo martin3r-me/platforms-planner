@@ -22,6 +22,7 @@ use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use Platform\Comms\Registry\ContextPresenterRegistry;
 use Platform\Planner\Comms\PlannerContextPresenter;
+use Illuminate\Console\Scheduling\Schedule;
 
 class PlannerServiceProvider extends ServiceProvider
 {
@@ -38,6 +39,7 @@ class PlannerServiceProvider extends ServiceProvider
                 \Platform\Planner\Console\Commands\AssignDueDatesForUndatedTasks::class,
                 \Platform\Planner\Console\Commands\AutoAssignFrogs::class,
                 \Platform\Planner\Console\Commands\EncryptTaskDescriptions::class,
+                \Platform\Planner\Console\Commands\ProcessAiAssignedTasks::class,
             ]);
         }
     }
@@ -121,6 +123,18 @@ class PlannerServiceProvider extends ServiceProvider
         
         // Tools registrieren (loose gekoppelt - für AI/Chat)
         $this->registerTools();
+
+        // Scheduler Hook (falls die consuming App Scheduling nutzt):
+        // alle 30 Minuten AI-Tasks abarbeiten (zusätzlich schützt der Command selbst via Cache-Lock).
+        if ($this->app->runningInConsole()) {
+            $this->app->afterResolving(Schedule::class, function (Schedule $schedule) {
+                $schedule->command('planner:process-ai-tasks')
+                    ->everyThirtyMinutes()
+                    ->withoutOverlapping()
+                    ->runInBackground()
+                    ->appendOutputTo(storage_path('logs/planner-ai-tasks.log'));
+            });
+        }
     }
     
     /**
