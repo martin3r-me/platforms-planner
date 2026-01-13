@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Models\CoreAiProvider;
 use Platform\Core\Models\Team;
@@ -175,7 +176,12 @@ class ProcessAiAssignedTasks extends Command
             }
 
             // Restore auth user for safety in long-running processes.
-            Auth::setUser($originalAuthUser);
+            if ($originalAuthUser instanceof Authenticatable) {
+                Auth::setUser($originalAuthUser);
+            } else {
+                // In CLI there might be no authenticated user – don't call setUser(null) (SessionGuard disallows it).
+                try { Auth::guard()->logout(); } catch (\Throwable $e) {}
+            }
 
             $this->newLine();
             $this->info("✅ Fertig. Bearbeitet: {$processed} Task(s).");
@@ -184,8 +190,9 @@ class ProcessAiAssignedTasks extends Command
             $this->error('❌ Fehler: ' . $e->getMessage());
             return Command::FAILURE;
         } finally {
-            // Don't hard-logout the console process; just clear the user.
-            try { Auth::setUser(null); } catch (\Throwable $e) {}
+            // Do not call setUser(null) – SessionGuard requires Authenticatable.
+            // Best effort: logout if supported; otherwise leave as-is (process ends anyway).
+            try { Auth::guard()->logout(); } catch (\Throwable $e) {}
             try { $lock->release(); } catch (\Throwable $e) {}
         }
     }
