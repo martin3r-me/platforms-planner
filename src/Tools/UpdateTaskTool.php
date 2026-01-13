@@ -29,7 +29,7 @@ class UpdateTaskTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'PUT /tasks/{id} - Aktualisiert eine bestehende Aufgabe. REST-Parameter: id (required, integer) - Task-ID. title (optional, string) - Titel. description (optional, string) - Beschreibung. definition_of_done (optional, string) - Definition of Done. due_date (optional, date) - Fälligkeitsdatum. project_id (optional, integer) - Projekt-ID (zum Verschieben in anderes Projekt). project_slot_id (optional, integer) - Slot-ID (zum Verschieben in anderen Slot). user_in_charge_id (optional, integer) - verantwortlicher User. WICHTIG: user_id (der ursprüngliche Ersteller) kann nicht geändert werden und ist read-only.';
+        return 'PUT /tasks/{id} - Aktualisiert eine bestehende Aufgabe. Tool-Parameter: task_id (required, integer) - Task-ID (Alias: id wird ebenfalls akzeptiert). title (optional, string) - Titel. description (optional, string) - Beschreibung. dod (optional, string) - Definition of Done. due_date (optional, date) - Fälligkeitsdatum. project_id (optional, integer) - Projekt-ID (zum Verschieben in anderes Projekt). project_slot_id (optional, integer) - Slot-ID (zum Verschieben in anderen Slot). user_in_charge_id (optional, integer) - verantwortlicher User. is_done (optional, boolean) - erledigt markieren. WICHTIG: user_id (der ursprüngliche Ersteller) kann nicht geändert werden und ist read-only.';
     }
 
     public function getSchema(): array
@@ -37,6 +37,10 @@ class UpdateTaskTool implements ToolContract
         return [
             'type' => 'object',
             'properties' => [
+                'id' => [
+                    'type' => 'integer',
+                    'description' => 'Alias für task_id (Deprecated). Verwende bevorzugt task_id.'
+                ],
                 'task_id' => [
                     'type' => 'integer',
                     'description' => 'ID der zu bearbeitenden Aufgabe (ERFORDERLICH). Nutze "planner.tasks.GET" um Aufgaben zu finden.'
@@ -90,6 +94,11 @@ class UpdateTaskTool implements ToolContract
     public function execute(array $arguments, ToolContext $context): ToolResult
     {
         try {
+            // Backward compatible: allow "id" as alias for "task_id"
+            if (!array_key_exists('task_id', $arguments) && array_key_exists('id', $arguments)) {
+                $arguments['task_id'] = $arguments['id'];
+            }
+
             // Nutze standardisierte ID-Validierung (loose coupled - optional)
             $validation = $this->validateAndFindModel(
                 $arguments,
