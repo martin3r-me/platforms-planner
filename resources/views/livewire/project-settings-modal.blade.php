@@ -154,20 +154,21 @@
                     {{-- Aktuelle Teilnehmer --}}
                     <div class="space-y-2">
                         @foreach($project->projectUsers as $projectUser)
-                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                <div class="flex items-center space-x-3">
-                                    @if($projectUser->user->avatar)
-                                        <img src="{{ $projectUser->user->avatar }}" alt="{{ $projectUser->user->name }}" class="w-8 h-8 rounded-full object-cover">
-                                    @else
-                                        <div class="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-medium">
-                                            {{ substr($projectUser->user->name, 0, 1) }}
+                            @if($projectUser->user)
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <div class="flex items-center space-x-3">
+                                        @if($projectUser->user->avatar)
+                                            <img src="{{ $projectUser->user->avatar }}" alt="{{ $projectUser->user->name }}" class="w-8 h-8 rounded-full object-cover">
+                                        @else
+                                            <div class="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-medium">
+                                                {{ substr($projectUser->user->name, 0, 1) }}
+                                            </div>
+                                        @endif
+                                        <div>
+                                            <div class="font-medium">{{ $projectUser->user->name }}</div>
+                                            <div class="text-sm text-gray-500">{{ $projectUser->user->email }}</div>
                                         </div>
-                                    @endif
-                                    <div>
-                                        <div class="font-medium">{{ $projectUser->user->name }}</div>
-                                        <div class="text-sm text-gray-500">{{ $projectUser->user->email }}</div>
                                     </div>
-                                </div>
                                 
                             <div class="flex items-center space-x-2">
                                 {{-- Rolle ändern --}}
@@ -200,6 +201,7 @@
                                     @endcan
                                 </div>
                             </div>
+                            @endif
                         @endforeach
                     </div>
                     
@@ -251,7 +253,7 @@
                             >
                                 <option value="">Ownership übertragen an...</option>
                                 @foreach($project->projectUsers as $projectUser)
-                                    @if($projectUser->role !== \Platform\Planner\Enums\ProjectRole::OWNER->value)
+                                    @if($projectUser->user && $projectUser->role !== \Platform\Planner\Enums\ProjectRole::OWNER->value)
                                         <option value="{{ $projectUser->user_id }}">
                                             {{ $projectUser->user->name }} ({{ ucfirst($projectUser->role) }})
                                         </option>
