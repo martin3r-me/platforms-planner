@@ -82,6 +82,11 @@ class UpdateTaskTool implements ToolContract
                     'description' => 'Optional: Story Points der Aufgabe (xs|s|m|l|xl|xxl). Setze auf null/leeren String, um zu entfernen.',
                     'enum' => ['xs', 's', 'm', 'l', 'xl', 'xxl']
                 ],
+                'storyPoints' => [
+                    'type' => 'string',
+                    'description' => 'Alias für story_points.',
+                    'enum' => ['xs', 's', 'm', 'l', 'xl', 'xxl']
+                ],
                 'is_done' => [
                     'type' => 'boolean',
                     'description' => 'Optional: Aufgabe als erledigt markieren. Frage nach, wenn der Nutzer die Aufgabe abschließen möchte.'
@@ -97,6 +102,11 @@ class UpdateTaskTool implements ToolContract
             // Backward compatible: allow "id" as alias for "task_id"
             if (!array_key_exists('task_id', $arguments) && array_key_exists('id', $arguments)) {
                 $arguments['task_id'] = $arguments['id'];
+            }
+
+            // Backward compatible: allow "storyPoints" as alias for "story_points"
+            if (!array_key_exists('story_points', $arguments) && array_key_exists('storyPoints', $arguments)) {
+                $arguments['story_points'] = $arguments['storyPoints'];
             }
 
             // Nutze standardisierte ID-Validierung (loose coupled - optional)

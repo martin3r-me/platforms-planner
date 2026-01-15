@@ -77,7 +77,12 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
                     'type' => 'string',
                     'description' => 'Optional: Story Points (xs|s|m|l|xl|xxl). Setze auf null/""/0 um zu entfernen.',
                     'enum' => ['xs', 's', 'm', 'l', 'xl', 'xxl'],
-                ]
+                ],
+                'storyPoints' => [
+                    'type' => 'string',
+                    'description' => 'Alias für story_points.',
+                    'enum' => ['xs', 's', 'm', 'l', 'xl', 'xxl'],
+                ],
             ],
             'required' => ['title']
         ];
@@ -89,6 +94,11 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
             // Validierung
             if (empty($arguments['title'])) {
                 return ToolResult::error('VALIDATION_ERROR', 'Titel ist erforderlich');
+            }
+
+            // Backward compatible: allow "storyPoints" as alias for "story_points"
+            if (!array_key_exists('story_points', $arguments) && array_key_exists('storyPoints', $arguments)) {
+                $arguments['story_points'] = $arguments['storyPoints'];
             }
 
             // Projekt prüfen (wenn angegeben)
