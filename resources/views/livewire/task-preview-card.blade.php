@@ -3,7 +3,7 @@
 @php
     $isDone = $task->is_done ?? false;
     $isFrog = $task->is_frog ?? false;
-    $contextColor = $task->context_color ?? null;
+    $contextColor = $task->color ?? null;
     // HasTags Trait stellt contextTags Relation bereit
     $contextTags = method_exists($task, 'contextTags') ? ($task->contextTags ?? collect()) : collect();
 @endphp

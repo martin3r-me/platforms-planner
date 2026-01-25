@@ -77,8 +77,8 @@
                             @svg('heroicon-o-folder', 'w-5 h-5 flex-shrink-0 text-[var(--ui-secondary)]')
                             <div class="flex-1 min-w-0 ml-2 flex items-center gap-1.5">
                                 <span class="truncate text-sm font-medium">{{ $project->name }}</span>
-                                @if($project->context_color)
-                                    <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {{ $project->context_color }}"></span>
+                                @if($project->color)
+                                    <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {{ $project->color }}"></span>
                                 @endif
                             </div>
                         </x-ui-sidebar-item>
@@ -94,8 +94,8 @@
                             @svg('heroicon-o-folder', 'w-5 h-5 flex-shrink-0 text-[var(--ui-secondary)]')
                             <div class="flex-1 min-w-0 ml-2 flex items-center gap-1.5">
                                 <span class="truncate text-sm font-medium">{{ $project->name }}</span>
-                                @if($project->context_color)
-                                    <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {{ $project->context_color }}"></span>
+                                @if($project->color)
+                                    <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {{ $project->color }}"></span>
                                 @endif
                             </div>
                         </x-ui-sidebar-item>
