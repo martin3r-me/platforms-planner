@@ -74,6 +74,9 @@
                 <x-ui-sidebar-list :label="'Kundenprojekte' . ($showAllProjects ? ' (' . $allCustomerProjectsCount . ')' : '')">
                     @foreach($customerProjects as $project)
                         <x-ui-sidebar-item :href="route('planner.projects.show', ['plannerProject' => $project])">
+                            @if($project->context_color)
+                                <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background-color: {{ $project->context_color }}"></span>
+                            @endif
                             @svg('heroicon-o-folder', 'w-5 h-5 flex-shrink-0 text-[var(--ui-secondary)]')
                             <div class="flex-1 min-w-0 ml-2">
                                 <div class="truncate text-sm font-medium">{{ $project->name }}</div>
@@ -88,6 +91,9 @@
                 <x-ui-sidebar-list :label="'Interne Projekte' . ($showAllProjects ? ' (' . $allInternalProjectsCount . ')' : '')">
                     @foreach($internalProjects as $project)
                         <x-ui-sidebar-item :href="route('planner.projects.show', ['plannerProject' => $project])">
+                            @if($project->context_color)
+                                <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background-color: {{ $project->context_color }}"></span>
+                            @endif
                             @svg('heroicon-o-folder', 'w-5 h-5 flex-shrink-0 text-[var(--ui-secondary)]')
                             <div class="flex-1 min-w-0 ml-2">
                                 <div class="truncate text-sm font-medium">{{ $project->name }}</div>

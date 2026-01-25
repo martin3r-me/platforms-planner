@@ -92,6 +92,12 @@ class Project extends Component
             'context_type' => get_class($this->project),
             'context_id' => $this->project->id,
         ]);
+
+        // Tagging-Kontext setzen - ermöglicht Tagging und Farbzuweisung für dieses Projekt
+        $this->dispatch('tagging', [
+            'context_type' => get_class($this->project),
+            'context_id' => $this->project->id,
+        ]);
     }
 
     public function render()
