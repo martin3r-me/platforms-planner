@@ -88,7 +88,9 @@ class Sidebar extends Component
         }
 
         // Projekte, bei denen der User Aufgaben hat ODER Mitglied ist
+        // contextColors eager-loaden, damit context_color Accessor funktioniert (loose coupling via HasColors Trait)
         $projectsWithUserTasks = Project::query()
+            ->with('contextColors')
             ->where('team_id', $teamId)
             ->where(function ($query) use ($user) {
                 // 1. Projekte, bei denen der User Aufgaben hat (über ProjectSlots)
@@ -111,7 +113,9 @@ class Sidebar extends Component
             ->get();
 
         // Alle Projekte
+        // contextColors eager-loaden, damit context_color Accessor funktioniert (loose coupling via HasColors Trait)
         $allProjects = Project::query()
+            ->with('contextColors')
             ->where('team_id', $teamId)
             ->orderBy('name')
             ->get();
