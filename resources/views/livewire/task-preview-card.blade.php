@@ -3,12 +3,32 @@
 @php
     $isDone = $task->is_done ?? false;
     $isFrog = $task->is_frog ?? false;
+    $contextColor = $task->context_color ?? null;
+    // HasTags Trait stellt contextTags Relation bereit
+    $contextTags = method_exists($task, 'contextTags') ? ($task->contextTags ?? collect()) : collect();
 @endphp
-<x-ui-kanban-card 
-    :title="''" 
-    :sortable-id="$task->id" 
+<x-ui-kanban-card
+    :title="''"
+    :sortable-id="$task->id"
     :href="route('planner.tasks.show', $task)"
 >
+    <!-- Kontext Farbe und Tags (ganz oben, schlicht) -->
+    @if($contextColor || $contextTags->isNotEmpty())
+        <div class="mb-2 flex items-center gap-1.5 flex-wrap">
+            @if($contextColor)
+                <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {{ $contextColor }}"></span>
+            @endif
+            @foreach($contextTags->take(3) as $tag)
+                <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded bg-[var(--ui-muted-5)] text-[var(--ui-muted)] border border-[var(--ui-border)]/30">
+                    {{ $tag->name }}
+                </span>
+            @endforeach
+            @if($contextTags->count() > 3)
+                <span class="text-[10px] text-[var(--ui-muted)]">+{{ $contextTags->count() - 3 }}</span>
+            @endif
+        </div>
+    @endif
+
     <!-- Story Points, Frosch und Datum (oben in eigene Zeile) -->
     @if($isFrog || $task->story_points || $task->due_date)
         <div class="mb-3 flex items-start justify-between gap-2">
