@@ -134,9 +134,13 @@
                         </div>
                         
                         <div>
+                            <div class="mb-2">
+                                <label class="text-sm font-semibold text-[var(--ui-secondary)]">Priorität</label>
+                                <p class="text-xs text-[var(--ui-muted)] mt-1">Bestimmt die Dringlichkeit und Wichtigkeit der Aufgabe. Höhere Prioritäten sollten zuerst bearbeitet werden.</p>
+                            </div>
                             <x-ui-input-select
                                 name="task.priority"
-                                label="Priorität"
+                                label=""
                                 :options="\Platform\Planner\Enums\TaskPriority::cases()"
                                 optionValue="value"
                                 optionLabel="label"
@@ -145,9 +149,13 @@
                             />
                         </div>
                         <div>
+                            <div class="mb-2">
+                                <label class="text-sm font-semibold text-[var(--ui-secondary)]">Story Points</label>
+                                <p class="text-xs text-[var(--ui-muted)] mt-1">Schätzung der Komplexität und des Aufwands einer Aufgabe (nicht Zeit). Hilft bei der Sprint-Planung und Kapazitätsplanung.</p>
+                            </div>
                             <x-ui-input-select
                                 name="task.story_points"
-                                label="Story Points"
+                                label=""
                                 :options="\Platform\Planner\Enums\TaskStoryPoints::cases()"
                                 optionValue="value"
                                 optionLabel="label"
@@ -164,9 +172,10 @@
                     <h2 class="text-lg font-semibold text-[var(--ui-secondary)] mb-4">Fälligkeit & Verantwortung</h2>
                     <x-ui-form-grid :cols="2" :gap="6">
                         <div>
-                            <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-2">
-                                Fälligkeitsdatum
-                            </label>
+                            <div class="mb-2">
+                                <label class="text-sm font-semibold text-[var(--ui-secondary)]">Fälligkeitsdatum</label>
+                                <p class="text-xs text-[var(--ui-muted)] mt-1">Der Termin, bis zu dem die Aufgabe abgeschlossen sein soll. Hilft bei der Zeitplanung und Priorisierung.</p>
+                            </div>
                             <button
                                 type="button"
                                 wire:click="openDueDateModal"
@@ -184,9 +193,13 @@
                             </button>
                         </div>
                         <div>
+                            <div class="mb-2">
+                                <label class="text-sm font-semibold text-[var(--ui-secondary)]">Verantwortlicher</label>
+                                <p class="text-xs text-[var(--ui-muted)] mt-1">Die Person, die für die Umsetzung dieser Aufgabe verantwortlich ist und als Ansprechpartner dient.</p>
+                            </div>
                             <x-ui-input-select
                                 name="task.user_in_charge_id"
-                                label="Verantwortlicher"
+                                label=""
                                 :options="$teamUsers"
                                 optionValue="id"
                                 optionLabel="name"

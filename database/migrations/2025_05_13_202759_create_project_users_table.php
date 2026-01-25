@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('planner_project_users', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('project_id');
+            $table->foreignId('project_id')->constrained('planner_projects')->onDelete('cascade');
             $table->foreignId('user_id');
             $table->string('role')->nullable();
             $table->timestamps();

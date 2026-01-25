@@ -37,6 +37,8 @@ return new class extends Migration
             $table->datetime('recurrence_end_date')->nullable(); // optional, wann die Wiederholung endet
             $table->datetime('next_due_date')->nullable(); // wann die nächste Aufgabe erstellt werden soll
             $table->boolean('is_active')->default(true);
+            $table->boolean('auto_delete_old_tasks')->default(false);
+            $table->boolean('auto_mark_as_done')->default(false);
             
             $table->timestamps();
             $table->softDeletes();

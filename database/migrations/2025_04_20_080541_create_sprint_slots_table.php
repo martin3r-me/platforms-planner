@@ -16,7 +16,7 @@ return new class extends Migration
             $table->uuid('uuid')->unique();
             $table->foreignId('sprint_id')->constrained('planner_sprints')->onDelete('cascade');
             $table->string('name');
-            $table->unsignedInteger('order')->default(0);
+            $table->unsignedInteger('order')->nullable();
             $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('team_id')->nullable()->constrained('teams')->nullOnDelete();
             $table->timestamps();
