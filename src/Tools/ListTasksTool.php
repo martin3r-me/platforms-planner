@@ -26,7 +26,7 @@ class ListTasksTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'GET /tasks?project_id={id}&project_slot_id={id}&user_in_charge_id={id}&filters=[...]&search=...&sort=[...] - Listet Aufgaben auf. REST-Parameter: project_id (optional, integer) - Filter nach Projekt. project_slot_id (optional, integer) - Filter nach Slot. user_in_charge_id (optional, integer) - Filter nach User (wenn nicht angegeben, aktueller User). filters (optional, array) - Filter-Array mit field, op, value. search (optional, string) - Suchbegriff. sort (optional, array) - Sortierung mit field, dir. limit/offset (optional) - Pagination.';
+        return 'GET /tasks - Listet Aufgaben auf. Response enthält für jede Task: dod_items (Array von {text, checked} Items) und dod_progress ({total, checked, percentage, isComplete}). Filter: project_id, project_slot_id, user_in_charge_id (default: aktueller User), is_done, filters, search, sort, limit/offset.';
     }
 
     public function getSchema(): array
@@ -197,6 +197,8 @@ class ListTasksTool implements ToolContract
                     'title' => $task->title,
                     'description' => $task->description,
                     'dod' => $task->dod,
+                    'dod_items' => $task->dod_items, // Geparste DoD-Items als Array [{text, checked}, ...]
+                    'dod_progress' => $task->dod_progress, // {total, checked, percentage, isComplete}
                     'due_date' => $task->due_date?->toIso8601String(),
                     'is_done' => $task->is_done,
                     'done_at' => $task->done_at?->toIso8601String(),

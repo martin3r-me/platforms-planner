@@ -33,7 +33,7 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
 
     public function getDescription(): string
     {
-        return 'POST /tasks - Erstellt eine neue Aufgabe. REST-Parameter: title (required, string) - Titel der Aufgabe. project_id (optional, integer) - Projekt-ID. Wenn angegeben, wird Aufgabe dem Projekt zugeordnet. project_slot_id (optional, integer) - Slot-ID. Wenn angegeben, wird Aufgabe dem Slot zugeordnet. description (optional, string) - Beschreibung. definition_of_done (optional, string) - Definition of Done. due_date (optional, date) - Fälligkeitsdatum. user_in_charge_id (optional, integer) - verantwortlicher User. WICHTIG: user_id wird automatisch auf den aktuellen User gesetzt (der Ersteller) und kann nicht überschrieben werden.';
+        return 'POST /tasks - Erstellt eine neue Aufgabe. REST-Parameter: title (required, string) - Titel der Aufgabe. project_id (optional, integer) - Projekt-ID. project_slot_id (optional, integer) - Slot-ID. description (optional, string) - Beschreibung. dod_items (optional, array) - Definition of Done als Array von {text, checked} Items. due_date (optional, date) - Fälligkeitsdatum. user_in_charge_id (optional, integer) - verantwortlicher User. WICHTIG: user_id wird automatisch auf den aktuellen User gesetzt.';
     }
 
     public function getSchema(): array
@@ -51,7 +51,19 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
                 ],
                 'dod' => [
                     'type' => 'string',
-                    'description' => 'Optional: Definition of Done (DoD) - Kriterien, wann die Aufgabe als erledigt gilt.'
+                    'description' => 'Optional: Definition of Done (DoD) als JSON-String. Format: [{"text": "Kriterium 1", "checked": false}, {"text": "Kriterium 2", "checked": false}]. Alternativ kann auch ein einfacher String (z.B. "- Punkt 1\n- Punkt 2") übergeben werden, der automatisch konvertiert wird.'
+                ],
+                'dod_items' => [
+                    'type' => 'array',
+                    'description' => 'Optional: Definition of Done als Array von Items (Alternative zu dod-String). Jedes Item hat "text" (required) und "checked" (optional, default: false).',
+                    'items' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'text' => ['type' => 'string', 'description' => 'Text des DoD-Kriteriums'],
+                            'checked' => ['type' => 'boolean', 'description' => 'Ob das Kriterium erfüllt ist (default: false)']
+                        ],
+                        'required' => ['text']
+                    ]
                 ],
                 'due_date' => [
                     'type' => 'string',
@@ -239,7 +251,24 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
                 $task->description = $arguments['description'];
                 $needsUpdate = true;
             }
-            if (isset($arguments['dod'])) {
+            // DoD verarbeiten: dod_items hat Vorrang vor dod (String)
+            if (isset($arguments['dod_items']) && is_array($arguments['dod_items'])) {
+                // dod_items Array in JSON-String konvertieren
+                $dodItems = array_values(array_filter(array_map(function ($item) {
+                    if (!is_array($item) || empty(trim($item['text'] ?? ''))) {
+                        return null;
+                    }
+                    return [
+                        'text' => trim($item['text']),
+                        'checked' => (bool)($item['checked'] ?? false),
+                    ];
+                }, $arguments['dod_items'])));
+
+                if (!empty($dodItems)) {
+                    $task->dod = json_encode($dodItems, JSON_UNESCAPED_UNICODE);
+                    $needsUpdate = true;
+                }
+            } elseif (isset($arguments['dod'])) {
                 $task->dod = $arguments['dod'];
                 $needsUpdate = true;
             }
@@ -256,6 +285,8 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
                 'title' => $task->title,
                 'description' => $task->description,
                 'dod' => $task->dod,
+                'dod_items' => $task->dod_items, // Geparste DoD-Items als Array
+                'dod_progress' => $task->dod_progress, // {total, checked, percentage, isComplete}
                 'due_date' => $task->due_date?->toIso8601String(),
                 'project_id' => $task->project_id,
                 'project_name' => $project?->name,

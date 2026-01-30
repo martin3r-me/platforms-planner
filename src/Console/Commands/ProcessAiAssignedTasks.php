@@ -314,7 +314,10 @@ class ProcessAiAssignedTasks extends Command
             . "2) NICHT LÖSBAR: Übergib die Aufgabe an einen Menschen (user_in_charge_id={$fallbackUserId}) über planner.tasks.PUT\n"
             . "   Beispiel: planner.tasks.PUT {\"task_id\": {$task->id}, \"user_in_charge_id\": {$fallbackUserId}}\n"
             . "   und hänge deine Anmerkungen in die Anmerkung (description) an (mit Absatz, klarer Struktur).\n\n"
-            . "Achte besonders auf die Definition of Done (DoD). Wenn DoD fehlt, definiere sinnvolle DoD-Kriterien oder handle konservativ.\n"
+            . "Achte besonders auf die Definition of Done (DoD). Die DoD besteht aus einzelnen Items mit {text, checked}.\n"
+            . "Du kannst DoD-Items einzeln abhaken mit: planner.tasks.PUT {\"task_id\": ..., \"dod_items_update\": {\"set_checked\": [{\"index\": 0, \"checked\": true}]}}\n"
+            . "Oder alle DoD-Items auf einmal: planner.tasks.PUT {\"task_id\": ..., \"dod_items\": [{\"text\": \"...\", \"checked\": true}]}\n"
+            . "Wenn DoD fehlt, definiere sinnvolle DoD-Kriterien oder handle konservativ.\n"
             . "Führe nur Änderungen aus, die du begründen kannst. Wenn dir Kontext/Rechte fehlen, wähle Endzustand 2.\n\n"
             . "Deine Identität: {$aiUser->name} (user_id={$aiUser->id}).";
 
@@ -333,6 +336,8 @@ class ProcessAiAssignedTasks extends Command
             'created_by_user_id' => $task->user_id,
             'responsible_user_in_charge_id' => $task->user_in_charge_id,
             'definition_of_done' => $dod,
+            'definition_of_done_items' => $task->dod_items, // Strukturierte DoD-Items [{text, checked}, ...]
+            'definition_of_done_progress' => $task->dod_progress, // {total, checked, percentage, isComplete}
             'anmerkung' => $desc,
         ];
 

@@ -61,7 +61,19 @@ class BulkCreateTasksTool implements ToolContract, ToolMetadataContract
                         'properties' => [
                             'title' => ['type' => 'string'],
                             'description' => ['type' => 'string'],
-                            'dod' => ['type' => 'string'],
+                            'dod' => ['type' => 'string', 'description' => 'DoD als JSON-String oder Plaintext'],
+                            'dod_items' => [
+                                'type' => 'array',
+                                'description' => 'DoD als Array von {text, checked} Items',
+                                'items' => [
+                                    'type' => 'object',
+                                    'properties' => [
+                                        'text' => ['type' => 'string'],
+                                        'checked' => ['type' => 'boolean']
+                                    ],
+                                    'required' => ['text']
+                                ]
+                            ],
                             'due_date' => ['type' => 'string'],
                             'project_id' => ['type' => 'integer'],
                             'project_slot_id' => ['type' => 'integer'],

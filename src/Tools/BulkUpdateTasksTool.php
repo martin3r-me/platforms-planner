@@ -44,7 +44,30 @@ class BulkUpdateTasksTool implements ToolContract, ToolMetadataContract
                             'task_id' => ['type' => 'integer'],
                             'title' => ['type' => 'string'],
                             'description' => ['type' => 'string'],
-                            'dod' => ['type' => 'string'],
+                            'dod' => ['type' => 'string', 'description' => 'DoD als JSON-String oder Plaintext (überschreibt alle)'],
+                            'dod_items' => [
+                                'type' => 'array',
+                                'description' => 'DoD als Array von {text, checked} Items (überschreibt alle)',
+                                'items' => [
+                                    'type' => 'object',
+                                    'properties' => [
+                                        'text' => ['type' => 'string'],
+                                        'checked' => ['type' => 'boolean']
+                                    ],
+                                    'required' => ['text']
+                                ]
+                            ],
+                            'dod_items_update' => [
+                                'type' => 'object',
+                                'description' => 'Granulare DoD-Updates (toggle, set_checked, add, remove, update_text)',
+                                'properties' => [
+                                    'toggle' => ['type' => 'array', 'items' => ['type' => 'integer']],
+                                    'set_checked' => ['type' => 'array'],
+                                    'add' => ['type' => 'array'],
+                                    'remove' => ['type' => 'array', 'items' => ['type' => 'integer']],
+                                    'update_text' => ['type' => 'array']
+                                ]
+                            ],
                             'due_date' => ['type' => 'string'],
                             'project_id' => ['type' => 'integer'],
                             'project_slot_id' => ['type' => 'integer'],

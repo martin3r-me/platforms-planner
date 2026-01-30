@@ -29,7 +29,7 @@ class UpdateTaskTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'PUT /tasks/{id} - Aktualisiert eine bestehende Aufgabe. Tool-Parameter: task_id (required, integer) - Task-ID (Alias: id wird ebenfalls akzeptiert). title (optional, string) - Titel. description (optional, string) - Beschreibung. dod (optional, string) - Definition of Done. due_date (optional, date) - Fälligkeitsdatum. project_id (optional, integer) - Projekt-ID (zum Verschieben in anderes Projekt). project_slot_id (optional, integer) - Slot-ID (zum Verschieben in anderen Slot). user_in_charge_id (optional, integer) - verantwortlicher User. is_done (optional, boolean) - erledigt markieren. WICHTIG: user_id (der ursprüngliche Ersteller) kann nicht geändert werden und ist read-only.';
+        return 'PUT /tasks/{id} - Aktualisiert eine bestehende Aufgabe. Tool-Parameter: task_id (required). dod_items_update (optional, object) - Granulare DoD-Updates: toggle (Array von Indizes zum Umschalten), set_checked (Array von {index, checked}), add (Array von {text, checked}), remove (Array von Indizes), update_text (Array von {index, text}). dod_items (optional, array) - Komplette DoD als Array von {text, checked} (überschreibt alle). title, description, due_date, project_id, project_slot_id, user_in_charge_id, is_done sind weitere optionale Parameter.';
     }
 
     public function getSchema(): array
@@ -55,7 +55,71 @@ class UpdateTaskTool implements ToolContract
                 ],
                 'dod' => [
                     'type' => 'string',
-                    'description' => 'Optional: Neue Definition of Done (DoD). Frage nach, wenn der Nutzer die DoD ändern möchte.'
+                    'description' => 'Optional: Neue Definition of Done (DoD) als JSON-String. Format: [{"text": "Kriterium 1", "checked": false}]. ACHTUNG: Überschreibt alle bestehenden DoD-Items. Für granulare Änderungen nutze dod_items_update.'
+                ],
+                'dod_items' => [
+                    'type' => 'array',
+                    'description' => 'Optional: Komplette DoD-Items als Array (überschreibt alle bestehenden Items). Alternative zu dod-String.',
+                    'items' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'text' => ['type' => 'string', 'description' => 'Text des DoD-Kriteriums'],
+                            'checked' => ['type' => 'boolean', 'description' => 'Ob das Kriterium erfüllt ist']
+                        ],
+                        'required' => ['text']
+                    ]
+                ],
+                'dod_items_update' => [
+                    'type' => 'object',
+                    'description' => 'Optional: Granulare DoD-Updates (ohne alle Items zu überschreiben). Kann toggle, add, remove und update_text Operationen enthalten.',
+                    'properties' => [
+                        'toggle' => [
+                            'type' => 'array',
+                            'description' => 'Array von Indizes (0-basiert), deren checked-Status umgeschaltet werden soll.',
+                            'items' => ['type' => 'integer']
+                        ],
+                        'set_checked' => [
+                            'type' => 'array',
+                            'description' => 'Array von {index, checked} Objekten, um checked-Status explizit zu setzen.',
+                            'items' => [
+                                'type' => 'object',
+                                'properties' => [
+                                    'index' => ['type' => 'integer'],
+                                    'checked' => ['type' => 'boolean']
+                                ],
+                                'required' => ['index', 'checked']
+                            ]
+                        ],
+                        'add' => [
+                            'type' => 'array',
+                            'description' => 'Array von neuen DoD-Items zum Hinzufügen (am Ende der Liste).',
+                            'items' => [
+                                'type' => 'object',
+                                'properties' => [
+                                    'text' => ['type' => 'string'],
+                                    'checked' => ['type' => 'boolean']
+                                ],
+                                'required' => ['text']
+                            ]
+                        ],
+                        'remove' => [
+                            'type' => 'array',
+                            'description' => 'Array von Indizes (0-basiert), die entfernt werden sollen. WICHTIG: Werden in absteigender Reihenfolge entfernt, damit die Indizes stimmen.',
+                            'items' => ['type' => 'integer']
+                        ],
+                        'update_text' => [
+                            'type' => 'array',
+                            'description' => 'Array von {index, text} Objekten, um Text eines Items zu ändern.',
+                            'items' => [
+                                'type' => 'object',
+                                'properties' => [
+                                    'index' => ['type' => 'integer'],
+                                    'text' => ['type' => 'string']
+                                ],
+                                'required' => ['index', 'text']
+                            ]
+                        ]
+                    ]
                 ],
                 'due_date' => [
                     'type' => 'string',
@@ -165,7 +229,102 @@ class UpdateTaskTool implements ToolContract
                 }
             }
 
-            if (array_key_exists('dod', $arguments)) {
+            // DoD verarbeiten - Priorität: dod_items_update > dod_items > dod (String)
+            $dodProcessed = false;
+
+            // 1. Granulare DoD-Updates (dod_items_update)
+            if (isset($arguments['dod_items_update']) && is_array($arguments['dod_items_update'])) {
+                $dodUpdate = $arguments['dod_items_update'];
+                $currentItems = $task->dod_items; // Geparste Items aus dem Model
+
+                // Toggle-Operationen
+                if (isset($dodUpdate['toggle']) && is_array($dodUpdate['toggle'])) {
+                    foreach ($dodUpdate['toggle'] as $idx) {
+                        if (isset($currentItems[$idx])) {
+                            $currentItems[$idx]['checked'] = !$currentItems[$idx]['checked'];
+                        }
+                    }
+                }
+
+                // Explizites Setzen des checked-Status
+                if (isset($dodUpdate['set_checked']) && is_array($dodUpdate['set_checked'])) {
+                    foreach ($dodUpdate['set_checked'] as $op) {
+                        $idx = $op['index'] ?? null;
+                        if ($idx !== null && isset($currentItems[$idx])) {
+                            $currentItems[$idx]['checked'] = (bool)($op['checked'] ?? false);
+                        }
+                    }
+                }
+
+                // Text-Updates
+                if (isset($dodUpdate['update_text']) && is_array($dodUpdate['update_text'])) {
+                    foreach ($dodUpdate['update_text'] as $op) {
+                        $idx = $op['index'] ?? null;
+                        $text = trim($op['text'] ?? '');
+                        if ($idx !== null && isset($currentItems[$idx]) && $text !== '') {
+                            $currentItems[$idx]['text'] = $text;
+                        }
+                    }
+                }
+
+                // Entfernen (in absteigender Reihenfolge, damit Indizes stimmen)
+                if (isset($dodUpdate['remove']) && is_array($dodUpdate['remove'])) {
+                    $removeIndices = array_unique(array_map('intval', $dodUpdate['remove']));
+                    rsort($removeIndices); // Absteigend sortieren
+                    foreach ($removeIndices as $idx) {
+                        if (isset($currentItems[$idx])) {
+                            array_splice($currentItems, $idx, 1);
+                        }
+                    }
+                }
+
+                // Hinzufügen (am Ende)
+                if (isset($dodUpdate['add']) && is_array($dodUpdate['add'])) {
+                    foreach ($dodUpdate['add'] as $item) {
+                        $text = trim($item['text'] ?? '');
+                        if ($text !== '') {
+                            $currentItems[] = [
+                                'text' => $text,
+                                'checked' => (bool)($item['checked'] ?? false),
+                            ];
+                        }
+                    }
+                }
+
+                // Leere Items entfernen und re-indexieren
+                $currentItems = array_values(array_filter($currentItems, fn($item) => !empty(trim($item['text'] ?? ''))));
+
+                // Als JSON speichern
+                if (empty($currentItems)) {
+                    $updateData['dod'] = null;
+                } else {
+                    $updateData['dod'] = json_encode($currentItems, JSON_UNESCAPED_UNICODE);
+                }
+                $dodProcessed = true;
+            }
+
+            // 2. Komplette DoD-Items (dod_items Array)
+            if (!$dodProcessed && isset($arguments['dod_items']) && is_array($arguments['dod_items'])) {
+                $dodItems = array_values(array_filter(array_map(function ($item) {
+                    if (!is_array($item) || empty(trim($item['text'] ?? ''))) {
+                        return null;
+                    }
+                    return [
+                        'text' => trim($item['text']),
+                        'checked' => (bool)($item['checked'] ?? false),
+                    ];
+                }, $arguments['dod_items'])));
+
+                if (empty($dodItems)) {
+                    $updateData['dod'] = null;
+                } else {
+                    $updateData['dod'] = json_encode($dodItems, JSON_UNESCAPED_UNICODE);
+                }
+                $dodProcessed = true;
+            }
+
+            // 3. DoD als String (Legacy-Kompatibilität)
+            if (!$dodProcessed && array_key_exists('dod', $arguments)) {
                 $val = $arguments['dod'];
                 if ($val === null || $val === 'null') {
                     $updateData['dod'] = null;
@@ -351,6 +510,8 @@ class UpdateTaskTool implements ToolContract
                 'title' => $task->title,
                 'description' => $task->description,
                 'dod' => $task->dod,
+                'dod_items' => $task->dod_items, // Geparste DoD-Items als Array
+                'dod_progress' => $task->dod_progress, // {total, checked, percentage, isComplete}
                 'due_date' => $task->due_date?->toIso8601String(),
                 'project_id' => $task->project_id,
                 'project_name' => $task->project?->name,
