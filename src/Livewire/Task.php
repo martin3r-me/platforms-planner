@@ -613,10 +613,9 @@ class Task extends Component
         // Task-Property auf null setzen, damit render() und rendered() nicht mehr darauf zugreifen
         $this->task = null;
         
-        // Notification dispatchen (wird nach Redirect verarbeitet)
-        $this->dispatch('notifications:store', [
-            'notice_type' => 'info',
-            'title' => 'Aufgabe gelöscht',
+        // Toast-Notification dispatchen (keine persistente Notification, da Task gelöscht)
+        $this->dispatch('notify', [
+            'type' => 'info',
             'message' => "Die Aufgabe '{$taskTitle}' wurde gelöscht.",
         ]);
         
