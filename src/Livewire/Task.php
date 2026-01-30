@@ -15,7 +15,8 @@ class Task extends Component
 {
 	public $task;
     public $description; // Separate Property für entschlüsselte description
-    public $dod; // Separate Property für entschlüsselte dod
+    public $dod; // Separate Property für entschlüsselte dod (JSON-Format: Array von {text, checked})
+    public array $dodItems = []; // Parsed DoD-Items als Array
     public $dueDateInput; // Separate Property für das Datum
     public $dueDateModalShow = false;
     public $dueDateInputModal; // Temporärer Wert für das Modal
@@ -66,6 +67,9 @@ class Task extends Component
         // In separate Properties speichern (wie bei Checkin mit Arrays)
         $this->description = $this->task->description; // Löst Cast aus -> entschlüsselt
         $this->dod = $this->task->dod; // Löst Cast aus -> entschlüsselt
+
+        // DoD-Items parsen (vom alten Format in neues Checklist-Format konvertieren falls nötig)
+        $this->dodItems = $this->parseDodItems($this->dod);
         
         $this->dueDateInput = $plannerTask->due_date ? $plannerTask->due_date->format('Y-m-d H:i') : '';
         $this->targetProjectId = $plannerTask->project_id;
@@ -80,18 +84,21 @@ class Task extends Component
         if (!$this->task) {
             return false;
         }
-        
+
         // Prüfe Model-Änderungen (nur wenn wirklich ungespeichert)
         $modelDirty = count($this->task->getDirty()) > 0;
-        
+
         // Prüfe verschlüsselte Felder (separate Properties)
         // Vergleiche mit entschlüsselten Werten aus dem Model
         $currentDescription = $this->task->description ?? '';
-        $currentDod = $this->task->dod ?? '';
-        
+
         $descriptionDirty = isset($this->description) && $this->description !== $currentDescription;
-        $dodDirty = isset($this->dod) && $this->dod !== $currentDod;
-        
+
+        // DoD: Vergleiche serialisierte dodItems mit gespeichertem Wert
+        $currentDod = $this->task->dod ?? '';
+        $serializedDodItems = $this->serializeDodItems($this->dodItems);
+        $dodDirty = $serializedDodItems !== $currentDod;
+
         return $modelDirty || $descriptionDirty || $dodDirty;
     }
 
@@ -374,18 +381,19 @@ class Task extends Component
         if (isset($this->description)) {
             $this->task->description = $this->description;
         }
-        if (isset($this->dod)) {
-            $this->task->dod = $this->dod;
-        }
-        
+        // DoD wird als JSON gespeichert (über dodItems)
+        $this->dod = $this->serializeDodItems($this->dodItems);
+        $this->task->dod = $this->dod;
+
         $this->task->save();
-        
+
         // Lade die Task neu für die Anzeige
         $this->task = $this->task->fresh(['user', 'userInCharge', 'project', 'team']);
-        
+
         // Lade entschlüsselte Werte wieder in separate Properties
         $this->description = $this->task->description;
         $this->dod = $this->task->dod;
+        $this->dodItems = $this->parseDodItems($this->dod);
         
         // Toast-Notification
         $this->dispatch('notify', [
@@ -994,5 +1002,210 @@ class Task extends Component
         // Verschlüsselte Werte haben typischerweise eine Mindestlänge
         // und enthalten nicht-printable Zeichen nach Decodierung
         return strlen($decoded) > 16 && !ctype_print($decoded);
+    }
+
+    /**
+     * Parst DoD-Wert in ein Array von Items.
+     * Unterstützt sowohl das neue JSON-Format als auch das alte Plaintext-Format.
+     *
+     * Neues Format: JSON-Array [{"text": "Punkt 1", "checked": false}, ...]
+     * Altes Format: Plaintext mit Zeilen, evtl. mit "- [ ]" oder "- [x]" Markdown-Checkboxen
+     */
+    private function parseDodItems(?string $dod): array
+    {
+        if (empty($dod)) {
+            return [];
+        }
+
+        // Versuche zuerst als JSON zu parsen (neues Format)
+        $decoded = json_decode($dod, true);
+        if (is_array($decoded) && !empty($decoded)) {
+            // Prüfe ob es das neue Format ist (Array von Objekten mit text und checked)
+            $firstItem = reset($decoded);
+            if (is_array($firstItem) && array_key_exists('text', $firstItem)) {
+                return array_values(array_map(function ($item) {
+                    return [
+                        'text' => trim($item['text'] ?? ''),
+                        'checked' => (bool)($item['checked'] ?? false),
+                    ];
+                }, $decoded));
+            }
+        }
+
+        // Altes Format: Plaintext in Zeilen aufteilen
+        $lines = preg_split('/\r\n|\r|\n/', $dod);
+        $items = [];
+
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (empty($line)) {
+                continue;
+            }
+
+            // Prüfe auf Markdown-Checkbox-Format "- [ ] Text" oder "- [x] Text"
+            if (preg_match('/^[-*]\s*\[([ xX])\]\s*(.+)$/', $line, $matches)) {
+                $items[] = [
+                    'text' => trim($matches[2]),
+                    'checked' => strtolower($matches[1]) === 'x',
+                ];
+            }
+            // Prüfe auf einfaches Listenformat "- Text" oder "* Text"
+            elseif (preg_match('/^[-*]\s+(.+)$/', $line, $matches)) {
+                $items[] = [
+                    'text' => trim($matches[1]),
+                    'checked' => false,
+                ];
+            }
+            // Einfacher Text ohne Format
+            else {
+                $items[] = [
+                    'text' => $line,
+                    'checked' => false,
+                ];
+            }
+        }
+
+        return $items;
+    }
+
+    /**
+     * Konvertiert DoD-Items Array zurück zu JSON-String für die Speicherung.
+     */
+    private function serializeDodItems(array $items): string
+    {
+        // Filtere leere Items heraus
+        $items = array_values(array_filter($items, function ($item) {
+            return !empty(trim($item['text'] ?? ''));
+        }));
+
+        if (empty($items)) {
+            return '';
+        }
+
+        return json_encode($items, JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * Schaltet den checked-Status eines DoD-Items um.
+     */
+    public function toggleDodItem(int $index): void
+    {
+        if (!$this->task || !isset($this->dodItems[$index])) {
+            return;
+        }
+
+        $this->authorize('update', $this->task);
+
+        // Toggle checked-Status
+        $this->dodItems[$index]['checked'] = !$this->dodItems[$index]['checked'];
+
+        // In JSON serialisieren und speichern
+        $this->dod = $this->serializeDodItems($this->dodItems);
+        $this->task->dod = $this->dod;
+        $this->task->save();
+
+        // Feedback
+        $itemText = $this->dodItems[$index]['text'];
+        $status = $this->dodItems[$index]['checked'] ? 'erledigt' : 'offen';
+
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => "DoD-Punkt als {$status} markiert",
+        ]);
+    }
+
+    /**
+     * Fügt ein neues DoD-Item hinzu.
+     */
+    public function addDodItem(string $text): void
+    {
+        if (!$this->task || empty(trim($text))) {
+            return;
+        }
+
+        $this->authorize('update', $this->task);
+
+        // Neues Item hinzufügen
+        $this->dodItems[] = [
+            'text' => trim($text),
+            'checked' => false,
+        ];
+
+        // Speichern
+        $this->dod = $this->serializeDodItems($this->dodItems);
+        $this->task->dod = $this->dod;
+        $this->task->save();
+
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => 'DoD-Punkt hinzugefügt',
+        ]);
+    }
+
+    /**
+     * Entfernt ein DoD-Item.
+     */
+    public function removeDodItem(int $index): void
+    {
+        if (!$this->task || !isset($this->dodItems[$index])) {
+            return;
+        }
+
+        $this->authorize('update', $this->task);
+
+        // Item entfernen
+        array_splice($this->dodItems, $index, 1);
+
+        // Speichern
+        $this->dod = $this->serializeDodItems($this->dodItems);
+        $this->task->dod = $this->dod;
+        $this->task->save();
+
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => 'DoD-Punkt entfernt',
+        ]);
+    }
+
+    /**
+     * Aktualisiert den Text eines DoD-Items.
+     */
+    public function updateDodItemText(int $index, string $text): void
+    {
+        if (!$this->task || !isset($this->dodItems[$index])) {
+            return;
+        }
+
+        $this->authorize('update', $this->task);
+
+        // Text aktualisieren
+        $this->dodItems[$index]['text'] = trim($text);
+
+        // Leere Items entfernen
+        if (empty($this->dodItems[$index]['text'])) {
+            array_splice($this->dodItems, $index, 1);
+        }
+
+        // Speichern
+        $this->dod = $this->serializeDodItems($this->dodItems);
+        $this->task->dod = $this->dod;
+        $this->task->save();
+    }
+
+    /**
+     * Berechnet den DoD-Fortschritt.
+     */
+    #[Computed]
+    public function dodProgress(): array
+    {
+        $total = count($this->dodItems);
+        $checked = count(array_filter($this->dodItems, fn($item) => $item['checked']));
+
+        return [
+            'total' => $total,
+            'checked' => $checked,
+            'percentage' => $total > 0 ? round(($checked / $total) * 100) : 0,
+            'isComplete' => $total > 0 && $checked === $total,
+        ];
     }
 }

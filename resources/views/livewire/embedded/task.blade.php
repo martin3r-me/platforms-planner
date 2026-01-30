@@ -118,6 +118,91 @@
                             wire:model.live="task.user_in_charge_id"
                         />
                     </div>
+
+        {{-- Definition of Done als interaktive Checkliste --}}
+        <div class="bg-white rounded-lg border p-4">
+            <div class="mb-3">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <label class="text-sm font-medium text-[var(--ui-secondary)]">Definition of Done</label>
+                        <span class="text-xs text-[var(--ui-muted)] px-1.5 py-0.5 bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40 rounded">
+                            Verschlüsselt
+                        </span>
+                    </div>
+                    @if(count($dodItems) > 0)
+                        <span class="text-xs text-[var(--ui-muted)]">
+                            {{ $this->dodProgress['checked'] }}/{{ $this->dodProgress['total'] }}
+                        </span>
+                    @endif
+                </div>
+            </div>
+
+            {{-- DoD Items --}}
+            <div class="space-y-2">
+                @forelse($dodItems as $index => $item)
+                    <div
+                        class="group flex items-center gap-2 p-2 rounded border border-[var(--ui-border)]/40 {{ $item['checked'] ? 'bg-green-50' : 'bg-white' }}"
+                        wire:key="dod-item-{{ $index }}"
+                    >
+                        <button
+                            type="button"
+                            wire:click="toggleDodItem({{ $index }})"
+                            class="flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center {{ $item['checked'] ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300 hover:border-blue-500' }}"
+                        >
+                            @if($item['checked'])
+                                @svg('heroicon-s-check', 'w-3 h-3')
+                            @endif
+                        </button>
+                        <span class="flex-1 text-sm {{ $item['checked'] ? 'line-through text-gray-400' : 'text-gray-700' }}">
+                            {{ $item['text'] }}
+                        </span>
+                        <button
+                            type="button"
+                            wire:click="removeDodItem({{ $index }})"
+                            class="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500"
+                        >
+                            @svg('heroicon-o-x-mark', 'w-4 h-4')
+                        </button>
+                    </div>
+                @empty
+                    <p class="text-sm text-gray-400 text-center py-4">Keine DoD-Kriterien</p>
+                @endforelse
+            </div>
+
+            {{-- Neues Item --}}
+            <div class="mt-3" x-data="{ newText: '', adding: false }">
+                <template x-if="!adding">
+                    <button
+                        type="button"
+                        @click="adding = true; $nextTick(() => $refs.input?.focus())"
+                        class="w-full flex items-center gap-2 p-2 border border-dashed border-gray-300 rounded text-gray-400 hover:border-blue-400 hover:text-blue-500"
+                    >
+                        @svg('heroicon-o-plus', 'w-4 h-4')
+                        <span class="text-sm">Hinzufügen</span>
+                    </button>
+                </template>
+                <template x-if="adding">
+                    <div class="flex items-center gap-2">
+                        <input
+                            type="text"
+                            x-ref="input"
+                            x-model="newText"
+                            @keydown.enter.prevent="if(newText.trim()) { $wire.addDodItem(newText); newText = ''; }"
+                            @keydown.escape="adding = false"
+                            class="flex-1 p-2 border border-gray-300 rounded text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            placeholder="DoD-Kriterium..."
+                        />
+                        <button
+                            type="button"
+                            @click="if(newText.trim()) { $wire.addDodItem(newText); newText = ''; } adding = false;"
+                            class="p-2 text-blue-500 hover:bg-blue-50 rounded"
+                        >
+                            @svg('heroicon-o-check', 'w-5 h-5')
+                        </button>
+                    </div>
+                </template>
+            </div>
+        </div>
                 </div>
 
     @push('scripts')

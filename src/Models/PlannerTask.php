@@ -208,11 +208,11 @@ class PlannerTask extends Model implements HasTimeAncestors, HasKeyResultAncesto
 
     /**
      * Prüft ob eine Task ein Backlog-Item ist
-     * 
+     *
      * Backlog-Aufgaben sind:
      * - Aufgaben mit Projekt-Bezug (project_id), aber ohne Slot (project_slot_id = null)
      * - Persönliche Aufgaben (kein project_id), aber ohne Task Group (task_group_id = null)
-     * 
+     *
      * @return bool
      */
     public function getIsBacklogAttribute(): bool
@@ -221,12 +221,103 @@ class PlannerTask extends Model implements HasTimeAncestors, HasKeyResultAncesto
         if ($this->project_id && !$this->project_slot_id) {
             return true;
         }
-        
+
         // Persönliche Aufgabe (kein Projekt), aber keine Task Group = Backlog
         if (!$this->project_id && !$this->task_group_id) {
             return true;
         }
-        
+
         return false;
+    }
+
+    /**
+     * Parst DoD-Wert und gibt ein Array von Items zurück.
+     * Unterstützt sowohl das neue JSON-Format als auch das alte Plaintext-Format.
+     *
+     * @return array<int, array{text: string, checked: bool}>
+     */
+    public function getDodItemsAttribute(): array
+    {
+        $dod = $this->dod;
+
+        if (empty($dod)) {
+            return [];
+        }
+
+        // Versuche zuerst als JSON zu parsen (neues Format)
+        $decoded = json_decode($dod, true);
+        if (is_array($decoded) && !empty($decoded)) {
+            $firstItem = reset($decoded);
+            if (is_array($firstItem) && array_key_exists('text', $firstItem)) {
+                return array_values(array_map(function ($item) {
+                    return [
+                        'text' => trim($item['text'] ?? ''),
+                        'checked' => (bool)($item['checked'] ?? false),
+                    ];
+                }, $decoded));
+            }
+        }
+
+        // Altes Format: Plaintext in Zeilen aufteilen
+        $lines = preg_split('/\r\n|\r|\n/', $dod);
+        $items = [];
+
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (empty($line)) {
+                continue;
+            }
+
+            // Prüfe auf Markdown-Checkbox-Format "- [ ] Text" oder "- [x] Text"
+            if (preg_match('/^[-*]\s*\[([ xX])\]\s*(.+)$/', $line, $matches)) {
+                $items[] = [
+                    'text' => trim($matches[2]),
+                    'checked' => strtolower($matches[1]) === 'x',
+                ];
+            }
+            // Prüfe auf einfaches Listenformat "- Text" oder "* Text"
+            elseif (preg_match('/^[-*]\s+(.+)$/', $line, $matches)) {
+                $items[] = [
+                    'text' => trim($matches[1]),
+                    'checked' => false,
+                ];
+            }
+            // Einfacher Text ohne Format
+            else {
+                $items[] = [
+                    'text' => $line,
+                    'checked' => false,
+                ];
+            }
+        }
+
+        return $items;
+    }
+
+    /**
+     * Gibt den DoD-Fortschritt zurück.
+     *
+     * @return array{total: int, checked: int, percentage: int, isComplete: bool}
+     */
+    public function getDodProgressAttribute(): array
+    {
+        $items = $this->dod_items;
+        $total = count($items);
+        $checked = count(array_filter($items, fn($item) => $item['checked']));
+
+        return [
+            'total' => $total,
+            'checked' => $checked,
+            'percentage' => $total > 0 ? round(($checked / $total) * 100) : 0,
+            'isComplete' => $total > 0 && $checked === $total,
+        ];
+    }
+
+    /**
+     * Prüft ob die Task DoD-Items hat.
+     */
+    public function getHasDodAttribute(): bool
+    {
+        return !empty($this->dod_items);
     }
 }

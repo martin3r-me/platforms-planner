@@ -111,4 +111,21 @@
             {{ Str::limit($task->description, 80) }}
         </div>
     @endif
+
+    <!-- DoD Progress -->
+    @if($task->has_dod)
+        @php
+            $dodProgress = $task->dod_progress;
+        @endphp
+        <div class="flex items-center gap-2 text-xs text-[var(--ui-muted)]">
+            @svg('heroicon-o-clipboard-document-check', 'w-3 h-3')
+            <span>DoD: {{ $dodProgress['checked'] }}/{{ $dodProgress['total'] }}</span>
+            <div class="flex-1 h-1 bg-[var(--ui-muted-5)] rounded-full overflow-hidden">
+                <div
+                    class="h-full {{ $dodProgress['isComplete'] ? 'bg-[var(--ui-success)]' : 'bg-[var(--ui-primary)]' }}"
+                    style="width: {{ $dodProgress['percentage'] }}%"
+                ></div>
+            </div>
+        </div>
+    @endif
 </x-ui-kanban-card>

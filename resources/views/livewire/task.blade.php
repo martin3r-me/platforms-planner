@@ -112,25 +112,129 @@
                             />
                         </div>
                         
-                        {{-- Definition of Done direkt unter Titel --}}
+                        {{-- Definition of Done als interaktive Checkliste --}}
                         <div class="col-span-2">
                             <div class="mb-4">
-                                <div class="flex items-center gap-2 mb-1">
-                                    <label class="text-sm font-semibold text-[var(--ui-secondary)]">Definition of Done</label>
-                                    <span class="text-xs text-[var(--ui-muted)] px-1.5 py-0.5 bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
-                                        Verschlüsselt
-                                    </span>
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <label class="text-sm font-semibold text-[var(--ui-secondary)]">Definition of Done</label>
+                                        <span class="text-xs text-[var(--ui-muted)] px-1.5 py-0.5 bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
+                                            Verschlüsselt
+                                        </span>
+                                    </div>
+                                    @if(count($dodItems) > 0)
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-xs font-medium text-[var(--ui-muted)]">
+                                                {{ $this->dodProgress['checked'] }}/{{ $this->dodProgress['total'] }} erledigt
+                                            </span>
+                                            <div class="w-20 h-1.5 bg-[var(--ui-muted-5)] rounded-full overflow-hidden">
+                                                <div
+                                                    class="h-full transition-all duration-300 {{ $this->dodProgress['isComplete'] ? 'bg-[var(--ui-success)]' : 'bg-[var(--ui-primary)]' }}"
+                                                    style="width: {{ $this->dodProgress['percentage'] }}%"
+                                                ></div>
+                                            </div>
+                                        </div>
+                                    @endif
                                 </div>
                                 <p class="text-xs text-[var(--ui-muted)]">Kriterien, die erfüllt sein müssen, damit die Aufgabe als erledigt gilt</p>
                             </div>
-                            <x-ui-input-textarea
-                                name="dod"
-                                label=""
-                                wire:model.live.debounce.1000ms="dod"
-                                :placeholder="empty($dod) ? 'Kriterien, die erfüllt sein müssen, damit die Aufgabe als erledigt gilt (optional)' : ''"
-                                rows="6"
-                                :errorKey="'dod'"
-                            />
+
+                            {{-- DoD Items Liste --}}
+                            <div class="space-y-2">
+                                @forelse($dodItems as $index => $item)
+                                    <div
+                                        class="group flex items-start gap-3 p-3 rounded-lg border border-[var(--ui-border)]/60 bg-[var(--ui-surface)] hover:border-[var(--ui-primary)]/40 transition-all duration-200 {{ $item['checked'] ? 'bg-[var(--ui-success-5)]' : '' }}"
+                                        wire:key="dod-item-{{ $index }}"
+                                    >
+                                        {{-- Checkbox --}}
+                                        <button
+                                            type="button"
+                                            wire:click="toggleDodItem({{ $index }})"
+                                            class="flex-shrink-0 w-5 h-5 mt-0.5 rounded border-2 transition-all duration-200 flex items-center justify-center {{ $item['checked'] ? 'bg-[var(--ui-success)] border-[var(--ui-success)] text-white' : 'border-[var(--ui-border)] hover:border-[var(--ui-primary)]' }}"
+                                        >
+                                            @if($item['checked'])
+                                                @svg('heroicon-s-check', 'w-3 h-3')
+                                            @endif
+                                        </button>
+
+                                        {{-- Text --}}
+                                        <div class="flex-1 min-w-0">
+                                            <input
+                                                type="text"
+                                                value="{{ $item['text'] }}"
+                                                wire:blur="updateDodItemText({{ $index }}, $event.target.value)"
+                                                class="w-full bg-transparent border-none p-0 text-sm focus:ring-0 focus:outline-none {{ $item['checked'] ? 'line-through text-[var(--ui-muted)]' : 'text-[var(--ui-secondary)]' }}"
+                                                placeholder="DoD-Kriterium eingeben..."
+                                            />
+                                        </div>
+
+                                        {{-- Löschen Button --}}
+                                        <button
+                                            type="button"
+                                            wire:click="removeDodItem({{ $index }})"
+                                            wire:confirm="Möchten Sie diesen DoD-Punkt wirklich entfernen?"
+                                            class="flex-shrink-0 opacity-0 group-hover:opacity-100 p-1 rounded text-[var(--ui-muted)] hover:text-[var(--ui-danger)] hover:bg-[var(--ui-danger-5)] transition-all duration-200"
+                                        >
+                                            @svg('heroicon-o-trash', 'w-4 h-4')
+                                        </button>
+                                    </div>
+                                @empty
+                                    <div class="text-center py-6 text-[var(--ui-muted)]">
+                                        <div class="flex justify-center mb-2">
+                                            @svg('heroicon-o-clipboard-document-check', 'w-8 h-8')
+                                        </div>
+                                        <p class="text-sm">Noch keine DoD-Kriterien definiert</p>
+                                    </div>
+                                @endforelse
+                            </div>
+
+                            {{-- Neues Item hinzufügen --}}
+                            <div class="mt-3">
+                                <div
+                                    x-data="{ newDodText: '', isAdding: false }"
+                                    class="relative"
+                                >
+                                    <template x-if="!isAdding">
+                                        <button
+                                            type="button"
+                                            @click="isAdding = true; $nextTick(() => $refs.newDodInput?.focus())"
+                                            class="w-full flex items-center gap-2 p-3 rounded-lg border border-dashed border-[var(--ui-border)]/60 text-[var(--ui-muted)] hover:border-[var(--ui-primary)]/60 hover:text-[var(--ui-primary)] hover:bg-[var(--ui-primary-5)] transition-all duration-200"
+                                        >
+                                            @svg('heroicon-o-plus', 'w-4 h-4')
+                                            <span class="text-sm">DoD-Kriterium hinzufügen</span>
+                                        </button>
+                                    </template>
+
+                                    <template x-if="isAdding">
+                                        <div class="flex items-center gap-2 p-2 rounded-lg border border-[var(--ui-primary)]/60 bg-[var(--ui-primary-5)]">
+                                            <input
+                                                type="text"
+                                                x-ref="newDodInput"
+                                                x-model="newDodText"
+                                                @keydown.enter.prevent="if(newDodText.trim()) { $wire.addDodItem(newDodText); newDodText = ''; }"
+                                                @keydown.escape="isAdding = false; newDodText = ''"
+                                                @blur="if(!newDodText.trim()) { isAdding = false; }"
+                                                class="flex-1 bg-transparent border-none p-1 text-sm focus:ring-0 focus:outline-none text-[var(--ui-secondary)]"
+                                                placeholder="Neues DoD-Kriterium eingeben..."
+                                            />
+                                            <button
+                                                type="button"
+                                                @click="if(newDodText.trim()) { $wire.addDodItem(newDodText); newDodText = ''; } isAdding = false;"
+                                                class="flex-shrink-0 p-1 rounded text-[var(--ui-primary)] hover:bg-[var(--ui-primary-10)] transition-colors"
+                                            >
+                                                @svg('heroicon-o-check', 'w-5 h-5')
+                                            </button>
+                                            <button
+                                                type="button"
+                                                @click="isAdding = false; newDodText = ''"
+                                                class="flex-shrink-0 p-1 rounded text-[var(--ui-muted)] hover:text-[var(--ui-danger)] transition-colors"
+                                            >
+                                                @svg('heroicon-o-x-mark', 'w-5 h-5')
+                                            </button>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
                         </div>
                         
                         <div>

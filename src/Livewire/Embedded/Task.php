@@ -26,9 +26,16 @@ class Task extends BaseTask
         } else {
             $this->task = $plannerTask;
         }
-        
+
         // HTML datetime-local erwartet ein "T" zwischen Datum und Zeit
         $this->dueDateInput = $this->task->due_date ? $this->task->due_date->format('Y-m-d\TH:i') : '';
+
+        // Verschlüsselte Felder entschlüsseln (aus der Basis-Klasse)
+        $this->description = $this->task->description;
+        $this->dod = $this->task->dod;
+
+        // DoD-Items parsen (für interaktive Checkliste)
+        $this->dodItems = $this->parseDodItems($this->dod);
     }
 
     public function updatedDueDateInput($value)
