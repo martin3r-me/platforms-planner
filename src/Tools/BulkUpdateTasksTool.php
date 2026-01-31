@@ -62,10 +62,40 @@ class BulkUpdateTasksTool implements ToolContract, ToolMetadataContract
                                 'description' => 'Granulare DoD-Updates (toggle, set_checked, add, remove, update_text)',
                                 'properties' => [
                                     'toggle' => ['type' => 'array', 'items' => ['type' => 'integer']],
-                                    'set_checked' => ['type' => 'array'],
-                                    'add' => ['type' => 'array'],
+                                    'set_checked' => [
+                                        'type' => 'array',
+                                        'items' => [
+                                            'type' => 'object',
+                                            'properties' => [
+                                                'index' => ['type' => 'integer'],
+                                                'checked' => ['type' => 'boolean'],
+                                            ],
+                                            'required' => ['index', 'checked'],
+                                        ],
+                                    ],
+                                    'add' => [
+                                        'type' => 'array',
+                                        'items' => [
+                                            'type' => 'object',
+                                            'properties' => [
+                                                'text' => ['type' => 'string'],
+                                                'checked' => ['type' => 'boolean'],
+                                            ],
+                                            'required' => ['text'],
+                                        ],
+                                    ],
                                     'remove' => ['type' => 'array', 'items' => ['type' => 'integer']],
-                                    'update_text' => ['type' => 'array']
+                                    'update_text' => [
+                                        'type' => 'array',
+                                        'items' => [
+                                            'type' => 'object',
+                                            'properties' => [
+                                                'index' => ['type' => 'integer'],
+                                                'text' => ['type' => 'string'],
+                                            ],
+                                            'required' => ['index', 'text'],
+                                        ],
+                                    ],
                                 ]
                             ],
                             'due_date' => ['type' => 'string'],
