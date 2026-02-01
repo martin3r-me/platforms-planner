@@ -258,6 +258,24 @@ class Task extends Component
             'context_type' => get_class($this->task),
             'context_id' => $this->task->id,
         ]);
+
+        // Playground-Kontext setzen - ermöglicht LLM den Task-Kontext zu kennen
+        $this->dispatch('playground', [
+            'type' => 'Task',
+            'model' => get_class($this->task),
+            'modelId' => $this->task->id,
+            'title' => $this->task->title,
+            'description' => $this->task->description ?? '',
+            'url' => route('planner.tasks.show', $this->task),
+            'source' => 'planner.task.view',
+            'meta' => [
+                'priority' => $this->task->priority,
+                'due_date' => $this->task->due_date?->toIso8601String(),
+                'story_points' => $this->task->story_points,
+                'is_done' => $this->task->is_done,
+                'project' => $this->task->project?->name,
+            ],
+        ]);
     }
 
     public function updatedDueDateInput($value)
