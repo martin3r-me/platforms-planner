@@ -260,7 +260,7 @@ class Task extends Component
         ]);
 
         // Playground-Kontext setzen - ermöglicht LLM den Task-Kontext zu kennen
-        $playgroundPayload = [
+        $this->dispatch('playground', [
             'type' => 'Task',
             'model' => get_class($this->task),
             'modelId' => $this->task->id,
@@ -275,9 +275,7 @@ class Task extends Component
                 'is_done' => $this->task->is_done,
                 'project' => $this->task->project?->name,
             ],
-        ];
-        \Log::info('[Playground] Task dispatching playground event', $playgroundPayload);
-        $this->dispatch('playground', $playgroundPayload);
+        ]);
     }
 
     public function updatedDueDateInput($value)
