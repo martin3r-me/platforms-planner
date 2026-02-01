@@ -260,6 +260,7 @@ class Task extends Component
         ]);
 
         // Playground-Kontext setzen - ermöglicht LLM den Task-Kontext zu kennen
+        \Log::info('[Playground] Task dispatching playground event', ['task_id' => $this->task->id, 'title' => $this->task->title]);
         $this->dispatch('playground', [
             'type' => 'Task',
             'model' => get_class($this->task),
