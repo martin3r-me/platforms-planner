@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Log;
 use Platform\Organization\Traits\HasTimeEntries;
 use Platform\Organization\Traits\HasOrganizationContexts;
 use Platform\Core\Traits\HasColors;
+use Platform\Core\Traits\HasExtraFields;
 use Platform\Core\Contracts\HasTimeAncestors;
 use Platform\Core\Contracts\HasKeyResultAncestors;
 use Platform\Core\Contracts\HasDisplayName;
@@ -20,7 +21,7 @@ use Platform\Core\Contracts\HasDisplayName;
  */
 class PlannerProject extends Model implements HasTimeAncestors, HasKeyResultAncestors, HasDisplayName
 {
-    use HasTimeEntries, HasOrganizationContexts, HasColors;
+    use HasTimeEntries, HasOrganizationContexts, HasColors, HasExtraFields;
 
     protected $fillable = [
         'uuid',

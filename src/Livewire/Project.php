@@ -98,6 +98,12 @@ class Project extends Component
             'context_type' => get_class($this->project),
             'context_id' => $this->project->id,
         ]);
+
+        // Extra-Fields-Kontext setzen (für Modal-Definitionen)
+        $this->dispatch('extrafields', [
+            'context_type' => get_class($this->project),
+            'context_id' => $this->project->id,
+        ]);
     }
 
     public function render()

@@ -79,8 +79,10 @@ class Task extends Component
         $this->loadProjectMoveOptions();
         $this->syncProjectSlotOptions();
 
-        // Extra-Felder laden
-        $this->loadExtraFieldValues($this->task);
+        // Extra-Felder laden (Definitionen vom Projekt, Werte von der Task)
+        if ($this->task->project) {
+            $this->loadExtraFieldValuesFromParent($this->task, $this->task->project);
+        }
     }
 
     #[Computed]
@@ -220,11 +222,13 @@ class Task extends Component
             return;
         }
 
-        // Extra-Fields-Kontext setzen
-        $this->dispatch('extrafields', [
-            'context_type' => get_class($this->task),
-            'context_id' => $this->task->id,
-        ]);
+        // Extra-Fields-Kontext setzen (zeigt auf Projekt für Definitionen)
+        if ($this->task->project) {
+            $this->dispatch('extrafields', [
+                'context_type' => get_class($this->task->project),
+                'context_id' => $this->task->project->id,
+            ]);
+        }
 
         $this->dispatch('comms', [
             'model' => get_class($this->task),                                // z. B. 'Platform\Planner\Models\PlannerTask'
