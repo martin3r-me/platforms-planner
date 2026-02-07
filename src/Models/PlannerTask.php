@@ -14,6 +14,7 @@ use Platform\Organization\Traits\HasTimeEntries;
 use Platform\Core\Traits\HasTags;
 use Platform\Core\Traits\HasColors;
 use Platform\Core\Traits\Encryptable;
+use Platform\Core\Traits\HasExtraFields;
 use Platform\Core\Contracts\HasTimeAncestors;
 use Platform\Core\Contracts\HasKeyResultAncestors;
 use Platform\Core\Contracts\HasDisplayName;
@@ -23,7 +24,7 @@ use Platform\Core\Contracts\HasDisplayName;
  */
 class PlannerTask extends Model implements HasTimeAncestors, HasKeyResultAncestors, HasDisplayName
 {
-    use HasFactory, SoftDeletes, LogsActivity, HasTimeEntries, HasTags, HasColors, Encryptable;
+    use HasFactory, SoftDeletes, LogsActivity, HasTimeEntries, HasTags, HasColors, Encryptable, HasExtraFields;
 
     protected $fillable = [
         'uuid',

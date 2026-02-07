@@ -335,6 +335,14 @@
                         :errorKey="'description'"
                     />
                 </div>
+
+                {{-- Extra-Felder --}}
+                @if(count($this->extraFieldDefinitions) > 0)
+                    <div class="mt-8 pt-8 border-t border-[var(--ui-border)]/60">
+                        <h2 class="text-lg font-semibold text-[var(--ui-secondary)] mb-4">Zusätzliche Felder</h2>
+                        <x-core-extra-fields-form :definitions="$this->extraFieldDefinitions" />
+                    </div>
+                @endif
             </div>
         </div>
     </x-ui-page-container>

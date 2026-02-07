@@ -6,6 +6,7 @@ use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Computed;
+use Platform\Core\Livewire\Concerns\WithExtraFields;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectSlot;
@@ -13,6 +14,7 @@ use Platform\Planner\Models\PlannerProjectSlot;
 
 class Task extends Component
 {
+    use WithExtraFields;
 	public $task;
     public $description; // Separate Property für entschlüsselte description
     public $dod; // Separate Property für entschlüsselte dod (JSON-Format: Array von {text, checked})
@@ -76,6 +78,9 @@ class Task extends Component
         $this->targetSlotId = $plannerTask->project_slot_id;
         $this->loadProjectMoveOptions();
         $this->syncProjectSlotOptions();
+
+        // Extra-Felder laden
+        $this->loadExtraFieldValues($this->task);
     }
 
     #[Computed]
@@ -99,7 +104,10 @@ class Task extends Component
         $serializedDodItems = $this->serializeDodItems($this->dodItems);
         $dodDirty = $serializedDodItems !== $currentDod;
 
-        return $modelDirty || $descriptionDirty || $dodDirty;
+        // Extra-Felder prüfen
+        $extraFieldsDirty = $this->isExtraFieldsDirty();
+
+        return $modelDirty || $descriptionDirty || $dodDirty || $extraFieldsDirty;
     }
 
     #[Computed]
@@ -211,6 +219,12 @@ class Task extends Component
         if (!$this->task) {
             return;
         }
+
+        // Extra-Fields-Kontext setzen
+        $this->dispatch('extrafields', [
+            'context_type' => get_class($this->task),
+            'context_id' => $this->task->id,
+        ]);
 
         $this->dispatch('comms', [
             'model' => get_class($this->task),                                // z. B. 'Platform\Planner\Models\PlannerTask'
@@ -405,6 +419,7 @@ class Task extends Component
         $this->task->dod = $this->dod;
 
         $this->task->save();
+        $this->saveExtraFieldValues($this->task);
 
         // Lade die Task neu für die Anzeige
         $this->task = $this->task->fresh(['user', 'userInCharge', 'project', 'team']);
@@ -413,7 +428,10 @@ class Task extends Component
         $this->description = $this->task->description;
         $this->dod = $this->task->dod;
         $this->dodItems = $this->parseDodItems($this->dod);
-        
+
+        // Extra-Felder neu laden
+        $this->loadExtraFieldValues($this->task);
+
         // Toast-Notification
         $this->dispatch('notify', [
             'type' => 'success',
