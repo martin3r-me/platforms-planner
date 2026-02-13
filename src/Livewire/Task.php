@@ -433,8 +433,12 @@ class Task extends Component
         $this->dod = $this->task->dod;
         $this->dodItems = $this->parseDodItems($this->dod);
 
-        // Extra-Felder neu laden
-        $this->loadExtraFieldValues($this->task);
+        // Extra-Felder neu laden (mit Vererbung vom Projekt)
+        if ($this->task->project) {
+            $this->loadExtraFieldValuesFromParent($this->task, $this->task->project);
+        } else {
+            $this->loadExtraFieldValues($this->task);
+        }
 
         // Toast-Notification
         $this->dispatch('notify', [
