@@ -11,17 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('planner_sprint_slots', function (Blueprint $table) {
-            $table->id();
-            $table->uuid('uuid')->unique();
-            $table->foreignId('sprint_id')->constrained('planner_sprints')->onDelete('cascade');
-            $table->string('name');
-            $table->unsignedInteger('order')->nullable();
-            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
-            $table->foreignId('team_id')->nullable()->constrained('teams')->nullOnDelete();
-            $table->timestamps();
-            $table->softDeletes();
-        });
+        if (!Schema::hasTable('planner_sprint_slots')) {
+            Schema::create('planner_sprint_slots', function (Blueprint $table) {
+                $table->id();
+                $table->uuid('uuid')->unique();
+                $table->foreignId('sprint_id')->constrained('planner_sprints')->onDelete('cascade');
+                $table->string('name');
+                $table->unsignedInteger('order')->nullable();
+                $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
+                $table->foreignId('team_id')->nullable()->constrained('teams')->nullOnDelete();
+                $table->timestamps();
+                $table->softDeletes();
+            });
+        }
     }
 
     /**

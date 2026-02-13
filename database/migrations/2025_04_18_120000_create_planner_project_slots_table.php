@@ -11,17 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('planner_project_slots', function (Blueprint $table) {
-            $table->id();
-            $table->uuid('uuid')->unique();
-            $table->foreignId('project_id')->constrained('planner_projects')->onDelete('cascade');
-            $table->string('name');
-            $table->unsignedInteger('order')->default(0);
-            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
-            $table->foreignId('team_id')->nullable()->constrained('teams')->nullOnDelete();
-            $table->timestamps();
-            $table->softDeletes();
-        });
+        if (!Schema::hasTable('planner_project_slots')) {
+            Schema::create('planner_project_slots', function (Blueprint $table) {
+                $table->id();
+                $table->uuid('uuid')->unique();
+                $table->foreignId('project_id')->constrained('planner_projects')->onDelete('cascade');
+                $table->string('name');
+                $table->unsignedInteger('order')->default(0);
+                $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
+                $table->foreignId('team_id')->nullable()->constrained('teams')->nullOnDelete();
+                $table->timestamps();
+                $table->softDeletes();
+            });
+        }
     }
 
     /**

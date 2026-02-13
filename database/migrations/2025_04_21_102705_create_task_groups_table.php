@@ -11,16 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('planner_task_groups', function (Blueprint $table) {
-            $table->id();
-            $table->uuid('uuid')->unique();
-            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
-            $table->foreignId('team_id')->nullable()->constrained('teams')->nullOnDelete();
-            $table->string('label');
-            $table->integer('order')->default(0);
-            $table->timestamps();
-            $table->softDeletes();
-        });
+        if (!Schema::hasTable('planner_task_groups')) {
+            Schema::create('planner_task_groups', function (Blueprint $table) {
+                $table->id();
+                $table->uuid('uuid')->unique();
+                $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
+                $table->foreignId('team_id')->nullable()->constrained('teams')->nullOnDelete();
+                $table->string('label');
+                $table->integer('order')->default(0);
+                $table->timestamps();
+                $table->softDeletes();
+            });
+        }
     }
 
     /**
