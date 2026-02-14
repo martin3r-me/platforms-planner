@@ -495,8 +495,26 @@ class UpdateTaskTool implements ToolContract
             }
 
             // Task aktualisieren
+            // Verschlüsselte Felder (dod, description) müssen via Property-Assignment gesetzt werden,
+            // damit der Encryptable-Cast korrekt greift (analog zu CreateTaskTool).
+            $encryptedFields = ['dod', 'description'];
+            $encryptedData = [];
+            foreach ($encryptedFields as $field) {
+                if (array_key_exists($field, $updateData)) {
+                    $encryptedData[$field] = $updateData[$field];
+                    unset($updateData[$field]);
+                }
+            }
+
             if (!empty($updateData)) {
                 $task->update($updateData);
+            }
+
+            if (!empty($encryptedData)) {
+                foreach ($encryptedData as $field => $value) {
+                    $task->{$field} = $value;
+                }
+                $task->save();
             }
 
             // Aktualisierte Task laden
