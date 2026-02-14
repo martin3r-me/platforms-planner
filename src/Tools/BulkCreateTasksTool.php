@@ -35,7 +35,7 @@ class BulkCreateTasksTool implements ToolContract, ToolMetadataContract
             'properties' => [
                 'atomic' => [
                     'type' => 'boolean',
-                    'description' => 'Optional: Wenn true, werden alle Creates in einer DB-Transaktion ausgeführt (bei einem Fehler wird alles zurückgerollt). Standard: false.',
+                    'description' => 'Optional: Wenn true, werden alle Creates in einer DB-Transaktion ausgeführt (bei einem Fehler wird alles zurückgerollt, keine Teil-Tasks angelegt). Standard: true.',
                 ],
                 'defaults' => [
                     'type' => 'object',
@@ -109,10 +109,11 @@ class BulkCreateTasksTool implements ToolContract, ToolMetadataContract
                 $defaults = [];
             }
 
-            $atomic = (bool)($arguments['atomic'] ?? false);
+            // atomic ist standardmäßig true (alles oder nichts), um inkonsistente Zustände zu vermeiden
+            $atomic = (bool)($arguments['atomic'] ?? true);
             $singleTool = new CreateTaskTool();
 
-            $run = function() use ($tasks, $defaults, $singleTool, $context) {
+            $run = function() use ($tasks, $defaults, $singleTool, $context, $atomic) {
                 $results = [];
                 $okCount = 0;
                 $failCount = 0;
@@ -125,6 +126,15 @@ class BulkCreateTasksTool implements ToolContract, ToolMetadataContract
                             'ok' => false,
                             'error' => ['code' => 'INVALID_ITEM', 'message' => 'Task-Item muss ein Objekt sein.'],
                         ];
+
+                        if ($atomic) {
+                            throw new \RuntimeException(json_encode([
+                                'code' => 'BULK_VALIDATION_ERROR',
+                                'message' => "Task an Index {$idx}: Task-Item muss ein Objekt sein.",
+                                'failed_index' => $idx,
+                                'results' => $results,
+                            ], JSON_UNESCAPED_UNICODE));
+                        }
                         continue;
                     }
 
@@ -152,6 +162,19 @@ class BulkCreateTasksTool implements ToolContract, ToolMetadataContract
                                 'message' => $res->error,
                             ],
                         ];
+
+                        // Bei atomic: Fehler sofort abbrechen und Transaktion zurückrollen
+                        if ($atomic) {
+                            $taskTitle = $t['title'] ?? '(kein Titel)';
+                            throw new \RuntimeException(json_encode([
+                                'code' => 'BULK_VALIDATION_ERROR',
+                                'message' => "Task an Index {$idx} ('{$taskTitle}'): {$res->error}",
+                                'failed_index' => $idx,
+                                'error_code' => $res->errorCode,
+                                'error_message' => $res->error,
+                                'results' => $results,
+                            ], JSON_UNESCAPED_UNICODE));
+                        }
                     }
                 }
 
@@ -165,7 +188,19 @@ class BulkCreateTasksTool implements ToolContract, ToolMetadataContract
                 ];
             };
 
-            $payload = $atomic ? DB::transaction(fn() => $run()) : $run();
+            if ($atomic) {
+                try {
+                    $payload = DB::transaction(fn() => $run());
+                } catch (\RuntimeException $e) {
+                    $errorData = json_decode($e->getMessage(), true);
+                    if (is_array($errorData) && isset($errorData['code'])) {
+                        return ToolResult::error($errorData['code'], $errorData['message']);
+                    }
+                    throw $e; // Unbekannte RuntimeException weiterwerfen
+                }
+            } else {
+                $payload = $run();
+            }
 
             return ToolResult::success($payload);
         } catch (\Throwable $e) {

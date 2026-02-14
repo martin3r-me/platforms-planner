@@ -33,7 +33,7 @@ class BulkUpdateTasksTool implements ToolContract, ToolMetadataContract
             'properties' => [
                 'atomic' => [
                     'type' => 'boolean',
-                    'description' => 'Optional: Wenn true, werden alle Updates in einer DB-Transaktion ausgeführt (bei einem Fehler wird alles zurückgerollt). Standard: false.',
+                    'description' => 'Optional: Wenn true, werden alle Updates in einer DB-Transaktion ausgeführt (bei einem Fehler wird alles zurückgerollt, keine Teil-Updates durchgeführt). Standard: true.',
                 ],
                 'updates' => [
                     'type' => 'array',
@@ -129,10 +129,11 @@ class BulkUpdateTasksTool implements ToolContract, ToolMetadataContract
                 return ToolResult::error('INVALID_ARGUMENT', 'updates muss ein nicht-leeres Array sein.');
             }
 
-            $atomic = (bool)($arguments['atomic'] ?? false);
+            // atomic ist standardmäßig true (alles oder nichts), um inkonsistente Zustände zu vermeiden
+            $atomic = (bool)($arguments['atomic'] ?? true);
             $singleTool = new UpdateTaskTool();
 
-            $run = function() use ($updates, $singleTool, $context) {
+            $run = function() use ($updates, $singleTool, $context, $atomic) {
                 $results = [];
                 $okCount = 0;
                 $failCount = 0;
@@ -145,6 +146,13 @@ class BulkUpdateTasksTool implements ToolContract, ToolMetadataContract
                             'ok' => false,
                             'error' => ['code' => 'INVALID_ITEM', 'message' => 'Update-Item muss ein Objekt sein.'],
                         ];
+
+                        if ($atomic) {
+                            throw new \RuntimeException(json_encode([
+                                'code' => 'BULK_VALIDATION_ERROR',
+                                'message' => "Update an Index {$idx}: Update-Item muss ein Objekt sein.",
+                            ], JSON_UNESCAPED_UNICODE));
+                        }
                         continue;
                     }
 
@@ -166,6 +174,15 @@ class BulkUpdateTasksTool implements ToolContract, ToolMetadataContract
                                 'message' => $res->error,
                             ],
                         ];
+
+                        // Bei atomic: Fehler sofort abbrechen und Transaktion zurückrollen
+                        if ($atomic) {
+                            $taskId = $u['task_id'] ?? $u['id'] ?? '(keine ID)';
+                            throw new \RuntimeException(json_encode([
+                                'code' => 'BULK_VALIDATION_ERROR',
+                                'message' => "Update an Index {$idx} (Task-ID {$taskId}): {$res->error}",
+                            ], JSON_UNESCAPED_UNICODE));
+                        }
                     }
                 }
 
@@ -179,7 +196,19 @@ class BulkUpdateTasksTool implements ToolContract, ToolMetadataContract
                 ];
             };
 
-            $payload = $atomic ? DB::transaction(fn() => $run()) : $run();
+            if ($atomic) {
+                try {
+                    $payload = DB::transaction(fn() => $run());
+                } catch (\RuntimeException $e) {
+                    $errorData = json_decode($e->getMessage(), true);
+                    if (is_array($errorData) && isset($errorData['code'])) {
+                        return ToolResult::error($errorData['code'], $errorData['message']);
+                    }
+                    throw $e; // Unbekannte RuntimeException weiterwerfen
+                }
+            } else {
+                $payload = $run();
+            }
 
             return ToolResult::success($payload);
         } catch (\Throwable $e) {
