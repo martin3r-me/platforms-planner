@@ -30,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('task_groups');
+        Schema::dropIfExists('planner_task_groups');
     }
 };
