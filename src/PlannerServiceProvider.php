@@ -29,6 +29,9 @@ class PlannerServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        // ExportService als Singleton registrieren
+        $this->app->singleton(\Platform\Planner\Export\ExportService::class);
+
         // Commands registrieren
         if ($this->app->runningInConsole()) {
             $this->commands([

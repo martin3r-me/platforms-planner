@@ -36,7 +36,12 @@ return [
                     'label' => 'Projekt anlegen',
                     'route' => 'planner.projects.create',
                     'icon'  => 'heroicon-o-plus',
-                ],  
+                ],
+                [
+                    'label' => 'Export',
+                    'route' => 'planner.export',
+                    'icon'  => 'heroicon-o-arrow-down-tray',
+                ],
             ],
         ],
         [
