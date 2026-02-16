@@ -18,6 +18,10 @@ class Project extends Component
     public $sprint; // Aktueller Sprint des Projekts
     public bool $showDoneColumn = false; // Erledigt-Spalte ein/ausblenden
 
+    // Filter
+    public array $filterTagIds = []; // Tag-IDs zum Filtern
+    public ?string $filterColor = null; // Farbe zum Filtern
+
     #[On('updateProject')] 
     public function updateProject()
     {
@@ -111,7 +115,8 @@ class Project extends Component
         $user = Auth::user();
 
         // === 1. BACKLOG ===
-        $backlogTasks = PlannerTask::where('project_id', $this->project->id)
+        $backlogTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])
+            ->where('project_id', $this->project->id)
             ->whereNull('project_slot_id')
             ->where('is_done', false)
             ->orderBy('project_slot_order')
@@ -132,7 +137,8 @@ class Project extends Component
 
         // === 2. PROJECT-SLOTS ===
         $slots = PlannerProjectSlot::with(['tasks' => function ($q) {
-                $q->where('is_done', false)
+                $q->with(['tags', 'contextColors', 'userInCharge', 'project'])
+                  ->where('is_done', false)
                   ->whereNotNull('project_slot_id') // Explizit: Nur Tasks mit project_slot_id (nicht NULL)
                   ->orderBy('project_slot_order');
             }])
@@ -160,7 +166,8 @@ class Project extends Component
             });
 
         // === 3. ERLEDIGTE AUFGABEN ===
-        $doneTasks = PlannerTask::where('project_id', $this->project->id)
+        $doneTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])
+            ->where('project_id', $this->project->id)
             ->where('is_done', true)
             ->orderByDesc('done_at') // Neueste zuerst (zuletzt erledigt)
             ->orderByDesc('updated_at') // Fallback für Tasks ohne done_at
@@ -173,6 +180,60 @@ class Project extends Component
             'isBacklog' => false,
             'tasks' => $doneTasks,
         ];
+
+        // === FILTER ANWENDEN (nach dem Laden, auf Collection-Ebene) ===
+        $filterFn = function ($tasks) {
+            return $tasks->filter(function ($task) {
+                // Tag-Filter
+                if (!empty($this->filterTagIds)) {
+                    $taskTagIds = $task->contextTags->pluck('id')->toArray();
+                    if (empty(array_intersect($this->filterTagIds, $taskTagIds))) {
+                        return false;
+                    }
+                }
+                // Farb-Filter
+                if ($this->filterColor) {
+                    if ($task->color !== $this->filterColor) {
+                        return false;
+                    }
+                }
+                return true;
+            })->values();
+        };
+
+        $backlog->tasks = $filterFn($backlog->tasks);
+        $backlog->open_count = $backlog->tasks->count();
+        $backlog->open_points = $backlog->tasks->sum(
+            fn ($task) => $task->story_points instanceof StoryPoints ? $task->story_points->points() : 1
+        );
+
+        $slots = $slots->map(function ($slot) use ($filterFn) {
+            $slot->tasks = $filterFn($slot->tasks);
+            $slot->open_count = $slot->tasks->count();
+            $slot->open_points = $slot->tasks->sum(
+                fn ($task) => $task->story_points instanceof StoryPoints ? $task->story_points->points() : 1
+            );
+            return $slot;
+        });
+
+        $completedGroup->tasks = $filterFn($completedGroup->tasks);
+
+        // === VERFÜGBARE TAGS & FARBEN FÜR FILTER-UI ===
+        $allProjectTasks = PlannerTask::with(['tags', 'contextColors'])
+            ->where('project_id', $this->project->id)
+            ->get();
+
+        $availableFilterTags = $allProjectTasks->flatMap(fn ($t) => $t->contextTags)
+            ->unique('id')
+            ->sortBy('label')
+            ->values()
+            ->map(fn ($tag) => ['id' => $tag->id, 'label' => $tag->label, 'color' => $tag->color]);
+
+        $availableFilterColors = $allProjectTasks->map(fn ($t) => $t->color)
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
 
         // === BOARD-GRUPPEN ZUSAMMENSTELLEN ===
         $groups = collect([$backlog])->concat($slots)->push($completedGroup);
@@ -223,6 +284,8 @@ class Project extends Component
             'hasAnyTasks' => $hasAnyTasks,
             'permissions' => $permissions,
             'allProjectUsers' => $allProjectUsers,
+            'availableFilterTags' => $availableFilterTags,
+            'availableFilterColors' => $availableFilterColors,
         ])->layout('platform::layouts.app');
     }
 
@@ -332,5 +395,34 @@ class Project extends Component
     public function toggleShowDoneColumn()
     {
         $this->showDoneColumn = !$this->showDoneColumn;
+    }
+
+    /**
+     * Tag-Filter toggeln (hinzufügen/entfernen)
+     */
+    public function toggleTagFilter(int $tagId)
+    {
+        if (in_array($tagId, $this->filterTagIds)) {
+            $this->filterTagIds = array_values(array_diff($this->filterTagIds, [$tagId]));
+        } else {
+            $this->filterTagIds[] = $tagId;
+        }
+    }
+
+    /**
+     * Farb-Filter setzen oder entfernen
+     */
+    public function toggleColorFilter(string $color)
+    {
+        $this->filterColor = $this->filterColor === $color ? null : $color;
+    }
+
+    /**
+     * Alle Filter zurücksetzen
+     */
+    public function clearFilters()
+    {
+        $this->filterTagIds = [];
+        $this->filterColor = null;
     }
 }

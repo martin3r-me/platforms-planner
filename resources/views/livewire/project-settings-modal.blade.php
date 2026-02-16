@@ -13,6 +13,14 @@
                 </button>
                 <button
                     type="button"
+                    @click="activeTab = 'tags'"
+                    class="px-4 py-2 text-sm font-medium transition-colors border-b-2"
+                    :class="activeTab === 'tags' ? 'text-[var(--ui-primary)] border-[var(--ui-primary)]' : 'text-[var(--ui-muted)] border-transparent hover:text-[var(--ui-secondary)]'"
+                >
+                    Tags & Farbe
+                </button>
+                <button
+                    type="button"
                     @click="activeTab = 'recurring'"
                     class="px-4 py-2 text-sm font-medium transition-colors border-b-2"
                     :class="activeTab === 'recurring' ? 'text-[var(--ui-primary)] border-[var(--ui-primary)]' : 'text-[var(--ui-muted)] border-transparent hover:text-[var(--ui-secondary)]'"
@@ -301,6 +309,21 @@
                         <x-ui-confirm-button action="deleteProject" text="Projekt löschen" confirmText="Wirklich löschen?" />
                 @endcan
             </x-ui-form-grid>
+            </div>
+
+            {{-- Tab: Tags & Farbe --}}
+            <div x-show="activeTab === 'tags'" x-transition>
+                <div class="space-y-4">
+                    <div>
+                        <h3 class="text-sm font-semibold text-[var(--ui-secondary)] mb-2">Projekt-Tags & Farbe</h3>
+                        <p class="text-xs text-[var(--ui-muted)] mb-4">Tags und Farben für dieses Projekt verwalten. Tags helfen bei der Kategorisierung und Filterung.</p>
+                    </div>
+                    <livewire:core.inline-tags
+                        :context-type="get_class($project)"
+                        :context-id="$project->id"
+                        :key="'inline-tags-project-' . $project->id"
+                    />
+                </div>
             </div>
 
             {{-- Tab: Wiederkehrende Aufgaben --}}

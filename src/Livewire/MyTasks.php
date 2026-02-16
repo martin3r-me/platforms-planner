@@ -12,6 +12,10 @@ class MyTasks extends Component
 {
     public bool $showDoneColumn = false; // Erledigt-Spalte ein/ausblenden
 
+    // Filter
+    public array $filterTagIds = []; // Tag-IDs zum Filtern
+    public ?string $filterColor = null; // Farbe zum Filtern
+
     #[On('updateDashboard')] 
     public function updateDashboard()
     {
@@ -57,7 +61,7 @@ class MyTasks extends Component
         // === 0. FÄLLIGE/ÜBERFÄLLIGE AUFGABEN ===
         $tomorrow = now()->addDay()->endOfDay();
         
-        $dueTasks = PlannerTask::query()
+        $dueTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])
             ->where('is_done', false)
             ->whereNotNull('due_date')
             ->where(function ($q) use ($tomorrow) {
@@ -89,7 +93,7 @@ class MyTasks extends Component
         ];
 
         // === 1. INBOX ===
-        $inboxTasks = PlannerTask::query()
+        $inboxTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])
             ->whereNull('task_group_id')
             ->where('is_done', false)
             ->where(function ($q) use ($userId) {
@@ -117,7 +121,8 @@ class MyTasks extends Component
 
         // === 2. GRUPPEN ===
         $grouped = PlannerTaskGroup::with(['tasks' => function ($q) use ($userId) {
-            $q->where('is_done', false)
+            $q->with(['tags', 'contextColors', 'userInCharge', 'project'])
+              ->where('is_done', false)
               ->where(function ($q) use ($userId) {
                   $q->where(function ($q) use ($userId) {
                       $q->whereNull('project_id')
@@ -143,7 +148,7 @@ class MyTasks extends Component
         ]);
 
         // === 3. ERLEDIGT ===
-        $doneTasks = PlannerTask::query()
+        $doneTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])
             ->where('is_done', true)
             ->where(function ($q) use ($userId) {
                 $q->where(function ($q) use ($userId) {
@@ -166,6 +171,67 @@ class MyTasks extends Component
             'isDoneGroup' => true,
             'tasks' => $doneTasks,
         ];
+
+        // === FILTER ANWENDEN (nach dem Laden, auf Collection-Ebene) ===
+        $filterFn = function ($tasks) {
+            return $tasks->filter(function ($task) {
+                // Tag-Filter
+                if (!empty($this->filterTagIds)) {
+                    $taskTagIds = $task->contextTags->pluck('id')->toArray();
+                    if (empty(array_intersect($this->filterTagIds, $taskTagIds))) {
+                        return false;
+                    }
+                }
+                // Farb-Filter
+                if ($this->filterColor) {
+                    if ($task->color !== $this->filterColor) {
+                        return false;
+                    }
+                }
+                return true;
+            })->values();
+        };
+
+        $dueGroup->tasks = $filterFn($dueGroup->tasks);
+        $dueGroup->open_count = $dueGroup->tasks->count();
+
+        $inbox->tasks = $filterFn($inbox->tasks);
+        $inbox->open_count = $inbox->tasks->count();
+
+        $grouped = $grouped->map(function ($group) use ($filterFn) {
+            $group->tasks = $filterFn($group->tasks);
+            $group->open_count = $group->tasks->count();
+            return $group;
+        });
+
+        $completedGroup->tasks = $filterFn($completedGroup->tasks);
+
+        // === VERFÜGBARE TAGS & FARBEN FÜR FILTER-UI ===
+        $allUserTasks = PlannerTask::with(['tags', 'contextColors'])
+            ->where('is_done', false)
+            ->where(function ($q) use ($userId) {
+                $q->where(function ($q) use ($userId) {
+                    $q->whereNull('project_id')
+                      ->where('user_id', $userId);
+                })->orWhere(function ($q) use ($userId) {
+                    $q->whereNotNull('project_id')
+                      ->where('user_in_charge_id', $userId)
+                      ->whereNotNull('project_slot_id');
+                });
+            })
+            ->get();
+
+        $availableFilterTags = $allUserTasks->flatMap(fn ($t) => $t->contextTags)
+            ->unique('id')
+            ->sortBy('label')
+            ->values()
+            ->map(fn ($tag) => ['id' => $tag->id, 'label' => $tag->label, 'color' => $tag->color]);
+
+        $availableFilterColors = $allUserTasks->map(fn ($t) => $t->color)
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
 
         // === 4. KOMPLETTE GRUPPENLISTE ===
         // Fällige Aufgaben zuerst, dann Inbox, dann Gruppen, dann Erledigt
@@ -211,6 +277,8 @@ class MyTasks extends Component
             'monthlyPerformanceScore' => $monthlyPerformanceScore,
             'createdPoints' => $createdPoints,
             'donePoints' => $donePoints,
+            'availableFilterTags' => $availableFilterTags,
+            'availableFilterColors' => $availableFilterColors,
         ])->layout('platform::layouts.app');
     }
 
@@ -306,5 +374,34 @@ class MyTasks extends Component
     public function toggleShowDoneColumn()
     {
         $this->showDoneColumn = !$this->showDoneColumn;
+    }
+
+    /**
+     * Tag-Filter toggeln (hinzufügen/entfernen)
+     */
+    public function toggleTagFilter(int $tagId)
+    {
+        if (in_array($tagId, $this->filterTagIds)) {
+            $this->filterTagIds = array_values(array_diff($this->filterTagIds, [$tagId]));
+        } else {
+            $this->filterTagIds[] = $tagId;
+        }
+    }
+
+    /**
+     * Farb-Filter setzen oder entfernen
+     */
+    public function toggleColorFilter(string $color)
+    {
+        $this->filterColor = $this->filterColor === $color ? null : $color;
+    }
+
+    /**
+     * Alle Filter zurücksetzen
+     */
+    public function clearFilters()
+    {
+        $this->filterTagIds = [];
+        $this->filterColor = null;
     }
 }

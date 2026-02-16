@@ -148,6 +148,64 @@
                             @endif
                         </div>
                     </div>
+                    {{-- Filter: Tags & Farben --}}
+                    @if($availableFilterTags->isNotEmpty() || $availableFilterColors->isNotEmpty())
+                        <div>
+                            <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Filter</h3>
+
+                            @if($availableFilterTags->isNotEmpty())
+                                <div class="mb-3">
+                                    <div class="text-xs text-[var(--ui-muted)] mb-2">Tags</div>
+                                    <div class="flex flex-wrap gap-1.5">
+                                        @foreach($availableFilterTags as $tag)
+                                            <button
+                                                wire:click="toggleTagFilter({{ $tag['id'] }})"
+                                                class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full border transition-colors
+                                                    {{ in_array($tag['id'], $filterTagIds)
+                                                        ? 'bg-[var(--ui-primary)] text-white border-[var(--ui-primary)]'
+                                                        : 'bg-[var(--ui-muted-5)] text-[var(--ui-muted)] border-[var(--ui-border)]/40 hover:border-[var(--ui-primary)]/60' }}"
+                                            >
+                                                @if($tag['color'])
+                                                    <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {{ $tag['color'] }}"></span>
+                                                @endif
+                                                {{ $tag['label'] }}
+                                            </button>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+
+                            @if($availableFilterColors->isNotEmpty())
+                                <div class="mb-3">
+                                    <div class="text-xs text-[var(--ui-muted)] mb-2">Farben</div>
+                                    <div class="flex flex-wrap gap-1.5">
+                                        @foreach($availableFilterColors as $color)
+                                            <button
+                                                wire:click="toggleColorFilter('{{ $color }}')"
+                                                class="w-6 h-6 rounded-full border-2 transition-all
+                                                    {{ $filterColor === $color
+                                                        ? 'border-[var(--ui-primary)] ring-2 ring-[var(--ui-primary)]/30 scale-110'
+                                                        : 'border-[var(--ui-border)]/40 hover:border-[var(--ui-primary)]/60' }}"
+                                                style="background-color: {{ $color }}"
+                                                title="{{ $color }}"
+                                            ></button>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+
+                            @if(!empty($filterTagIds) || $filterColor)
+                                <button
+                                    wire:click="clearFilters"
+                                    class="inline-flex items-center gap-1 text-xs text-[var(--ui-primary)] hover:text-[var(--ui-primary-hover)] transition-colors"
+                                >
+                                    @svg('heroicon-o-x-mark', 'w-3 h-3')
+                                    <span>Filter zurücksetzen</span>
+                                </button>
+                            @endif
+                        </div>
+                    @endif
+
                     <!-- Projekt-Statistiken: Offen -->
                     <div>
                         <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Offen</h3>

@@ -4,8 +4,8 @@
     $isDone = $task->is_done ?? false;
     $isFrog = $task->is_frog ?? false;
     $contextColor = $task->color ?? null;
-    // HasTags Trait stellt contextTags Relation bereit
-    $contextTags = method_exists($task, 'contextTags') ? ($task->contextTags ?? collect()) : collect();
+    // HasTags Trait stellt contextTags Accessor bereit (nutzt eager-geladene tags Relation)
+    $contextTags = $task->contextTags ?? collect();
 @endphp
 <x-ui-kanban-card
     :title="''"
@@ -19,8 +19,11 @@
                 <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {{ $contextColor }}"></span>
             @endif
             @foreach($contextTags->take(3) as $tag)
-                <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded bg-[var(--ui-muted-5)] text-[var(--ui-muted)] border border-[var(--ui-border)]/30">
-                    {{ $tag->name }}
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-[var(--ui-muted-5)] text-[var(--ui-muted)] border border-[var(--ui-border)]/30">
+                    @if($tag->color)
+                        <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" style="background-color: {{ $tag->color }}"></span>
+                    @endif
+                    {{ $tag->label }}
                 </span>
             @endforeach
             @if($contextTags->count() > 3)
