@@ -12,22 +12,31 @@
     :sortable-id="$task->id"
     :href="route('planner.tasks.show', $task)"
 >
-    <!-- Kontext Farbe und Tags (ganz oben, schlicht) -->
+    <!-- Kontext Farbe und Tags (ganz oben, premium) -->
     @if($contextColor || $contextTags->isNotEmpty())
-        <div class="mb-2 flex items-center gap-1.5 flex-wrap">
+        <div class="mb-2 flex items-center gap-1 flex-wrap">
             @if($contextColor)
-                <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {{ $contextColor }}"></span>
+                <span class="w-2.5 h-2.5 rounded-full flex-shrink-0 ring-1 ring-white/60 shadow-sm" style="background-color: {{ $contextColor }}"></span>
             @endif
             @foreach($contextTags->take(3) as $tag)
-                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-[var(--ui-muted-5)] text-[var(--ui-muted)] border border-[var(--ui-border)]/30">
+                <span
+                    class="inline-flex items-center gap-1 pl-1 pr-1.5 py-0.5 text-[10px] font-medium rounded-md transition-colors duration-150
+                        {{ $tag->color
+                            ? 'border shadow-sm'
+                            : 'bg-[var(--ui-muted-5)] text-[var(--ui-muted)] border border-[var(--ui-border)]/30'
+                        }}"
                     @if($tag->color)
-                        <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" style="background-color: {{ $tag->color }}"></span>
+                        style="background-color: {{ $tag->color }}10; border-color: {{ $tag->color }}35; color: {{ $tag->color }}"
+                    @endif
+                >
+                    @if($tag->color)
+                        <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 ring-1 ring-white/50" style="background-color: {{ $tag->color }}"></span>
                     @endif
                     {{ $tag->label }}
                 </span>
             @endforeach
             @if($contextTags->count() > 3)
-                <span class="text-[10px] text-[var(--ui-muted)]">+{{ $contextTags->count() - 3 }}</span>
+                <span class="text-[10px] text-[var(--ui-muted)] bg-[var(--ui-muted-5)] px-1.5 py-0.5 rounded-md font-medium">+{{ $contextTags->count() - 3 }}</span>
             @endif
         </div>
     @endif
