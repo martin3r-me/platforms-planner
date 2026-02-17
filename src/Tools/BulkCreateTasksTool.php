@@ -25,7 +25,7 @@ class BulkCreateTasksTool implements ToolContract, ToolMetadataContract
     {
         // NOTE: OpenAI tool descriptions are truncated to ~150 chars in OpenAiService.
         // Keep the critical contract early: body must be an object with tasks[].
-        return 'POST /planner/tasks/bulk - Body MUSS {tasks:[{title,description,dod,project_id,project_slot_id?}], defaults?} enthalten. Erstellt viele Tasks.';
+        return 'POST /planner/tasks/bulk - Body MUSS {tasks:[{title,description,dod,...}], project_id?, project_slot_id?, defaults?} enthalten. Erstellt viele Tasks. project_id/project_slot_id können top-level oder in defaults oder pro Task gesetzt werden.';
     }
 
     public function getSchema(): array
@@ -37,9 +37,17 @@ class BulkCreateTasksTool implements ToolContract, ToolMetadataContract
                     'type' => 'boolean',
                     'description' => 'Optional: Wenn true, werden alle Creates in einer DB-Transaktion ausgeführt (bei einem Fehler wird alles zurückgerollt, keine Teil-Tasks angelegt). Standard: true.',
                 ],
+                'project_id' => [
+                    'type' => 'integer',
+                    'description' => 'Optional: Projekt-ID für alle Tasks (wird als Default verwendet, kann pro Task oder via defaults überschrieben werden).',
+                ],
+                'project_slot_id' => [
+                    'type' => 'integer',
+                    'description' => 'Optional: Slot-ID für alle Tasks (wird als Default verwendet, kann pro Task oder via defaults überschrieben werden).',
+                ],
                 'defaults' => [
                     'type' => 'object',
-                    'description' => 'Optional: Default-Werte, die auf jedes Item angewendet werden (können pro Item überschrieben werden).',
+                    'description' => 'Optional: Default-Werte, die auf jedes Item angewendet werden (können pro Item überschrieben werden). Überschreibt top-level project_id/project_slot_id.',
                     'properties' => [
                         'project_id' => ['type' => 'integer'],
                         'project_slot_id' => ['type' => 'integer'],
@@ -107,6 +115,14 @@ class BulkCreateTasksTool implements ToolContract, ToolMetadataContract
             $defaults = $arguments['defaults'] ?? [];
             if (!is_array($defaults)) {
                 $defaults = [];
+            }
+
+            // Top-Level project_id/project_slot_id als Basis-Defaults übernehmen
+            // Priorität: Task-Item > defaults > Top-Level
+            foreach (['project_id', 'project_slot_id'] as $field) {
+                if (isset($arguments[$field]) && !array_key_exists($field, $defaults)) {
+                    $defaults[$field] = $arguments[$field];
+                }
             }
 
             // atomic ist standardmäßig true (alles oder nichts), um inkonsistente Zustände zu vermeiden
