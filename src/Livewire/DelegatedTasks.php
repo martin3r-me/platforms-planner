@@ -56,7 +56,7 @@ class DelegatedTasks extends Component
         // === 0. FÄLLIGE/ÜBERFÄLLIGE DELEGIERTE AUFGABEN ===
         $tomorrow = now()->addDay()->endOfDay();
         
-        $dueTasks = PlannerTask::query()
+        $dueTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])
             ->where('is_done', false)
             ->whereNotNull('due_date')
             ->where(function ($q) use ($tomorrow) {
@@ -81,7 +81,7 @@ class DelegatedTasks extends Component
         ];
 
         // === 1. INBOX ===
-        $inboxTasks = PlannerTask::query()
+        $inboxTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])
             ->whereNull('delegated_group_id')
             ->where('is_done', false)
             ->where('user_id', $userId) // Vom aktuellen User erstellt
@@ -104,7 +104,8 @@ class DelegatedTasks extends Component
         // Für delegierte Aufgaben: Separate DelegatedTaskGroups verwenden
         // WICHTIG: Alle Gruppen anzeigen, auch leere, damit User Aufgaben hinzufügen kann
         $grouped = PlannerDelegatedTaskGroup::with(['tasks' => function ($q) use ($userId) {
-            $q->where('is_done', false)
+            $q->with(['tags', 'contextColors', 'userInCharge', 'project'])
+              ->where('is_done', false)
               ->where('user_id', $userId) // Vom aktuellen User erstellt
               ->whereNotNull('user_in_charge_id') // Hat einen Verantwortlichen
               ->where('user_in_charge_id', '!=', $userId) // Aber nicht der aktuelle User
@@ -123,7 +124,7 @@ class DelegatedTasks extends Component
         ]);
 
         // === 3. ERLEDIGT ===
-        $doneTasks = PlannerTask::query()
+        $doneTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])
             ->where('is_done', true)
             ->where('user_id', $userId) // Vom aktuellen User erstellt
             ->whereNotNull('user_in_charge_id') // Hat einen Verantwortlichen
