@@ -353,6 +353,7 @@
 
                 <x-core-extra-fields-section
                     :definitions="$this->extraFieldDefinitions"
+                    :model="$task"
                     class="mt-8"
                 />
             </div>
