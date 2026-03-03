@@ -18,11 +18,12 @@ use Platform\Core\Traits\HasExtraFields;
 use Platform\Core\Contracts\HasTimeAncestors;
 use Platform\Core\Contracts\HasKeyResultAncestors;
 use Platform\Core\Contracts\HasDisplayName;
+use Platform\Core\Contracts\InheritsExtraFields;
 
 /**
  * @ai.description Aufgaben können optional einem Projekt zugeordnet sein (über ProjectSlot). Ohne Projekt sind es persönliche Aufgaben des Nutzers. TaskGroups und Slots dienen der Planung und Strukturierung der Arbeit.
  */
-class PlannerTask extends Model implements HasTimeAncestors, HasKeyResultAncestors, HasDisplayName
+class PlannerTask extends Model implements HasTimeAncestors, HasKeyResultAncestors, HasDisplayName, InheritsExtraFields
 {
     use HasFactory, SoftDeletes, LogsActivity, HasTimeEntries, HasTags, HasColors, Encryptable, HasExtraFields;
 
@@ -318,5 +319,14 @@ class PlannerTask extends Model implements HasTimeAncestors, HasKeyResultAncesto
     public function getHasDodAttribute(): bool
     {
         return !empty($this->dod_items);
+    }
+
+    /**
+     * Parent-Models von denen Extra-Field-Definitionen geerbt werden.
+     * Tasks erben Extra-Felder vom zugeordneten Projekt.
+     */
+    public function extraFieldParents(): array
+    {
+        return array_filter([$this->project]);
     }
 }

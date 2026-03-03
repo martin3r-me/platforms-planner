@@ -79,10 +79,8 @@ class Task extends Component
         $this->loadProjectMoveOptions();
         $this->syncProjectSlotOptions();
 
-        // Extra-Felder laden (Definitionen vom Projekt, Werte von der Task)
-        if ($this->task->project) {
-            $this->loadExtraFieldValuesFromParent($this->task, $this->task->project);
-        }
+        // Extra-Felder laden (geerbte Definitionen vom Projekt + eigene Werte)
+        $this->loadExtraFieldValues($this->task);
     }
 
     #[Computed]
@@ -308,25 +306,29 @@ class Task extends Component
         if (!$this->task) {
             return;
         }
-        
+
         $this->validateOnly('description');
-        
+
+        // Plaintext-Vergleich: isDirty() ist unzuverlässig bei verschlüsselten Feldern
+        // (zufällige IVs erzeugen jedes Mal anderen Ciphertext → isDirty() immer true)
+        $currentValue = $this->task->description ?? '';
+        if ($value === $currentValue) {
+            return;
+        }
+
         // Setze Wert im Model (Cast verschlüsselt automatisch)
         $this->task->description = $value;
-        
-        // Prüfe ob wirklich geändert (verhindert unnötige Speicherungen)
-        if ($this->task->isDirty('description')) {
-            $this->task->save();
-            
-            // Lade entschlüsselten Wert wieder in Property
-            $this->description = $this->task->description;
-            
-            // Dezentes Feedback
-            $this->dispatch('notify', [
-                'type' => 'success',
-                'message' => 'Anmerkung gespeichert',
-            ]);
-        }
+        $this->task->save();
+
+        // NICHT aus dem Model zurücklesen! Der encrypt→save→decrypt-Zyklus
+        // kann in Edge-Cases null liefern und das Textarea leeren.
+        // $this->description hat bereits den korrekten Wert via wire:model.
+
+        // Dezentes Feedback
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => 'Anmerkung gespeichert',
+        ]);
     }
 
     public function updatedDod($value)
@@ -334,25 +336,26 @@ class Task extends Component
         if (!$this->task) {
             return;
         }
-        
+
         $this->validateOnly('dod');
-        
+
+        // Plaintext-Vergleich statt isDirty() (verschlüsselte Felder)
+        $currentValue = $this->task->dod ?? '';
+        if ($value === $currentValue) {
+            return;
+        }
+
         // Setze Wert im Model (Cast verschlüsselt automatisch)
         $this->task->dod = $value;
-        
-        // Prüfe ob wirklich geändert (verhindert unnötige Speicherungen)
-        if ($this->task->isDirty('dod')) {
-            $this->task->save();
-            
-            // Lade entschlüsselten Wert wieder in Property
-            $this->dod = $this->task->dod;
-            
-            // Dezentes Feedback
-            $this->dispatch('notify', [
-                'type' => 'success',
-                'message' => 'Definition of Done gespeichert',
-            ]);
-        }
+        $this->task->save();
+
+        // NICHT aus dem Model zurücklesen (siehe updatedDescription)
+
+        // Dezentes Feedback
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => 'Definition of Done gespeichert',
+        ]);
     }
 
     public function updatedTask($property, $value)
@@ -425,20 +428,20 @@ class Task extends Component
         $this->task->save();
         $this->saveExtraFieldValues($this->task);
 
+        // Sichere Plaintext-Werte VOR fresh() (encrypt→decrypt kann Edge-Cases haben)
+        $savedDescription = $this->description;
+        $savedDod = $this->dod;
+
         // Lade die Task neu für die Anzeige
         $this->task = $this->task->fresh(['user', 'userInCharge', 'project', 'team']);
 
-        // Lade entschlüsselte Werte wieder in separate Properties
-        $this->description = $this->task->description;
-        $this->dod = $this->task->dod;
+        // Behalte die bekannten Plaintext-Werte statt aus dem Model zurückzulesen
+        $this->description = $savedDescription;
+        $this->dod = $savedDod;
         $this->dodItems = $this->parseDodItems($this->dod);
 
-        // Extra-Felder neu laden (mit Vererbung vom Projekt)
-        if ($this->task->project) {
-            $this->loadExtraFieldValuesFromParent($this->task, $this->task->project);
-        } else {
-            $this->loadExtraFieldValues($this->task);
-        }
+        // Extra-Felder neu laden (Vererbung vom Projekt wird automatisch gehandled)
+        $this->loadExtraFieldValues($this->task);
 
         // Toast-Notification
         $this->dispatch('notify', [
