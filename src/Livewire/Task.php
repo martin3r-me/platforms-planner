@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Computed;
 use Platform\Core\Livewire\Concerns\WithExtraFields;
+use Platform\Core\Models\ContextFile;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectSlot;
@@ -108,6 +109,18 @@ class Task extends Component
         $extraFieldsDirty = $this->isExtraFieldsDirty();
 
         return $modelDirty || $descriptionDirty || $dodDirty || $extraFieldsDirty;
+    }
+
+    #[Computed]
+    public function contextFileCount(): int
+    {
+        if (!$this->task) {
+            return 0;
+        }
+
+        return ContextFile::where('context_type', get_class($this->task))
+            ->where('context_id', $this->task->id)
+            ->count();
     }
 
     #[Computed]

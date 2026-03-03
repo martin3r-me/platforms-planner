@@ -79,9 +79,19 @@
                                     </span>
                                 </div>
                             @endif
+
+                            {{-- Anhänge --}}
+                            @if($this->contextFileCount > 0)
+                                <div class="flex flex-wrap items-center gap-6 text-sm text-[var(--ui-muted)]">
+                                    <span class="flex items-center gap-2">
+                                        @svg('heroicon-o-paper-clip', 'w-4 h-4')
+                                        <span>{{ $this->contextFileCount }} {{ $this->contextFileCount === 1 ? 'Anhang' : 'Anhänge' }}</span>
+                                    </span>
+                                </div>
+                            @endif
                         </div>
                     </div>
-                    
+
                     {{-- Status Badges -- kleiner --}}
                     <div class="flex flex-col items-end gap-2 flex-shrink-0">
                         @if($task->is_done)
