@@ -336,6 +336,21 @@
                     />
                 </div>
 
+                {{-- Dateien (inline) --}}
+                @if($task)
+                    <div class="mt-8 bg-[var(--ui-surface)] rounded-lg border border-[var(--ui-border)]/60 p-6">
+                        <div class="flex items-center gap-2 mb-4">
+                            @svg('heroicon-o-paper-clip', 'w-5 h-5 text-[var(--ui-primary)]')
+                            <h2 class="text-lg font-semibold text-[var(--ui-secondary)]">Dateien</h2>
+                        </div>
+                        <livewire:core.inline-context-files
+                            :context-type="get_class($task)"
+                            :context-id="$task->id"
+                            :key="'inline-context-files-task-' . $task->id"
+                        />
+                    </div>
+                @endif
+
                 {{-- Tags & Farbe (inline, vor den Extra-Feldern) --}}
                 @if($task)
                     <div class="mt-8 bg-[var(--ui-surface)] rounded-lg border border-[var(--ui-border)]/60 p-6">
