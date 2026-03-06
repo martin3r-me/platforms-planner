@@ -3,6 +3,48 @@
         <x-ui-page-navbar title="" />
     </x-slot>
 
+    <x-slot name="actionbar">
+        <x-ui-page-actionbar :breadcrumbs="array_filter([
+            ['label' => 'Planner', 'href' => route('planner.dashboard'), 'icon' => 'clipboard-document-list'],
+            ['label' => 'Meine Aufgaben', 'href' => route('planner.my-tasks')],
+            $task->project ? ['label' => $task->project->name, 'href' => route('planner.projects.show', ['plannerProject' => $task->project->id])] : null,
+            ['label' => Str::limit($task->title, 40)],
+        ])">
+            <x-slot name="left">
+                @if($printingAvailable)
+                    <x-ui-button variant="ghost" size="sm" wire:click="printTask()">
+                        @svg('heroicon-o-printer', 'w-4 h-4')
+                        <span>Drucken</span>
+                    </x-ui-button>
+                @endif
+                @can('update', $task)
+                    <x-ui-button variant="ghost" size="sm" wire:click="openMoveModal">
+                        @svg('heroicon-o-arrows-right-left', 'w-4 h-4')
+                        <span>Verschieben</span>
+                    </x-ui-button>
+                @endcan
+            </x-slot>
+
+            @can('update', $task)
+                @if($this->isDirty())
+                    <x-ui-button variant="primary" size="sm" wire:click="save">
+                        @svg('heroicon-o-check', 'w-4 h-4')
+                        <span>Speichern</span>
+                    </x-ui-button>
+                @endif
+            @endcan
+            @can('delete', $task)
+                <x-ui-confirm-button
+                    action="deleteTask"
+                    text="Löschen"
+                    confirmText="Wirklich löschen?"
+                    variant="danger"
+                    :icon="@svg('heroicon-o-trash', 'w-4 h-4')->toHtml()"
+                />
+            @endcan
+        </x-ui-page-actionbar>
+    </x-slot>
+
     <x-ui-page-container spacing="space-y-6">
         {{-- Header Section --}}
         <div class="bg-white rounded-xl border border-[var(--ui-border)]/60 shadow-sm overflow-hidden">
@@ -388,68 +430,7 @@
     <x-slot name="sidebar">
         <x-ui-page-sidebar title="Übersicht" width="w-80" :defaultOpen="true">
             <div class="p-6 space-y-6">
-                {{-- Aktionen (Save/Print) --}}
-                <div>
-                    <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-4">Aktionen</h3>
-                    <div class="space-y-2">
-                        @can('update', $task)
-                            @if($this->isDirty())
-                                <x-ui-button variant="primary" size="sm" wire:click="save" class="w-full">
-                                    <span class="inline-flex items-center gap-2">
-                                        @svg('heroicon-o-check','w-4 h-4')
-                                        Speichern
-                                    </span>
-                                </x-ui-button>
-                            @endif
-                        @endcan
-                        @if($printingAvailable)
-                            <x-ui-button variant="secondary" size="sm" wire:click="printTask()" class="w-full">
-                                <span class="inline-flex items-center gap-2">
-                                    @svg('heroicon-o-printer', 'w-4 h-4')
-                                    Drucken
-                                </span>
-                            </x-ui-button>
-                        @endif
-                        @can('update', $task)
-                            <x-ui-button variant="secondary-outline" size="sm" wire:click="openMoveModal" class="w-full">
-                                <span class="inline-flex items-center gap-2">
-                                    @svg('heroicon-o-arrows-right-left', 'w-4 h-4')
-                                    Verschieben
-                                </span>
-                            </x-ui-button>
-                        @endcan
-                        @can('delete', $task)
-                            <x-ui-confirm-button 
-                                action="deleteTask" 
-                                text="Löschen" 
-                                confirmText="Wirklich löschen?" 
-                                variant="danger"
-                                :icon="@svg('heroicon-o-trash', 'w-4 h-4')->toHtml()"
-                                class="w-full"
-                            />
-                        @endcan
-                    </div>
-                </div>
-
-                {{-- Quick Links --}}
-                <div class="space-y-2">
-                    @if($task->project && $this->canAccessProject)
-                        <x-ui-button variant="secondary-outline" size="sm" :href="route('planner.projects.show', ['plannerProject' => $task->project->id])" wire:navigate class="w-full">
-                            <span class="flex items-center gap-2">
-                                @svg('heroicon-o-folder', 'w-4 h-4')
-                                Zum Projekt
-                            </span>
-                        </x-ui-button>
-                    @endif
-                    <x-ui-button variant="secondary-outline" size="sm" :href="route('planner.my-tasks')" wire:navigate class="w-full">
-                        <span class="flex items-center gap-2">
-                            @svg('heroicon-o-clipboard-document-list', 'w-4 h-4')
-                            Zu meinen Aufgaben
-                        </span>
-                    </x-ui-button>
-                </div>
-
-                {{-- Status (interaktiv, stile wie Statistiken) --}}
+                {{-- Status (interaktiv) --}}
                 <div class="space-y-2">
                     <button type="button" wire:click="toggleDone" class="w-full text-left flex items-center justify-between py-2 px-3 rounded-lg bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40 hover:bg-[var(--ui-primary-5)] transition-colors cursor-pointer">
                         <div class="flex items-center gap-2">

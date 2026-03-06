@@ -86,7 +86,7 @@
                 'variant' => 'primary',
                 'size' => 'sm',
                 'wire_click' => null,
-                'onclick' => '$dispatch(\'open-modal-customer-project\', { projectId: ' . $project->id . ' })'
+                'onclick' => '$dispatch(\'open-modal-project-settings\', { projectId: ' . $project->id . ', tab: \'customer\' })'
             ];
         }
         
@@ -105,49 +105,46 @@
             <x-ui-page-navbar :title="$project->name" icon="heroicon-o-clipboard-document-list" />
         </x-slot>
 
+        <x-slot name="actionbar">
+            <x-ui-page-actionbar :breadcrumbs="[
+                ['label' => 'Planner', 'href' => route('planner.dashboard'), 'icon' => 'clipboard-document-list'],
+                ['label' => $project->name],
+            ]">
+                <x-slot name="left">
+                    @can('settings', $project)
+                        <x-ui-button variant="ghost" size="sm" x-data @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })">
+                            @svg('heroicon-o-cog-6-tooth', 'w-4 h-4')
+                            <span>Einstellungen</span>
+                        </x-ui-button>
+                    @endcan
+                    @if(($project->project_type?->value ?? $project->project_type) === 'customer')
+                        @php
+                            $companyId = $project->customerProject?->company_id;
+                            $companyName = $companyId ? app(\Platform\Core\Contracts\CrmCompanyResolverInterface::class)->displayName($companyId) : null;
+                        @endphp
+                        <x-ui-button variant="ghost" size="sm" x-data @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }}, tab: 'customer' })">
+                            @svg('heroicon-o-user-group', 'w-4 h-4')
+                            <span>{{ $companyName ?? 'Kunden' }}</span>
+                        </x-ui-button>
+                    @endif
+                </x-slot>
+
+                @can('update', $project)
+                    <x-ui-button variant="primary" size="sm" wire:click="createTask()">
+                        @svg('heroicon-o-plus', 'w-4 h-4')
+                        <span>Aufgabe</span>
+                    </x-ui-button>
+                    <x-ui-button variant="ghost" size="sm" wire:click="createProjectSlot">
+                        @svg('heroicon-o-square-2-stack', 'w-4 h-4')
+                        <span>Spalte</span>
+                    </x-ui-button>
+                @endcan
+            </x-ui-page-actionbar>
+        </x-slot>
+
         <x-slot name="sidebar">
             <x-ui-page-sidebar title="Projekt-Übersicht" width="w-80" :defaultOpen="true">
                 <div class="p-4 space-y-6">
-                    {{-- Aktionen --}}
-                    <div>
-                        <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Aktionen</h3>
-                        <div class="flex flex-col gap-2">
-                            @can('update', $project)
-                                <x-ui-button variant="secondary" size="sm" wire:click="createTask()">
-                                    <span class="inline-flex items-center gap-2">
-                                        @svg('heroicon-o-plus','w-4 h-4')
-                                        <span>Aufgabe</span>
-                                    </span>
-                                </x-ui-button>
-                                <x-ui-button variant="secondary" size="sm" wire:click="createProjectSlot">
-                                    <span class="inline-flex items-center gap-2">
-                                        @svg('heroicon-o-square-2-stack','w-4 h-4')
-                                        <span>Spalte</span>
-                                    </span>
-                                </x-ui-button>
-                            @endcan
-                            @can('settings', $project)
-                                <x-ui-button variant="secondary-outline" size="sm" x-data @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })">
-                                    <span class="inline-flex items-center gap-2">
-                                        @svg('heroicon-o-cog-6-tooth','w-4 h-4')
-                                        <span>Einstellungen</span>
-                                    </span>
-                                </x-ui-button>
-                            @endcan
-                            @if(($project->project_type?->value ?? $project->project_type) === 'customer')
-                                @php
-                                    $companyId = $project->customerProject?->company_id;
-                                    $companyName = $companyId ? app(\Platform\Core\Contracts\CrmCompanyResolverInterface::class)->displayName($companyId) : null;
-                                @endphp
-                                <x-ui-button variant="secondary-outline" size="sm" x-data @click="$dispatch('open-modal-customer-project', { projectId: {{ $project->id }} })">
-                                    <span class="inline-flex items-center gap-2">
-                                        @svg('heroicon-o-user-group','w-4 h-4')
-                                        <span>{{ $companyName ?? 'Kunden' }}</span>
-                                    </span>
-                                </x-ui-button>
-                            @endif
-                        </div>
-                    </div>
                     {{-- Filter: Tags & Farben --}}
                     @if($availableFilterTags->isNotEmpty() || $availableFilterColors->isNotEmpty())
                         <div>

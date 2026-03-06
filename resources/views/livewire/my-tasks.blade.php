@@ -3,28 +3,25 @@
         <x-ui-page-navbar title="Meine Aufgaben" icon="heroicon-o-clipboard-document-check" />
     </x-slot>
 
+    <x-slot name="actionbar">
+        <x-ui-page-actionbar :breadcrumbs="[
+            ['label' => 'Planner', 'href' => route('planner.dashboard'), 'icon' => 'clipboard-document-list'],
+            ['label' => 'Meine Aufgaben'],
+        ]">
+            <x-ui-button variant="primary" size="sm" wire:click="createTask()">
+                @svg('heroicon-o-plus', 'w-4 h-4')
+                <span>Aufgabe</span>
+            </x-ui-button>
+            <x-ui-button variant="ghost" size="sm" wire:click="createTaskGroup">
+                @svg('heroicon-o-square-2-stack', 'w-4 h-4')
+                <span>Spalte</span>
+            </x-ui-button>
+        </x-ui-page-actionbar>
+    </x-slot>
+
     <x-slot name="sidebar">
         <x-ui-page-sidebar title="Übersicht" width="w-80" :defaultOpen="true">
             <div class="p-4 space-y-6">
-                {{-- Aktionen --}}
-                <div>
-                    <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Aktionen</h3>
-                    <div class="flex flex-col gap-2">
-                        <x-ui-button variant="secondary" size="sm" wire:click="createTask()">
-                            <span class="inline-flex items-center gap-2">
-                                @svg('heroicon-o-plus','w-4 h-4')
-                                <span>Aufgabe</span>
-                            </span>
-                        </x-ui-button>
-                        <x-ui-button variant="secondary" size="sm" wire:click="createTaskGroup">
-                            <span class="inline-flex items-center gap-2">
-                                @svg('heroicon-o-square-2-stack','w-4 h-4')
-                                <span>Spalte</span>
-                            </span>
-                        </x-ui-button>
-                    </div>
-                </div>
-
                 {{-- Filter: Tags & Farben --}}
                 @if($availableFilterTags->isNotEmpty() || $availableFilterColors->isNotEmpty())
                     <div>

@@ -3,6 +3,13 @@
         <x-ui-page-navbar title="Erledigte Aufgaben" icon="heroicon-o-check-circle" />
     </x-slot>
 
+    <x-slot name="actionbar">
+        <x-ui-page-actionbar :breadcrumbs="[
+            ['label' => 'Planner', 'href' => route('planner.dashboard'), 'icon' => 'clipboard-document-list'],
+            ['label' => 'Erledigte Aufgaben'],
+        ]" />
+    </x-slot>
+
     <x-slot name="sidebar">
         <x-ui-page-sidebar title="Filter" width="w-80" :defaultOpen="true">
             <div class="p-4 space-y-4">

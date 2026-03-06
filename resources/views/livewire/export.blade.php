@@ -3,6 +3,13 @@
         <x-ui-page-navbar title="Export" icon="heroicon-o-arrow-down-tray" />
     </x-slot>
 
+    <x-slot name="actionbar">
+        <x-ui-page-actionbar :breadcrumbs="[
+            ['label' => 'Planner', 'href' => route('planner.dashboard'), 'icon' => 'clipboard-document-list'],
+            ['label' => 'Export'],
+        ]" />
+    </x-slot>
+
     <div class="max-w-5xl mx-auto py-8 px-4 space-y-8">
 
         {{-- Header --}}
