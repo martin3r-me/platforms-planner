@@ -8,7 +8,8 @@ use Platform\Planner\Models\PlannerProject as Project;
 use Platform\Planner\Models\PlannerProjectSlot as ProjectSlot;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Organization\Models\OrganizationTimeEntry;
-use Livewire\Attributes\On; 
+use Platform\Core\Contracts\CrmCompanyResolverInterface;
+use Livewire\Attributes\On;
 
 
 class Sidebar extends Component
@@ -80,6 +81,7 @@ class Sidebar extends Component
         if (!$user || !$teamId) {
             return view('planner::livewire.sidebar', [
                 'customerProjects' => collect(),
+                'customerProjectsByCompany' => collect(),
                 'internalProjects' => collect(),
                 'hasMoreProjects' => false,
                 'allCustomerProjectsCount' => 0,
@@ -90,7 +92,7 @@ class Sidebar extends Component
         // Projekte, bei denen der User Aufgaben hat ODER Mitglied ist
         // contextColors eager-loaden, damit color Accessor funktioniert (loose coupling via HasColors Trait)
         $projectsWithUserTasks = Project::query()
-            ->with('contextColors')
+            ->with(['contextColors', 'customerProject'])
             ->where('team_id', $teamId)
             ->where(function ($query) use ($user) {
                 // 1. Projekte, bei denen der User Aufgaben hat (über ProjectSlots)
@@ -115,7 +117,7 @@ class Sidebar extends Component
         // Alle Projekte
         // contextColors eager-loaden, damit color Accessor funktioniert (loose coupling via HasColors Trait)
         $allProjects = Project::query()
-            ->with('contextColors')
+            ->with(['contextColors', 'customerProject'])
             ->where('team_id', $teamId)
             ->orderBy('name')
             ->get();
@@ -134,10 +136,24 @@ class Sidebar extends Component
                 ->where('team_id', $teamId)
                 ->forContext(get_class($project), $project->id)
                 ->sum('minutes');
-            
+
             $project->total_minutes = $totalMinutes;
             return $project;
         });
+
+        // Kundenprojekte nach Company gruppieren (Baumstruktur)
+        $companyResolver = app(CrmCompanyResolverInterface::class);
+        $customerProjectsByCompany = $customerProjects
+            ->groupBy(fn ($p) => $p->customerProject?->company_id ?? 0)
+            ->map(function ($projects, $companyId) use ($companyResolver) {
+                return [
+                    'company_id' => $companyId ?: null,
+                    'company_name' => $companyId ? $companyResolver->displayName((int) $companyId) : null,
+                    'projects' => $projects,
+                ];
+            })
+            ->sortBy(fn ($group) => $group['company_name'] ?? 'zzz')
+            ->values();
 
         $internalProjects = $projectsToShow->filter(function ($p) {
             $type = is_string($p->project_type) ? $p->project_type : ($p->project_type?->value ?? null);
@@ -167,6 +183,7 @@ class Sidebar extends Component
 
         return view('planner::livewire.sidebar', [
             'customerProjects' => $customerProjects,
+            'customerProjectsByCompany' => $customerProjectsByCompany,
             'internalProjects' => $internalProjects,
             'hasMoreProjects' => $hasMoreProjects,
             'allCustomerProjectsCount' => $allCustomerProjects->count(),

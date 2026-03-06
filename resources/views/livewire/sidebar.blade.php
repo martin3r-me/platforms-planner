@@ -69,19 +69,53 @@
     {{-- Abschnitt: Projekte --}}
     <div>
         <div class="mt-2" x-show="!collapsed">
-            {{-- Kundenprojekte nur anzeigen, wenn welche vorhanden sind --}}
+            {{-- Kundenprojekte als Baumstruktur nach Kunde gruppiert --}}
             @if($customerProjects->isNotEmpty())
                 <x-ui-sidebar-list :label="'Kundenprojekte' . ($showAllProjects ? ' (' . $allCustomerProjectsCount . ')' : '')">
-                    @foreach($customerProjects as $project)
-                        <x-ui-sidebar-item :href="route('planner.projects.show', ['plannerProject' => $project])">
-                            @svg('heroicon-o-folder', 'w-5 h-5 flex-shrink-0 text-[var(--ui-secondary)]')
-                            <div class="flex-1 min-w-0 ml-2 flex items-center gap-1.5">
-                                <span class="truncate text-sm font-medium">{{ $project->name }}</span>
-                                @if($project->color)
-                                    <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {{ $project->color }}"></span>
-                                @endif
+                    @foreach($customerProjectsByCompany as $index => $group)
+                        @if($group['company_id'])
+                            {{-- Kunde mit aufklappbaren Projekten --}}
+                            <div x-data="{ open: localStorage.getItem('planner.company.' + {{ $group['company_id'] }}) !== 'false' }"
+                                 class="flex flex-col">
+                                <button type="button"
+                                        @click="open = !open; localStorage.setItem('planner.company.' + {{ $group['company_id'] }}, open)"
+                                        class="flex items-center p-2 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)] transition w-full text-left">
+                                    <span class="w-4 h-4 flex-shrink-0 flex items-center justify-center transition-transform"
+                                          :class="open ? 'rotate-90' : ''">
+                                        @svg('heroicon-o-chevron-right', 'w-3 h-3')
+                                    </span>
+                                    @svg('heroicon-o-building-office', 'w-4 h-4 flex-shrink-0 ml-1 text-[var(--ui-muted)]')
+                                    <span class="ml-1.5 text-sm font-medium truncate">{{ $group['company_name'] }}</span>
+                                    <span class="ml-auto text-xs text-[var(--ui-muted)]">{{ $group['projects']->count() }}</span>
+                                </button>
+                                <div x-show="open" x-collapse class="flex flex-col gap-0.5 pl-4">
+                                    @foreach($group['projects'] as $project)
+                                        <x-ui-sidebar-item :href="route('planner.projects.show', ['plannerProject' => $project])">
+                                            @svg('heroicon-o-folder', 'w-5 h-5 flex-shrink-0 text-[var(--ui-secondary)]')
+                                            <div class="flex-1 min-w-0 ml-2 flex items-center gap-1.5">
+                                                <span class="truncate text-sm font-medium">{{ $project->name }}</span>
+                                                @if($project->color)
+                                                    <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {{ $project->color }}"></span>
+                                                @endif
+                                            </div>
+                                        </x-ui-sidebar-item>
+                                    @endforeach
+                                </div>
                             </div>
-                        </x-ui-sidebar-item>
+                        @else
+                            {{-- Projekte ohne Kunde (direkt anzeigen) --}}
+                            @foreach($group['projects'] as $project)
+                                <x-ui-sidebar-item :href="route('planner.projects.show', ['plannerProject' => $project])">
+                                    @svg('heroicon-o-folder', 'w-5 h-5 flex-shrink-0 text-[var(--ui-secondary)]')
+                                    <div class="flex-1 min-w-0 ml-2 flex items-center gap-1.5">
+                                        <span class="truncate text-sm font-medium">{{ $project->name }}</span>
+                                        @if($project->color)
+                                            <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {{ $project->color }}"></span>
+                                        @endif
+                                    </div>
+                                </x-ui-sidebar-item>
+                            @endforeach
+                        @endif
                     @endforeach
                 </x-ui-sidebar-list>
             @endif
