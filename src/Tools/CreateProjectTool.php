@@ -87,6 +87,14 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract, ToolMet
                     'type' => 'integer',
                     'description' => 'Optional: Geplante Minuten für das Projekt. Frage nach, wenn der Nutzer ein Zeitbudget angibt.'
                 ],
+                'planned_end' => [
+                    'type' => 'string',
+                    'description' => 'Optional: Geplantes Projektende (Datum im Format YYYY-MM-DD). Frage nach, wenn der Nutzer ein Enddatum angibt.'
+                ],
+                'estimated_hours' => [
+                    'type' => 'number',
+                    'description' => 'Optional: Geschätzte Stunden für das Projekt (Dezimalzahl, z.B. 40.5). Frage nach, wenn der Nutzer eine Stundenabschätzung angibt.'
+                ],
                 'customer_cost_center' => [
                     'type' => 'string',
                     'description' => 'Optional: Kostenstelle für Kundenprojekte. Frage nach, wenn es ein Kundenprojekt ist und eine Kostenstelle angegeben werden soll.'
@@ -165,6 +173,8 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract, ToolMet
                 'project_type' => $projectType,
                 'order' => $maxOrder + 1,
                 'planned_minutes' => $arguments['planned_minutes'] ?? null,
+                'planned_end' => $arguments['planned_end'] ?? null,
+                'estimated_hours' => $arguments['estimated_hours'] ?? null,
                 'customer_cost_center' => $arguments['customer_cost_center'] ?? null,
             ]);
 
@@ -227,6 +237,8 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract, ToolMet
                 'team_id' => $project->team_id,
                 'owner_user_id' => $ownerUserId,
                 'members' => $projectUsers,
+                'planned_end' => $project->planned_end?->toDateString(),
+                'estimated_hours' => $project->estimated_hours ? (float) $project->estimated_hours : null,
                 'created_at' => $project->created_at->toIso8601String(),
                 'message' => "Projekt '{$project->name}' erfolgreich erstellt."
             ]);

@@ -162,6 +162,8 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
                     'owner_user_id' => $project->user_id,
                     'owner_name' => $project->user->name ?? 'Unbekannt',
                     'members' => $projectUsers,
+                    'planned_end' => $project->planned_end?->toDateString(),
+                    'estimated_hours' => $project->estimated_hours ? (float) $project->estimated_hours : null,
                     'done' => $project->done,
                     'created_at' => $project->created_at->toIso8601String(),
                     // Struktur-Informationen

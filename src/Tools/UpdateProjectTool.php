@@ -57,6 +57,14 @@ class UpdateProjectTool implements ToolContract
                     'type' => 'integer',
                     'description' => 'Optional: Neue geplante Minuten. Frage nach, wenn der Nutzer das Zeitbudget ändern möchte.'
                 ],
+                'planned_end' => [
+                    'type' => 'string',
+                    'description' => 'Optional: Neues geplantes Projektende (Datum im Format YYYY-MM-DD). Frage nach, wenn der Nutzer das Enddatum ändern möchte.'
+                ],
+                'estimated_hours' => [
+                    'type' => 'number',
+                    'description' => 'Optional: Neue geschätzte Stunden (Dezimalzahl, z.B. 40.5). Frage nach, wenn der Nutzer die Stundenabschätzung ändern möchte.'
+                ],
                 'customer_cost_center' => [
                     'type' => 'string',
                     'description' => 'Optional: Neue Kostenstelle für Kundenprojekte. Frage nach, wenn der Nutzer die Kostenstelle ändern möchte.'
@@ -116,6 +124,14 @@ class UpdateProjectTool implements ToolContract
 
             if (isset($arguments['planned_minutes'])) {
                 $updateData['planned_minutes'] = $arguments['planned_minutes'];
+            }
+
+            if (isset($arguments['planned_end'])) {
+                $updateData['planned_end'] = $arguments['planned_end'];
+            }
+
+            if (isset($arguments['estimated_hours'])) {
+                $updateData['estimated_hours'] = $arguments['estimated_hours'];
             }
 
             if (isset($arguments['customer_cost_center'])) {
@@ -178,6 +194,8 @@ class UpdateProjectTool implements ToolContract
                 'owner_user_id' => $project->user_id,
                 'owner_name' => $project->user->name ?? 'Unbekannt',
                 'members' => $projectUsers,
+                'planned_end' => $project->planned_end?->toDateString(),
+                'estimated_hours' => $project->estimated_hours ? (float) $project->estimated_hours : null,
                 'done' => $project->done,
                 'done_at' => $project->done_at?->toIso8601String(),
                 'updated_at' => $project->updated_at->toIso8601String(),

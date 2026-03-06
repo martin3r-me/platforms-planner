@@ -61,6 +61,8 @@ class ProjectDatawarehouseController extends ApiController
                 'done' => $project->done,
                 'done_at' => $project->done_at?->toIso8601String(),
                 'planned_minutes' => $project->planned_minutes,
+                'planned_end' => $project->planned_end?->toDateString(),
+                'estimated_hours' => $project->estimated_hours ? (float) $project->estimated_hours : null,
                 'created_at' => $project->created_at->toIso8601String(),
                 'updated_at' => $project->updated_at->toIso8601String(),
             ];
@@ -187,6 +189,8 @@ class ProjectDatawarehouseController extends ApiController
                 'done' => $example->done,
                 'done_at' => $example->done_at?->toIso8601String(),
                 'planned_minutes' => $example->planned_minutes,
+                'planned_end' => $example->planned_end?->toDateString(),
+                'estimated_hours' => $example->estimated_hours ? (float) $example->estimated_hours : null,
                 'created_at' => $example->created_at->toIso8601String(),
                 'updated_at' => $example->updated_at->toIso8601String(),
             ];

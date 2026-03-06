@@ -30,6 +30,8 @@ class PlannerProject extends Model implements HasTimeAncestors, HasKeyResultAnce
         'description',
         'order',
         'planned_minutes',
+        'planned_end',
+        'estimated_hours',
         'customer_cost_center',
         'user_id',
         'team_id',
@@ -41,6 +43,8 @@ class PlannerProject extends Model implements HasTimeAncestors, HasKeyResultAnce
     protected $casts = [
         'uuid' => 'string',
         'project_type' => \Platform\Planner\Enums\ProjectType::class,
+        'planned_end' => 'date',
+        'estimated_hours' => 'decimal:2',
         'done' => 'boolean',
         'done_at' => 'datetime',
     ];
