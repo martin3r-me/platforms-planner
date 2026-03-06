@@ -64,39 +64,6 @@
                 'variant' => 'secondary'
             ],
         ];
-        $actions = [
-            [
-                'label' => '+ Neue Aufgabe',
-                'variant' => 'success',
-                'size' => 'sm',
-                'wire_click' => 'createTask()'
-            ],
-            [
-                'label' => '+ Neue Spalte',
-                'variant' => 'primary',
-                'size' => 'sm',
-                'wire_click' => 'createProjectSlot'
-            ]
-        ];
-        
-        // Projekt-spezifische Buttons hinzufügen
-        if(($project->project_type?->value ?? $project->project_type) === 'customer') {
-            $actions[] = [
-                'label' => 'Kunden',
-                'variant' => 'primary',
-                'size' => 'sm',
-                'wire_click' => null,
-                'onclick' => '$dispatch(\'open-modal-project-settings\', { projectId: ' . $project->id . ', tab: \'customer\' })'
-            ];
-        }
-        
-        $actions[] = [
-            'label' => 'Projekt-Einstellungen',
-            'variant' => 'info',
-            'size' => 'sm',
-            'wire_click' => null,
-            'onclick' => '$dispatch(\'open-modal-project-settings\', { projectId: ' . $project->id . ' })'
-        ];
     @endphp
 
     {{-- Neues Layout via x-ui-page --}}

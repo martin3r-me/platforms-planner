@@ -1,5 +1,5 @@
-<div x-data="{ activeTab: 'general' }">
-    <x-ui-modal size="md" model="modalShow" header="Project Settings">
+<div x-data="{ activeTab: @entangle('activeTab') }">
+    <x-ui-modal size="lg" model="modalShow" header="Project Settings">
         @if($project)
             {{-- Tabs --}}
             <div class="flex gap-1 mb-6 border-b border-[var(--ui-border)]">
@@ -10,6 +10,14 @@
                     :class="activeTab === 'general' ? 'text-[var(--ui-primary)] border-[var(--ui-primary)]' : 'text-[var(--ui-muted)] border-transparent hover:text-[var(--ui-secondary)]'"
                 >
                     Allgemein
+                </button>
+                <button
+                    type="button"
+                    @click="activeTab = 'customer'"
+                    class="px-4 py-2 text-sm font-medium transition-colors border-b-2"
+                    :class="activeTab === 'customer' ? 'text-[var(--ui-primary)] border-[var(--ui-primary)]' : 'text-[var(--ui-muted)] border-transparent hover:text-[var(--ui-secondary)]'"
+                >
+                    Kunde
                 </button>
                 <button
                     type="button"
@@ -63,7 +71,7 @@
             <x-ui-form-grid :cols="1" :gap="4">
                 {{-- Projekt Name --}}
                 @can('update', $project)
-                    <x-ui-input-text 
+                    <x-ui-input-text
                         name="project.name"
                         label="Projektname"
                         wire:model.live.debounce.500ms="project.name"
@@ -80,7 +88,7 @@
 
                 {{-- Beschreibung --}}
                 @can('update', $project)
-                    <x-ui-input-textarea 
+                    <x-ui-input-textarea
                         name="project.description"
                         label="Projekt Beschreibung"
                         wire:model.live.debounce.500ms="project.description"
@@ -95,18 +103,18 @@
                 @endcan
 
                 @can('update', $project)
-                    <x-ui-input-text 
+                    <x-ui-input-text
                         name="project.planned_minutes"
                         label="Geplante Minuten"
                         type="number"
                         min="0"
                         step="15"
                         wire:model.live.debounce.500ms="project.planned_minutes"
-                        placeholder="z. B. 480 für 8 Stunden"
+                        placeholder="z. B. 480 für 8 Stunden"
                         :errorKey="'project.planned_minutes'"
                     />
 
-                    <x-ui-input-text 
+                    <x-ui-input-text
                         name="project.customer_cost_center"
                         label="Kostenstelle"
                         wire:model.live.debounce.500ms="project.customer_cost_center"
@@ -143,22 +151,18 @@
                         </button>
                     </div>
                     <div class="text-xs text-[var(--ui-muted)]">
-                        {{ $ptype==='customer' ? 'Typ: Kunde (nicht zurücksetzbar)' : 'Typ: Intern' }}
+                        @if($ptype === 'customer')
+                            Typ: Kunde (nicht zurücksetzbar) — Firma & Kontakte im Tab "Kunde" verwalten.
+                        @else
+                            Typ: Intern
+                        @endif
                     </div>
                 </div>
-
-                {{-- Kundenprojekt: Hinweis --}}
-                @if(($project->project_type?->value ?? $project->project_type) === 'customer')
-                    <x-ui-info-banner
-                        message="Kundenprojekt wurde angelegt. Verwende den 'Kunden'-Button in der Projekt-Ansicht, um die Firma zu verknüpfen."
-                        variant="info"
-                    />
-                @endif
 
                 {{-- Beteiligte Benutzer --}}
                 <div class="space-y-4">
                     <h3 class="text-lg font-medium">Projekt-Teilnehmer</h3>
-                    
+
                     {{-- Aktuelle Teilnehmer --}}
                     <div class="space-y-2">
                         @foreach($project->projectUsers as $projectUser)
@@ -177,7 +181,7 @@
                                             <div class="text-sm text-gray-500">{{ $projectUser->user->email }}</div>
                                         </div>
                                     </div>
-                                
+
                             <div class="flex items-center space-x-2">
                                 {{-- Rolle ändern --}}
                                 @can('changeRole', $project)
@@ -195,11 +199,11 @@
                                         {{ ucfirst($projectUser->role) }}
                                     </span>
                                 @endcan
-                                    
+
                                     {{-- Teilnehmer entfernen --}}
                                     @can('removeMember', $project)
                                         @if($projectUser->role !== \Platform\Planner\Enums\ProjectRole::OWNER->value)
-                                            <button 
+                                            <button
                                                 wire:click="removeProjectUser({{ $projectUser->user_id }})"
                                                 class="text-red-500 hover:text-red-700 text-sm"
                                             >
@@ -212,16 +216,16 @@
                             @endif
                         @endforeach
                     </div>
-                    
+
                     {{-- Neuen Teilnehmer hinzufügen --}}
                     @can('invite', $project)
                         <div class="border-t pt-4">
                             <h4 class="text-md font-medium mb-3">Teilnehmer hinzufügen</h4>
-                            
+
                             @php
                                 $availableUsers = $this->getAvailableUsers();
                             @endphp
-                            
+
                             @if($availableUsers->count() > 0)
                                 <div class="space-y-2">
                                     @foreach($availableUsers as $user)
@@ -248,14 +252,14 @@
                             @endif
                         </div>
                     @endcan
-                    
+
                     {{-- Ownership übertragen --}}
                     @can('transferOwnership', $project)
                         <div class="border-t pt-4">
                             <h4 class="text-md font-medium mb-3 text-orange-600">Ownership übertragen</h4>
                             <p class="text-sm text-gray-600 mb-3">Vorsicht: Dies überträgt die Projektleitung an einen anderen User.</p>
-                            
-                            <select 
+
+                            <select
                                 wire:change="transferOwnership($event.target.value)"
                                 class="w-full border rounded px-3 py-2"
                             >
@@ -271,13 +275,13 @@
                         </div>
                     @endcan
                 </div>
-                
+
                 {{-- Projekt abschließen --}}
                 @can('update', $project)
                     @if(!$project->done)
                         <div class="border-t pt-4">
-                            <x-ui-button 
-                                variant="success" 
+                            <x-ui-button
+                                variant="success"
                                 wire:click="markAsDone"
                                 class="w-full"
                             >
@@ -303,12 +307,212 @@
                         </div>
                     @endif
                 @endcan
-                
+
                 {{-- Projekt löschen --}}
                 @can('delete', $project)
                         <x-ui-confirm-button action="deleteProject" text="Projekt löschen" confirmText="Wirklich löschen?" />
                 @endcan
             </x-ui-form-grid>
+            </div>
+
+            {{-- Tab: Kunde --}}
+            <div x-show="activeTab === 'customer'" x-transition>
+                <div class="space-y-6">
+                    {{-- Firma auswählen --}}
+                    @can('update', $project)
+                        <div>
+                            <x-ui-form-grid :cols="2" :gap="3">
+                                <x-ui-input-text
+                                    name="companySearch"
+                                    label="Suche"
+                                    wire:model.live.debounce.300ms="companySearch"
+                                    placeholder="Firma suchen..."
+                                />
+
+                                <x-ui-input-select
+                                    name="customerProjectForm.company_id"
+                                    label="Firma (CRM)"
+                                    :options="$companyOptions"
+                                    wire:model.live="customerProjectForm.company_id"
+                                    nullable="true"
+                                    nullLabel="– wählen –"
+                                />
+                            </x-ui-form-grid>
+                        </div>
+                    @endcan
+
+                    {{-- Firmen-Daten anzeigen --}}
+                    @if($companyData && ($customerProjectForm['company_id'] ?? null))
+                        <div class="bg-[var(--ui-muted-5)] rounded-lg border border-[var(--ui-border)] p-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 class="text-sm font-semibold text-[var(--ui-secondary)]">Firmen-Daten</h3>
+                                @if($companyData['url'])
+                                    <a href="{{ $companyData['url'] }}" target="_blank" class="text-xs text-[var(--ui-primary)] hover:underline">
+                                        @svg('heroicon-o-arrow-top-right-on-square','w-4 h-4')
+                                    </a>
+                                @endif
+                            </div>
+                            <div class="text-sm text-[var(--ui-secondary)] font-medium">
+                                {{ $companyData['name'] }}
+                            </div>
+                        </div>
+                    @endif
+
+                    {{-- Kontakte auswählen --}}
+                    @if(($customerProjectForm['company_id'] ?? null) && $companyContacts && count($companyContacts) > 0)
+                        <div>
+                            <h3 class="text-sm font-semibold text-[var(--ui-secondary)] mb-3">Kontakte mit Projekt verknüpfen</h3>
+                            <p class="text-xs text-[var(--ui-muted)] mb-3">Wähle einen oder mehrere Kontakte aus, die mit diesem Projekt verknüpft werden sollen.</p>
+                            <div class="space-y-2 max-h-64 overflow-y-auto">
+                                @foreach($companyContacts as $contact)
+                                    @php
+                                        $isSelected = in_array($contact['id'], $selectedContactIds ?? []);
+                                        $isLinked = collect($projectContacts ?? [])->contains('id', $contact['id']);
+                                    @endphp
+                                    <label class="flex items-start gap-3 p-3 rounded-lg border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)] hover:bg-[var(--ui-muted-10)] transition-colors cursor-pointer {{ $isSelected ? 'ring-2 ring-[var(--ui-primary)]' : '' }}">
+                                        <input
+                                            type="checkbox"
+                                            wire:model.live="selectedContactIds"
+                                            value="{{ $contact['id'] }}"
+                                            class="mt-1 rounded border-[var(--ui-border)] text-[var(--ui-primary)] focus:ring-[var(--ui-primary)]"
+                                        />
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-center gap-2 mb-1">
+                                                <span class="text-sm font-medium text-[var(--ui-secondary)]">{{ $contact['name'] }}</span>
+                                                @if($contact['is_primary'] ?? false)
+                                                    <x-ui-badge variant="primary" size="xs">Primär</x-ui-badge>
+                                                @endif
+                                                @if($isLinked)
+                                                    <x-ui-badge variant="success" size="xs">Verknüpft</x-ui-badge>
+                                                @endif
+                                            </div>
+                                            @if($contact['position'] ?? null)
+                                                <div class="text-xs text-[var(--ui-muted)]">{{ $contact['position'] }}</div>
+                                            @endif
+                                            @if($contact['email'] ?? null)
+                                                <div class="text-xs text-[var(--ui-muted)] mt-1">
+                                                    <span class="inline-flex items-center gap-1">
+                                                        @svg('heroicon-o-envelope','w-3 h-3')
+                                                        {{ $contact['email'] }}
+                                                    </span>
+                                                </div>
+                                            @endif
+                                            @if($contact['relation_type'] ?? null)
+                                                <div class="text-xs text-[var(--ui-muted)] mt-1">
+                                                    <x-ui-badge variant="secondary" size="xs">{{ $contact['relation_type'] }}</x-ui-badge>
+                                                </div>
+                                            @endif
+                                        </div>
+                                    </label>
+                                @endforeach
+                            </div>
+                        </div>
+                    @elseif(($customerProjectForm['company_id'] ?? null) && count($companyContacts) === 0)
+                        <div class="p-4 rounded-lg border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)] text-center">
+                            <p class="text-sm text-[var(--ui-muted)]">Keine Kontakte für diese Firma verfügbar</p>
+                        </div>
+                    @endif
+
+                    {{-- Bereits verknüpfte Kontakte (wenn keine Company ausgewählt) --}}
+                    @if(!($customerProjectForm['company_id'] ?? null) && $projectContacts && count($projectContacts) > 0)
+                        <div>
+                            <h3 class="text-sm font-semibold text-[var(--ui-secondary)] mb-3">Verknüpfte Kontakte</h3>
+                            <div class="space-y-2">
+                                @foreach($projectContacts as $contact)
+                                    <div class="flex items-center justify-between p-3 rounded-lg border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-center gap-2 mb-1">
+                                                <span class="text-sm font-medium text-[var(--ui-secondary)]">{{ $contact['name'] }}</span>
+                                            </div>
+                                            @if($contact['email'] ?? null)
+                                                <div class="text-xs text-[var(--ui-muted)] mt-1">
+                                                    <span class="inline-flex items-center gap-1">
+                                                        @svg('heroicon-o-envelope','w-3 h-3')
+                                                        {{ $contact['email'] }}
+                                                    </span>
+                                                </div>
+                                            @endif
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+                    {{-- Billing-Felder --}}
+                    @if(($project->project_type?->value ?? $project->project_type) === 'customer')
+                        @can('update', $project)
+                            <div>
+                                <h3 class="text-sm font-semibold text-[var(--ui-secondary)] mb-3">Abrechnung</h3>
+                                <x-ui-form-grid :cols="2" :gap="3">
+                                    <x-ui-input-select
+                                        name="customerProjectForm.billing_method"
+                                        label="Abrechnungsmethode"
+                                        :options="$billingMethodOptions"
+                                        wire:model.live="customerProjectForm.billing_method"
+                                        nullable="true"
+                                        nullLabel="– wählen –"
+                                    />
+
+                                    <x-ui-input-text
+                                        name="customerProjectForm.hourly_rate"
+                                        label="Stundensatz"
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        wire:model.live.debounce.500ms="customerProjectForm.hourly_rate"
+                                        placeholder="z.B. 120.00"
+                                    />
+
+                                    <x-ui-input-text
+                                        name="customerProjectForm.budget_amount"
+                                        label="Budget"
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        wire:model.live.debounce.500ms="customerProjectForm.budget_amount"
+                                        placeholder="z.B. 10000.00"
+                                    />
+
+                                    <x-ui-input-text
+                                        name="customerProjectForm.currency"
+                                        label="Währung"
+                                        wire:model.live.debounce.500ms="customerProjectForm.currency"
+                                        placeholder="EUR"
+                                        maxlength="3"
+                                    />
+
+                                    <x-ui-input-text
+                                        name="customerProjectForm.cost_center"
+                                        label="Kostenstelle"
+                                        wire:model.live.debounce.500ms="customerProjectForm.cost_center"
+                                        placeholder="Kostenstelle"
+                                    />
+
+                                    <x-ui-input-text
+                                        name="customerProjectForm.invoice_account"
+                                        label="Rechnungskonto"
+                                        wire:model.live.debounce.500ms="customerProjectForm.invoice_account"
+                                        placeholder="Rechnungskonto"
+                                    />
+                                </x-ui-form-grid>
+
+                                <div class="mt-3">
+                                    <x-ui-input-textarea
+                                        name="customerProjectForm.notes"
+                                        label="Notizen"
+                                        wire:model.live.debounce.500ms="customerProjectForm.notes"
+                                        placeholder="Interne Notizen zum Kundenprojekt..."
+                                    />
+                                </div>
+                            </div>
+                        @endcan
+                    @else
+                        <div class="p-4 rounded-lg border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)] text-center">
+                            <p class="text-sm text-[var(--ui-muted)]">Wähle eine Firma aus, um dieses Projekt automatisch als Kundenprojekt zu markieren. Alternativ kannst du den Projekttyp im Tab "Allgemein" auf "Kunde" setzen.</p>
+                        </div>
+                    @endif
+                </div>
             </div>
 
             {{-- Tab: Tags & Farbe --}}
@@ -334,7 +538,7 @@
 
         <x-slot name="footer">
             @if($project)
-                <div x-show="activeTab === 'general'">
+                <div x-show="activeTab === 'general' || activeTab === 'customer'">
                     @can('update', $project)
                         <x-ui-button variant="success" wire:click="save">Speichern</x-ui-button>
                     @endcan

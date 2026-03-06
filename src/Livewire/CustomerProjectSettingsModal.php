@@ -13,6 +13,10 @@ use Platform\Core\Contracts\CrmCompanyContactsProviderInterface;
 use Platform\Crm\Models\CrmContactLink;
 use Platform\Crm\Models\CrmContact;
 
+/**
+ * @deprecated Funktionalität wurde in ProjectSettingsModal (Tab "Kunde") integriert.
+ * Diese Komponente wird nicht mehr von der UI aufgerufen und kann in einem Follow-up entfernt werden.
+ */
 class CustomerProjectSettingsModal extends Component
 {
     public $modalShow = false;

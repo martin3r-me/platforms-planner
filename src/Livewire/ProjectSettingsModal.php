@@ -7,9 +7,13 @@ use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectUser;
 use Platform\Planner\Enums\ProjectRole;
 use Illuminate\Support\Facades\Auth;
-use Livewire\Attributes\On; 
+use Livewire\Attributes\On;
 use Platform\Planner\Enums\ProjectType;
 use Platform\Planner\Models\PlannerCustomerProject;
+use Platform\Core\Contracts\CrmCompanyResolverInterface;
+use Platform\Core\Contracts\CrmCompanyOptionsProviderInterface;
+use Platform\Core\Contracts\CrmCompanyContactsProviderInterface;
+use Platform\Core\Contracts\CrmContactLinkManagerInterface;
 
 class ProjectSettingsModal extends Component
 {
@@ -23,21 +27,30 @@ class ProjectSettingsModal extends Component
     public $projectType = null;
     public $billingMethodOptions = [];
 
-    #[On('open-modal-project-settings')] 
-    public function openModalProjectSettings($projectId)
+    // Customer tab properties
+    public $activeTab = 'general';
+    public $companySearch = '';
+    public $companyOptions = [];
+    public $companyData = null;
+    public $companyContacts = [];
+    public $projectContacts = [];
+    public $selectedContactIds = [];
+
+    #[On('open-modal-project-settings')]
+    public function openModalProjectSettings($projectId, $tab = null)
     {
         $this->project = PlannerProject::with(['projectUsers.user', 'customerProject'])->findOrFail($projectId);
-        
+
         // Policy-Berechtigung prüfen - Settings erfordert view-Rechte
         $this->authorize('settings', $this->project);
-        
+
         // Event für RecurringTasksTab senden
         $this->dispatch('project-loaded', $projectId);
-        
+
         $this->originalProjectType = is_string($this->project->project_type)
             ? $this->project->project_type
             : ($this->project->project_type?->value ?? null);
-        
+
         $this->projectType = $this->originalProjectType;
 
         // Teammitglieder holen (z.B. für Auswahl und Anzeige)
@@ -51,12 +64,12 @@ class ProjectSettingsModal extends Component
         // WICHTIG: Alle Projekt-User initialisieren, nicht nur Team-User!
         // Sonst gehen Projekt-User verloren, die nicht im Team sind
         $this->roles = [];
-        
+
         // Zuerst alle aktuellen Projekt-User in roles aufnehmen
         foreach ($this->project->projectUsers as $projectUser) {
             $this->roles[$projectUser->user_id] = $projectUser->role;
         }
-        
+
         // Dann auch alle Team-User hinzufügen (falls noch nicht vorhanden)
         foreach ($this->teamUsers as $user) {
             if (!isset($this->roles[$user->id])) {
@@ -78,7 +91,13 @@ class ProjectSettingsModal extends Component
             'invoice_account' => $cp?->invoice_account,
             'notes' => $cp?->notes,
         ];
-        
+
+        // Customer tab: load company/contact data
+        $this->loadCustomerTabData();
+
+        // Tab setzen (default oder übergeben)
+        $this->activeTab = $tab ?? 'general';
+
         $this->modalShow = true;
     }
 
@@ -119,7 +138,7 @@ class ProjectSettingsModal extends Component
     public function save()
     {
         $this->validate();
-        
+
         // Policy-Berechtigung prüfen
         $this->authorize('update', $this->project);
 
@@ -151,6 +170,9 @@ class ProjectSettingsModal extends Component
                 ['project_id' => $this->project->id],
                 $payload
             );
+
+            // Kontakte synchronisieren
+            $this->syncContacts();
         }
         $this->dispatch('updateSidebar');
         $this->dispatch('updateProject');
@@ -252,14 +274,147 @@ class ProjectSettingsModal extends Component
                 $this->project->refresh();
                 $this->hasCustomerProject = true;
             }
+            // Customer-Tab Daten laden
+            $this->loadCustomerTabData();
         }
     }
+
+    // ── Customer Tab Methods ─────────────────────────────────────
+
+    /**
+     * Auto-Typing: Wenn Firma gewählt wird, automatisch auf Kundenprojekt umschalten
+     */
+    public function updatedCustomerProjectFormCompanyId($value): void
+    {
+        if ($value) {
+            $this->setProjectType('customer');
+        }
+        $this->resolveCompanyDisplay();
+        $this->loadCompanyData();
+        $this->loadCompanyContacts();
+        $this->loadProjectContacts();
+    }
+
+    public function updatedCompanySearch($value): void
+    {
+        $this->loadCompanyOptions($this->companySearch);
+    }
+
+    public function toggleContact($contactId): void
+    {
+        if (!in_array($contactId, $this->selectedContactIds)) {
+            $this->selectedContactIds[] = $contactId;
+        } else {
+            $this->selectedContactIds = array_values(array_diff($this->selectedContactIds, [$contactId]));
+        }
+    }
+
+    private function loadCustomerTabData(): void
+    {
+        $companyId = $this->customerProjectForm['company_id'] ?? null;
+        $this->resolveCompanyDisplay();
+        $this->loadCompanyOptions('');
+        $this->loadCompanyData();
+        $this->loadCompanyContacts();
+        $this->loadProjectContacts();
+    }
+
+    private function resolveCompanyDisplay(): void
+    {
+        $companyId = $this->customerProjectForm['company_id'] ?? null;
+        // companyDisplay is shown via companyData, no separate property needed
+    }
+
+    private function loadCompanyOptions(?string $q = null): void
+    {
+        /** @var CrmCompanyOptionsProviderInterface $provider */
+        $provider = app(CrmCompanyOptionsProviderInterface::class);
+        $options = $provider->options($q, 50);
+
+        $this->companyOptions = collect($options);
+
+        $companyId = $this->customerProjectForm['company_id'] ?? null;
+        if ($companyId) {
+            $companyId = (int) $companyId;
+            $exists = $this->companyOptions->firstWhere('value', $companyId);
+
+            if (!$exists) {
+                /** @var CrmCompanyResolverInterface $resolver */
+                $resolver = app(CrmCompanyResolverInterface::class);
+                $label = $resolver->displayName($companyId);
+
+                if ($label) {
+                    $this->companyOptions->prepend([
+                        'value' => $companyId,
+                        'label' => $label,
+                    ]);
+                }
+            }
+        }
+    }
+
+    private function loadCompanyData(): void
+    {
+        $companyId = $this->customerProjectForm['company_id'] ?? null;
+        if (!$companyId) {
+            $this->companyData = null;
+            return;
+        }
+
+        /** @var CrmCompanyResolverInterface $resolver */
+        $resolver = app(CrmCompanyResolverInterface::class);
+
+        $this->companyData = [
+            'name' => $resolver->displayName((int) $companyId),
+            'url' => $resolver->url((int) $companyId),
+        ];
+    }
+
+    private function loadCompanyContacts(): void
+    {
+        $companyId = $this->customerProjectForm['company_id'] ?? null;
+        if (!$companyId) {
+            $this->companyContacts = [];
+            return;
+        }
+
+        /** @var CrmCompanyContactsProviderInterface $provider */
+        $provider = app(CrmCompanyContactsProviderInterface::class);
+        $this->companyContacts = $provider->contacts((int) $companyId);
+    }
+
+    private function loadProjectContacts(): void
+    {
+        if (!$this->project) {
+            $this->projectContacts = [];
+            return;
+        }
+
+        /** @var CrmContactLinkManagerInterface $manager */
+        $manager = app(CrmContactLinkManagerInterface::class);
+        $this->projectContacts = $manager->getLinkedContacts(PlannerProject::class, $this->project->id);
+        $this->selectedContactIds = collect($this->projectContacts)->pluck('id')->toArray();
+    }
+
+    private function syncContacts(): void
+    {
+        if (!$this->project) {
+            return;
+        }
+
+        /** @var CrmContactLinkManagerInterface $manager */
+        $manager = app(CrmContactLinkManagerInterface::class);
+        $manager->syncContactLinks(PlannerProject::class, $this->project->id, $this->selectedContactIds);
+        $this->loadProjectContacts();
+    }
+
+    // ── End Customer Tab Methods ─────────────────────────────────
 
     public function removeProjectUser($userId)
     {
         // Policy-Berechtigung prüfen
         $this->authorize('removeMember', $this->project);
-        
+
         $ownerId = $this->project->projectUsers->firstWhere('role', ProjectRole::OWNER->value)?->user_id;
         if ($userId == $ownerId) {
             // Owner kann nicht entfernt werden!
@@ -277,15 +432,15 @@ class ProjectSettingsModal extends Component
     {
         // Policy-Berechtigung prüfen
         $this->authorize('update', $this->project);
-        
+
         $this->project->done = true;
         $this->project->done_at = now();
         $this->project->save();
-        
+
         $this->dispatch('updateSidebar');
         $this->dispatch('updateProject');
         $this->dispatch('updateDashboard');
-        
+
         $this->dispatch('notifications:store', [
             'title' => 'Projekt abgeschlossen',
             'message' => 'Das Projekt wurde erfolgreich als abgeschlossen markiert.',
@@ -293,7 +448,7 @@ class ProjectSettingsModal extends Component
             'noticable_type' => get_class($this->project),
             'noticable_id'   => $this->project->getKey(),
         ]);
-        
+
         $this->project->refresh();
     }
 
@@ -301,7 +456,7 @@ class ProjectSettingsModal extends Component
     {
         // Policy-Berechtigung prüfen
         $this->authorize('delete', $this->project);
-        
+
         $this->project->delete();
         // Nach Planner-Dashboard leiten
         $this->redirect(route('planner.dashboard'), navigate: true);
@@ -319,20 +474,20 @@ class ProjectSettingsModal extends Component
     {
         // Policy-Berechtigung prüfen
         $this->authorize('invite', $this->project);
-        
+
         // Prüfen ob User bereits im Projekt ist
         $existingUser = $this->project->projectUsers()->where('user_id', $userId)->first();
         if ($existingUser) {
             return; // User bereits im Projekt
         }
-        
+
         // Neuen Teilnehmer hinzufügen
         PlannerProjectUser::create([
             'project_id' => $this->project->id,
             'user_id' => $userId,
             'role' => $role
         ]);
-        
+
         $this->roles[$userId] = $role;
         $this->project->refresh();
     }
@@ -344,19 +499,19 @@ class ProjectSettingsModal extends Component
     {
         // Policy-Berechtigung prüfen
         $this->authorize('changeRole', $this->project);
-        
+
         $ownerId = $this->project->projectUsers->firstWhere('role', ProjectRole::OWNER->value)?->user_id;
-        
+
         // Owner-Rolle kann nicht geändert werden
         if ($userId == $ownerId && $newRole !== ProjectRole::OWNER->value) {
             return;
         }
-        
+
         // Rolle aktualisieren
         PlannerProjectUser::where('project_id', $this->project->id)
             ->where('user_id', $userId)
             ->update(['role' => $newRole]);
-        
+
         $this->roles[$userId] = $newRole;
         $this->project->refresh();
     }
@@ -368,14 +523,14 @@ class ProjectSettingsModal extends Component
     {
         // Policy-Berechtigung prüfen
         $this->authorize('transferOwnership', $this->project);
-        
+
         $currentOwner = $this->project->projectUsers->firstWhere('role', ProjectRole::OWNER->value);
-        
+
         if ($currentOwner) {
             // Aktueller Owner wird zu Admin
             $currentOwner->update(['role' => ProjectRole::ADMIN->value]);
         }
-        
+
         // Neuer Owner
         $newOwner = $this->project->projectUsers()->where('user_id', $newOwnerId)->first();
         if ($newOwner) {
@@ -388,7 +543,7 @@ class ProjectSettingsModal extends Component
                 'role' => ProjectRole::OWNER->value
             ]);
         }
-        
+
         $this->roles[$newOwnerId] = ProjectRole::OWNER->value;
         $this->project->refresh();
     }
@@ -399,7 +554,7 @@ class ProjectSettingsModal extends Component
     public function getAvailableUsers()
     {
         $currentUserIds = $this->project->projectUsers->pluck('user_id')->toArray();
-        
+
         return Auth::user()
             ->currentTeam
             ->users()
@@ -416,11 +571,11 @@ class ProjectSettingsModal extends Component
         if (!$this->project) {
             return null;
         }
-        
+
         $projectUser = $this->project->projectUsers()
             ->where('user_id', Auth::id())
             ->first();
-            
+
         return $projectUser?->role;
     }
 
