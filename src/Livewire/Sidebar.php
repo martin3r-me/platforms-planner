@@ -114,10 +114,10 @@ class Sidebar extends Component
 
         $hasMoreProjects = $allProjects->count() > $projectsWithUserTasks->count();
 
-        // 2. Entity-Links für diese Projekte laden
+        // 2. Entity-Links für diese Projekte laden (beide Morph-Varianten: Alias + voller Klassenname)
         $projectIds = $projectsToShow->pluck('id')->toArray();
         $entityLinks = OrganizationEntityLink::query()
-            ->where('linkable_type', 'planner_project')
+            ->whereIn('linkable_type', ['planner_project', Project::class])
             ->whereIn('linkable_id', $projectIds)
             ->with(['entity.type'])
             ->get();
