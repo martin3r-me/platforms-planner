@@ -1,8 +1,7 @@
-{{-- resources/views/vendor/planner/livewire/sidebar-content.blade.php --}}
-<div 
+{{-- resources/views/livewire/sidebar.blade.php --}}
+<div
     x-data="{
         init() {
-            // Zustand aus localStorage laden beim Initialisieren
             const savedState = localStorage.getItem('planner.showAllProjects');
             if (savedState !== null) {
                 @this.set('showAllProjects', savedState === 'true');
@@ -14,7 +13,7 @@
     <div x-show="!collapsed" class="p-3 text-sm italic text-[var(--ui-secondary)] uppercase border-b border-[var(--ui-border)] mb-2">
         Planner
     </div>
-    
+
     {{-- Abschnitt: Allgemein (über UI-Komponenten) --}}
     <x-ui-sidebar-list label="Allgemein">
         <x-ui-sidebar-item :href="route('planner.dashboard')">
@@ -66,64 +65,53 @@
         </button>
     </div>
 
-    {{-- Abschnitt: Projekte --}}
+    {{-- Abschnitt: Projekte (Entity-basierte Gruppierung) --}}
     <div>
         <div class="mt-2" x-show="!collapsed">
-            {{-- Kundenprojekte als Baumstruktur nach Kunde gruppiert --}}
-            @if($customerProjects->isNotEmpty())
-                <x-ui-sidebar-list :label="'Kundenprojekte' . ($showAllProjects ? ' (' . $allCustomerProjectsCount . ')' : '')">
-                    @foreach($customerProjectsByCompany as $index => $group)
-                        @if($group['company_id'])
-                            {{-- Kunde mit aufklappbaren Projekten --}}
-                            <div x-data="{ open: localStorage.getItem('planner.company.' + {{ $group['company_id'] }}) === 'true' }"
-                                 class="flex flex-col">
-                                <button type="button"
-                                        @click="open = !open; localStorage.setItem('planner.company.' + {{ $group['company_id'] }}, open)"
-                                        class="flex items-center p-2 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)] transition w-full text-left">
-                                    <span class="w-4 h-4 flex-shrink-0 flex items-center justify-center transition-transform"
-                                          :class="open ? 'rotate-90' : ''">
-                                        @svg('heroicon-o-chevron-right', 'w-3 h-3')
-                                    </span>
-                                    @svg('heroicon-o-building-office', 'w-4 h-4 flex-shrink-0 ml-1 text-[var(--ui-muted)]')
-                                    <span class="ml-1.5 text-sm font-medium truncate">{{ $group['company_name'] ?: 'Unbekannter Kunde' }}</span>
-                                    <span class="ml-auto text-xs text-[var(--ui-muted)]">{{ $group['projects']->count() }}</span>
-                                </button>
-                                <div x-show="open" x-collapse class="flex flex-col gap-0.5 pl-4">
-                                    @foreach($group['projects'] as $project)
-                                        <x-ui-sidebar-item :href="route('planner.projects.show', ['plannerProject' => $project])" :title="$project->name">
-                                            @svg('heroicon-o-folder', 'w-5 h-5 flex-shrink-0 text-[var(--ui-secondary)]')
-                                            <div class="flex-1 min-w-0 ml-2 flex items-center gap-1.5">
-                                                <span class="truncate text-sm font-medium">{{ $project->name }}</span>
-                                                @if($project->color)
-                                                    <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {{ $project->color }}"></span>
-                                                @endif
-                                            </div>
-                                        </x-ui-sidebar-item>
-                                    @endforeach
-                                </div>
+            {{-- Entity Type Gruppen --}}
+            @foreach($entityTypeGroups as $typeGroup)
+                <x-ui-sidebar-list :label="$typeGroup['type_name']">
+                    @foreach($typeGroup['entities'] as $entityGroup)
+                        {{-- Entity mit aufklappbaren Projekten --}}
+                        <div x-data="{ open: localStorage.getItem('planner.entity.' + {{ $entityGroup['entity_id'] }}) === 'true' }"
+                             class="flex flex-col">
+                            <button type="button"
+                                    @click="open = !open; localStorage.setItem('planner.entity.' + {{ $entityGroup['entity_id'] }}, open)"
+                                    class="flex items-center p-2 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)] transition w-full text-left">
+                                <span class="w-4 h-4 flex-shrink-0 flex items-center justify-center transition-transform"
+                                      :class="open ? 'rotate-90' : ''">
+                                    @svg('heroicon-o-chevron-right', 'w-3 h-3')
+                                </span>
+                                @if($typeGroup['type_icon'])
+                                    @svg($typeGroup['type_icon'], 'w-4 h-4 flex-shrink-0 ml-1 text-[var(--ui-muted)]')
+                                @else
+                                    @svg('heroicon-o-rectangle-group', 'w-4 h-4 flex-shrink-0 ml-1 text-[var(--ui-muted)]')
+                                @endif
+                                <span class="ml-1.5 text-sm font-medium truncate">{{ $entityGroup['entity_name'] }}</span>
+                                <span class="ml-auto text-xs text-[var(--ui-muted)]">{{ $entityGroup['projects']->count() }}</span>
+                            </button>
+                            <div x-show="open" x-collapse class="flex flex-col gap-0.5 pl-4">
+                                @foreach($entityGroup['projects'] as $project)
+                                    <x-ui-sidebar-item :href="route('planner.projects.show', ['plannerProject' => $project])" :title="$project->name">
+                                        @svg('heroicon-o-folder', 'w-5 h-5 flex-shrink-0 text-[var(--ui-secondary)]')
+                                        <div class="flex-1 min-w-0 ml-2 flex items-center gap-1.5">
+                                            <span class="truncate text-sm font-medium">{{ $project->name }}</span>
+                                            @if($project->color)
+                                                <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {{ $project->color }}"></span>
+                                            @endif
+                                        </div>
+                                    </x-ui-sidebar-item>
+                                @endforeach
                             </div>
-                        @else
-                            {{-- Projekte ohne Kunde (direkt anzeigen) --}}
-                            @foreach($group['projects'] as $project)
-                                <x-ui-sidebar-item :href="route('planner.projects.show', ['plannerProject' => $project])" :title="$project->name">
-                                    @svg('heroicon-o-folder', 'w-5 h-5 flex-shrink-0 text-[var(--ui-secondary)]')
-                                    <div class="flex-1 min-w-0 ml-2 flex items-center gap-1.5">
-                                        <span class="truncate text-sm font-medium">{{ $project->name }}</span>
-                                        @if($project->color)
-                                            <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {{ $project->color }}"></span>
-                                        @endif
-                                    </div>
-                                </x-ui-sidebar-item>
-                            @endforeach
-                        @endif
+                        </div>
                     @endforeach
                 </x-ui-sidebar-list>
-            @endif
+            @endforeach
 
-            {{-- Interne Projekte nur anzeigen, wenn welche vorhanden sind --}}
-            @if($internalProjects->isNotEmpty())
-                <x-ui-sidebar-list :label="'Interne Projekte' . ($showAllProjects ? ' (' . $allInternalProjectsCount . ')' : '')">
-                    @foreach($internalProjects as $project)
+            {{-- Unverknüpfte Projekte --}}
+            @if($unlinkedProjects->isNotEmpty())
+                <x-ui-sidebar-list label="Unverknüpft">
+                    @foreach($unlinkedProjects as $project)
                         <x-ui-sidebar-item :href="route('planner.projects.show', ['plannerProject' => $project])" :title="$project->name">
                             @svg('heroicon-o-folder', 'w-5 h-5 flex-shrink-0 text-[var(--ui-secondary)]')
                             <div class="flex-1 min-w-0 ml-2 flex items-center gap-1.5">
@@ -140,8 +128,8 @@
             {{-- Button zum Ein-/Ausblenden aller Projekte --}}
             @if($hasMoreProjects)
                 <div class="px-3 py-2">
-                    <button 
-                        type="button" 
+                    <button
+                        type="button"
                         wire:click="toggleShowAllProjects"
                         x-on:click="localStorage.setItem('planner.showAllProjects', (!$wire.showAllProjects).toString())"
                         class="flex items-center gap-2 text-xs text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] transition-colors"
@@ -158,7 +146,7 @@
             @endif
 
             {{-- Keine Projekte --}}
-            @if($customerProjects->isEmpty() && $internalProjects->isEmpty())
+            @if($entityTypeGroups->isEmpty() && $unlinkedProjects->isEmpty())
                 <div class="px-3 py-1 text-xs text-[var(--ui-muted)]">
                     @if($showAllProjects)
                         Keine Projekte

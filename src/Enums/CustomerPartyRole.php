@@ -2,6 +2,9 @@
 
 namespace Platform\Planner\Enums;
 
+/**
+ * @deprecated PlannerCustomerProjectParty ist deprecated. Entity-Verknüpfungen über OrganizationEntityLink.
+ */
 enum CustomerPartyRole: string
 {
     case PRIMARY_CONTACT = 'primary_contact';

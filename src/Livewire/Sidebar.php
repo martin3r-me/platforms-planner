@@ -7,8 +7,9 @@ use Illuminate\Support\Facades\Auth;
 use Platform\Planner\Models\PlannerProject as Project;
 use Platform\Planner\Models\PlannerProjectSlot as ProjectSlot;
 use Platform\Planner\Models\PlannerTask;
-use Platform\Organization\Models\OrganizationTimeEntry;
-use Platform\Core\Contracts\CrmCompanyResolverInterface;
+use Platform\Organization\Models\OrganizationEntityLink;
+use Platform\Organization\Models\OrganizationEntity;
+use Platform\Organization\Models\OrganizationEntityType;
 use Livewire\Attributes\On;
 
 
@@ -22,10 +23,10 @@ class Sidebar extends Component
         $this->showAllProjects = false; // Default-Wert, wird vom Frontend überschrieben
     }
 
-    #[On('updateSidebar')] 
+    #[On('updateSidebar')]
     public function updateSidebar()
     {
-        
+
     }
 
     public function toggleShowAllProjects()
@@ -51,12 +52,6 @@ class Sidebar extends Component
             'user_id' => $user->id,
             'role' => \Platform\Planner\Enums\ProjectRole::OWNER->value,
         ]);
-        // Alternativ, falls du direkt das Model nutzen möchtest:
-        // \Platform\Planner\Models\PlannerProjectUser::create([
-        //     'project_id' => $project->id,
-        //     'user_id' => $user->id,
-        //     'role' => \Platform\Planner\Enums\ProjectRole::OWNER->value,
-        // ]);
 
         // 2. Standard-Project-Slots erzeugen: To Do, Doing, On Hold
         $defaultSlots = ['To Do', 'Doing', 'On Hold'];
@@ -80,33 +75,26 @@ class Sidebar extends Component
 
         if (!$user || !$teamId) {
             return view('planner::livewire.sidebar', [
-                'customerProjects' => collect(),
-                'customerProjectsByCompany' => collect(),
-                'internalProjects' => collect(),
+                'entityTypeGroups' => collect(),
+                'unlinkedProjects' => collect(),
                 'hasMoreProjects' => false,
-                'allCustomerProjectsCount' => 0,
-                'allInternalProjectsCount' => 0,
             ]);
         }
 
-        // Projekte, bei denen der User Aufgaben hat ODER Mitglied ist
-        // contextColors eager-loaden, damit color Accessor funktioniert (loose coupling via HasColors Trait)
+        // 1. Projekte laden (gleicher User-Filter wie bisher)
         $projectsWithUserTasks = Project::query()
-            ->with(['contextColors', 'customerProject'])
+            ->with(['contextColors'])
             ->where('team_id', $teamId)
             ->where(function ($query) use ($user) {
-                // 1. Projekte, bei denen der User Aufgaben hat (über ProjectSlots)
                 $query->whereHas('projectSlots.tasks', function ($q) use ($user) {
                     $q->where('user_in_charge_id', $user->id)
                       ->where('is_done', false);
                 })
-                // 2. Oder Aufgaben direkt am Projekt
                 ->orWhereHas('tasks', function ($q) use ($user) {
                     $q->where('user_in_charge_id', $user->id)
                       ->where('is_done', false)
                       ->whereNull('project_slot_id');
                 })
-                // 3. Oder Projekte, bei denen der User Mitglied ist (Owner/Admin/Member/Viewer)
                 ->orWhereHas('projectUsers', function ($q) use ($user) {
                     $q->where('user_id', $user->id);
                 });
@@ -114,80 +102,103 @@ class Sidebar extends Component
             ->orderBy('name')
             ->get();
 
-        // Alle Projekte
-        // contextColors eager-loaden, damit color Accessor funktioniert (loose coupling via HasColors Trait)
         $allProjects = Project::query()
-            ->with(['contextColors', 'customerProject'])
+            ->with(['contextColors'])
             ->where('team_id', $teamId)
             ->orderBy('name')
             ->get();
 
-        // Projekte filtern: nur solche mit User-Aufgaben, oder alle
-        $projectsToShow = $this->showAllProjects 
-            ? $allProjects 
+        $projectsToShow = $this->showAllProjects
+            ? $allProjects
             : $projectsWithUserTasks;
-
-        // Nach Typ trennen und Zeiten berechnen
-        $customerProjects = $projectsToShow->filter(function ($p) {
-            $type = is_string($p->project_type) ? $p->project_type : ($p->project_type?->value ?? null);
-            return $type === 'customer';
-        })->map(function ($project) use ($teamId) {
-            $totalMinutes = (int) OrganizationTimeEntry::query()
-                ->where('team_id', $teamId)
-                ->forContext(get_class($project), $project->id)
-                ->sum('minutes');
-
-            $project->total_minutes = $totalMinutes;
-            return $project;
-        });
-
-        // Kundenprojekte nach Company gruppieren (Baumstruktur)
-        $companyResolver = app(CrmCompanyResolverInterface::class);
-        $customerProjectsByCompany = $customerProjects
-            ->groupBy(fn ($p) => $p->customerProject?->company_id ?? 0)
-            ->map(function ($projects, $companyId) use ($companyResolver) {
-                return [
-                    'company_id' => $companyId ?: null,
-                    'company_name' => $companyId ? $companyResolver->displayName((int) $companyId) : null,
-                    'projects' => $projects,
-                ];
-            })
-            ->sortBy(fn ($group) => $group['company_name'] ?? 'zzz')
-            ->values();
-
-        $internalProjects = $projectsToShow->filter(function ($p) {
-            $type = is_string($p->project_type) ? $p->project_type : ($p->project_type?->value ?? null);
-            return $type !== 'customer';
-        })->map(function ($project) use ($teamId) {
-            $totalMinutes = (int) OrganizationTimeEntry::query()
-                ->where('team_id', $teamId)
-                ->forContext(get_class($project), $project->id)
-                ->sum('minutes');
-            
-            $project->total_minutes = $totalMinutes;
-            return $project;
-        });
-
-        // Alle Projekte für den Button
-        $allCustomerProjects = $allProjects->filter(function ($p) {
-            $type = is_string($p->project_type) ? $p->project_type : ($p->project_type?->value ?? null);
-            return $type === 'customer';
-        });
-
-        $allInternalProjects = $allProjects->filter(function ($p) {
-            $type = is_string($p->project_type) ? $p->project_type : ($p->project_type?->value ?? null);
-            return $type !== 'customer';
-        });
 
         $hasMoreProjects = $allProjects->count() > $projectsWithUserTasks->count();
 
+        // 2. Entity-Links für diese Projekte laden
+        $projectIds = $projectsToShow->pluck('id')->toArray();
+        $entityLinks = OrganizationEntityLink::query()
+            ->where('linkable_type', 'planner_project')
+            ->whereIn('linkable_id', $projectIds)
+            ->with(['entity.type'])
+            ->get();
+
+        // Map: project_id => [entity_links]
+        $linksByProject = $entityLinks->groupBy('linkable_id');
+
+        // 3. Gruppieren: EntityType → Entity → Projekte
+        $entityTypeGroups = collect();
+        $linkedProjectIds = [];
+
+        // Sammle alle Entity-Zuordnungen
+        $entityProjectMap = []; // entity_id => [project_ids]
+        foreach ($entityLinks as $link) {
+            $entityId = $link->entity_id;
+            $projectId = $link->linkable_id;
+            $entityProjectMap[$entityId][] = $projectId;
+            $linkedProjectIds[] = $projectId;
+        }
+        $linkedProjectIds = array_unique($linkedProjectIds);
+
+        // Entities mit Types gruppieren
+        $entityIds = array_keys($entityProjectMap);
+        if (!empty($entityIds)) {
+            $entities = OrganizationEntity::with('type')
+                ->whereIn('id', $entityIds)
+                ->get()
+                ->keyBy('id');
+
+            $groupedByType = [];
+            foreach ($entityProjectMap as $entityId => $projectIdsList) {
+                $entity = $entities->get($entityId);
+                if (!$entity || !$entity->type) {
+                    continue;
+                }
+                $typeId = $entity->type->id;
+                if (!isset($groupedByType[$typeId])) {
+                    $groupedByType[$typeId] = [
+                        'type_id' => $typeId,
+                        'type_name' => $entity->type->name,
+                        'type_icon' => $entity->type->icon,
+                        'sort_order' => $entity->type->sort_order ?? 999,
+                        'entities' => [],
+                    ];
+                }
+                if (!isset($groupedByType[$typeId]['entities'][$entityId])) {
+                    $groupedByType[$typeId]['entities'][$entityId] = [
+                        'entity_id' => $entityId,
+                        'entity_name' => $entity->name,
+                        'projects' => collect(),
+                    ];
+                }
+                foreach ($projectIdsList as $pid) {
+                    $project = $projectsToShow->firstWhere('id', $pid);
+                    if ($project) {
+                        $groupedByType[$typeId]['entities'][$entityId]['projects']->push($project);
+                    }
+                }
+            }
+
+            // Sortieren und in Collection umwandeln
+            $entityTypeGroups = collect($groupedByType)
+                ->sortBy('sort_order')
+                ->map(function ($group) {
+                    $group['entities'] = collect($group['entities'])
+                        ->sortBy('entity_name')
+                        ->values();
+                    return $group;
+                })
+                ->values();
+        }
+
+        // 4. Unverknüpfte Projekte
+        $unlinkedProjects = $projectsToShow->filter(function ($project) use ($linkedProjectIds) {
+            return !in_array($project->id, $linkedProjectIds);
+        })->values();
+
         return view('planner::livewire.sidebar', [
-            'customerProjects' => $customerProjects,
-            'customerProjectsByCompany' => $customerProjectsByCompany,
-            'internalProjects' => $internalProjects,
+            'entityTypeGroups' => $entityTypeGroups,
+            'unlinkedProjects' => $unlinkedProjects,
             'hasMoreProjects' => $hasMoreProjects,
-            'allCustomerProjectsCount' => $allCustomerProjects->count(),
-            'allInternalProjectsCount' => $allInternalProjects->count(),
         ]);
     }
 }

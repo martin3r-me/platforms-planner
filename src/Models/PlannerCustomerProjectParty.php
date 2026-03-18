@@ -7,6 +7,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Platform\Planner\Enums\CustomerPartyRole;
 use Platform\Planner\Enums\CustomerPartyType;
 
+/**
+ * @deprecated Entity-Verknüpfungen laufen jetzt über OrganizationEntityLink.
+ */
 class PlannerCustomerProjectParty extends Model
 {
     use SoftDeletes;

@@ -98,6 +98,27 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract, ToolMet
                 'customer_cost_center' => [
                     'type' => 'string',
                     'description' => 'Optional: Kostenstelle für Kundenprojekte. Frage nach, wenn es ein Kundenprojekt ist und eine Kostenstelle angegeben werden soll.'
+                ],
+                'billing_method' => [
+                    'type' => 'string',
+                    'description' => 'Optional: Abrechnungsmethode. Mögliche Werte: "time_and_material" (Zeit & Material), "fixed_price" (Festpreis), "retainer" (Retainer).',
+                    'enum' => ['time_and_material', 'fixed_price', 'retainer']
+                ],
+                'hourly_rate' => [
+                    'type' => 'number',
+                    'description' => 'Optional: Stundensatz (Dezimalzahl, z.B. 120.00). Frage nach, wenn der Nutzer einen Stundensatz angibt.'
+                ],
+                'budget_amount' => [
+                    'type' => 'number',
+                    'description' => 'Optional: Budget-Betrag (Dezimalzahl, z.B. 10000.00). Frage nach, wenn der Nutzer ein Budget angibt.'
+                ],
+                'currency' => [
+                    'type' => 'string',
+                    'description' => 'Optional: Währung (3-Buchstaben ISO-Code, z.B. "EUR", "USD"). Standard: "EUR".'
+                ],
+                'entity_id' => [
+                    'type' => 'integer',
+                    'description' => 'Optional: ID einer Organisations-Entity, mit der das Projekt verknüpft werden soll. Nutze "organization.entities.GET" um Entity-IDs zu finden.'
                 ]
             ],
             'required' => ['name']
@@ -176,7 +197,25 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract, ToolMet
                 'planned_end' => $arguments['planned_end'] ?? null,
                 'estimated_hours' => $arguments['estimated_hours'] ?? null,
                 'customer_cost_center' => $arguments['customer_cost_center'] ?? null,
+                'billing_method' => $arguments['billing_method'] ?? null,
+                'hourly_rate' => $arguments['hourly_rate'] ?? null,
+                'budget_amount' => $arguments['budget_amount'] ?? null,
+                'currency' => $arguments['currency'] ?? null,
             ]);
+
+            // Entity-Link erstellen (falls entity_id angegeben)
+            if (!empty($arguments['entity_id'])) {
+                $entity = \Platform\Organization\Models\OrganizationEntity::find($arguments['entity_id']);
+                if ($entity) {
+                    \Platform\Organization\Models\OrganizationEntityLink::create([
+                        'entity_id' => $entity->id,
+                        'linkable_type' => 'planner_project',
+                        'linkable_id' => $project->id,
+                        'team_id' => $team->id,
+                        'created_by_user_id' => $context->user->id,
+                    ]);
+                }
+            }
 
             // Owner als Projekt-User hinzufügen
             PlannerProjectUser::create([
@@ -228,6 +267,12 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract, ToolMet
                 })
                 ->toArray();
 
+            // Entity-Links laden
+            $entityLinksData = $project->entityLinks()->with('entity')->get()->map(fn($l) => [
+                'entity_id' => $l->entity_id,
+                'entity_name' => $l->entity?->name,
+            ])->toArray();
+
             return ToolResult::success([
                 'id' => $project->id,
                 'uuid' => $project->uuid,
@@ -237,6 +282,11 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract, ToolMet
                 'team_id' => $project->team_id,
                 'owner_user_id' => $ownerUserId,
                 'members' => $projectUsers,
+                'billing_method' => $project->billing_method?->value,
+                'hourly_rate' => $project->hourly_rate ? (float) $project->hourly_rate : null,
+                'budget_amount' => $project->budget_amount ? (float) $project->budget_amount : null,
+                'currency' => $project->currency,
+                'entity_links' => $entityLinksData,
                 'planned_end' => $project->planned_end?->toDateString(),
                 'estimated_hours' => $project->estimated_hours ? (float) $project->estimated_hours : null,
                 'created_at' => $project->created_at->toIso8601String(),

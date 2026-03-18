@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Platform\Planner\Enums\BillingUnit;
 
+/**
+ * @deprecated Verwende PlannerProjectBillingItem (direkt am PlannerProject via project_id).
+ */
 class PlannerCustomerProjectBillingItem extends Model
 {
     use SoftDeletes;

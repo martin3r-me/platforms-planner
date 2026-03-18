@@ -84,15 +84,16 @@
                             <span>Einstellungen</span>
                         </x-ui-button>
                     @endcan
-                    @if(($project->project_type?->value ?? $project->project_type) === 'customer')
-                        @php
-                            $companyId = $project->customerProject?->company_id;
-                            $companyName = $companyId ? app(\Platform\Core\Contracts\CrmCompanyResolverInterface::class)->displayName($companyId) : null;
-                        @endphp
-                        <x-ui-button variant="ghost" size="sm" x-data @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }}, tab: 'customer' })">
-                            @svg('heroicon-o-user-group', 'w-4 h-4')
-                            <span>{{ $companyName ?? 'Kunden' }}</span>
-                        </x-ui-button>
+                    @if($linkedEntities->isNotEmpty())
+                        @foreach($linkedEntities as $entity)
+                            <span class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded bg-[var(--ui-muted-5)] text-[var(--ui-secondary)]">
+                                @svg('heroicon-o-rectangle-group', 'w-3 h-3')
+                                {{ $entity['entity_name'] }}
+                                @if($entity['entity_type'])
+                                    <span class="text-[var(--ui-muted)]">({{ $entity['entity_type'] }})</span>
+                                @endif
+                            </span>
+                        @endforeach
                     @endif
                 </x-slot>
 
@@ -249,11 +250,19 @@
                                     </span>
                                 </div>
                             @endif
-                            @if($project->customer_cost_center)
+                            @if($project->billing_method)
                                 <div class="flex justify-between items-center py-2 px-3 bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
-                                    <span class="text-sm text-[var(--ui-muted)]">Kostenstelle</span>
+                                    <span class="text-sm text-[var(--ui-muted)]">Abrechnung</span>
                                     <span class="text-sm text-[var(--ui-secondary)] font-medium">
-                                        {{ $project->customer_cost_center }}
+                                        {{ $project->billing_method?->value ?? $project->billing_method }}
+                                    </span>
+                                </div>
+                            @endif
+                            @if($project->budget_amount)
+                                <div class="flex justify-between items-center py-2 px-3 bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
+                                    <span class="text-sm text-[var(--ui-muted)]">Budget</span>
+                                    <span class="text-sm text-[var(--ui-secondary)] font-medium">
+                                        {{ number_format($project->budget_amount, 2, ',', '.') }} {{ $project->currency ?? 'EUR' }}
                                     </span>
                                 </div>
                             @endif

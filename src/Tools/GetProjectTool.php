@@ -115,6 +115,13 @@ class GetProjectTool implements ToolContract, ToolMetadataContract
             // Gesamt-Aufgaben im Projekt
             $totalTasks = PlannerTask::where('project_id', $project->id)->count();
 
+            // Entity-Links laden
+            $entityLinksData = $project->entityLinks()->with(['entity.type'])->get()->map(fn($l) => [
+                'entity_id' => $l->entity_id,
+                'entity_name' => $l->entity?->name,
+                'entity_type' => $l->entity?->type?->name,
+            ])->toArray();
+
             return ToolResult::success([
                 'id' => $project->id,
                 'uuid' => $project->uuid,
@@ -125,6 +132,11 @@ class GetProjectTool implements ToolContract, ToolMetadataContract
                 'owner_user_id' => $project->user_id,
                 'owner_name' => $project->user->name ?? 'Unbekannt',
                 'members' => $projectUsers,
+                'billing_method' => $project->billing_method?->value,
+                'hourly_rate' => $project->hourly_rate ? (float) $project->hourly_rate : null,
+                'budget_amount' => $project->budget_amount ? (float) $project->budget_amount : null,
+                'currency' => $project->currency,
+                'entity_links' => $entityLinksData,
                 'planned_end' => $project->planned_end?->toDateString(),
                 'estimated_hours' => $project->estimated_hours ? (float) $project->estimated_hours : null,
                 'done' => $project->done,

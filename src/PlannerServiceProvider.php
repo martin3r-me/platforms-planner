@@ -50,9 +50,10 @@ class PlannerServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        // Morph-Map für Extra-Fields (damit core.extra_fields.PUT die Entity findet)
+        // Morph-Map für Extra-Fields und Entity-Links
         Relation::morphMap([
             'planner_task' => \Platform\Planner\Models\PlannerTask::class,
+            'planner_project' => \Platform\Planner\Models\PlannerProject::class,
         ]);
 
         // Modul-Registrierung nur, wenn Config & Tabelle vorhanden

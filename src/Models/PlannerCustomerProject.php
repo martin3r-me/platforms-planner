@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Platform\Planner\Enums\CustomerBillingMethod;
 
+/**
+ * @deprecated Billing-Felder leben jetzt direkt auf PlannerProject. Entity-Verknüpfungen über OrganizationEntityLink.
+ */
 class PlannerCustomerProject extends Model
 {
     use SoftDeletes;

@@ -10,7 +10,6 @@ use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Enums\StoryPoints;
 use Illuminate\Database\Eloquent\Collection;
 use Livewire\Attributes\On;
-use Platform\Core\Contracts\CrmCompanyResolverInterface;
 
 class Project extends Component
 {
@@ -22,10 +21,10 @@ class Project extends Component
     public array $filterTagIds = []; // Tag-IDs zum Filtern
     public ?string $filterColor = null; // Farbe zum Filtern
 
-    #[On('updateProject')] 
+    #[On('updateProject')]
     public function updateProject()
     {
-        
+
     }
 
     #[On('projectSlotUpdated')]
@@ -39,23 +38,23 @@ class Project extends Component
     public function mount(PlannerProject $plannerProject)
     {
         $this->project = $plannerProject;
-        
+
         // Berechtigung prüfen - User muss Projekt-Mitglied sein
         $this->authorize('view', $this->project);
-        
+
         // Sprints werden nicht mehr geladen - nur Project-Slots
     }
 
     public function rendered()
     {
         // DEBUG: Log dass rendered() ausgelöst wurde
-        \Log::info("🔍 PROJECT RENDERED EVENT:", [
+        \Log::info("PROJECT RENDERED EVENT:", [
             'project_id' => $this->project->id,
             'project_name' => $this->project->name,
             'url' => route('planner.projects.show', $this->project),
             'timestamp' => now()
         ]);
-        
+
         $this->dispatch('comms', [
             'model' => get_class($this->project),
             'modelId' => $this->project->id,
@@ -73,9 +72,9 @@ class Project extends Component
                 'created_at' => $this->project->created_at,
             ],
         ]);
-        
+
         // DEBUG: Log dass comms Event gesendet wurde
-        \Log::info("🔍 PROJECT COMMS EVENT GESENDET:", [
+        \Log::info("PROJECT COMMS EVENT GESENDET:", [
             'project_id' => $this->project->id,
             'project_name' => $this->project->name
         ]);
@@ -150,7 +149,7 @@ class Project extends Component
                 $tasks = $slot->tasks->filter(function ($task) use ($slot) {
                     return $task->project_slot_id === $slot->id && $task->project_slot_id !== null;
                 });
-                
+
                 return (object) [
                     'id' => $slot->id,
                     'label' => $slot->name,
@@ -238,12 +237,17 @@ class Project extends Component
         // === BOARD-GRUPPEN ZUSAMMENSTELLEN ===
         $groups = collect([$backlog])->concat($slots)->push($completedGroup);
 
-        // Kundenprojekt-Company anzeigen
-        /** @var CrmCompanyResolverInterface $companyResolver */
-        $companyResolver = app(CrmCompanyResolverInterface::class);
-        $companyId = $this->project?->customerProject?->company_id;
-        $customerCompanyName = $companyResolver->displayName($companyId);
-        $customerCompanyUrl = $companyResolver->url($companyId);
+        // Entity-Links laden statt CRM-Company
+        $entityLinks = $this->project->entityLinks()
+            ->with(['entity.type'])
+            ->get();
+
+        $linkedEntities = $entityLinks->map(function ($link) {
+            return [
+                'entity_name' => $link->entity?->name ?? 'Unbekannt',
+                'entity_type' => $link->entity?->type?->name ?? '',
+            ];
+        });
 
         // Aktuelle Rolle des Users im Projekt ermitteln
         $projectUser = $this->project->projectUsers()
@@ -255,13 +259,13 @@ class Project extends Component
         $hasTasks = $this->project->tasks()
             ->where('user_in_charge_id', $user->id)
             ->exists();
-        
+
         $hasTasksInSlots = $this->project->projectSlots()
             ->whereHas('tasks', function ($q) use ($user) {
                 $q->where('user_in_charge_id', $user->id);
             })
             ->exists();
-        
+
         $hasAnyTasks = $hasTasks || $hasTasksInSlots;
 
         // Debug: Berechtigungen prüfen
@@ -278,8 +282,7 @@ class Project extends Component
 
         return view('planner::livewire.project', [
             'groups' => $groups,
-            'customerCompanyName' => $customerCompanyName,
-            'customerCompanyUrl' => $customerCompanyUrl,
+            'linkedEntities' => $linkedEntities,
             'currentUserRole' => $currentUserRole,
             'hasAnyTasks' => $hasAnyTasks,
             'permissions' => $permissions,
@@ -296,7 +299,7 @@ class Project extends Component
     {
         // Policy-Berechtigung prüfen
         $this->authorize('update', $this->project);
-        
+
         $user = Auth::user();
         $maxOrder = $this->project->projectSlots()->max('order') ?? 0;
 
@@ -318,7 +321,7 @@ class Project extends Component
     {
         // Policy-Berechtigung prüfen
         $this->authorize('update', $this->project);
-        
+
         $user = Auth::user();
 
         $lowestOrder = PlannerTask::where('user_id', $user->id)

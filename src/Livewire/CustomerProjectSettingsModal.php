@@ -14,7 +14,7 @@ use Platform\Crm\Models\CrmContactLink;
 use Platform\Crm\Models\CrmContact;
 
 /**
- * @deprecated Funktionalität wurde in ProjectSettingsModal (Tab "Kunde") integriert.
+ * @deprecated CRM-Verknüpfung wurde entfernt. Billing lebt direkt auf PlannerProject, Entities über OrganizationEntityLink.
  * Diese Komponente wird nicht mehr von der UI aufgerufen und kann in einem Follow-up entfernt werden.
  */
 class CustomerProjectSettingsModal extends Component

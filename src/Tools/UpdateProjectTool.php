@@ -69,6 +69,23 @@ class UpdateProjectTool implements ToolContract
                     'type' => 'string',
                     'description' => 'Optional: Neue Kostenstelle für Kundenprojekte. Frage nach, wenn der Nutzer die Kostenstelle ändern möchte.'
                 ],
+                'billing_method' => [
+                    'type' => 'string',
+                    'description' => 'Optional: Abrechnungsmethode. Mögliche Werte: "time_and_material", "fixed_price", "retainer".',
+                    'enum' => ['time_and_material', 'fixed_price', 'retainer']
+                ],
+                'hourly_rate' => [
+                    'type' => 'number',
+                    'description' => 'Optional: Stundensatz (Dezimalzahl, z.B. 120.00).'
+                ],
+                'budget_amount' => [
+                    'type' => 'number',
+                    'description' => 'Optional: Budget-Betrag (Dezimalzahl, z.B. 10000.00).'
+                ],
+                'currency' => [
+                    'type' => 'string',
+                    'description' => 'Optional: Währung (3-Buchstaben ISO-Code, z.B. "EUR", "USD").'
+                ],
                 'done' => [
                     'type' => 'boolean',
                     'description' => 'Optional: Projekt als erledigt markieren. Frage nach, wenn der Nutzer das Projekt abschließen möchte.'
@@ -138,6 +155,22 @@ class UpdateProjectTool implements ToolContract
                 $updateData['customer_cost_center'] = $arguments['customer_cost_center'];
             }
 
+            if (isset($arguments['billing_method'])) {
+                $updateData['billing_method'] = $arguments['billing_method'];
+            }
+
+            if (isset($arguments['hourly_rate'])) {
+                $updateData['hourly_rate'] = $arguments['hourly_rate'];
+            }
+
+            if (isset($arguments['budget_amount'])) {
+                $updateData['budget_amount'] = $arguments['budget_amount'];
+            }
+
+            if (isset($arguments['currency'])) {
+                $updateData['currency'] = $arguments['currency'];
+            }
+
             if (isset($arguments['done'])) {
                 $updateData['done'] = $arguments['done'];
                 if ($arguments['done']) {
@@ -184,6 +217,12 @@ class UpdateProjectTool implements ToolContract
                 ];
             })->toArray();
 
+            // Entity-Links laden
+            $entityLinksData = $project->entityLinks()->with('entity')->get()->map(fn($l) => [
+                'entity_id' => $l->entity_id,
+                'entity_name' => $l->entity?->name,
+            ])->toArray();
+
             return ToolResult::success([
                 'id' => $project->id,
                 'uuid' => $project->uuid,
@@ -194,6 +233,11 @@ class UpdateProjectTool implements ToolContract
                 'owner_user_id' => $project->user_id,
                 'owner_name' => $project->user->name ?? 'Unbekannt',
                 'members' => $projectUsers,
+                'billing_method' => $project->billing_method?->value,
+                'hourly_rate' => $project->hourly_rate ? (float) $project->hourly_rate : null,
+                'budget_amount' => $project->budget_amount ? (float) $project->budget_amount : null,
+                'currency' => $project->currency,
+                'entity_links' => $entityLinksData,
                 'planned_end' => $project->planned_end?->toDateString(),
                 'estimated_hours' => $project->estimated_hours ? (float) $project->estimated_hours : null,
                 'done' => $project->done,

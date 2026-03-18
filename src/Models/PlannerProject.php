@@ -4,8 +4,10 @@ namespace Platform\Planner\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Symfony\Component\Uid\UuidV7;
 use Illuminate\Support\Facades\Log;
 use Platform\Organization\Traits\HasTimeEntries;
@@ -16,6 +18,7 @@ use Platform\Core\Traits\HasExtraFields;
 use Platform\Core\Contracts\HasTimeAncestors;
 use Platform\Core\Contracts\HasKeyResultAncestors;
 use Platform\Core\Contracts\HasDisplayName;
+use Platform\Planner\Enums\CustomerBillingMethod;
 
 /**
  * @ai.description Projekt bündelt Aufgaben (Tasks) und Sprints. Dient als Container für Planung, Ressourcen und Fortschritt eines Vorhabens im Team.
@@ -36,6 +39,10 @@ class PlannerProject extends Model implements HasTimeAncestors, HasKeyResultAnce
         'user_id',
         'team_id',
         'project_type',
+        'billing_method',
+        'hourly_rate',
+        'budget_amount',
+        'currency',
         'done',
         'done_at',
     ];
@@ -43,6 +50,9 @@ class PlannerProject extends Model implements HasTimeAncestors, HasKeyResultAnce
     protected $casts = [
         'uuid' => 'string',
         'project_type' => \Platform\Planner\Enums\ProjectType::class,
+        'billing_method' => CustomerBillingMethod::class,
+        'hourly_rate' => 'decimal:2',
+        'budget_amount' => 'decimal:2',
         'planned_end' => 'date',
         'estimated_hours' => 'decimal:2',
         'done' => 'boolean',
@@ -88,9 +98,28 @@ class PlannerProject extends Model implements HasTimeAncestors, HasKeyResultAnce
         return $this->belongsTo(\Platform\Core\Models\Team::class);
     }
 
-    public function customerProject()
+    /**
+     * @deprecated Verwende billing-Felder direkt am PlannerProject + entityLinks() statt CRM-Verknüpfung.
+     */
+    public function customerProject(): HasOne
     {
         return $this->hasOne(\Platform\Planner\Models\PlannerCustomerProject::class, 'project_id');
+    }
+
+    /**
+     * Billing Items direkt am Projekt
+     */
+    public function billingItems(): HasMany
+    {
+        return $this->hasMany(PlannerProjectBillingItem::class, 'project_id');
+    }
+
+    /**
+     * Entity-Links (OrganizationEntityLink) über morphMany
+     */
+    public function entityLinks(): MorphMany
+    {
+        return $this->morphMany(\Platform\Organization\Models\OrganizationEntityLink::class, 'linkable');
     }
 
     /**

@@ -39,6 +39,10 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
                         'type' => 'integer',
                         'description' => 'REST-Parameter (optional): Filter nach Team-ID. WICHTIG: Wenn der User ein spezifisches Team nennt (z.B. "TAISTONE"), rufe zuerst "core.teams.GET" auf, um die Team-ID zu finden. Wenn das Team nicht gefunden wird, verwende NICHT automatisch das aktuelle Team - teile dem User stattdessen mit, dass das Team nicht gefunden wurde. Wenn nicht angegeben und der User nennt kein spezifisches Team, wird automatisch das aktuelle Team aus dem Kontext verwendet.'
                     ],
+                    'entity_id' => [
+                        'type' => 'integer',
+                        'description' => 'Optional: Filter nach Entity-ID. Zeigt nur Projekte, die mit dieser Organisations-Entity verknüpft sind.'
+                    ],
                     // Legacy-Parameter (für Backwards-Kompatibilität)
                     'project_type' => [
                         'type' => 'string',
@@ -87,6 +91,14 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
             $query = PlannerProject::query()
                 ->where('team_id', $teamIdArg)
                 ->with(['user', 'team', 'projectUsers.user', 'projectSlots']);
+
+            // Entity-ID Filter
+            if (!empty($arguments['entity_id'])) {
+                $entityId = (int) $arguments['entity_id'];
+                $query->whereHas('entityLinks', function ($q) use ($entityId) {
+                    $q->where('entity_id', $entityId);
+                });
+            }
 
             // Standard-Operationen anwenden
             $this->applyStandardFilters($query, $arguments, [
@@ -152,6 +164,12 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
                 // Gesamt-Aufgaben im Projekt
                 $totalTasks = PlannerTask::where('project_id', $project->id)->count();
 
+                // Entity-Links
+                $entityLinksData = $project->entityLinks()->with('entity')->get()->map(fn($l) => [
+                    'entity_id' => $l->entity_id,
+                    'entity_name' => $l->entity?->name,
+                ])->toArray();
+
                 return [
                     'id' => $project->id,
                     'uuid' => $project->uuid,
@@ -162,6 +180,11 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
                     'owner_user_id' => $project->user_id,
                     'owner_name' => $project->user->name ?? 'Unbekannt',
                     'members' => $projectUsers,
+                    'billing_method' => $project->billing_method?->value,
+                    'hourly_rate' => $project->hourly_rate ? (float) $project->hourly_rate : null,
+                    'budget_amount' => $project->budget_amount ? (float) $project->budget_amount : null,
+                    'currency' => $project->currency,
+                    'entity_links' => $entityLinksData,
                     'planned_end' => $project->planned_end?->toDateString(),
                     'estimated_hours' => $project->estimated_hours ? (float) $project->estimated_hours : null,
                     'done' => $project->done,
