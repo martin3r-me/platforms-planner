@@ -209,7 +209,7 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract, ToolMet
                 if ($entity) {
                     \Platform\Organization\Models\OrganizationEntityLink::create([
                         'entity_id' => $entity->id,
-                        'linkable_type' => 'planner_project',
+                        'linkable_type' => 'project',
                         'linkable_id' => $project->id,
                         'team_id' => $team->id,
                         'created_by_user_id' => $context->user->id,

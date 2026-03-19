@@ -124,7 +124,8 @@ class Sidebar extends Component
         $linkedProjectIds = [];
 
         // a) OrganizationContext (primäre Quelle – wird von der UI erstellt)
-        $contextMorphTypes = ['planner_project', Project::class];
+        // Drei mögliche Morph-Varianten: ContextTypeRegistry-Kurzform, Laravel Morph-Map-Alias, FQCN
+        $contextMorphTypes = ['project', 'planner_project', Project::class];
         $contexts = OrganizationContext::query()
             ->whereIn('contextable_type', $contextMorphTypes)
             ->whereIn('contextable_id', $projectIds)
