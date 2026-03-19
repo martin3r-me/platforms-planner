@@ -237,17 +237,33 @@ class Project extends Component
         // === BOARD-GRUPPEN ZUSAMMENSTELLEN ===
         $groups = collect([$backlog])->concat($slots)->push($completedGroup);
 
-        // Entity-Links laden statt CRM-Company
+        // Entity-Verknüpfungen laden aus beiden Quellen (OrganizationContext + OrganizationEntityLink)
+        $linkedEntities = collect();
+
+        // a) OrganizationContext (primäre Quelle – UI)
+        $orgContext = $this->project->organizationContext()
+            ->where('is_active', true)
+            ->with('organizationEntity.type')
+            ->first();
+        if ($orgContext && $orgContext->organizationEntity) {
+            $linkedEntities->push([
+                'entity_name' => $orgContext->organizationEntity->name ?? 'Unbekannt',
+                'entity_type' => $orgContext->organizationEntity->type?->name ?? '',
+            ]);
+        }
+
+        // b) OrganizationEntityLink (sekundäre Quelle – DimensionLinker / LLM Tools)
         $entityLinks = $this->project->entityLinks()
             ->with(['entity.type'])
             ->get();
-
-        $linkedEntities = $entityLinks->map(function ($link) {
-            return [
+        foreach ($entityLinks as $link) {
+            $linkedEntities->push([
                 'entity_name' => $link->entity?->name ?? 'Unbekannt',
                 'entity_type' => $link->entity?->type?->name ?? '',
-            ];
-        });
+            ]);
+        }
+
+        $linkedEntities = $linkedEntities->unique('entity_name');
 
         // Aktuelle Rolle des Users im Projekt ermitteln
         $projectUser = $this->project->projectUsers()

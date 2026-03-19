@@ -193,17 +193,34 @@ class ProjectSettingsModal extends Component
             return;
         }
 
-        $this->entityLinks = $this->project->entityLinks()
+        $links = collect();
+
+        // a) OrganizationContext (primäre Quelle – UI)
+        $orgContext = $this->project->organizationContext()
+            ->where('is_active', true)
+            ->with('organizationEntity.type')
+            ->first();
+        if ($orgContext && $orgContext->organizationEntity) {
+            $links->push([
+                'id' => $orgContext->id,
+                'entity_name' => $orgContext->organizationEntity->name ?? 'Unbekannt',
+                'entity_type' => $orgContext->organizationEntity->type?->name ?? '',
+            ]);
+        }
+
+        // b) OrganizationEntityLink (sekundäre Quelle – DimensionLinker / LLM Tools)
+        $entityLinkResults = $this->project->entityLinks()
             ->with(['entity.type'])
-            ->get()
-            ->map(function ($link) {
-                return [
-                    'id' => $link->id,
-                    'entity_name' => $link->entity?->name ?? 'Unbekannt',
-                    'entity_type' => $link->entity?->type?->name ?? '',
-                ];
-            })
-            ->toArray();
+            ->get();
+        foreach ($entityLinkResults as $link) {
+            $links->push([
+                'id' => $link->id,
+                'entity_name' => $link->entity?->name ?? 'Unbekannt',
+                'entity_type' => $link->entity?->type?->name ?? '',
+            ]);
+        }
+
+        $this->entityLinks = $links->unique('entity_name')->values()->toArray();
     }
 
     // ── Existing methods (unchanged) ─────────────────────────────

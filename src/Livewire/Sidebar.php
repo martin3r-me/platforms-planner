@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use Platform\Planner\Models\PlannerProject as Project;
 use Platform\Planner\Models\PlannerProjectSlot as ProjectSlot;
 use Platform\Planner\Models\PlannerTask;
+use Platform\Organization\Models\OrganizationContext;
 use Platform\Organization\Models\OrganizationEntityLink;
 use Platform\Organization\Models\OrganizationEntity;
 use Platform\Organization\Models\OrganizationEntityType;
@@ -114,30 +115,54 @@ class Sidebar extends Component
 
         $hasMoreProjects = $allProjects->count() > $projectsWithUserTasks->count();
 
-        // 2. Entity-Links für diese Projekte laden (beide Morph-Varianten: Alias + voller Klassenname)
+        // 2. Entity-Verknüpfungen laden aus BEIDEN Quellen:
+        //    a) OrganizationContext (UI: ModalOrganization → HasOrganizationContexts trait)
+        //    b) OrganizationEntityLink (DimensionLinker / LLM Tools)
         $projectIds = $projectsToShow->pluck('id')->toArray();
+
+        $entityProjectMap = []; // entity_id => [project_ids]
+        $linkedProjectIds = [];
+
+        // a) OrganizationContext (primäre Quelle – wird von der UI erstellt)
+        $contextMorphTypes = ['planner_project', Project::class];
+        $contexts = OrganizationContext::query()
+            ->whereIn('contextable_type', $contextMorphTypes)
+            ->whereIn('contextable_id', $projectIds)
+            ->where('is_active', true)
+            ->with(['organizationEntity.type'])
+            ->get();
+
+        foreach ($contexts as $ctx) {
+            $entityId = $ctx->organization_entity_id;
+            $projectId = $ctx->contextable_id;
+            if ($entityId) {
+                $entityProjectMap[$entityId][] = $projectId;
+                $linkedProjectIds[] = $projectId;
+            }
+        }
+
+        // b) OrganizationEntityLink (sekundäre Quelle – DimensionLinker / LLM Tools)
         $entityLinks = OrganizationEntityLink::query()
-            ->whereIn('linkable_type', ['planner_project', Project::class])
+            ->whereIn('linkable_type', $contextMorphTypes)
             ->whereIn('linkable_id', $projectIds)
             ->with(['entity.type'])
             ->get();
 
-        // Map: project_id => [entity_links]
-        $linksByProject = $entityLinks->groupBy('linkable_id');
-
-        // 3. Gruppieren: EntityType → Entity → Projekte
-        $entityTypeGroups = collect();
-        $linkedProjectIds = [];
-
-        // Sammle alle Entity-Zuordnungen
-        $entityProjectMap = []; // entity_id => [project_ids]
         foreach ($entityLinks as $link) {
             $entityId = $link->entity_id;
             $projectId = $link->linkable_id;
             $entityProjectMap[$entityId][] = $projectId;
             $linkedProjectIds[] = $projectId;
         }
+
+        // Deduplizieren
+        foreach ($entityProjectMap as $entityId => $pids) {
+            $entityProjectMap[$entityId] = array_unique($pids);
+        }
         $linkedProjectIds = array_unique($linkedProjectIds);
+
+        // 3. Gruppieren: EntityType → Entity → Projekte
+        $entityTypeGroups = collect();
 
         // Entities mit Types gruppieren
         $entityIds = array_keys($entityProjectMap);
