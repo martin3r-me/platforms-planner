@@ -82,8 +82,9 @@
                                       :class="open ? 'rotate-90' : ''">
                                     @svg('heroicon-o-chevron-right', 'w-3 h-3')
                                 </span>
-                                @if($typeGroup['type_icon'])
-                                    @svg($typeGroup['type_icon'], 'w-4 h-4 flex-shrink-0 ml-1 text-[var(--ui-muted)]')
+                                @php $icon = $typeGroup['type_icon'] ?? null; @endphp
+                                @if($icon && str_starts_with($icon, 'heroicon-'))
+                                    @svg($icon, 'w-4 h-4 flex-shrink-0 ml-1 text-[var(--ui-muted)]')
                                 @else
                                     @svg('heroicon-o-rectangle-group', 'w-4 h-4 flex-shrink-0 ml-1 text-[var(--ui-muted)]')
                                 @endif
