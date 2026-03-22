@@ -15,7 +15,6 @@ use Platform\Core\Traits\HasTags;
 use Platform\Core\Traits\HasColors;
 use Platform\Core\Traits\Encryptable;
 use Platform\Core\Traits\HasExtraFields;
-use Platform\Core\Contracts\HasTimeAncestors;
 use Platform\Core\Contracts\HasKeyResultAncestors;
 use Platform\Core\Contracts\HasDisplayName;
 use Platform\Core\Contracts\InheritsExtraFields;
@@ -23,7 +22,7 @@ use Platform\Core\Contracts\InheritsExtraFields;
 /**
  * @ai.description Aufgaben können optional einem Projekt zugeordnet sein (über ProjectSlot). Ohne Projekt sind es persönliche Aufgaben des Nutzers. TaskGroups und Slots dienen der Planung und Strukturierung der Arbeit.
  */
-class PlannerTask extends Model implements HasTimeAncestors, HasKeyResultAncestors, HasDisplayName, InheritsExtraFields
+class PlannerTask extends Model implements HasKeyResultAncestors, HasDisplayName, InheritsExtraFields
 {
     use HasFactory, SoftDeletes, LogsActivity, HasTimeEntries, HasTags, HasColors, Encryptable, HasExtraFields;
 
@@ -154,27 +153,6 @@ class PlannerTask extends Model implements HasTimeAncestors, HasKeyResultAncesto
     public function getLoggedMinutesAttribute(): int
     {
         return $this->totalLoggedMinutes();
-    }
-
-    /**
-     * Gibt alle Vorfahren-Kontexte für die Zeitkaskade zurück.
-     * Task → Project (als Root)
-     */
-    public function timeAncestors(): array
-    {
-        $ancestors = [];
-
-        // Projekt als Root-Kontext (bei Tasks ist das Project immer der Root)
-        if ($this->project) {
-            $ancestors[] = [
-                'type' => get_class($this->project),
-                'id' => $this->project->id,
-                'is_root' => true, // Project ist Root-Kontext für Tasks
-                'label' => $this->project->name,
-            ];
-        }
-
-        return $ancestors;
     }
 
     /**

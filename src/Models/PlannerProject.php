@@ -15,7 +15,6 @@ use Platform\Organization\Traits\HasOrganizationContexts;
 use Platform\Core\Traits\HasColors;
 use Platform\Core\Traits\HasTags;
 use Platform\Core\Traits\HasExtraFields;
-use Platform\Core\Contracts\HasTimeAncestors;
 use Platform\Core\Contracts\HasKeyResultAncestors;
 use Platform\Core\Contracts\HasDisplayName;
 use Platform\Planner\Enums\CustomerBillingMethod;
@@ -23,7 +22,7 @@ use Platform\Planner\Enums\CustomerBillingMethod;
 /**
  * @ai.description Projekt bündelt Aufgaben (Tasks) und Sprints. Dient als Container für Planung, Ressourcen und Fortschritt eines Vorhabens im Team.
  */
-class PlannerProject extends Model implements HasTimeAncestors, HasKeyResultAncestors, HasDisplayName
+class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayName
 {
     use HasTimeEntries, HasOrganizationContexts, HasColors, HasTags, HasExtraFields;
 
@@ -135,20 +134,6 @@ class PlannerProject extends Model implements HasTimeAncestors, HasKeyResultAnce
     public function getLoggedMinutesAttribute(): int
     {
         return $this->totalLoggedMinutes();
-    }
-
-    /**
-     * Gibt alle Vorfahren-Kontexte für die Zeitkaskade zurück.
-     * Project → Project selbst (als Root)
-     * 
-     * Wenn direkt auf Project-Level Zeit erfasst wird, ist das Project selbst der Root-Kontext.
-     */
-    public function timeAncestors(): array
-    {
-        // Bei Projects ist das Project selbst der Root-Kontext
-        // Wir geben ein leeres Array zurück, da das Project selbst bereits als context_type/context_id gesetzt ist
-        // und in StoreTimeEntry wird das Project dann als root_context gesetzt, wenn keine Ancestors vorhanden sind
-        return [];
     }
 
     /**

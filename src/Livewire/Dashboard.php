@@ -242,10 +242,21 @@ class Dashboard extends Component
                     ->get();
             }
             
-            // Zeiten für dieses Projekt berechnen (Root-Context) - Gesamt
+            // Zeiten für dieses Projekt berechnen (Projekt + Tasks) - Gesamt
+            $taskIds = $projectTasks->pluck('id')->toArray();
             $baseTimeEntries = OrganizationTimeEntry::query()
-                ->where('root_context_type', \Platform\Planner\Models\PlannerProject::class)
-                ->where('root_context_id', $project->id);
+                ->where(function ($q) use ($project, $taskIds) {
+                    $q->where(function ($sq) use ($project) {
+                        $sq->where('context_type', \Platform\Planner\Models\PlannerProject::class)
+                           ->where('context_id', $project->id);
+                    });
+                    if (!empty($taskIds)) {
+                        $q->orWhere(function ($sq) use ($taskIds) {
+                            $sq->where('context_type', \Platform\Planner\Models\PlannerTask::class)
+                               ->whereIn('context_id', $taskIds);
+                        });
+                    }
+                });
 
             $totalMinutes = (int) (clone $baseTimeEntries)->sum('minutes');
             
