@@ -10,6 +10,7 @@ use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Enums\StoryPoints;
 use Illuminate\Database\Eloquent\Collection;
 use Livewire\Attributes\On;
+use Platform\Core\Services\EntityLinkService;
 
 class Project extends Component
 {
@@ -267,6 +268,35 @@ class Project extends Component
 
         $linkedEntities = $linkedEntities->unique('entity_name');
 
+        // Canvas-Verknüpfungen laden
+        $linkedCanvases = collect();
+        $service = app(EntityLinkService::class);
+        $teamId = $this->project->team_id;
+        $projectType = $this->project->getMorphClass();
+        $projectId = $this->project->getKey();
+
+        $canvasIds = $service->getLinkedIds($teamId, $projectType, $projectId, 'canvas');
+        if (!empty($canvasIds)) {
+            $canvasModels = \Platform\Canvas\Models\Canvas::whereIn('id', $canvasIds)->get();
+            foreach ($canvasModels as $canvas) {
+                $linkedCanvases->push([
+                    'name' => $canvas->name,
+                    'url' => route('canvas.canvases.show', $canvas->id),
+                ]);
+            }
+        }
+
+        $pcCanvasIds = $service->getLinkedIds($teamId, $projectType, $projectId, 'pc_canvas');
+        if (!empty($pcCanvasIds)) {
+            $pcCanvasModels = \Platform\ProjectCanvas\Models\PcCanvas::whereIn('id', $pcCanvasIds)->get();
+            foreach ($pcCanvasModels as $canvas) {
+                $linkedCanvases->push([
+                    'name' => $canvas->name,
+                    'url' => route('project-canvas.canvases.show', $canvas->id),
+                ]);
+            }
+        }
+
         // Aktuelle Rolle des Users im Projekt ermitteln
         $projectUser = $this->project->projectUsers()
             ->where('user_id', $user->id)
@@ -301,6 +331,7 @@ class Project extends Component
         return view('planner::livewire.project', [
             'groups' => $groups,
             'linkedEntities' => $linkedEntities,
+            'linkedCanvases' => $linkedCanvases,
             'currentUserRole' => $currentUserRole,
             'hasAnyTasks' => $hasAnyTasks,
             'permissions' => $permissions,

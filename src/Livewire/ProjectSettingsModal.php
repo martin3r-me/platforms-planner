@@ -9,6 +9,7 @@ use Platform\Planner\Enums\ProjectRole;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
 use Platform\Planner\Enums\ProjectType;
+use Platform\Core\Services\EntityLinkService;
 
 class ProjectSettingsModal extends Component
 {
@@ -22,6 +23,11 @@ class ProjectSettingsModal extends Component
 
     // Entity-Links (read-only Anzeige)
     public $entityLinks = [];
+
+    // Canvas-Links
+    public array $linkedCanvases = [];
+    public string $canvasSearch = '';
+    public array $availableCanvases = [];
 
     public $activeTab = 'general';
 
@@ -66,6 +72,9 @@ class ProjectSettingsModal extends Component
 
         // Entity-Links laden (read-only)
         $this->loadEntityLinks();
+
+        // Canvas-Links laden
+        $this->loadLinkedCanvases();
 
         // Tab setzen (default oder übergeben)
         $this->activeTab = $tab ?? 'general';
@@ -182,6 +191,147 @@ class ProjectSettingsModal extends Component
         }
         $this->project->project_type = $type;
         $this->projectType = $type;
+    }
+
+    // ── Canvas Links ──────────────────────────────────────────────
+
+    private function loadLinkedCanvases(): void
+    {
+        if (!$this->project) {
+            $this->linkedCanvases = [];
+            return;
+        }
+
+        $service = app(EntityLinkService::class);
+        $teamId = $this->project->team_id;
+        $projectType = $this->project->getMorphClass();
+        $projectId = $this->project->getKey();
+
+        $canvases = collect();
+
+        // Canvas-Links laden
+        $canvasIds = $service->getLinkedIds($teamId, $projectType, $projectId, 'canvas');
+        if (!empty($canvasIds)) {
+            $canvasModels = \Platform\Canvas\Models\Canvas::whereIn('id', $canvasIds)->get();
+            foreach ($canvasModels as $canvas) {
+                $canvases->push([
+                    'id' => $canvas->id,
+                    'name' => $canvas->name,
+                    'type' => 'canvas',
+                    'status' => $canvas->status ?? '',
+                    'url' => route('canvas.canvases.show', $canvas->id),
+                ]);
+            }
+        }
+
+        // PcCanvas-Links laden
+        $pcCanvasIds = $service->getLinkedIds($teamId, $projectType, $projectId, 'pc_canvas');
+        if (!empty($pcCanvasIds)) {
+            $pcCanvasModels = \Platform\ProjectCanvas\Models\PcCanvas::whereIn('id', $pcCanvasIds)->get();
+            foreach ($pcCanvasModels as $canvas) {
+                $canvases->push([
+                    'id' => $canvas->id,
+                    'name' => $canvas->name,
+                    'type' => 'pc_canvas',
+                    'status' => $canvas->status ?? '',
+                    'url' => route('project-canvas.canvases.show', $canvas->id),
+                ]);
+            }
+        }
+
+        $this->linkedCanvases = $canvases->toArray();
+    }
+
+    public function updatedCanvasSearch(): void
+    {
+        $this->searchCanvases();
+    }
+
+    public function searchCanvases(): void
+    {
+        if (!$this->project || strlen($this->canvasSearch) < 2) {
+            $this->availableCanvases = [];
+            return;
+        }
+
+        $teamId = $this->project->team_id;
+        $search = $this->canvasSearch;
+
+        // Bereits verknüpfte IDs sammeln
+        $linkedCanvasIds = collect($this->linkedCanvases)
+            ->where('type', 'canvas')
+            ->pluck('id')
+            ->toArray();
+        $linkedPcCanvasIds = collect($this->linkedCanvases)
+            ->where('type', 'pc_canvas')
+            ->pluck('id')
+            ->toArray();
+
+        $results = collect();
+
+        // Canvas suchen
+        $canvases = \Platform\Canvas\Models\Canvas::where('team_id', $teamId)
+            ->where('name', 'like', "%{$search}%")
+            ->whereNotIn('id', $linkedCanvasIds)
+            ->limit(10)
+            ->get();
+        foreach ($canvases as $canvas) {
+            $results->push([
+                'id' => $canvas->id,
+                'name' => $canvas->name,
+                'type' => 'canvas',
+                'type_label' => 'Canvas',
+            ]);
+        }
+
+        // PcCanvas suchen
+        $pcCanvases = \Platform\ProjectCanvas\Models\PcCanvas::where('team_id', $teamId)
+            ->where('name', 'like', "%{$search}%")
+            ->whereNotIn('id', $linkedPcCanvasIds)
+            ->limit(10)
+            ->get();
+        foreach ($pcCanvases as $canvas) {
+            $results->push([
+                'id' => $canvas->id,
+                'name' => $canvas->name,
+                'type' => 'pc_canvas',
+                'type_label' => 'Project Canvas',
+            ]);
+        }
+
+        $this->availableCanvases = $results->toArray();
+    }
+
+    public function attachCanvas(int $canvasId, string $canvasType): void
+    {
+        $this->authorize('update', $this->project);
+
+        app(EntityLinkService::class)->link(
+            $this->project->team_id,
+            $this->project->getMorphClass(),
+            $this->project->getKey(),
+            $canvasType,
+            $canvasId,
+        );
+
+        $this->loadLinkedCanvases();
+        $this->canvasSearch = '';
+        $this->availableCanvases = [];
+    }
+
+    public function detachCanvas(int $canvasId, string $canvasType): void
+    {
+        $this->authorize('update', $this->project);
+
+        app(EntityLinkService::class)->unlink(
+            $this->project->team_id,
+            $this->project->getMorphClass(),
+            $this->project->getKey(),
+            $canvasType,
+            $canvasId,
+        );
+
+        $this->loadLinkedCanvases();
     }
 
     // ── Entity Links (read-only) ─────────────────────────────────

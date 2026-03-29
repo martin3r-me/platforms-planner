@@ -35,6 +35,16 @@
                 >
                     Wiederkehrende Aufgaben
                 </button>
+                @can('update', $project)
+                    <button
+                        type="button"
+                        @click="activeTab = 'canvases'"
+                        class="px-4 py-2 text-sm font-medium transition-colors border-b-2"
+                        :class="activeTab === 'canvases' ? 'text-[var(--ui-primary)] border-[var(--ui-primary)]' : 'text-[var(--ui-muted)] border-transparent hover:text-[var(--ui-secondary)]'"
+                    >
+                        Canvases
+                    </button>
+                @endcan
             </div>
 
             {{-- Tab: Allgemein --}}
@@ -407,6 +417,80 @@
             <div x-show="activeTab === 'recurring'" x-transition>
                 <livewire:planner.recurring-tasks-tab :project-id="$project->id" />
             </div>
+
+            {{-- Tab: Canvases --}}
+            @can('update', $project)
+                <div x-show="activeTab === 'canvases'" x-transition>
+                    <div class="space-y-6">
+                        {{-- Verknuepfte Canvases --}}
+                        <div>
+                            <h3 class="text-sm font-semibold text-[var(--ui-secondary)] mb-3">Verknuepfte Canvases</h3>
+                            @if(!empty($linkedCanvases))
+                                <div class="space-y-2">
+                                    @foreach($linkedCanvases as $canvas)
+                                        <div class="flex items-center justify-between p-3 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
+                                            <div class="flex items-center gap-3">
+                                                @svg('heroicon-o-squares-2x2', 'w-4 h-4 text-[var(--ui-muted)]')
+                                                <div>
+                                                    <div class="text-sm font-medium text-[var(--ui-secondary)]">{{ $canvas['name'] }}</div>
+                                                    <div class="text-xs text-[var(--ui-muted)]">
+                                                        {{ $canvas['type'] === 'pc_canvas' ? 'Project Canvas' : 'Canvas' }}
+                                                        @if($canvas['status'])
+                                                            &middot; {{ $canvas['status'] }}
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <a href="{{ $canvas['url'] }}" wire:navigate class="text-[var(--ui-primary)] hover:text-[var(--ui-primary-hover)] transition-colors" title="Canvas oeffnen">
+                                                    @svg('heroicon-o-arrow-top-right-on-square', 'w-4 h-4')
+                                                </a>
+                                                <button wire:click="detachCanvas({{ $canvas['id'] }}, '{{ $canvas['type'] }}')" class="text-red-500 hover:text-red-700 transition-colors" title="Verknuepfung entfernen">
+                                                    @svg('heroicon-o-x-mark', 'w-4 h-4')
+                                                </button>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @else
+                                <p class="text-sm text-[var(--ui-muted)]">Noch keine Canvases verknuepft.</p>
+                            @endif
+                        </div>
+
+                        {{-- Canvas hinzufuegen --}}
+                        <div class="border-t border-[var(--ui-border)] pt-4">
+                            <h3 class="text-sm font-semibold text-[var(--ui-secondary)] mb-3">Canvas hinzufuegen</h3>
+                            <x-ui-input-text
+                                name="canvasSearch"
+                                wire:model.live.debounce.300ms="canvasSearch"
+                                placeholder="Canvas suchen..."
+                                :errorKey="'canvasSearch'"
+                            />
+
+                            @if(!empty($availableCanvases))
+                                <div class="mt-3 space-y-2">
+                                    @foreach($availableCanvases as $canvas)
+                                        <div class="flex items-center justify-between p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-surface)]">
+                                            <div class="flex items-center gap-2">
+                                                @svg('heroicon-o-squares-2x2', 'w-4 h-4 text-[var(--ui-muted)]')
+                                                <div>
+                                                    <span class="text-sm font-medium text-[var(--ui-secondary)]">{{ $canvas['name'] }}</span>
+                                                    <span class="text-xs text-[var(--ui-muted)] ml-1">({{ $canvas['type_label'] }})</span>
+                                                </div>
+                                            </div>
+                                            <x-ui-button variant="secondary" size="xs" wire:click="attachCanvas({{ $canvas['id'] }}, '{{ $canvas['type'] }}')">
+                                                Verknuepfen
+                                            </x-ui-button>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @elseif(strlen($canvasSearch) >= 2)
+                                <p class="mt-3 text-sm text-[var(--ui-muted)]">Keine Canvases gefunden.</p>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            @endcan
         @endif
 
         <x-slot name="footer">

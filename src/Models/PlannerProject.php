@@ -15,6 +15,7 @@ use Platform\Organization\Traits\HasOrganizationContexts;
 use Platform\Core\Traits\HasColors;
 use Platform\Core\Traits\HasTags;
 use Platform\Core\Traits\HasExtraFields;
+use Platform\Core\Models\Concerns\HasEntityLinks;
 use Platform\Core\Contracts\HasKeyResultAncestors;
 use Platform\Core\Contracts\HasDisplayName;
 use Platform\Planner\Enums\CustomerBillingMethod;
@@ -24,7 +25,7 @@ use Platform\Planner\Enums\CustomerBillingMethod;
  */
 class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayName
 {
-    use HasTimeEntries, HasOrganizationContexts, HasColors, HasTags, HasExtraFields;
+    use HasTimeEntries, HasOrganizationContexts, HasColors, HasTags, HasExtraFields, HasEntityLinks;
 
     protected $fillable = [
         'uuid',
