@@ -57,6 +57,14 @@ class PlannerServiceProvider extends ServiceProvider
             'project' => \Platform\Planner\Models\PlannerProject::class,
         ]);
 
+        // EntityLinkProvider registrieren (loose Kopplung mit Organization-Modul)
+        try {
+            resolve(\Platform\Organization\Services\EntityLinkRegistry::class)
+                ->register(new \Platform\Planner\Organization\PlannerEntityLinkProvider());
+        } catch (\Throwable $e) {
+            // Organization-Modul nicht geladen
+        }
+
         // Modul-Registrierung nur, wenn Config & Tabelle vorhanden
         if (
             config()->has('planner.routing') &&
@@ -66,6 +74,7 @@ class PlannerServiceProvider extends ServiceProvider
             PlatformCore::registerModule([
                 'key'        => 'planner',
                 'title'      => 'Planner',
+                'group'      => 'planning',
                 'routing'    => config('planner.routing'),
                 'guard'      => config('planner.guard'),
                 'navigation' => config('planner.navigation'),
