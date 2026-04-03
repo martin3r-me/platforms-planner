@@ -92,6 +92,48 @@ class PlannerEntityLinkProvider implements EntityLinkProvider
         ];
     }
 
+    public function metrics(string $morphAlias, array $linksByEntity): array
+    {
+        if ($morphAlias !== 'project') {
+            return [];
+        }
+
+        // Collect all project IDs
+        $allIds = [];
+        foreach ($linksByEntity as $ids) {
+            $allIds = array_merge($allIds, $ids);
+        }
+        $allIds = array_values(array_unique($allIds));
+
+        if (empty($allIds)) {
+            return [];
+        }
+
+        $projects = PlannerProject::whereIn('id', $allIds)
+            ->withCount(['tasks', 'tasks as done_tasks_count' => fn($q) => $q->where('is_done', true)])
+            ->get()
+            ->keyBy('id');
+
+        $result = [];
+        foreach ($linksByEntity as $entityId => $ids) {
+            $total = 0;
+            $done = 0;
+            foreach ($ids as $id) {
+                $p = $projects[$id] ?? null;
+                if ($p) {
+                    $total += $p->tasks_count;
+                    $done += $p->done_tasks_count;
+                }
+            }
+            $result[$entityId] = [
+                'items_total' => $total,
+                'items_done' => $done,
+            ];
+        }
+
+        return $result;
+    }
+
     protected function timeMinutesSubquery(string $table, string $fqcn): string
     {
         $quoted = DB::getPdo()->quote($fqcn);
