@@ -32,6 +32,10 @@
             @svg('heroicon-o-check-circle', 'w-4 h-4 text-[var(--ui-secondary)]')
             <span class="ml-2 text-sm">Erledigte Aufgaben</span>
         </x-ui-sidebar-item>
+        <x-ui-sidebar-item :href="route('planner.frog-tasks')">
+            @svg('heroicon-o-exclamation-triangle', 'w-4 h-4 text-[var(--ui-secondary)]')
+            <span class="ml-2 text-sm">Frösche</span>
+        </x-ui-sidebar-item>
     </x-ui-sidebar-list>
 
     {{-- Neues Projekt --}}
@@ -56,6 +60,9 @@
             </a>
             <a href="{{ route('planner.completed-tasks') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]">
                 @svg('heroicon-o-check-circle', 'w-5 h-5')
+            </a>
+            <a href="{{ route('planner.frog-tasks') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]">
+                @svg('heroicon-o-exclamation-triangle', 'w-5 h-5')
             </a>
         </div>
     </div>

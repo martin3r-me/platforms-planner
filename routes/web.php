@@ -4,6 +4,7 @@ use Platform\Planner\Livewire\Dashboard;
 use Platform\Planner\Livewire\MyTasks;
 use Platform\Planner\Livewire\DelegatedTasks;
 use Platform\Planner\Livewire\CompletedTasks;
+use Platform\Planner\Livewire\FrogTasks;
 use Platform\Planner\Livewire\CreateProject;
 use Platform\Planner\Livewire\Export;
 use Platform\Planner\Livewire\Project;
@@ -15,6 +16,7 @@ Route::get('/', Dashboard::class)->name('planner.dashboard');
 Route::get('/my-tasks', MyTasks::class)->name('planner.my-tasks');
 Route::get('/delegated-tasks', DelegatedTasks::class)->name('planner.delegated-tasks');
 Route::get('/completed-tasks', CompletedTasks::class)->name('planner.completed-tasks');
+Route::get('/frog-tasks', FrogTasks::class)->name('planner.frog-tasks');
 Route::get('/export', Export::class)->name('planner.export');
 
 // Model-Binding: Parameter == Modelname in camelCase
