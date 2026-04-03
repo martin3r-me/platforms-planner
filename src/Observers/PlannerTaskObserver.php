@@ -3,6 +3,7 @@
 namespace Platform\Planner\Observers;
 
 use Platform\Planner\Models\PlannerTask;
+use Platform\Notifications\NotificationDispatcher;
 use Illuminate\Support\Carbon;
 
 class PlannerTaskObserver
@@ -33,6 +34,60 @@ class PlannerTaskObserver
                 }
 
                 $task->postpone_count = (int)($task->postpone_count ?? 0) + 1;
+            }
+        }
+    }
+
+    /**
+     * Wird nach dem Speichern aufgerufen — für Notification-Dispatch.
+     */
+    public function updated(PlannerTask $task): void
+    {
+        // Aufgabe wurde jemandem zugewiesen
+        if ($task->wasChanged('user_in_charge_id') && $task->user_in_charge_id) {
+            // Nicht benachrichtigen, wenn der User sich selbst zuweist
+            if ($task->user_in_charge_id !== auth()->id()) {
+                $recipient = $task->userInCharge;
+
+                if ($recipient) {
+                    app(NotificationDispatcher::class)->dispatch(
+                        'planner.task.assigned',
+                        [
+                            'title'          => 'Aufgabe zugewiesen',
+                            'message'        => "Dir wurde die Aufgabe \"{$task->title}\" zugewiesen.",
+                            'noticable_type' => PlannerTask::class,
+                            'noticable_id'   => $task->id,
+                            'team_id'        => $task->team_id,
+                            'metadata'       => ['url' => route('planner.task', $task->id)],
+                        ],
+                        [$recipient]
+                    );
+                }
+            }
+        }
+
+        // Aufgabe als erledigt markiert — Ersteller/Zuweiser benachrichtigen
+        if ($task->wasChanged('is_done') && $task->is_done && $task->user_in_charge_id) {
+            // Benachrichtige den Ersteller, falls verschieden vom Erlediger
+            $creatorId = $task->created_by ?? $task->user_id ?? null;
+
+            if ($creatorId && $creatorId !== auth()->id() && $creatorId !== $task->user_in_charge_id) {
+                $creator = app(config('auth.providers.users.model'))::find($creatorId);
+
+                if ($creator) {
+                    app(NotificationDispatcher::class)->dispatch(
+                        'planner.task.completed',
+                        [
+                            'title'          => 'Aufgabe erledigt',
+                            'message'        => "Die Aufgabe \"{$task->title}\" wurde als erledigt markiert.",
+                            'noticable_type' => PlannerTask::class,
+                            'noticable_id'   => $task->id,
+                            'team_id'        => $task->team_id,
+                            'metadata'       => ['url' => route('planner.task', $task->id)],
+                        ],
+                        [$creator]
+                    );
+                }
             }
         }
     }

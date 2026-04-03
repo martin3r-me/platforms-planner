@@ -24,6 +24,7 @@ use RecursiveIteratorIterator;
 use Platform\Comms\Registry\ContextPresenterRegistry;
 use Platform\Planner\Comms\PlannerContextPresenter;
 use Illuminate\Console\Scheduling\Schedule;
+use Platform\Notifications\NotificationTypeRegistry;
 
 class PlannerServiceProvider extends ServiceProvider
 {
@@ -132,6 +133,9 @@ class PlannerServiceProvider extends ServiceProvider
         // Observer registrieren
         $this->registerObservers();
 
+        // Notification-Typen registrieren
+        $this->registerNotificationTypes();
+
         // Custom Route Model Binding für PlannerTask - leitet bei fehlenden Tasks weiter
         $this->registerCustomRouteBindings();
 
@@ -205,6 +209,30 @@ class PlannerServiceProvider extends ServiceProvider
             // Silent fail - ToolRegistry möglicherweise nicht verfügbar
             \Log::warning('Planner: Tool-Registrierung fehlgeschlagen', ['error' => $e->getMessage()]);
         }
+    }
+
+    protected function registerNotificationTypes(): void
+    {
+        NotificationTypeRegistry::register('planner.task.assigned', [
+            'label'            => 'Aufgabe zugewiesen',
+            'description'      => 'Wenn dir eine Aufgabe zugewiesen wird',
+            'group'            => 'planner',
+            'default_channels' => ['database', 'pushover'],
+        ]);
+
+        NotificationTypeRegistry::register('planner.task.due_soon', [
+            'label'            => 'Deadline naht',
+            'description'      => 'Wenn eine Aufgabe bald fällig ist',
+            'group'            => 'planner',
+            'default_channels' => ['database'],
+        ]);
+
+        NotificationTypeRegistry::register('planner.task.completed', [
+            'label'            => 'Aufgabe erledigt',
+            'description'      => 'Wenn eine zugewiesene Aufgabe als erledigt markiert wird',
+            'group'            => 'planner',
+            'default_channels' => ['database'],
+        ]);
     }
 
     protected function registerLivewireComponents(): void
