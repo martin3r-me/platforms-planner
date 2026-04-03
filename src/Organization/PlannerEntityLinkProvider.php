@@ -18,8 +18,8 @@ class PlannerEntityLinkProvider implements EntityLinkProvider
     public function linkTypeConfig(): array
     {
         return [
-            'project' => ['label' => 'Projekte', 'icon' => 'folder', 'route' => 'planner.projects.show'],
-            'planner_task' => ['label' => 'Aufgaben', 'icon' => 'clipboard-document-check', 'route' => null],
+            'project' => ['label' => 'Projekte', 'singular' => 'Projekt', 'icon' => 'folder', 'route' => 'planner.projects.show'],
+            'planner_task' => ['label' => 'Aufgaben', 'singular' => 'Aufgabe', 'icon' => 'clipboard-document-check', 'route' => null],
         ];
     }
 
@@ -90,6 +90,21 @@ class PlannerEntityLinkProvider implements EntityLinkProvider
             'project' => [PlannerProject::class, ['tasks', 'projectSlots.tasks']],
             'planner_task' => [PlannerTask::class, []],
         ];
+    }
+
+    public function activityChildren(string $morphAlias, array $linkableIds): array
+    {
+        if ($morphAlias !== 'project' || empty($linkableIds)) {
+            return [];
+        }
+
+        $taskIds = PlannerTask::whereIn('project_id', $linkableIds)->pluck('id')->all();
+
+        if (empty($taskIds)) {
+            return [];
+        }
+
+        return [PlannerTask::class => $taskIds];
     }
 
     public function metrics(string $morphAlias, array $linksByEntity): array
