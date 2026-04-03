@@ -58,7 +58,7 @@ class PlannerTaskObserver
                             'noticable_type' => PlannerTask::class,
                             'noticable_id'   => $task->id,
                             'team_id'        => $task->team_id,
-                            'metadata'       => ['url' => route('planner.task', $task->id)],
+                            'metadata'       => ['url' => route('planner.tasks.show', $task->id)],
                         ],
                         [$recipient]
                     );
@@ -83,7 +83,7 @@ class PlannerTaskObserver
                             'noticable_type' => PlannerTask::class,
                             'noticable_id'   => $task->id,
                             'team_id'        => $task->team_id,
-                            'metadata'       => ['url' => route('planner.task', $task->id)],
+                            'metadata'       => ['url' => route('planner.tasks.show', $task->id)],
                         ],
                         [$creator]
                     );
