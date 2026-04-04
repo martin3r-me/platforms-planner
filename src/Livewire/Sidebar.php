@@ -212,10 +212,27 @@ class Sidebar extends Component
                 }
 
                 $childIds = $entityChildrenMap[$entityId] ?? [];
-                $children = collect($childIds)
+                $childNodes = collect($childIds)
                     ->map(fn ($childId) => $buildTree($childId))
-                    ->filter()
-                    ->sortBy('entity_name')
+                    ->filter();
+
+                // Kinder nach EntityType gruppieren
+                $childrenByType = $childNodes
+                    ->groupBy(fn ($child) => $child['type_id'])
+                    ->map(function ($group) use ($entities) {
+                        $firstChild = $group->first();
+                        $typeEntity = $entities->get($firstChild['entity_id']);
+                        $type = $typeEntity?->type;
+
+                        return [
+                            'type_id' => $firstChild['type_id'],
+                            'type_name' => $type?->name ?? 'Sonstige',
+                            'type_icon' => $type?->icon ?? null,
+                            'sort_order' => $type?->sort_order ?? 999,
+                            'children' => $group->sortBy('entity_name')->values(),
+                        ];
+                    })
+                    ->sortBy('sort_order')
                     ->values();
 
                 $projects = collect($entityProjectMap[$entityId] ?? [])
@@ -225,7 +242,7 @@ class Sidebar extends Component
 
                 // Gesamtzahl Projekte (eigene + aller Kinder)
                 $totalProjects = $projects->count();
-                foreach ($children as $child) {
+                foreach ($childNodes as $child) {
                     $totalProjects += $child['total_projects'];
                 }
 
@@ -237,8 +254,9 @@ class Sidebar extends Component
                 return [
                     'entity_id' => $entityId,
                     'entity_name' => $entity->name,
+                    'type_id' => $entity->type?->id,
                     'projects' => $projects,
-                    'children' => $children,
+                    'children_by_type' => $childrenByType,
                     'total_projects' => $totalProjects,
                 ];
             };

@@ -1,7 +1,8 @@
 {{-- Rekursiver Entity-Knoten für Sidebar-Baum --}}
 @props(['node', 'typeIcon' => null])
 
-<div x-data="{ open: localStorage.getItem('planner.entity.' + {{ $node['entity_id'] }}) === 'true' }"
+<div wire:key="entity-{{ $node['entity_id'] }}"
+     x-data="{ open: localStorage.getItem('planner.entity.' + {{ $node['entity_id'] }}) === 'true' }"
      class="flex flex-col">
     <button type="button"
             @click="open = !open; localStorage.setItem('planner.entity.' + {{ $node['entity_id'] }}, open)"
@@ -19,13 +20,24 @@
         <span class="ml-auto text-xs text-[var(--ui-muted)]">{{ $node['total_projects'] }}</span>
     </button>
     <div x-show="open" x-collapse class="flex flex-col gap-0.5 pl-4">
-        {{-- Kind-Entities (rekursiv) --}}
-        @foreach($node['children'] as $child)
-            @include('planner::livewire.partials.sidebar-entity-node', ['node' => $child, 'typeIcon' => $typeIcon])
+        {{-- Kind-Entities nach Typ gruppiert (rekursiv) --}}
+        @foreach($node['children_by_type'] as $typeGroup)
+            @if($node['children_by_type']->count() > 1 || $node['projects']->isNotEmpty())
+                <div wire:key="entity-{{ $node['entity_id'] }}-type-{{ $typeGroup['type_id'] }}"
+                     class="pt-1.5 pb-0.5 px-2 text-[10px] uppercase tracking-wider text-[var(--ui-muted)] font-semibold">
+                    {{ $typeGroup['type_name'] }}
+                </div>
+            @endif
+            @foreach($typeGroup['children'] as $child)
+                @include('planner::livewire.partials.sidebar-entity-node', [
+                    'node' => $child,
+                    'typeIcon' => $typeGroup['type_icon'] ?? $typeIcon,
+                ])
+            @endforeach
         @endforeach
         {{-- Eigene Projekte --}}
         @foreach($node['projects'] as $project)
-            <x-ui-sidebar-item :href="route('planner.projects.show', ['plannerProject' => $project])" :title="$project->name">
+            <x-ui-sidebar-item wire:key="entity-{{ $node['entity_id'] }}-project-{{ $project->id }}" :href="route('planner.projects.show', ['plannerProject' => $project])" :title="$project->name">
                 @svg('heroicon-o-folder', 'w-5 h-5 flex-shrink-0 text-[var(--ui-secondary)]')
                 <div class="flex-1 min-w-0 ml-2 flex items-center gap-1.5">
                     <span class="truncate text-sm font-medium">{{ $project->name }}</span>

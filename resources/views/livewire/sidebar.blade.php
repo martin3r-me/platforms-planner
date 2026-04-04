@@ -77,7 +77,7 @@
         <div class="mt-2" x-show="!collapsed">
             {{-- Entity Type Gruppen (Baum-Darstellung) --}}
             @foreach($entityTypeGroups as $typeGroup)
-                <x-ui-sidebar-list :label="$typeGroup['type_name']">
+                <x-ui-sidebar-list wire:key="type-group-{{ $typeGroup['type_id'] }}" :label="$typeGroup['type_name']">
                     @foreach($typeGroup['entities'] as $entityNode)
                         @include('planner::livewire.partials.sidebar-entity-node', [
                             'node' => $entityNode,
@@ -91,7 +91,7 @@
             @if($unlinkedProjects->isNotEmpty())
                 <x-ui-sidebar-list label="Unverknüpft">
                     @foreach($unlinkedProjects as $project)
-                        <x-ui-sidebar-item :href="route('planner.projects.show', ['plannerProject' => $project])" :title="$project->name">
+                        <x-ui-sidebar-item wire:key="unlinked-project-{{ $project->id }}" :href="route('planner.projects.show', ['plannerProject' => $project])" :title="$project->name">
                             @svg('heroicon-o-folder', 'w-5 h-5 flex-shrink-0 text-[var(--ui-secondary)]')
                             <div class="flex-1 min-w-0 ml-2 flex items-center gap-1.5">
                                 <span class="truncate text-sm font-medium">{{ $project->name }}</span>
