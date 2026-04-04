@@ -20,22 +20,7 @@
         <span class="ml-auto text-xs text-[var(--ui-muted)]">{{ $node['total_projects'] }}</span>
     </button>
     <div x-show="open" x-collapse class="flex flex-col gap-0.5 pl-4">
-        {{-- Kind-Entities nach Typ gruppiert (rekursiv) --}}
-        @foreach($node['children_by_type'] as $typeGroup)
-            @if($node['children_by_type']->count() > 1 || $node['projects']->isNotEmpty())
-                <div wire:key="entity-{{ $node['entity_id'] }}-type-{{ $typeGroup['type_id'] }}"
-                     class="pt-1.5 pb-0.5 px-2 text-[10px] uppercase tracking-wider text-[var(--ui-muted)] font-semibold">
-                    {{ $typeGroup['type_name'] }}
-                </div>
-            @endif
-            @foreach($typeGroup['children'] as $child)
-                @include('planner::livewire.partials.sidebar-entity-node', [
-                    'node' => $child,
-                    'typeIcon' => $typeGroup['type_icon'] ?? $typeIcon,
-                ])
-            @endforeach
-        @endforeach
-        {{-- Eigene Projekte --}}
+        {{-- 1. Eigene Projekte zuerst --}}
         @foreach($node['projects'] as $project)
             <x-ui-sidebar-item wire:key="entity-{{ $node['entity_id'] }}-project-{{ $project->id }}" :href="route('planner.projects.show', ['plannerProject' => $project])" :title="$project->name">
                 @svg('heroicon-o-folder', 'w-5 h-5 flex-shrink-0 text-[var(--ui-secondary)]')
@@ -46,6 +31,32 @@
                     @endif
                 </div>
             </x-ui-sidebar-item>
+        @endforeach
+        {{-- 2. Kind-Entities nach Typ gruppiert, ein-/ausklappbar --}}
+        @foreach($node['children_by_type'] as $typeGroup)
+            <div wire:key="entity-{{ $node['entity_id'] }}-type-{{ $typeGroup['type_id'] }}"
+                 x-data="{ groupOpen: localStorage.getItem('planner.entity.' + {{ $node['entity_id'] }} + '.type.' + {{ $typeGroup['type_id'] }}) !== 'false' }"
+                 class="flex flex-col">
+                <button type="button"
+                        @click="groupOpen = !groupOpen; localStorage.setItem('planner.entity.' + {{ $node['entity_id'] }} + '.type.' + {{ $typeGroup['type_id'] }}, groupOpen)"
+                        class="flex items-center gap-1.5 pt-2 pb-1 px-2 w-full text-left group">
+                    <span class="w-3 h-3 flex-shrink-0 flex items-center justify-center transition-transform text-[var(--ui-muted)]"
+                          :class="groupOpen ? 'rotate-90' : ''">
+                        @svg('heroicon-o-chevron-right', 'w-2.5 h-2.5')
+                    </span>
+                    <span class="text-[10px] uppercase tracking-wider text-[var(--ui-muted)] font-semibold group-hover:text-[var(--ui-secondary)] transition-colors">
+                        {{ $typeGroup['type_name'] }}
+                    </span>
+                </button>
+                <div x-show="groupOpen" x-collapse class="flex flex-col gap-0.5">
+                    @foreach($typeGroup['children'] as $child)
+                        @include('planner::livewire.partials.sidebar-entity-node', [
+                            'node' => $child,
+                            'typeIcon' => $typeGroup['type_icon'] ?? $typeIcon,
+                        ])
+                    @endforeach
+                </div>
+            </div>
         @endforeach
     </div>
 </div>
