@@ -162,10 +162,28 @@ class Sidebar extends Component
         }
         $linkedProjectIds = array_unique($linkedProjectIds);
 
-        // 3. Gruppieren: EntityType → Entity → Projekte
+        // 2c. Aufwärts-Traversierung: Ancestors ins Entity-Set aufnehmen (für Baum-Darstellung)
+        $directEntityIds = array_keys($entityProjectMap);
+        if (!empty($directEntityIds)) {
+            $directEntities = OrganizationEntity::with(['allParents.type'])
+                ->whereIn('id', $directEntityIds)
+                ->get()
+                ->keyBy('id');
+
+            foreach ($directEntities as $entityId => $entity) {
+                $ancestor = $entity->allParents;
+                while ($ancestor) {
+                    if (!isset($entityProjectMap[$ancestor->id])) {
+                        $entityProjectMap[$ancestor->id] = [];
+                    }
+                    $ancestor = $ancestor->allParents;
+                }
+            }
+        }
+
+        // 3. Gruppieren: EntityType → Entity-Baum → Projekte
         $entityTypeGroups = collect();
 
-        // Entities mit Types gruppieren
         $entityIds = array_keys($entityProjectMap);
         if (!empty($entityIds)) {
             $entities = OrganizationEntity::with('type')
@@ -173,12 +191,71 @@ class Sidebar extends Component
                 ->get()
                 ->keyBy('id');
 
+            // Eltern-Kind-Beziehungen innerhalb unseres Entity-Sets aufbauen
+            $entityChildrenMap = [];
+            $rootEntityIds = [];
+
+            foreach ($entities as $entity) {
+                $parentId = $entity->parent_entity_id;
+                if ($parentId && $entities->has($parentId)) {
+                    $entityChildrenMap[$parentId][] = $entity->id;
+                } else {
+                    $rootEntityIds[] = $entity->id;
+                }
+            }
+
+            // Rekursiver Baum-Builder
+            $buildTree = function (int $entityId) use (&$buildTree, $entities, $entityChildrenMap, $entityProjectMap, $projectsToShow): ?array {
+                $entity = $entities->get($entityId);
+                if (!$entity) {
+                    return null;
+                }
+
+                $childIds = $entityChildrenMap[$entityId] ?? [];
+                $children = collect($childIds)
+                    ->map(fn ($childId) => $buildTree($childId))
+                    ->filter()
+                    ->sortBy('entity_name')
+                    ->values();
+
+                $projects = collect($entityProjectMap[$entityId] ?? [])
+                    ->map(fn ($pid) => $projectsToShow->firstWhere('id', $pid))
+                    ->filter()
+                    ->values();
+
+                // Gesamtzahl Projekte (eigene + aller Kinder)
+                $totalProjects = $projects->count();
+                foreach ($children as $child) {
+                    $totalProjects += $child['total_projects'];
+                }
+
+                // Entity nur anzeigen wenn sie Projekte hat oder Kinder mit Projekten
+                if ($totalProjects === 0) {
+                    return null;
+                }
+
+                return [
+                    'entity_id' => $entityId,
+                    'entity_name' => $entity->name,
+                    'projects' => $projects,
+                    'children' => $children,
+                    'total_projects' => $totalProjects,
+                ];
+            };
+
+            // Root-Entities nach Typ gruppieren
             $groupedByType = [];
-            foreach ($entityProjectMap as $entityId => $projectIdsList) {
+            foreach ($rootEntityIds as $entityId) {
                 $entity = $entities->get($entityId);
                 if (!$entity || !$entity->type) {
                     continue;
                 }
+
+                $tree = $buildTree($entityId);
+                if (!$tree) {
+                    continue;
+                }
+
                 $typeId = $entity->type->id;
                 if (!isset($groupedByType[$typeId])) {
                     $groupedByType[$typeId] = [
@@ -189,22 +266,9 @@ class Sidebar extends Component
                         'entities' => [],
                     ];
                 }
-                if (!isset($groupedByType[$typeId]['entities'][$entityId])) {
-                    $groupedByType[$typeId]['entities'][$entityId] = [
-                        'entity_id' => $entityId,
-                        'entity_name' => $entity->name,
-                        'projects' => collect(),
-                    ];
-                }
-                foreach ($projectIdsList as $pid) {
-                    $project = $projectsToShow->firstWhere('id', $pid);
-                    if ($project) {
-                        $groupedByType[$typeId]['entities'][$entityId]['projects']->push($project);
-                    }
-                }
+                $groupedByType[$typeId]['entities'][] = $tree;
             }
 
-            // Sortieren und in Collection umwandeln
             $entityTypeGroups = collect($groupedByType)
                 ->sortBy('sort_order')
                 ->map(function ($group) {
