@@ -91,15 +91,17 @@
             @if($unlinkedProjects->isNotEmpty())
                 <x-ui-sidebar-list label="Unverknüpft">
                     @foreach($unlinkedProjects as $project)
-                        <x-ui-sidebar-item wire:key="unlinked-project-{{ $project->id }}" :href="route('planner.projects.show', ['plannerProject' => $project])" :title="$project->name">
-                            @svg('heroicon-o-folder', 'w-5 h-5 flex-shrink-0 text-[var(--ui-secondary)]')
-                            <div class="flex-1 min-w-0 ml-2 flex items-center gap-1.5">
-                                <span class="truncate text-sm font-medium">{{ $project->name }}</span>
-                                @if($project->color)
-                                    <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {{ $project->color }}"></span>
-                                @endif
-                            </div>
-                        </x-ui-sidebar-item>
+                        <a wire:key="unlinked-project-{{ $project->id }}"
+                           href="{{ route('planner.projects.show', ['plannerProject' => $project]) }}"
+                           wire:navigate
+                           title="{{ $project->name }}"
+                           class="flex items-center gap-1.5 py-1 px-2 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)] transition">
+                            @svg('heroicon-o-folder', 'w-3.5 h-3.5 flex-shrink-0 text-[var(--ui-muted)]')
+                            <span class="truncate text-xs">{{ $project->name }}</span>
+                            @if($project->color)
+                                <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 ml-auto" style="background-color: {{ $project->color }}"></span>
+                            @endif
+                        </a>
                     @endforeach
                 </x-ui-sidebar-list>
             @endif
