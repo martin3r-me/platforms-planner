@@ -95,9 +95,9 @@
                            href="{{ route('planner.projects.show', ['plannerProject' => $project]) }}"
                            wire:navigate
                            title="{{ $project->name }}"
-                           class="flex items-center gap-1.5 py-1 px-2 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)] transition">
-                            @svg('heroicon-o-folder', 'w-3.5 h-3.5 flex-shrink-0 text-[var(--ui-muted)]')
-                            <span class="truncate text-xs">{{ $project->name }}</span>
+                           class="flex items-center gap-1.5 py-0.5 pl-3 pr-2 text-[var(--ui-secondary)] hover:text-[var(--ui-primary)] transition truncate">
+                            <span class="w-1 h-1 rounded-full flex-shrink-0 bg-[var(--ui-muted)] opacity-40"></span>
+                            <span class="truncate text-[11px]">{{ $project->name }}</span>
                             @if($project->color)
                                 <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 ml-auto" style="background-color: {{ $project->color }}"></span>
                             @endif
