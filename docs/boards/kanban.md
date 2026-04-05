@@ -3,51 +3,100 @@ title: Kanban
 order: 2
 ---
 
-# Kanban
+# 🔄 Kanban — Arbeiten mit dem Board
 
-Das Kanban-Board ist die zentrale Arbeitsansicht innerhalb eines Projekts.
+Das Kanban-Board ist die zentrale Arbeitsansicht innerhalb eines Projekts. Hier wird Arbeit sichtbar, verschiebbar und nachvollziehbar.
 
-## Grundprinzip
+---
 
-Aufgaben werden als Karten dargestellt und per **Drag & Drop** zwischen Slots (Spalten) verschoben. So bildet das Board den Arbeitsfluss ab.
+## Das Grundprinzip
+
+Kanban bedeutet wörtlich "visuelles Signal". Die Idee ist einfach:
+
+1. **Jede Aufgabe ist eine Karte**
+2. **Jede Spalte ist eine Phase**
+3. **Karten wandern von links nach rechts** — vom Anfang bis zur Fertigstellung
+
+Das Board zeigt dir jederzeit den aktuellen Stand: Was wird gerade bearbeitet? Was wartet? Was ist fertig?
+
+---
 
 ## Aufgaben erstellen
 
-Es gibt zwei Wege, Aufgaben im Board zu erstellen:
+Es gibt zwei Wege:
 
-1. **Im Slot** — Klicke auf **+ Aufgabe** am unteren Rand eines Slots. Die Aufgabe wird direkt in diesem Slot erstellt.
-2. **Im Backlog** — Aufgaben ohne Slot-Zuordnung landen im Backlog und können später in einen Slot gezogen werden.
+### Im Slot
+
+Klicke auf **+ Aufgabe** am unteren Rand eines Slots. Die Aufgabe wird direkt in dieser Phase erstellt — z. B. eine Aufgabe direkt in "In Arbeit", wenn du sofort loslegen willst.
+
+### Im Backlog
+
+Erstelle die Aufgabe im Backlog, wenn du sie noch nicht einplanen willst. Von dort ziehst du sie später in den passenden Slot.
+
+---
 
 ## Aufgaben verschieben
 
-Ziehe eine Aufgabenkarte in einen anderen Slot, um ihren Status zu ändern. Die Reihenfolge innerhalb eines Slots kannst du ebenfalls per Drag & Drop anpassen.
+**Drag & Drop** ist das Herzstück des Boards:
 
-## Aufgabenkarten
+- Ziehe eine Karte **in einen anderen Slot**, um die Phase zu ändern
+- Ziehe eine Karte **innerhalb eines Slots**, um die Reihenfolge zu ändern
+- Ziehe eine Karte **aus dem Backlog** in einen Slot, um sie einzuplanen
 
-Jede Karte zeigt auf einen Blick:
+> Jede Verschiebung wird sofort gespeichert. Du brauchst nichts extra bestätigen.
 
-- **Titel** der Aufgabe
-- **Verantwortlicher** — die zugewiesene Person
-- **Fälligkeitsdatum** — falls gesetzt
-- **Priorität** — Niedrig, Normal oder Hoch
-- **Story Points** — Aufwandsschätzung (XS, S, M, L, XL, XXL)
-- **Frosch-Symbol** — wenn die Aufgabe ein Frosch ist
+---
 
-## Backlog
+## Was du auf jeder Karte siehst
 
-Der Backlog ist die erste Spalte (ganz links). Hier landen:
+Jede Aufgabenkarte zeigt auf einen Blick die wichtigsten Informationen:
 
-- Neu erstellte Aufgaben ohne Slot-Zuordnung
-- Aufgaben, die bewusst noch nicht eingeplant sind
+| Element | Bedeutung |
+|---------|-----------|
+| **Titel** | Worum geht es? |
+| **👤 Verantwortlicher** | Wer ist dran? |
+| **📅 Fälligkeitsdatum** | Bis wann? Wird rot, wenn überfällig |
+| **⬆️ Priorität** | Niedrig · Normal · Hoch |
+| **🔢 Story Points** | Aufwandsschätzung (XS bis XXL) |
+| **🐸 Frosch** | Aufgabe ist ein [Frosch](../froesche) |
+| **📋 DoD-Fortschritt** | Wie weit ist die Definition of Done? |
 
-Aus dem Backlog ziehst du Aufgaben in die aktiven Slots, wenn sie dran sind.
+Klicke auf eine Karte, um die Aufgabe im Detail zu öffnen und zu bearbeiten.
 
-## Erledigte Aufgaben
+---
 
-Die Spalte "Erledigt" ist standardmäßig ausgeblendet und kann bei Bedarf eingeblendet werden. Sie zeigt alle abgeschlossenen Aufgaben des Projekts.
+## Der Backlog
 
-## Tipps
+Der Backlog ist mehr als eine Restspalte — er ist dein **Planungspuffer**:
 
-- Halte die Anzahl der Slots übersichtlich — 3 bis 5 Spalten sind ideal
-- Nutze den Backlog als Sammelstelle für Ideen und künftige Arbeit
-- Verschiebe Aufgaben regelmäßig, damit das Board den aktuellen Stand zeigt
+- 💡 **Ideenspeicher** — Halte Aufgaben fest, bevor du sie einplanst
+- 📋 **Priorisierung** — Sortiere den Backlog nach Wichtigkeit
+- 🎯 **Pull-Prinzip** — Ziehe Aufgaben erst in einen Slot, wenn Kapazität frei ist
+
+> Im Kanban-Denken "pusht" man Arbeit nicht in Slots — man "pullt" sie, wenn man bereit ist. Der Backlog macht das möglich.
+
+---
+
+## Erledigte Aufgaben ein-/ausblenden
+
+Die Spalte "Erledigt" ist standardmäßig ausgeblendet, damit dein Board aufgeräumt bleibt. Du kannst sie jederzeit einblenden, um abgeschlossene Aufgaben zu sehen — z. B. für einen Rückblick oder um eine Aufgabe wieder zu öffnen.
+
+---
+
+## Best Practices
+
+### 🎯 Weniger ist mehr
+
+Halte die Anzahl der Slots bei **3 bis 5**. Zu viele Spalten machen das Board unübersichtlich und verwässern den Arbeitsfluss.
+
+### 🔄 Board aktuell halten
+
+Ein Board, das nicht gepflegt wird, verliert seinen Wert. Verschiebe Karten, wenn sich der Status ändert. Ein kurzer täglicher Board-Check reicht.
+
+### 📏 Arbeit begrenzen
+
+Versuche, nicht zu viele Aufgaben gleichzeitig "In Arbeit" zu haben. Weniger parallele Arbeit bedeutet schnellere Fertigstellung und bessere Qualität.
+
+### 🤝 Als Team nutzen
+
+Im Standup-Meeting ist das Board euer gemeinsamer Bezugspunkt: Jeder sieht, woran die anderen arbeiten, wo es hakt und wo Hilfe gebraucht wird.

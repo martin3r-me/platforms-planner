@@ -3,33 +3,60 @@ title: Projektansicht
 order: 1
 ---
 
-# Projektansicht
+# 📊 Projektansicht
 
-Jedes Projekt wird als **Kanban-Board** dargestellt. Die Ansicht besteht aus Spalten (Slots), in denen Aufgaben organisiert werden.
+Wenn du ein Projekt öffnest, siehst du es als **Kanban-Board** — eine visuelle Darstellung deiner Arbeit in Spalten.
 
-## Aufbau
+---
 
-Ein Projekt-Board hat folgende Bereiche:
+## Aufbau eines Projekt-Boards
 
-- **Backlog** — Aufgaben, die zum Projekt gehören, aber noch keinem Slot zugeordnet sind
-- **Slots** — Frei benennbare Spalten zur Organisation (z. B. "To Do", "In Arbeit", "Review", "Fertig" — oder Phasen, Sprints, Kategorien)
-- **Erledigt** — Optional einblendbare Spalte für abgeschlossene Aufgaben
+Jedes Board besteht aus drei Bereichen:
 
-## Slots
+### 📥 Backlog
 
-Slots sind die Spalten des Kanban-Boards. Du kannst sie frei benennen und beliebig viele anlegen. Typische Verwendungen:
+Die erste Spalte, ganz links. Hier landen Aufgaben, die zum Projekt gehören, aber noch keinem Slot zugeordnet sind. Der Backlog ist dein Ideenspeicher und Warteschlange:
 
-- **Status-basiert:** To Do → In Arbeit → Review → Fertig
-- **Phasen:** Planung → Umsetzung → Test → Launch
-- **Sprints:** Sprint 1 → Sprint 2 → Sprint 3
-- **Kategorien:** Frontend → Backend → Design
+- Neue Aufgaben, die noch nicht eingeplant sind
+- Ideen, die du festhalten willst
+- Arbeit, die noch priorisiert werden muss
+
+### 📊 Slots
+
+Die Spalten zwischen Backlog und Erledigt. Das sind deine **frei definierbaren Arbeitsphasen**. Du bestimmst:
+
+- Wie viele Spalten es gibt
+- Wie sie heißen
+- In welcher Reihenfolge sie stehen
+
+### ✅ Erledigt
+
+Die optionale letzte Spalte. Zeigt abgeschlossene Aufgaben. Standardmäßig ausgeblendet, um den Fokus auf offene Arbeit zu halten. Bei Bedarf einblendbar.
+
+---
+
+## Slots — Deine Spalten, deine Regeln
+
+Slots sind das Herzstück des Boards. Du kannst sie frei benennen und beliebig viele anlegen. Hier ein paar Inspirationen:
+
+| Ansatz | Beispiel-Slots |
+|--------|---------------|
+| **Klassisch** | To Do → In Arbeit → Review → Fertig |
+| **Phasen** | Konzept → Design → Entwicklung → Test → Launch |
+| **Sprints** | Sprint 1 → Sprint 2 → Sprint 3 |
+| **Kanban** | Bereit → Läuft → Prüfung → Abgenommen |
+| **Einfach** | Offen → Erledigt |
+
+> 💡 Es gibt kein "richtig" oder "falsch". Finde die Struktur, die für dein Projekt und dein Team am besten funktioniert. Im Zweifel: Starte einfach und passe an.
 
 ### Slot erstellen
 
-Klicke auf **+ Slot** am rechten Rand des Boards, um eine neue Spalte hinzuzufügen.
+Klicke auf **+ Slot** am rechten Rand des Boards. Der neue Slot wird am Ende hinzugefügt und kann sofort benannt werden.
 
 ### Slots sortieren
 
-Slots können per Drag & Drop in der Reihenfolge verändert werden.
+Die Reihenfolge der Slots änderst du per **Drag & Drop** — ziehe den Spaltenkopf an die gewünschte Position.
 
-Mehr zur Kanban-Ansicht: [Kanban im Detail](kanban)
+---
+
+Mehr zur Arbeit mit dem Board: [Kanban im Detail](kanban)
