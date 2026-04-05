@@ -1,32 +1,35 @@
 ---
-title: Boards
+title: Projektansicht
 order: 1
 ---
 
-# Boards
+# Projektansicht
 
-Boards sind die zentrale Organisationseinheit im Planner. Jedes Board gehört zu einem Projekt und bietet verschiedene Ansichten für deine Aufgaben.
+Jedes Projekt wird als **Kanban-Board** dargestellt. Die Ansicht besteht aus Spalten (Slots), in denen Aufgaben organisiert werden.
 
-## Board-Typen
+## Aufbau
 
-| Ansicht | Beschreibung |
-|---------|-------------|
-| Kanban | Spaltenbasierte Ansicht mit Drag & Drop |
-| Liste | Einfache Listenansicht |
-| Tabelle | Tabellarische Ansicht mit Sortierung und Filtern |
+Ein Projekt-Board hat folgende Bereiche:
 
-## Board erstellen
+- **Backlog** — Aufgaben, die zum Projekt gehören, aber noch keinem Slot zugeordnet sind
+- **Slots** — Frei benennbare Spalten zur Organisation (z. B. "To Do", "In Arbeit", "Review", "Fertig" — oder Phasen, Sprints, Kategorien)
+- **Erledigt** — Optional einblendbare Spalte für abgeschlossene Aufgaben
 
-1. Navigiere zum gewünschten Projekt
-2. Klicke auf **+ Board**
-3. Gib einen Namen ein und wähle die Ansicht
-4. Optional: Definiere Spalten (bei Kanban) oder Felder (bei Tabelle)
+## Slots
 
-## Board-Einstellungen
+Slots sind die Spalten des Kanban-Boards. Du kannst sie frei benennen und beliebig viele anlegen. Typische Verwendungen:
 
-In den Board-Einstellungen kannst du:
+- **Status-basiert:** To Do → In Arbeit → Review → Fertig
+- **Phasen:** Planung → Umsetzung → Test → Launch
+- **Sprints:** Sprint 1 → Sprint 2 → Sprint 3
+- **Kategorien:** Frontend → Backend → Design
 
-- Den Board-Namen ändern
-- Die Ansicht wechseln
-- Spalten/Felder konfigurieren
-- Zugriffsrechte verwalten
+### Slot erstellen
+
+Klicke auf **+ Slot** am rechten Rand des Boards, um eine neue Spalte hinzuzufügen.
+
+### Slots sortieren
+
+Slots können per Drag & Drop in der Reihenfolge verändert werden.
+
+Mehr zur Kanban-Ansicht: [Kanban im Detail](kanban)

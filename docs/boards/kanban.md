@@ -1,33 +1,53 @@
 ---
-title: Kanban-Boards
+title: Kanban
 order: 2
 ---
 
-# Kanban-Boards
+# Kanban
 
-Die Kanban-Ansicht zeigt Aufgaben in Spalten, die verschiedene Status oder Phasen repräsentieren.
+Das Kanban-Board ist die zentrale Arbeitsansicht innerhalb eines Projekts.
 
-## Aufbau
+## Grundprinzip
 
-Jede Spalte entspricht einem Status (z. B. *Offen*, *In Bearbeitung*, *Erledigt*). Aufgaben werden als Karten dargestellt und können per **Drag & Drop** zwischen Spalten verschoben werden.
-
-## Spalten verwalten
-
-- **Neue Spalte:** Klicke auf **+ Spalte** am rechten Rand
-- **Umbenennen:** Doppelklick auf den Spaltennamen
-- **Reihenfolge:** Spalten können per Drag & Drop sortiert werden
-- **Löschen:** Über das Kontextmenü der Spalte (nur möglich, wenn keine Aufgaben enthalten)
+Aufgaben werden als Karten dargestellt und per **Drag & Drop** zwischen Slots (Spalten) verschoben. So bildet das Board den Arbeitsfluss ab.
 
 ## Aufgaben erstellen
 
-Klicke auf **+ Aufgabe** am unteren Rand einer Spalte, um eine neue Aufgabe direkt in diesem Status zu erstellen.
+Es gibt zwei Wege, Aufgaben im Board zu erstellen:
 
-## WIP-Limits
+1. **Im Slot** — Klicke auf **+ Aufgabe** am unteren Rand eines Slots. Die Aufgabe wird direkt in diesem Slot erstellt.
+2. **Im Backlog** — Aufgaben ohne Slot-Zuordnung landen im Backlog und können später in einen Slot gezogen werden.
 
-Optional können Work-in-Progress-Limits pro Spalte gesetzt werden. Spalten mit überschrittenem Limit werden visuell hervorgehoben.
+## Aufgaben verschieben
+
+Ziehe eine Aufgabenkarte in einen anderen Slot, um ihren Status zu ändern. Die Reihenfolge innerhalb eines Slots kannst du ebenfalls per Drag & Drop anpassen.
+
+## Aufgabenkarten
+
+Jede Karte zeigt auf einen Blick:
+
+- **Titel** der Aufgabe
+- **Verantwortlicher** — die zugewiesene Person
+- **Fälligkeitsdatum** — falls gesetzt
+- **Priorität** — Niedrig, Normal oder Hoch
+- **Story Points** — Aufwandsschätzung (XS, S, M, L, XL, XXL)
+- **Frosch-Symbol** — wenn die Aufgabe ein Frosch ist
+
+## Backlog
+
+Der Backlog ist die erste Spalte (ganz links). Hier landen:
+
+- Neu erstellte Aufgaben ohne Slot-Zuordnung
+- Aufgaben, die bewusst noch nicht eingeplant sind
+
+Aus dem Backlog ziehst du Aufgaben in die aktiven Slots, wenn sie dran sind.
+
+## Erledigte Aufgaben
+
+Die Spalte "Erledigt" ist standardmäßig ausgeblendet und kann bei Bedarf eingeblendet werden. Sie zeigt alle abgeschlossenen Aufgaben des Projekts.
 
 ## Tipps
 
-- Nutze `N` zum schnellen Erstellen einer neuen Aufgabe
-- Mit `F` öffnest du den Filter
-- Karten können auch über das Kontextmenü verschoben werden
+- Halte die Anzahl der Slots übersichtlich — 3 bis 5 Spalten sind ideal
+- Nutze den Backlog als Sammelstelle für Ideen und künftige Arbeit
+- Verschiebe Aufgaben regelmäßig, damit das Board den aktuellen Stand zeigt
