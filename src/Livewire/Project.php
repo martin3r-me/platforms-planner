@@ -86,11 +86,8 @@ class Project extends Component
             'context_id' => $this->project->id,
         ]);
 
-        // Tagging-Kontext setzen - ermöglicht Tagging und Farbzuweisung für dieses Projekt
-        $this->dispatch('tagging', [
-            'context_type' => get_class($this->project),
-            'context_id' => $this->project->id,
-        ]);
+        // Tags-Tab im Terminal aktivieren
+        $this->dispatch('terminal:app:tags');
 
         // Extra-Fields-Kontext setzen (für Modal-Definitionen)
         $this->dispatch('extrafields', [

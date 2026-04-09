@@ -279,11 +279,8 @@ class Task extends Component
             'context_id' => $this->task->id,
         ]);
 
-        // Tagging-Kontext setzen - ermöglicht Tagging dieser Task
-        $this->dispatch('tagging', [
-            'context_type' => get_class($this->task),
-            'context_id' => $this->task->id,
-        ]);
+        // Tags-Tab im Terminal aktivieren
+        $this->dispatch('terminal:app:tags');
 
         // Files-Tab im Terminal aktivieren
         $this->dispatch('terminal:app:files');
