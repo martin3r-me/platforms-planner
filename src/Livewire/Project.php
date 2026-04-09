@@ -67,6 +67,7 @@ class Project extends Component
         ]);
 
         $this->dispatch('terminal:app:activity');
+        $this->dispatch('terminal:app:files');
 
         // Organization-Kontext setzen - beides erlauben: Zeiten + Entity-Verknüpfung + Dimensionen
         $this->dispatch('organization', [
