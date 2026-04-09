@@ -285,11 +285,8 @@ class Task extends Component
             'context_id' => $this->task->id,
         ]);
 
-        // Files-Kontext setzen - ermöglicht Datei-Upload für diese Task
-        $this->dispatch('files', [
-            'context_type' => get_class($this->task),
-            'context_id' => $this->task->id,
-        ]);
+        // Files-Tab im Terminal aktivieren
+        $this->dispatch('terminal:app:files');
 
         // Playground-Kontext setzen - ermöglicht LLM den Task-Kontext zu kennen
         \Log::info('[Playground] Task dispatching playground event', ['task_id' => $this->task->id, 'title' => $this->task->title]);
