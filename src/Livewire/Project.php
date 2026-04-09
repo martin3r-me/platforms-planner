@@ -48,14 +48,6 @@ class Project extends Component
 
     public function rendered()
     {
-        // DEBUG: Log dass rendered() ausgelöst wurde
-        \Log::info("PROJECT RENDERED EVENT:", [
-            'project_id' => $this->project->id,
-            'project_name' => $this->project->name,
-            'url' => route('planner.projects.show', $this->project),
-            'timestamp' => now()
-        ]);
-
         $this->dispatch('comms', [
             'model' => get_class($this->project),
             'modelId' => $this->project->id,
@@ -74,11 +66,7 @@ class Project extends Component
             ],
         ]);
 
-        // DEBUG: Log dass comms Event gesendet wurde
-        \Log::info("PROJECT COMMS EVENT GESENDET:", [
-            'project_id' => $this->project->id,
-            'project_name' => $this->project->name
-        ]);
+        $this->dispatch('terminal:app:activity');
 
         // Organization-Kontext setzen - beides erlauben: Zeiten + Entity-Verknüpfung + Dimensionen
         $this->dispatch('organization', [

@@ -260,6 +260,8 @@ class Task extends Component
             ],
         ]);
 
+        $this->dispatch('terminal:app:activity');
+
         // Organization-Kontext setzen - nur Zeiten erlauben, keine Entity-Verknüpfung, keine Dimensionen
         $this->dispatch('organization', [
             'context_type' => get_class($this->task),
