@@ -19,12 +19,13 @@ use Platform\Core\Models\Concerns\HasEntityLinks;
 use Platform\ActivityLog\Traits\LogsActivity;
 use Platform\Core\Contracts\HasKeyResultAncestors;
 use Platform\Core\Contracts\HasDisplayName;
+use Platform\Core\Contracts\AgendaRenderable;
 use Platform\Planner\Enums\CustomerBillingMethod;
 
 /**
  * @ai.description Projekt bündelt Aufgaben (Tasks) und Sprints. Dient als Container für Planung, Ressourcen und Fortschritt eines Vorhabens im Team.
  */
-class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayName
+class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayName, AgendaRenderable
 {
     use HasTimeEntries, HasOrganizationContexts, HasColors, HasTags, HasExtraFields, HasEntityLinks, LogsActivity;
 
@@ -158,5 +159,21 @@ class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayN
     public function getDisplayName(): ?string
     {
         return $this->name;
+    }
+
+    // ── AgendaRenderable ──────────────────────────────────────
+
+    public function toAgendaItem(): array
+    {
+        return [
+            'title' => $this->name,
+            'description' => $this->description ? \Illuminate\Support\Str::limit($this->description, 120) : null,
+            'icon' => '📁',
+            'color' => $this->color,
+            'status' => $this->done ? 'Erledigt' : 'Offen',
+            'status_color' => $this->done ? 'green' : 'blue',
+            'url' => route('planner.projects.show', $this),
+            'meta' => ['project_type' => $this->project_type?->value],
+        ];
     }
 }

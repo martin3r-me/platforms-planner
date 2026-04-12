@@ -18,11 +18,12 @@ use Platform\Core\Traits\HasExtraFields;
 use Platform\Core\Contracts\HasKeyResultAncestors;
 use Platform\Core\Contracts\HasDisplayName;
 use Platform\Core\Contracts\InheritsExtraFields;
+use Platform\Core\Contracts\AgendaRenderable;
 
 /**
  * @ai.description Aufgaben können optional einem Projekt zugeordnet sein (über ProjectSlot). Ohne Projekt sind es persönliche Aufgaben des Nutzers. TaskGroups und Slots dienen der Planung und Strukturierung der Arbeit.
  */
-class PlannerTask extends Model implements HasKeyResultAncestors, HasDisplayName, InheritsExtraFields
+class PlannerTask extends Model implements HasKeyResultAncestors, HasDisplayName, InheritsExtraFields, AgendaRenderable
 {
     use HasFactory, SoftDeletes, LogsActivity, HasTimeEntries, HasTags, HasColors, Encryptable, HasExtraFields;
 
@@ -306,5 +307,25 @@ class PlannerTask extends Model implements HasKeyResultAncestors, HasDisplayName
     public function extraFieldParents(): array
     {
         return array_filter([$this->project]);
+    }
+
+    // ── AgendaRenderable ──────────────────────────────────────
+
+    public function toAgendaItem(): array
+    {
+        return [
+            'title' => $this->title,
+            'description' => $this->description ? \Illuminate\Support\Str::limit($this->description, 120) : null,
+            'icon' => '✅',
+            'color' => $this->color,
+            'status' => $this->is_done ? 'Erledigt' : ($this->status ?? 'Offen'),
+            'status_color' => $this->is_done ? 'green' : 'blue',
+            'url' => route('planner.tasks.show', $this),
+            'meta' => [
+                'due_date' => $this->due_date?->toDateString(),
+                'story_points' => $this->story_points?->value,
+                'is_frog' => $this->is_frog,
+            ],
+        ];
     }
 }
