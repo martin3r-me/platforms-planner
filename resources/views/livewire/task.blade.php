@@ -5,7 +5,7 @@
 
     <x-slot name="actionbar">
         <x-ui-page-actionbar :breadcrumbs="array_filter([
-            ['label' => 'Planner', 'href' => route('planner.dashboard'), 'icon' => 'clipboard-document-list'],
+            ['label' => 'Projekte', 'href' => route('planner.dashboard'), 'icon' => 'clipboard-document-list'],
             ['label' => 'Meine Aufgaben', 'href' => route('planner.my-tasks')],
             $task->project ? ['label' => $task->project->name, 'href' => route('planner.projects.show', ['plannerProject' => $task->project->id])] : null,
             ['label' => Str::limit($task->title, 40)],

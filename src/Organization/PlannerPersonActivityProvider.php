@@ -17,7 +17,7 @@ class PlannerPersonActivityProvider implements PersonActivityProvider
     public function sectionConfig(): array
     {
         return [
-            'label' => 'Planner',
+            'label' => 'Projekte',
             'icon' => 'clipboard-document-check',
             'description' => 'Projekte und Aufgaben',
         ];

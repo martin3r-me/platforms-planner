@@ -15,7 +15,7 @@ class PlannerContextPresenter implements ContextPresenterInterface
             if (!$t) return null;
             return [
                 'title' => $t->title ?: ('Task #' . $t->id),
-                'subtitle' => 'Planner Task #' . $t->id,
+                'subtitle' => 'Aufgabe #' . $t->id,
                 'url' => route('planner.tasks.show', $t),
             ];
         }
@@ -25,7 +25,7 @@ class PlannerContextPresenter implements ContextPresenterInterface
             if (!$p) return null;
             return [
                 'title' => $p->name ?: ('Project #' . $p->id),
-                'subtitle' => 'Planner Project #' . $p->id,
+                'subtitle' => 'Projekt #' . $p->id,
                 'url' => route('planner.projects.show', $p),
             ];
         }

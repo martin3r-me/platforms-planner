@@ -5,7 +5,7 @@
 
     <x-slot name="actionbar">
         <x-ui-page-actionbar :breadcrumbs="[
-            ['label' => 'Planner', 'icon' => 'clipboard-document-list'],
+            ['label' => 'Projekte', 'icon' => 'clipboard-document-list'],
         ]" />
     </x-slot>
 

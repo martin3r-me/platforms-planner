@@ -66,6 +66,14 @@ class PlannerServiceProvider extends ServiceProvider
             // Organization-Modul nicht geladen
         }
 
+        // PersonActivityProvider registrieren (loose Kopplung mit Organization-Modul)
+        try {
+            resolve(\Platform\Organization\Services\PersonActivityRegistry::class)
+                ->register(new \Platform\Planner\Organization\PlannerPersonActivityProvider());
+        } catch (\Throwable $e) {
+            // Organization-Modul nicht geladen
+        }
+
         // Modul-Registrierung nur, wenn Config & Tabelle vorhanden
         if (
             config()->has('planner.routing') &&
@@ -74,7 +82,7 @@ class PlannerServiceProvider extends ServiceProvider
         ) {
             PlatformCore::registerModule([
                 'key'        => 'planner',
-                'title'      => 'Planner',
+                'title'      => 'Projekte',
                 'group'      => 'planning',
                 'routing'    => config('planner.routing'),
                 'guard'      => config('planner.guard'),

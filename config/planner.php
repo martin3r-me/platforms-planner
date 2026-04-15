@@ -66,8 +66,8 @@ return [
             'type' => 'per_item',
 
             // Für UI, Listen, Erklärungen:
-            'label' => 'Planner-Aufgabe',
-            'description' => 'Jede erstellte Aufgabe im Planner verursacht tägliche Kosten nach Nutzung.',
+            'label' => 'Aufgabe',
+            'description' => 'Jede erstellte Aufgabe verursacht tägliche Kosten nach Nutzung.',
 
             // PREISSTAFFELUNG: Ein Array mit mehreren Preisstufen!
             'pricing' => [
@@ -106,8 +106,8 @@ return [
             'type' => 'per_item',
 
             // Für UI, Listen, Erklärungen:
-            'label' => 'Planner-Projekt',
-            'description' => 'Jede erstelltes Projekt im Planner verursacht tägliche Kosten nach Nutzung.',
+            'label' => 'Projekt',
+            'description' => 'Jedes erstellte Projekt verursacht tägliche Kosten nach Nutzung.',
 
             // PREISSTAFFELUNG: Ein Array mit mehreren Preisstufen!
             'pricing' => [

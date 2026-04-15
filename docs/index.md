@@ -1,5 +1,5 @@
 ---
-title: Planner — Überblick
+title: Projekte — Überblick
 order: 1
 ---
 

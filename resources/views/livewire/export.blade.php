@@ -5,7 +5,7 @@
 
     <x-slot name="actionbar">
         <x-ui-page-actionbar :breadcrumbs="[
-            ['label' => 'Planner', 'href' => route('planner.dashboard'), 'icon' => 'clipboard-document-list'],
+            ['label' => 'Projekte', 'href' => route('planner.dashboard'), 'icon' => 'clipboard-document-list'],
             ['label' => 'Export'],
         ]" />
     </x-slot>
