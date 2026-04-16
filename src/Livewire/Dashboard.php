@@ -226,21 +226,52 @@ class Dashboard extends Component
             ->count();
 
         // === ECHTE AKTIVITÄTEN ===
+        // Hinweis: ActivityLogActivity::subject() ist morphTo() ohne Argument und passt damit
+        // nicht zu den tatsächlichen Spalten activityable_type/activityable_id. Daher manuell auflösen.
+        $teamProjectIds = PlannerProject::where('team_id', $team->id)->pluck('id');
+        $teamTaskIds = PlannerTask::where('team_id', $team->id)->pluck('id');
+
         $recentActivities = ActivityLogActivity::query()
-            ->whereIn('activityable_type', [
-                PlannerProject::class,
-                PlannerTask::class,
-            ])
-            ->where(function ($q) use ($team) {
-                // Über Morph-Query: Subjekt muss zum Team gehören
-                $q->whereHasMorph('subject', [PlannerProject::class, PlannerTask::class], function ($mq) use ($team) {
-                    $mq->where('team_id', $team->id);
+            ->where(function ($q) use ($teamProjectIds, $teamTaskIds) {
+                $q->where(function ($sq) use ($teamProjectIds) {
+                    $sq->where('activityable_type', PlannerProject::class)
+                       ->whereIn('activityable_id', $teamProjectIds);
                 });
+                if ($teamTaskIds->isNotEmpty()) {
+                    $q->orWhere(function ($sq) use ($teamTaskIds) {
+                        $sq->where('activityable_type', PlannerTask::class)
+                           ->whereIn('activityable_id', $teamTaskIds);
+                    });
+                }
             })
-            ->with(['subject', 'user'])
+            ->with('user')
             ->latest()
             ->limit(10)
             ->get();
+
+        // Subjekte manuell auflösen (Name/Title)
+        $activityProjectIds = $recentActivities
+            ->where('activityable_type', PlannerProject::class)
+            ->pluck('activityable_id');
+        $activityTaskIds = $recentActivities
+            ->where('activityable_type', PlannerTask::class)
+            ->pluck('activityable_id');
+
+        $projectNameMap = PlannerProject::whereIn('id', $activityProjectIds)->pluck('name', 'id');
+        $taskTitleMap = PlannerTask::whereIn('id', $activityTaskIds)->pluck('title', 'id');
+
+        $recentActivities->each(function ($activity) use ($projectNameMap, $taskTitleMap) {
+            $activity->subject_label = match ($activity->activityable_type) {
+                PlannerProject::class => $projectNameMap[$activity->activityable_id] ?? 'Projekt',
+                PlannerTask::class => $taskTitleMap[$activity->activityable_id] ?? 'Aufgabe',
+                default => 'Element',
+            };
+            $activity->subject_kind = match ($activity->activityable_type) {
+                PlannerProject::class => 'Projekt',
+                PlannerTask::class => 'Aufgabe',
+                default => null,
+            };
+        });
 
         // Trends
         $monthlyCompletedTrend = $this->calcTrend($monthlyCompletedTasks, $lastMonthCompletedTasks);

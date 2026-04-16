@@ -391,8 +391,6 @@
                     <div class="space-y-2 text-sm">
                         @forelse($recentActivities as $activity)
                             @php
-                                $subject = $activity->subject;
-                                $subjectName = $subject?->title ?? $subject?->name ?? 'Element';
                                 $eventLabel = match($activity->name) {
                                     'created' => 'erstellt',
                                     'updated' => 'aktualisiert',
@@ -402,7 +400,11 @@
                             @endphp
                             <div class="p-2 rounded border border-[color:var(--ui-border)]/60 bg-[color:var(--ui-muted-5)]">
                                 <div class="font-medium text-[color:var(--ui-secondary)] truncate">
-                                    {{ \Illuminate\Support\Str::limit($subjectName, 40) }} {{ $eventLabel }}
+                                    @if($activity->subject_kind)
+                                        <span class="text-[color:var(--ui-muted)]">{{ $activity->subject_kind }}:</span>
+                                    @endif
+                                    {{ \Illuminate\Support\Str::limit($activity->subject_label ?? 'Element', 40) }}
+                                    <span class="text-[color:var(--ui-muted)] font-normal">{{ $eventLabel }}</span>
                                 </div>
                                 <div class="text-[color:var(--ui-muted)] text-xs flex items-center gap-2">
                                     <span>{{ $activity->created_at->diffForHumans() }}</span>
