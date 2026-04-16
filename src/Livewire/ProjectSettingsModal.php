@@ -29,6 +29,10 @@ class ProjectSettingsModal extends Component
     public string $canvasSearch = '';
     public array $availableCanvases = [];
 
+    // Public Sharing
+    public bool $isPublic = false;
+    public ?string $publicUrl = null;
+
     public $activeTab = 'general';
 
     #[On('open-modal-project-settings')]
@@ -75,6 +79,10 @@ class ProjectSettingsModal extends Component
 
         // Canvas-Links laden
         $this->loadLinkedCanvases();
+
+        // Public Sharing laden
+        $this->isPublic = (bool) $this->project->is_public;
+        $this->publicUrl = $this->project->getPublicUrl();
 
         // Tab setzen (default oder übergeben)
         $this->activeTab = $tab ?? 'general';
@@ -191,6 +199,34 @@ class ProjectSettingsModal extends Component
         }
         $this->project->project_type = $type;
         $this->projectType = $type;
+    }
+
+    // ── Public Sharing ──────────────────────────────────────────────
+
+    public function enablePublicLink(): void
+    {
+        $this->authorize('update', $this->project);
+
+        $this->project->generatePublicToken();
+        $this->isPublic = true;
+        $this->publicUrl = $this->project->getPublicUrl();
+    }
+
+    public function disablePublicLink(): void
+    {
+        $this->authorize('update', $this->project);
+
+        $this->project->revokePublicToken();
+        $this->isPublic = false;
+        $this->publicUrl = null;
+    }
+
+    public function regeneratePublicLink(): void
+    {
+        $this->authorize('update', $this->project);
+
+        $this->project->generatePublicToken();
+        $this->publicUrl = $this->project->getPublicUrl();
     }
 
     // ── Canvas Links ──────────────────────────────────────────────

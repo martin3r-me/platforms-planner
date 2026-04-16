@@ -10,7 +10,7 @@
 <x-ui-kanban-card
     :title="''"
     :sortable-id="$task->id"
-    :href="route('planner.tasks.show', $task)"
+    :href="($publicMode ?? false) ? null : route('planner.tasks.show', $task)"
 >
     <!-- Kontext Farbe und Tags (ganz oben, premium) -->
     @if($contextColor || $contextTags->isNotEmpty())

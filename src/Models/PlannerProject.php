@@ -47,6 +47,9 @@ class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayN
         'currency',
         'done',
         'done_at',
+        'public_token',
+        'is_public',
+        'public_token_expires_at',
     ];
 
     protected $casts = [
@@ -59,6 +62,8 @@ class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayN
         'estimated_hours' => 'decimal:2',
         'done' => 'boolean',
         'done_at' => 'datetime',
+        'is_public' => 'boolean',
+        'public_token_expires_at' => 'datetime',
     ];
 
     protected static function booted(): void
@@ -159,6 +164,47 @@ class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayN
     public function getDisplayName(): ?string
     {
         return $this->name;
+    }
+
+    // ── AgendaRenderable ──────────────────────────────────────
+
+    // ── Public Sharing ─────────────────────────────────────
+
+    public function generatePublicToken(): void
+    {
+        $this->public_token = bin2hex(random_bytes(16));
+        $this->is_public = true;
+        $this->save();
+    }
+
+    public function revokePublicToken(): void
+    {
+        $this->public_token = null;
+        $this->is_public = false;
+        $this->public_token_expires_at = null;
+        $this->save();
+    }
+
+    public function isPublicAccessible(): bool
+    {
+        if (!$this->is_public || !$this->public_token) {
+            return false;
+        }
+
+        if ($this->public_token_expires_at && $this->public_token_expires_at->isPast()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public function getPublicUrl(): ?string
+    {
+        if (!$this->public_token) {
+            return null;
+        }
+
+        return route('planner.public.show', $this->public_token);
     }
 
     // ── AgendaRenderable ──────────────────────────────────────

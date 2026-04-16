@@ -37,6 +37,16 @@
                         Canvases
                     </button>
                 @endcan
+                @can('update', $project)
+                    <button
+                        type="button"
+                        @click="activeTab = 'sharing'"
+                        class="px-4 py-2 text-sm font-medium transition-colors border-b-2"
+                        :class="activeTab === 'sharing' ? 'text-[var(--ui-primary)] border-[var(--ui-primary)]' : 'text-[var(--ui-muted)] border-transparent hover:text-[var(--ui-secondary)]'"
+                    >
+                        Teilen
+                    </button>
+                @endcan
             </div>
 
             {{-- Tab: Allgemein --}}
@@ -463,6 +473,89 @@
                                 </div>
                             @elseif(strlen($canvasSearch) >= 2)
                                 <p class="mt-3 text-sm text-[var(--ui-muted)]">Keine Canvases gefunden.</p>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            @endcan
+
+            {{-- Tab: Teilen --}}
+            @can('update', $project)
+                <div x-show="activeTab === 'sharing'" x-transition>
+                    <div class="space-y-6">
+                        <div>
+                            <h3 class="text-sm font-semibold text-[var(--ui-secondary)] mb-3">Oeffentlicher Link</h3>
+                            <p class="text-sm text-[var(--ui-muted)] mb-4">
+                                Teile das Projekt-Board per Link. Jeder mit dem Link kann das Board im Read-Only-Modus ansehen — ohne Login.
+                            </p>
+
+                            @if($isPublic && $publicUrl)
+                                {{-- Link ist aktiv --}}
+                                <div class="space-y-4">
+                                    <div class="flex items-center gap-2 p-3 rounded border border-green-200 bg-green-50">
+                                        @svg('heroicon-o-check-circle', 'w-5 h-5 text-green-600 flex-shrink-0')
+                                        <span class="text-sm font-medium text-green-700">Oeffentlicher Link ist aktiv</span>
+                                    </div>
+
+                                    <div x-data="{ copied: false }" class="space-y-2">
+                                        <label class="block text-sm font-medium text-[var(--ui-body-color)]">Link</label>
+                                        <div class="flex gap-2">
+                                            <input
+                                                type="text"
+                                                value="{{ $publicUrl }}"
+                                                readonly
+                                                class="flex-1 px-3 py-2 text-sm bg-[var(--ui-muted-5)] border border-[var(--ui-border)] rounded text-[var(--ui-secondary)] select-all"
+                                            />
+                                            <button
+                                                type="button"
+                                                @click="navigator.clipboard.writeText('{{ $publicUrl }}'); copied = true; setTimeout(() => copied = false, 2000)"
+                                                class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded border transition-colors"
+                                                :class="copied ? 'bg-green-50 border-green-300 text-green-700' : 'bg-white border-[var(--ui-border)] text-[var(--ui-secondary)] hover:border-[var(--ui-primary)]'"
+                                            >
+                                                <template x-if="!copied">
+                                                    <span class="inline-flex items-center gap-1.5">
+                                                        @svg('heroicon-o-clipboard-document', 'w-4 h-4')
+                                                        Kopieren
+                                                    </span>
+                                                </template>
+                                                <template x-if="copied">
+                                                    <span class="inline-flex items-center gap-1.5">
+                                                        @svg('heroicon-o-check', 'w-4 h-4')
+                                                        Kopiert!
+                                                    </span>
+                                                </template>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex gap-2">
+                                        <x-ui-button variant="secondary" size="sm" wire:click="regeneratePublicLink">
+                                            @svg('heroicon-o-arrow-path', 'w-4 h-4')
+                                            <span>Neuen Link generieren</span>
+                                        </x-ui-button>
+                                        <x-ui-button variant="danger" size="sm" wire:click="disablePublicLink">
+                                            @svg('heroicon-o-x-mark', 'w-4 h-4')
+                                            <span>Link deaktivieren</span>
+                                        </x-ui-button>
+                                    </div>
+
+                                    <p class="text-xs text-[var(--ui-muted)]">
+                                        Beim Generieren eines neuen Links wird der alte Link ungueltig.
+                                    </p>
+                                </div>
+                            @else
+                                {{-- Link ist nicht aktiv --}}
+                                <div class="space-y-4">
+                                    <div class="flex items-center gap-2 p-3 rounded border border-[var(--ui-border)] bg-[var(--ui-muted-5)]">
+                                        @svg('heroicon-o-lock-closed', 'w-5 h-5 text-[var(--ui-muted)] flex-shrink-0')
+                                        <span class="text-sm text-[var(--ui-muted)]">Kein oeffentlicher Link aktiv</span>
+                                    </div>
+
+                                    <x-ui-button variant="primary" wire:click="enablePublicLink">
+                                        @svg('heroicon-o-link', 'w-4 h-4')
+                                        <span>Oeffentlichen Link erstellen</span>
+                                    </x-ui-button>
+                                </div>
                             @endif
                         </div>
                     </div>
