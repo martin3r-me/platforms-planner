@@ -156,6 +156,12 @@ class PlannerServiceProvider extends ServiceProvider
         // Tools registrieren (loose gekoppelt - für AI/Chat)
         $this->registerTools();
 
+        // Error Reporter Registration
+        try {
+            resolve(\Platform\Core\Services\ErrorReporterRegistry::class)
+                ->register('planner', 'Platform\\Planner');
+        } catch (\Throwable $e) {}
+
         // Scheduler Hook (falls die consuming App Scheduling nutzt):
         // alle 30 Minuten AI-Tasks abarbeiten (zusätzlich schützt der Command selbst via Cache-Lock).
         if ($this->app->runningInConsole()) {
