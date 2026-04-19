@@ -130,20 +130,38 @@ class PlannerEntityLinkProvider implements EntityLinkProvider, HasMetricDefiniti
             ->get()
             ->keyBy('id');
 
+        // Batch-load story points per project
+        $spByProject = PlannerTask::whereIn('project_id', $allIds)
+            ->whereNotNull('story_points')
+            ->select('project_id', 'story_points', 'is_done')
+            ->get()
+            ->groupBy('project_id');
+
         $result = [];
         foreach ($linksByEntity as $entityId => $ids) {
             $total = 0;
             $done = 0;
+            $spTotal = 0;
+            $spDone = 0;
             foreach ($ids as $id) {
                 $p = $projects[$id] ?? null;
                 if ($p) {
                     $total += $p->tasks_count;
                     $done += $p->done_tasks_count;
                 }
+                foreach (($spByProject[$id] ?? []) as $task) {
+                    $sp = $task->story_points->points();
+                    $spTotal += $sp;
+                    if ($task->is_done) {
+                        $spDone += $sp;
+                    }
+                }
             }
             $result[$entityId] = [
                 'items_total' => $total,
                 'items_done' => $done,
+                'story_points_total' => $spTotal,
+                'story_points_done' => $spDone,
             ];
         }
 
@@ -192,8 +210,10 @@ class PlannerEntityLinkProvider implements EntityLinkProvider, HasMetricDefiniti
     public function metricDefinitions(): array
     {
         return [
-            'items_total' => ['label' => 'Items (gesamt)', 'group' => 'work', 'direction' => 'neutral', 'unit' => 'count'],
-            'items_done'  => ['label' => 'Items (erledigt)', 'group' => 'work', 'direction' => 'up', 'unit' => 'count', 'pair' => 'items_total'],
+            'items_total'        => ['label' => 'Items (gesamt)', 'group' => 'work', 'direction' => 'neutral', 'unit' => 'count'],
+            'items_done'         => ['label' => 'Items (erledigt)', 'group' => 'work', 'direction' => 'up', 'unit' => 'count', 'pair' => 'items_total'],
+            'story_points_total' => ['label' => 'Story Points (gesamt)', 'group' => 'work', 'direction' => 'neutral', 'unit' => 'points'],
+            'story_points_done'  => ['label' => 'Story Points (erledigt)', 'group' => 'work', 'direction' => 'up', 'unit' => 'points', 'pair' => 'story_points_total'],
         ];
     }
 }
