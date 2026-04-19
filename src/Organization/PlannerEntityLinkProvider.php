@@ -5,10 +5,11 @@ namespace Platform\Planner\Organization;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Platform\Organization\Contracts\EntityLinkProvider;
+use Platform\Organization\Contracts\HasMetricDefinitions;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerTask;
 
-class PlannerEntityLinkProvider implements EntityLinkProvider
+class PlannerEntityLinkProvider implements EntityLinkProvider, HasMetricDefinitions
 {
     public function morphAliases(): array
     {
@@ -185,6 +186,14 @@ class PlannerEntityLinkProvider implements EntityLinkProvider
             'budget_amount' => $project->budget_amount,
             'has_tasks' => count($taskItems) > 0,
             'task_items' => $taskItems,
+        ];
+    }
+
+    public function metricDefinitions(): array
+    {
+        return [
+            'items_total' => ['label' => 'Items (gesamt)', 'group' => 'work', 'direction' => 'neutral', 'unit' => 'count'],
+            'items_done'  => ['label' => 'Items (erledigt)', 'group' => 'work', 'direction' => 'up', 'unit' => 'count', 'pair' => 'items_total'],
         ];
     }
 }
