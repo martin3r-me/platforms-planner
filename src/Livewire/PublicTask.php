@@ -12,7 +12,7 @@ class PublicTask extends Component
     public PlannerTask $task;
     public string $token;
 
-    public function mount(string $token, int $task): void
+    public function mount(string $token, PlannerTask $task): void
     {
         $this->token = $token;
 
@@ -24,9 +24,10 @@ class PublicTask extends Component
             })
             ->firstOrFail();
 
-        $this->task = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project', 'team'])
-            ->where('project_id', $this->project->id)
-            ->findOrFail($task);
+        // Ensure task belongs to this project
+        abort_unless($task->project_id === $this->project->id, 404);
+
+        $this->task = $task->loadMissing(['tags', 'contextColors', 'userInCharge', 'project', 'team']);
     }
 
     public function render()
