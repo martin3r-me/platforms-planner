@@ -6,11 +6,14 @@
     $contextColor = $task->color ?? null;
     // HasTags Trait stellt contextTags Accessor bereit (nutzt eager-geladene tags Relation)
     $contextTags = $task->contextTags ?? collect();
+    $cardHref = ($publicMode ?? false)
+        ? route('planner.public.task', ['token' => $publicToken ?? '', 'task' => $task->id])
+        : route('planner.tasks.show', $task);
 @endphp
 <x-ui-kanban-card
     :title="''"
     :sortable-id="$task->id"
-    :href="($publicMode ?? false) ? null : route('planner.tasks.show', $task)"
+    :href="$cardHref"
 >
     <!-- Kontext Farbe und Tags (ganz oben, premium) -->
     @if($contextColor || $contextTags->isNotEmpty())

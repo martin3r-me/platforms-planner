@@ -4,22 +4,22 @@
     $totalTasks = $openTasks->count() + $doneTasksCount;
 @endphp
 
-<div class="min-h-screen bg-[var(--ui-bg,#f8fafc)]">
+<div class="h-screen flex flex-col overflow-hidden bg-[var(--ui-bg,#f8fafc)]">
     {{-- Header --}}
-    <header class="border-b border-[var(--ui-border,#e2e8f0)] bg-white">
-        <div class="max-w-full mx-auto px-6 py-4">
+    <header class="flex-shrink-0 border-b border-[var(--ui-border,#e2e8f0)] bg-white">
+        <div class="px-6 py-4">
             <div class="flex items-center justify-between">
-                <div>
-                    <h1 class="text-xl font-semibold text-[var(--ui-secondary,#1e293b)]">
+                <div class="min-w-0">
+                    <h1 class="text-xl font-semibold text-[var(--ui-secondary,#1e293b)] truncate">
                         {{ $project->name }}
                     </h1>
                     @if($project->description)
-                        <p class="mt-1 text-sm text-[var(--ui-muted,#64748b)]">
+                        <p class="mt-1 text-sm text-[var(--ui-muted,#64748b)] truncate">
                             {{ Str::limit($project->description, 200) }}
                         </p>
                     @endif
                 </div>
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-4 flex-shrink-0">
                     <span class="inline-flex items-center gap-1 text-sm text-[var(--ui-muted,#64748b)]">
                         @svg('heroicon-o-clipboard-document-list', 'w-4 h-4')
                         {{ $openTasks->count() }} offen
@@ -48,8 +48,8 @@
         </div>
     </header>
 
-    {{-- Board --}}
-    <div class="p-4 overflow-x-auto">
+    {{-- Board - fills remaining height --}}
+    <div class="flex-1 min-h-0 overflow-x-auto p-4">
         <x-ui-kanban-container>
             {{-- Backlog --}}
             @php $backlog = $groups->first(fn($g) => ($g->isBacklog ?? false)); @endphp
@@ -61,7 +61,7 @@
                         </span>
                     </x-slot>
                     @foreach($backlog->tasks as $task)
-                        @include('planner::livewire.task-preview-card', ['task' => $task, 'publicMode' => true])
+                        @include('planner::livewire.task-preview-card', ['task' => $task, 'publicMode' => true, 'publicToken' => $project->public_token])
                     @endforeach
                 </x-ui-kanban-column>
             @endif
@@ -75,7 +75,7 @@
                         </span>
                     </x-slot>
                     @foreach($column->tasks as $task)
-                        @include('planner::livewire.task-preview-card', ['task' => $task, 'publicMode' => true])
+                        @include('planner::livewire.task-preview-card', ['task' => $task, 'publicMode' => true, 'publicToken' => $project->public_token])
                     @endforeach
                 </x-ui-kanban-column>
             @endforeach
@@ -91,7 +91,7 @@
                             </span>
                         </x-slot>
                         @foreach($done->tasks as $task)
-                            @include('planner::livewire.task-preview-card', ['task' => $task, 'publicMode' => true])
+                            @include('planner::livewire.task-preview-card', ['task' => $task, 'publicMode' => true, 'publicToken' => $project->public_token])
                         @endforeach
                     </x-ui-kanban-column>
                 @endif
