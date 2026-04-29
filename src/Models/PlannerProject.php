@@ -2,6 +2,7 @@
 
 namespace Platform\Planner\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -98,6 +99,21 @@ class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayN
     public function projectUsers()
     {
         return $this->hasMany(PlannerProjectUser::class, 'project_id');
+    }
+
+    /**
+     * Scope: Nur Projekte, die der User laut Policy sehen darf.
+     * - User ist Owner des Projekts
+     * - User ist Mitglied des Projekts (project_users)
+     */
+    public function scopeVisibleTo(Builder $query, \Platform\Core\Models\User $user): Builder
+    {
+        $memberProjectIds = PlannerProjectUser::where('user_id', $user->id)->pluck('project_id');
+
+        return $query->where(function ($q) use ($user, $memberProjectIds) {
+            $q->where('user_id', $user->id)
+              ->orWhereIn('id', $memberProjectIds);
+        });
     }
 
     public function team(): BelongsTo

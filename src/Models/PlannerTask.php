@@ -4,6 +4,7 @@ namespace Platform\Planner\Models;
 
 use Platform\Planner\Enums\TaskPriority;
 use Platform\Planner\Enums\TaskStoryPoints;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Symfony\Component\Uid\UuidV7;
@@ -88,6 +89,23 @@ class PlannerTask extends Model implements HasKeyResultAncestors, HasDisplayName
             if (! $model->team_id) {
                 $model->team_id = Auth::user()->currentTeam->id;
             }
+        });
+    }
+
+    /**
+     * Scope: Nur Tasks, die der User laut Policy sehen darf.
+     * - User ist Owner (user_id)
+     * - User ist Verantwortlicher (user_in_charge_id)
+     * - Task gehört zu einem Projekt, in dem der User Mitglied ist
+     */
+    public function scopeVisibleTo(Builder $query, \Platform\Core\Models\User $user): Builder
+    {
+        $memberProjectIds = PlannerProjectUser::where('user_id', $user->id)->pluck('project_id');
+
+        return $query->where(function ($q) use ($user, $memberProjectIds) {
+            $q->where('user_id', $user->id)
+              ->orWhere('user_in_charge_id', $user->id)
+              ->orWhereIn('project_id', $memberProjectIds);
         });
     }
 

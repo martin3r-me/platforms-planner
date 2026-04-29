@@ -70,9 +70,8 @@ class Dashboard extends Component
         $unbilledMinutes = max(0, $totalLoggedMinutes - $billedMinutes);
         $unbilledAmountCents = max(0, $totalLoggedAmountCents - $billedAmountCents);
 
-        // === PROJEKTE (Team) ===
-        // Bugfix: 'is_active' existiert nicht am Model → 'done' Feld verwenden
-        $projects = PlannerProject::where('team_id', $team->id)->orderBy('name')->get();
+        // === PROJEKTE (Team, policy-gefiltert) ===
+        $projects = PlannerProject::where('team_id', $team->id)->visibleTo($user)->orderBy('name')->get();
         $activeProjectsCollection = $projects->where('done', false)->values();
         $completedProjects = $projects->where('done', true)->values();
 
@@ -84,9 +83,10 @@ class Dashboard extends Component
             ->sortByDesc('done_at')
             ->values();
 
-        // === TEAM-AUFGABEN ===
+        // === TEAM-AUFGABEN (policy-gefiltert) ===
         $teamTasksQuery = fn() => PlannerTask::query()
             ->where('team_id', $team->id)
+            ->visibleTo($user)
             ->where(function ($q) {
                 $q->whereNotNull('project_slot_id')
                   ->orWhere(function ($slotQ) {
@@ -156,10 +156,11 @@ class Dashboard extends Component
             ->get()
             ->sum(fn($t) => $t->story_points?->points() ?? 0);
 
-        // === TEAM-MITGLIEDER-ÜBERSICHT ===
-        $teamMembers = $team->users()->get()->map(function ($member) use ($team, $startOfMonth, $endOfMonth) {
+        // === TEAM-MITGLIEDER-ÜBERSICHT (policy-gefiltert) ===
+        $teamMembers = $team->users()->get()->map(function ($member) use ($user, $team, $startOfMonth, $endOfMonth) {
             $memberTasks = PlannerTask::query()
                 ->where('team_id', $team->id)
+                ->visibleTo($user)
                 ->where(function ($q) use ($member) {
                     $q->where(function ($q) use ($member) {
                         $q->whereNull('project_id')
@@ -216,31 +217,31 @@ class Dashboard extends Component
             ->map(fn($p) => $this->buildProjectProgress($p, $team, $startOfMonth, $endOfMonth))
             ->values();
 
-        // === SIDEBAR: SCHNELLSTATISTIKEN ===
+        // === SIDEBAR: SCHNELLSTATISTIKEN (policy-gefiltert) ===
         $todayCreatedTasks = PlannerTask::where('team_id', $team->id)
+            ->visibleTo($user)
             ->whereDate('created_at', today())
             ->count();
 
         $todayCompletedTasks = PlannerTask::where('team_id', $team->id)
+            ->visibleTo($user)
             ->whereDate('done_at', today())
             ->count();
 
-        // === ECHTE AKTIVITÄTEN ===
-        // Hinweis: ActivityLogActivity::subject() ist morphTo() ohne Argument und passt damit
-        // nicht zu den tatsächlichen Spalten activityable_type/activityable_id. Daher manuell auflösen.
-        $teamProjectIds = PlannerProject::where('team_id', $team->id)->pluck('id');
-        $teamTaskIds = PlannerTask::where('team_id', $team->id)->pluck('id');
+        // === ECHTE AKTIVITÄTEN (policy-gefiltert) ===
+        $visibleProjectIds = $projects->pluck('id');
+        $visibleTaskIds = PlannerTask::where('team_id', $team->id)->visibleTo($user)->pluck('id');
 
         $recentActivities = ActivityLogActivity::query()
-            ->where(function ($q) use ($teamProjectIds, $teamTaskIds) {
-                $q->where(function ($sq) use ($teamProjectIds) {
+            ->where(function ($q) use ($visibleProjectIds, $visibleTaskIds) {
+                $q->where(function ($sq) use ($visibleProjectIds) {
                     $sq->where('activityable_type', PlannerProject::class)
-                       ->whereIn('activityable_id', $teamProjectIds);
+                       ->whereIn('activityable_id', $visibleProjectIds);
                 });
-                if ($teamTaskIds->isNotEmpty()) {
-                    $q->orWhere(function ($sq) use ($teamTaskIds) {
+                if ($visibleTaskIds->isNotEmpty()) {
+                    $q->orWhere(function ($sq) use ($visibleTaskIds) {
                         $sq->where('activityable_type', PlannerTask::class)
-                           ->whereIn('activityable_id', $teamTaskIds);
+                           ->whereIn('activityable_id', $visibleTaskIds);
                     });
                 }
             })
