@@ -16,6 +16,7 @@ use Platform\Organization\Traits\HasOrganizationContexts;
 use Platform\Core\Traits\HasColors;
 use Platform\Core\Traits\HasTags;
 use Platform\Core\Traits\HasExtraFields;
+use Platform\Core\Traits\TracksLastViewed;
 use Platform\Core\Models\Concerns\HasEntityLinks;
 use Platform\ActivityLog\Traits\LogsActivity;
 use Platform\Core\Contracts\HasKeyResultAncestors;
@@ -28,7 +29,9 @@ use Platform\Planner\Enums\CustomerBillingMethod;
  */
 class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayName, AgendaRenderable
 {
-    use HasTimeEntries, HasOrganizationContexts, HasColors, HasTags, HasExtraFields, HasEntityLinks, LogsActivity;
+    use HasTimeEntries, HasOrganizationContexts, HasColors, HasTags, HasExtraFields, HasEntityLinks, LogsActivity, TracksLastViewed;
+
+    protected int $stalenessThresholdDays = 180;
 
     protected $fillable = [
         'uuid',

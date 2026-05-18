@@ -52,6 +52,10 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
                     'name_search' => [
                         'type' => 'string',
                         'description' => 'Optional: Suche nach Projektnamen (Legacy - nutze stattdessen search Parameter).'
+                    ],
+                    'include_stale' => [
+                        'type' => 'boolean',
+                        'description' => 'Optional: Wenn true, werden auch stale (lange nicht angesehene) Projekte angezeigt. Default: false.'
                     ]
                 ]
             ]
@@ -91,6 +95,11 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
             $query = PlannerProject::query()
                 ->where('team_id', $teamIdArg)
                 ->with(['user', 'team', 'projectUsers.user', 'projectSlots']);
+
+            // Stale Records einblenden wenn gewuenscht
+            if (!empty($arguments['include_stale'])) {
+                $query->withStale();
+            }
 
             // Entity-ID Filter
             if (!empty($arguments['entity_id'])) {

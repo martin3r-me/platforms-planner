@@ -71,6 +71,9 @@ class GetProjectTool implements ToolContract, ToolMetadataContract
                 return ToolResult::error('ACCESS_DENIED', 'Du hast keinen Zugriff auf dieses Projekt (Policy).');
             }
 
+            // Staleness-Tracking: View aufzeichnen
+            $project->recordView();
+
             // Projekt-User formatieren
             $projectUsers = $project->projectUsers->map(function($pu) {
                 return [

@@ -60,6 +60,10 @@ class ListTasksTool implements ToolContract
                         'type' => 'string',
                         'description' => 'Optional: Filter nach Story Points (Legacy). Nutze stattdessen filters mit field="story_points" und op="eq". Werte: xs|s|m|l|xl|xxl.',
                         'enum' => ['xs', 's', 'm', 'l', 'xl', 'xxl']
+                    ],
+                    'include_stale' => [
+                        'type' => 'boolean',
+                        'description' => 'Optional: Wenn true, werden auch stale (lange nicht angesehene) Tasks angezeigt. Default: false.'
                     ]
                 ]
             ]
@@ -96,6 +100,11 @@ class ListTasksTool implements ToolContract
             // Query aufbauen
             $query = PlannerTask::query()
                 ->with(['project', 'projectSlot', 'user', 'userInCharge']);
+
+            // Stale Records einblenden wenn gewuenscht
+            if (!empty($arguments['include_stale'])) {
+                $query->withStale();
+            }
 
             // Standard-Operationen anwenden
             $this->applyStandardFilters($query, $arguments, [
@@ -189,6 +198,11 @@ class ListTasksTool implements ToolContract
                 ->filter(fn($task) => Gate::forUser($context->user)->allows('view', $task))
                 ->values();
 
+            // Staleness-Tracking: Bei Einzel-Task-Abfrage View aufzeichnen
+            if ($tasks->count() === 1 && $this->isSingleTaskQuery($arguments)) {
+                $tasks->first()->recordView();
+            }
+
             // Aufgaben formatieren
             $tasksList = $tasks->map(function($task) {
                 return [
@@ -238,6 +252,25 @@ class ListTasksTool implements ToolContract
         }
     }
     
+    /**
+     * Prueft ob es sich um eine Einzel-Task-Abfrage handelt (task_id in filters).
+     */
+    private function isSingleTaskQuery(array $arguments): bool
+    {
+        $filters = $arguments['filters'] ?? [];
+        if (!is_array($filters)) {
+            return false;
+        }
+        foreach ($filters as $filter) {
+            $field = $filter['field'] ?? null;
+            $op = $filter['op'] ?? 'eq';
+            if ($field === 'id' && $op === 'eq') {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * Prüft ob ein Filter für ein bestimmtes Feld vorhanden ist
      */

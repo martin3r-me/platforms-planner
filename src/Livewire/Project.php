@@ -43,6 +43,9 @@ class Project extends Component
         // Berechtigung prüfen - User muss Projekt-Mitglied sein
         $this->authorize('view', $this->project);
 
+        // Staleness-Tracking
+        $this->project->recordView();
+
         // Sprints werden nicht mehr geladen - nur Project-Slots
     }
 

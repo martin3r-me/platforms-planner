@@ -16,6 +16,7 @@ use Platform\Core\Traits\HasTags;
 use Platform\Core\Traits\HasColors;
 use Platform\Core\Traits\Encryptable;
 use Platform\Core\Traits\HasExtraFields;
+use Platform\Core\Traits\TracksLastViewed;
 use Platform\Core\Contracts\HasKeyResultAncestors;
 use Platform\Core\Contracts\HasDisplayName;
 use Platform\Core\Contracts\InheritsExtraFields;
@@ -26,7 +27,9 @@ use Platform\Core\Contracts\AgendaRenderable;
  */
 class PlannerTask extends Model implements HasKeyResultAncestors, HasDisplayName, InheritsExtraFields, AgendaRenderable
 {
-    use HasFactory, SoftDeletes, LogsActivity, HasTimeEntries, HasTags, HasColors, Encryptable, HasExtraFields;
+    use HasFactory, SoftDeletes, LogsActivity, HasTimeEntries, HasTags, HasColors, Encryptable, HasExtraFields, TracksLastViewed;
+
+    protected int $stalenessThresholdDays = 120;
 
     protected $fillable = [
         'uuid',

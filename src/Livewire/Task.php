@@ -65,7 +65,10 @@ class Task extends Component
         
         $this->authorize('view', $plannerTask);
         $this->task = $plannerTask->load(['user', 'userInCharge', 'project', 'team']);
-        
+
+        // Staleness-Tracking
+        $this->task->recordView();
+
         // Verschüsselte Felder explizit lesen über den Cast (löst Entschlüsselung aus)
         // In separate Properties speichern (wie bei Checkin mit Arrays)
         $this->description = $this->task->description; // Löst Cast aus -> entschlüsselt
