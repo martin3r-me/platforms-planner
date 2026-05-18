@@ -4,6 +4,7 @@ namespace Platform\Planner\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -29,7 +30,7 @@ use Platform\Planner\Enums\CustomerBillingMethod;
  */
 class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayName, AgendaRenderable
 {
-    use HasTimeEntries, HasOrganizationContexts, HasColors, HasTags, HasExtraFields, HasEntityLinks, LogsActivity, TracksLastViewed;
+    use SoftDeletes, HasTimeEntries, HasOrganizationContexts, HasColors, HasTags, HasExtraFields, HasEntityLinks, LogsActivity, TracksLastViewed;
 
     protected int $stalenessThresholdDays = 180;
 
