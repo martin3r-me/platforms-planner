@@ -36,7 +36,7 @@ class MoveProjectToTeam extends Command
         $force = $this->option('force');
 
         // Projekt laden
-        $project = PlannerProject::with(['projectSlots', 'tasks', 'customerProject'])->find($projectId);
+        $project = PlannerProject::withStale()->with(['projectSlots', 'tasks', 'customerProject'])->find($projectId);
         
         if (!$project) {
             $this->error("❌ Projekt mit ID {$projectId} nicht gefunden!");

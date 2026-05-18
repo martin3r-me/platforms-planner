@@ -28,7 +28,7 @@ class AssignDueDatesForUndatedTasks extends Command
 
         $targetDate = $this->calculateTargetDate($now);
 
-        $query = PlannerTask::query()
+        $query = PlannerTask::withStale()
             ->whereNull('due_date')
             ->where('is_done', false)
             ->where(function ($q) {

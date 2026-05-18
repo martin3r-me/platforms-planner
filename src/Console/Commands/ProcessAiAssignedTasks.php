@@ -199,7 +199,7 @@ class ProcessAiAssignedTasks extends Command
 
     private function nextAiTask(?int $taskId, array $excludeIds = []): ?PlannerTask
     {
-        $query = PlannerTask::query()
+        $query = PlannerTask::withStale()
             ->with(['user', 'userInCharge', 'team', 'project'])
             ->where('is_done', false)
             ->whereNotNull('user_in_charge_id')

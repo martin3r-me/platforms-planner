@@ -43,7 +43,7 @@ class EncryptTaskDescriptions extends Command
         }
 
         // Tasks mit nicht-leeren description oder dod finden
-        $tasks = PlannerTask::query()
+        $tasks = PlannerTask::withStale()
             ->where(function ($q) {
                 $q->whereNotNull('description')
                   ->where('description', '!=', '');

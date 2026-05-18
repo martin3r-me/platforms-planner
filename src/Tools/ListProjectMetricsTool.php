@@ -92,7 +92,7 @@ class ListProjectMetricsTool implements ToolContract, ToolMetadataContract
             if ($limit <= 0) { $limit = 50; }
             $limit = min($limit, 200);
 
-            $projects = PlannerProject::query()
+            $projects = PlannerProject::withStale()
                 ->where('team_id', $teamId)
                 ->get(['id', 'name', 'done', 'user_id', 'created_at']);
 
@@ -121,7 +121,7 @@ class ListProjectMetricsTool implements ToolContract, ToolMetadataContract
                 ELSE 0
             END";
 
-            $tasksQuery = PlannerTask::query()
+            $tasksQuery = PlannerTask::withStale()
                 ->whereIn('project_id', $projectIds)
                 ->whereNotNull('project_id');
 

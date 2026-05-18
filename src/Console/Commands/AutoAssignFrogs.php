@@ -23,7 +23,7 @@ class AutoAssignFrogs extends Command
     {
         $dryRun = $this->option('dry-run');
 
-        $query = PlannerTask::query()
+        $query = PlannerTask::withStale()
             ->where('is_done', false);
 
         $total = (clone $query)->count();

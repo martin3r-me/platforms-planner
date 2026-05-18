@@ -27,7 +27,7 @@ class PostponeOverdueTasks extends Command
         $now = Carbon::now();
         $nextNoon = $now->copy()->addDay()->setTime(12, 0, 0);
 
-        $query = PlannerTask::query()
+        $query = PlannerTask::withStale()
             ->where('is_done', false)
             ->whereNotNull('due_date')
             ->where('due_date', '<', $now);

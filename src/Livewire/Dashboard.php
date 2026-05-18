@@ -71,7 +71,7 @@ class Dashboard extends Component
         $unbilledAmountCents = max(0, $totalLoggedAmountCents - $billedAmountCents);
 
         // === PROJEKTE (Team, policy-gefiltert) ===
-        $projects = PlannerProject::where('team_id', $team->id)->visibleTo($user)->orderBy('name')->get();
+        $projects = PlannerProject::withStale()->where('team_id', $team->id)->visibleTo($user)->orderBy('name')->get();
         $activeProjectsCollection = $projects->where('done', false)->values();
         $completedProjects = $projects->where('done', true)->values();
 
@@ -84,7 +84,7 @@ class Dashboard extends Component
             ->values();
 
         // === TEAM-AUFGABEN (policy-gefiltert) ===
-        $teamTasksQuery = fn() => PlannerTask::query()
+        $teamTasksQuery = fn() => PlannerTask::withStale()
             ->where('team_id', $team->id)
             ->visibleTo($user)
             ->where(function ($q) {
