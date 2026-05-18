@@ -30,7 +30,7 @@ return new class extends Migration
             }
 
             Schema::table($table, function (Blueprint $t) use ($table) {
-                $t->dropForeign([$this->fkName($table)]);
+                $t->dropForeign($this->fkName($table));
             });
 
             Schema::table($table, function (Blueprint $t) use ($table) {
@@ -50,7 +50,7 @@ return new class extends Migration
             }
 
             Schema::table($table, function (Blueprint $t) use ($table) {
-                $t->dropForeign([$this->fkName($table)]);
+                $t->dropForeign($this->fkName($table));
             });
 
             Schema::table($table, function (Blueprint $t) use ($table) {
