@@ -74,14 +74,27 @@ class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayN
     protected static function booted(): void
     {
         Log::info('PlannerProject Model: booted() called!');
-        
+
         static::creating(function (self $model) {
-            
+
             do {
                 $uuid = UuidV7::generate();
             } while (self::where('uuid', $uuid)->exists());
 
             $model->uuid = $uuid;
+        });
+
+        // Soft-Delete Cascade: Tasks mit-soft-deleten
+        static::deleting(function (self $project) {
+            if ($project->isForceDeleting()) {
+                return; // DB-Cascade greift bei hard-delete
+            }
+            $project->tasks()->each(fn (PlannerTask $task) => $task->delete());
+        });
+
+        // Restore Cascade: Tasks wiederherstellen
+        static::restoring(function (self $project) {
+            $project->tasks()->onlyTrashed()->each(fn (PlannerTask $task) => $task->restore());
         });
     }
 
