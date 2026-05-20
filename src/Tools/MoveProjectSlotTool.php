@@ -90,7 +90,7 @@ class MoveProjectSlotTool implements ToolContract
             }
 
             /** @var PlannerProject|null $targetProject */
-            $targetProject = PlannerProject::find($targetProjectId);
+            $targetProject = PlannerProject::withStale()->find($targetProjectId);
             if (!$targetProject) {
                 return ToolResult::error('PROJECT_NOT_FOUND', 'Das Ziel-Projekt wurde nicht gefunden.');
             }

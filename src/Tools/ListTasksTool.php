@@ -77,9 +77,21 @@ class ListTasksTool implements ToolContract
                 return ToolResult::error('AUTH_ERROR', 'Kein User im Kontext gefunden.');
             }
 
+            // Type-Coercion: LLM schickt manchmal Strings statt Integers
+            if (isset($arguments['project_id'])) {
+                $arguments['project_id'] = (int) $arguments['project_id'];
+            }
+            if (isset($arguments['project_slot_id'])) {
+                $arguments['project_slot_id'] = (int) $arguments['project_slot_id'];
+            }
+            if (isset($arguments['user_in_charge_id'])) {
+                $arguments['user_in_charge_id'] = (int) $arguments['user_in_charge_id'];
+            }
+
             // Wenn explizit nach einem Projekt/Slot gefiltert wird, muss der User das Projekt sehen dürfen (Policy wie UI)
+            // withStale() damit auch stale Projekte per ID auffindbar bleiben (Auth-Check, kein Listing)
             if (!empty($arguments['project_id'])) {
-                $project = PlannerProject::find($arguments['project_id']);
+                $project = PlannerProject::withStale()->find($arguments['project_id']);
                 if (!$project) {
                     return ToolResult::error('PROJECT_NOT_FOUND', 'Das angegebene Projekt wurde nicht gefunden. Nutze "planner.projects.GET" um alle verfügbaren Projekte zu sehen.');
                 }
@@ -87,7 +99,7 @@ class ListTasksTool implements ToolContract
                     return ToolResult::error('ACCESS_DENIED', 'Du hast keinen Zugriff auf dieses Projekt (Policy).');
                 }
             }
-            if (!empty($arguments['project_slot_id']) && $arguments['project_slot_id'] !== 0 && $arguments['project_slot_id'] !== '0') {
+            if (!empty($arguments['project_slot_id']) && $arguments['project_slot_id'] !== 0) {
                 $slot = PlannerProjectSlot::with('project')->find($arguments['project_slot_id']);
                 if (!$slot) {
                     return ToolResult::error('SLOT_NOT_FOUND', 'Der angegebene Slot wurde nicht gefunden. Nutze "planner.project_slots.GET" um alle verfügbaren Slots zu sehen.');

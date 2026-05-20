@@ -54,7 +54,7 @@ class ListProjectSlotsTool implements ToolContract
             }
 
             // Projekt prüfen
-            $project = PlannerProject::find($arguments['project_id']);
+            $project = PlannerProject::withStale()->find($arguments['project_id']);
             if (!$project) {
                 return ToolResult::error('PROJECT_NOT_FOUND', 'Das angegebene Projekt wurde nicht gefunden. Nutze "planner.projects.GET" um alle verfügbaren Projekte zu sehen.');
             }

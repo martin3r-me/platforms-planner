@@ -370,7 +370,7 @@ class UpdateTaskTool implements ToolContract
                     $projectChanged = true;
                 } else {
                     // Neues Projekt prüfen
-                    $newProject = PlannerProject::find($arguments['project_id']);
+                    $newProject = PlannerProject::withStale()->find($arguments['project_id']);
                     if (!$newProject) {
                         return ToolResult::error('PROJECT_NOT_FOUND', 'Das angegebene Projekt wurde nicht gefunden. Nutze "planner.projects.GET" um alle verfügbaren Projekte zu sehen.');
                     }
