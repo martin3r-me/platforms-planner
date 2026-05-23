@@ -4,143 +4,91 @@
     $isDone = $task->is_done ?? false;
     $isFrog = $task->is_frog ?? false;
     $contextColor = $task->color ?? null;
-    // HasTags Trait stellt contextTags Accessor bereit (nutzt eager-geladene tags Relation)
-    $contextTags = $task->contextTags ?? collect();
+    $userInCharge = $task->userInCharge ?? null;
+    $initials = $userInCharge ? mb_strtoupper(mb_substr($userInCharge->name ?? $userInCharge->email ?? 'U', 0, 1)) : null;
+    $usePanel = $usePanel ?? false;
     $cardHref = ($publicMode ?? false)
         ? route('planner.public.task', ['token' => $publicToken ?? '', 'task' => $task->id])
-        : route('planner.tasks.show', $task);
+        : ($usePanel ? null : route('planner.tasks.show', $task));
+    $priorityIcon = $task->priority?->icon() ?? null;
+    $priorityLabel = $task->priority?->label() ?? null;
+    $spValue = is_object($task->story_points) ? $task->story_points->points() : $task->story_points;
+    $dodProgress = $task->has_dod ? $task->dod_progress : null;
+    $isOverdue = $task->due_date && $task->due_date->isPast() && !$isDone;
 @endphp
 <x-ui-kanban-card
     :title="''"
     :sortable-id="$task->id"
     :href="$cardHref"
+    class="relative"
+    @if($usePanel)
+        x-data
+        @click.prevent="$dispatch('openTaskPanel', { taskId: {{ $task->id }} })"
+        style="cursor: pointer;"
+    @endif
 >
-    <!-- Kontext Farbe und Tags (ganz oben, premium) -->
-    @if($contextColor || $contextTags->isNotEmpty())
-        <div class="mb-2 flex items-center gap-1 flex-wrap">
-            @if($contextColor)
-                <span class="w-2.5 h-2.5 rounded-full flex-shrink-0 ring-1 ring-white/60 shadow-sm" style="background-color: {{ $contextColor }}"></span>
-            @endif
-            @foreach($contextTags->take(3) as $tag)
-                <span
-                    class="inline-flex items-center gap-1 pl-1 pr-1.5 py-0.5 text-[10px] font-medium rounded-md transition-colors duration-150
-                        {{ $tag->color
-                            ? 'border shadow-sm'
-                            : 'bg-[var(--ui-muted-5)] text-[var(--ui-muted)] border border-[var(--ui-border)]/30'
-                        }}"
-                    @if($tag->color)
-                        style="background-color: {{ $tag->color }}10; border-color: {{ $tag->color }}35; color: {{ $tag->color }}"
-                    @endif
-                >
-                    @if($tag->color)
-                        <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 ring-1 ring-white/50" style="background-color: {{ $tag->color }}"></span>
-                    @endif
-                    {{ $tag->label }}
-                </span>
-            @endforeach
-            @if($contextTags->count() > 3)
-                <span class="text-[10px] text-[var(--ui-muted)] bg-[var(--ui-muted-5)] px-1.5 py-0.5 rounded-md font-medium">+{{ $contextTags->count() - 3 }}</span>
-            @endif
-        </div>
+    {{-- Subtle left color edge --}}
+    @if($contextColor)
+        <div class="absolute left-0 top-0 bottom-0 w-1 rounded-l" style="background-color: {{ $contextColor }}"></div>
     @endif
 
-    <!-- Story Points, Frosch und Datum (oben in eigene Zeile) -->
-    @if($isFrog || $task->story_points || $task->due_date)
-        <div class="mb-3 flex items-start justify-between gap-2">
-            <div class="flex items-start gap-2">
-                @if($isFrog)
-                    <span class="inline-flex items-start gap-1 text-xs text-[var(--ui-muted)]">
-                        @svg('heroicon-o-exclamation-triangle','w-3 h-3 mt-0.5')
-                        <span>Frosch</span>
-                    </span>
-                @endif
-                @if($task->story_points)
-                    <span class="inline-flex items-start gap-1 text-xs text-[var(--ui-muted)]">
-                        @svg('heroicon-o-sparkles','w-3 h-3 mt-0.5')
-                        <span>SP {{ is_object($task->story_points) ? ($task->story_points->points() ?? $task->story_points) : $task->story_points }}</span>
-                    </span>
-                @endif
-            </div>
-            @if($task->due_date)
-                <span class="inline-flex items-center gap-1 text-xs text-[var(--ui-muted)]">
-                    <span>{{ $task->due_date->format('d.m.Y') }}</span>
-                    @if($task->postpone_count > 0)
-                        <span class="inline-flex items-center gap-0.5" title="Verschoben: {{ $task->postpone_count }}x">
-                            @svg('heroicon-o-arrow-path','w-3 h-3')
-                            <span>{{ $task->postpone_count }}</span>
-                        </span>
-                    @endif
-                </span>
-            @endif
-        </div>
-    @endif
-
-    <!-- Verantwortlicher (eigene Zeile) -->
-    @php
-        $userInCharge = $task->userInCharge ?? null;
-        $initials = $userInCharge ? mb_strtoupper(mb_substr($userInCharge->name ?? $userInCharge->email ?? 'U', 0, 1)) : null;
-    @endphp
-    @if($userInCharge)
-        <div class="mb-3">
-            <span class="inline-flex items-start gap-1 text-xs text-[var(--ui-muted)] min-w-0">
-                @if($userInCharge->avatar)
-                    <img src="{{ $userInCharge->avatar }}" alt="{{ $userInCharge->name ?? $userInCharge->email }}" class="w-3.5 h-3.5 rounded-full object-cover mt-0.5">
-                @else
-                    <span class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40 text-[10px] text-[var(--ui-muted)] mt-0.5">{{ $initials }}</span>
-                @endif
-                <span class="truncate max-w-[7rem]">{{ $userInCharge->name ?? $userInCharge->email }}</span>
-            </span>
-        </div>
-    @endif
-
-    <!-- Titel (durchgestrichen wenn erledigt) -->
-    <div class="mb-4">
-        <h4 class="text-sm font-medium text-[var(--ui-secondary)] m-0 {{ $isDone ? 'line-through text-[var(--ui-muted)]' : '' }}">
+    {{-- Title (prominent, first element) --}}
+    <div class="mb-2 {{ $contextColor ? 'pl-2' : '' }}">
+        <h4 class="text-sm font-semibold leading-snug text-[var(--ui-secondary)] m-0 {{ $isDone ? 'line-through text-[var(--ui-muted)]' : '' }}">
             {{ $task->title }}
         </h4>
     </div>
 
-    <!-- Meta: Team -->
-    @if($task->team)
-        <div class="mb-3">
-            <span class="inline-flex items-start gap-1 text-xs text-[var(--ui-muted)]">
-                @svg('heroicon-o-user-group','w-3 h-3 mt-0.5')
-                <span>{{ $task->team->name }}</span>
+    {{-- Single-line compact metadata row --}}
+    <div class="flex items-center gap-2 text-[11px] text-[var(--ui-muted)] {{ $contextColor ? 'pl-2' : '' }}">
+        {{-- Priority icon --}}
+        @if($priorityIcon)
+            <span class="flex-shrink-0" title="{{ $priorityLabel }}">{{ $priorityIcon }}</span>
+        @endif
+
+        {{-- Frog icon --}}
+        @if($isFrog)
+            <span class="flex-shrink-0 text-[var(--ui-warning)]" title="Frosch">
+                @svg('heroicon-o-exclamation-triangle', 'w-3.5 h-3.5')
             </span>
-        </div>
-    @endif
+        @endif
 
-    <!-- Meta: Projekt -->
-    @if($task->project)
-        <div class="mb-3">
-            <span class="inline-flex items-start gap-1 text-xs text-[var(--ui-muted)] min-w-0">
-                @svg('heroicon-o-folder','w-2.5 h-2.5 mt-0.5')
-                <span class="truncate max-w-[9rem]">{{ $task->project->name }}</span>
+        {{-- Assignee avatar (4x4) --}}
+        @if($userInCharge)
+            <span class="flex-shrink-0" title="{{ $userInCharge->name ?? $userInCharge->email }}">
+                @if($userInCharge->avatar)
+                    <img src="{{ $userInCharge->avatar }}" alt="" class="w-4 h-4 rounded-full object-cover">
+                @else
+                    <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[var(--ui-muted-10)] text-[9px] font-medium text-[var(--ui-muted)]">{{ $initials }}</span>
+                @endif
             </span>
-        </div>
-    @endif
+        @endif
 
-    <!-- Description (truncated) -->
-    @if($task->description)
-        <div class="text-xs text-[var(--ui-muted)] my-1.5 mb-3 line-clamp-2">
-            {{ Str::limit($task->description, 80) }}
-        </div>
-    @endif
+        {{-- Due date badge --}}
+        @if($task->due_date)
+            <span class="flex-shrink-0 inline-flex items-center gap-0.5 {{ $isOverdue ? 'text-[var(--ui-danger)] font-medium' : '' }}" title="{{ $task->due_date->format('d.m.Y H:i') }}">
+                {{ $task->due_date->format('d.m.') }}
+                @if($task->postpone_count > 0)
+                    <span title="Verschoben: {{ $task->postpone_count }}x">
+                        @svg('heroicon-o-arrow-path', 'w-3 h-3')
+                    </span>
+                @endif
+            </span>
+        @endif
 
-    <!-- DoD Progress -->
-    @if($task->has_dod)
-        @php
-            $dodProgress = $task->dod_progress;
-        @endphp
-        <div class="flex items-center gap-2 text-xs text-[var(--ui-muted)]">
-            @svg('heroicon-o-clipboard-document-check', 'w-3 h-3')
-            <span>DoD: {{ $dodProgress['checked'] }}/{{ $dodProgress['total'] }}</span>
-            <div class="flex-1 h-1 bg-[var(--ui-muted-5)] rounded-full overflow-hidden">
-                <div
-                    class="h-full {{ $dodProgress['isComplete'] ? 'bg-[var(--ui-success)]' : 'bg-[var(--ui-primary)]' }}"
-                    style="width: {{ $dodProgress['percentage'] }}%"
-                ></div>
-            </div>
-        </div>
-    @endif
+        {{-- Story Points badge --}}
+        @if($spValue)
+            <span class="flex-shrink-0 px-1 py-0.5 rounded bg-[var(--ui-muted-5)] font-medium text-[10px]">{{ $spValue }} SP</span>
+        @endif
+
+        {{-- DoD progress (mini) --}}
+        @if($dodProgress)
+            <span class="flex-shrink-0 inline-flex items-center gap-1" title="DoD: {{ $dodProgress['checked'] }}/{{ $dodProgress['total'] }}">
+                <span class="w-8 h-1 bg-[var(--ui-muted-10)] rounded-full overflow-hidden inline-block">
+                    <span class="block h-full {{ $dodProgress['isComplete'] ? 'bg-[var(--ui-success)]' : 'bg-[var(--ui-primary)]' }}" style="width: {{ $dodProgress['percentage'] }}%"></span>
+                </span>
+                <span class="text-[10px]">{{ $dodProgress['checked'] }}/{{ $dodProgress['total'] }}</span>
+            </span>
+        @endif
+    </div>
 </x-ui-kanban-card>
