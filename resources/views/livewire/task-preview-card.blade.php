@@ -26,8 +26,13 @@
         <div class="absolute left-0 top-0 bottom-0 w-1 rounded-l" style="background-color: {{ $contextColor }}"></div>
     @endif
 
-    {{-- Title (prominent, first element) --}}
-    <div class="mb-2 {{ $contextColor ? 'pl-2' : '' }}">
+    {{-- Project context (above title, very small) --}}
+    @if($task->project)
+        <div class="text-[10px] text-[var(--ui-muted)] truncate leading-none {{ $contextColor ? 'pl-2' : '' }}">{{ $task->project->name }}</div>
+    @endif
+
+    {{-- Title (prominent) --}}
+    <div class="mb-2 {{ $contextColor ? 'pl-2' : '' }} {{ $task->project ? 'mt-0.5' : '' }}">
         <h4 class="text-sm font-semibold leading-snug text-[var(--ui-secondary)] m-0 {{ $isDone ? 'line-through text-[var(--ui-muted)]' : '' }}">
             {{ $task->title }}
         </h4>
@@ -35,12 +40,6 @@
 
     {{-- Single-line compact metadata row --}}
     <div class="flex items-center gap-2 text-[11px] text-[var(--ui-muted)] {{ $contextColor ? 'pl-2' : '' }}">
-        {{-- Project context --}}
-        @if($task->project)
-            <span class="flex-shrink truncate max-w-[100px]" title="{{ $task->project->name }}">{{ $task->project->name }}</span>
-            <span class="flex-shrink-0 text-[var(--ui-border)]">&middot;</span>
-        @endif
-
         {{-- Priority icon --}}
         @if($priorityIcon)
             <span class="flex-shrink-0" title="{{ $priorityLabel }}">{{ $priorityIcon }}</span>
