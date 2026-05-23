@@ -376,10 +376,6 @@
         </div>
     </x-ui-page-container>
 
-    <x-slot name="sidebar">
-        {{-- Empty: properties are now inline --}}
-    </x-slot>
-
     <x-slot name="activity">
         <x-ui-page-sidebar title="Aktivitäten" width="w-80" :defaultOpen="false" storeKey="activityOpen" side="right">
             <div class="p-6">

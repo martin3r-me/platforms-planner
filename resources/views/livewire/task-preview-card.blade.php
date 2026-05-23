@@ -49,10 +49,11 @@
 
     {{-- Hover quick-actions (top right) --}}
     @if(!($publicMode ?? false))
-        <div class="absolute top-1.5 right-1.5 opacity-0 group-hover/card:opacity-100 transition-opacity duration-150 z-10">
+        <div class="absolute top-1.5 right-1.5 opacity-0 group-hover/card:opacity-100 transition-opacity duration-150 z-10" @click.stop>
             <button
                 type="button"
                 wire:click.prevent.stop="quickToggleDone({{ $task->id }})"
+                @click.stop.prevent
                 class="inline-flex items-center justify-center w-6 h-6 rounded-full {{ $isDone ? 'bg-[var(--planner-status-done)] text-white' : 'bg-white border border-[var(--ui-border)] text-[var(--ui-muted)] hover:border-[var(--planner-status-done)] hover:text-[var(--planner-status-done)]' }} shadow-sm transition-colors"
                 title="{{ $isDone ? 'Als offen markieren' : 'Als erledigt markieren' }}"
             >
