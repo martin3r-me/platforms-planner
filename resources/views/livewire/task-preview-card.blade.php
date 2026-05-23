@@ -35,6 +35,12 @@
 
     {{-- Single-line compact metadata row --}}
     <div class="flex items-center gap-2 text-[11px] text-[var(--ui-muted)] {{ $contextColor ? 'pl-2' : '' }}">
+        {{-- Project context --}}
+        @if($task->project)
+            <span class="flex-shrink truncate max-w-[100px]" title="{{ $task->project->name }}">{{ $task->project->name }}</span>
+            <span class="flex-shrink-0 text-[var(--ui-border)]">&middot;</span>
+        @endif
+
         {{-- Priority icon --}}
         @if($priorityIcon)
             <span class="flex-shrink-0" title="{{ $priorityLabel }}">{{ $priorityIcon }}</span>
