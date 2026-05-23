@@ -6,10 +6,9 @@
     $contextColor = $task->color ?? null;
     $userInCharge = $task->userInCharge ?? null;
     $initials = $userInCharge ? mb_strtoupper(mb_substr($userInCharge->name ?? $userInCharge->email ?? 'U', 0, 1)) : null;
-    $usePanel = $usePanel ?? false;
     $cardHref = ($publicMode ?? false)
         ? route('planner.public.task', ['token' => $publicToken ?? '', 'task' => $task->id])
-        : ($usePanel ? null : route('planner.tasks.show', $task));
+        : route('planner.tasks.show', $task);
     $priorityIcon = $task->priority?->icon() ?? null;
     $priorityLabel = $task->priority?->label() ?? null;
     $spValue = is_object($task->story_points) ? $task->story_points->points() : $task->story_points;
@@ -20,8 +19,7 @@
     :title="''"
     :sortable-id="$task->id"
     :href="$cardHref"
-    class="relative {{ $usePanel ? 'cursor-pointer' : '' }}"
-    data-task-panel-id="{{ $usePanel ? $task->id : '' }}"
+    class="relative"
 >
     {{-- Subtle left color edge --}}
     @if($contextColor)

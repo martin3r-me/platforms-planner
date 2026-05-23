@@ -6,18 +6,7 @@
 @endphp
 
 <x-ui-page
-    x-data="{
-        handleCardClick(e) {
-            if (e.target.closest('button, a, input, select, textarea')) return;
-            const card = e.target.closest('[data-task-panel-id]');
-            if (card && card.dataset.taskPanelId) {
-                e.preventDefault();
-                e.stopPropagation();
-                this.$dispatch('openTaskPanel', { taskId: parseInt(card.dataset.taskPanelId) });
-            }
-        }
-    }"
-    x-on:click="handleCardClick($event)"
+    x-data="{}"
     @keydown.n.window.prevent="$wire.createTask()"
 >
     <x-slot name="navbar">
@@ -293,7 +282,7 @@
                     </span>
                 </x-slot>
                 @forelse($backlog->tasks as $task)
-                    @include('planner::livewire.task-preview-card', ['task' => $task, 'usePanel' => true])
+                    @include('planner::livewire.task-preview-card', ['task' => $task])
                 @empty
                     <div class="flex flex-col items-center justify-center py-8 text-[var(--ui-muted)]">
                         @svg('heroicon-o-inbox', 'w-8 h-8 mb-2 opacity-40')
@@ -331,7 +320,7 @@
                 </x-slot>
 
                 @forelse($column->tasks as $task)
-                    @include('planner::livewire.task-preview-card', ['task' => $task, 'usePanel' => true])
+                    @include('planner::livewire.task-preview-card', ['task' => $task])
                 @empty
                     <div class="flex flex-col items-center justify-center py-8 text-[var(--ui-muted)]">
                         @svg('heroicon-o-clipboard', 'w-8 h-8 mb-2 opacity-40')
@@ -352,7 +341,7 @@
                         </span>
                     </x-slot>
                     @forelse($done->tasks as $task)
-                        @include('planner::livewire.task-preview-card', ['task' => $task, 'usePanel' => true])
+                        @include('planner::livewire.task-preview-card', ['task' => $task])
                     @empty
                         <div class="flex flex-col items-center justify-center py-8 text-[var(--ui-muted)]">
                             @svg('heroicon-o-check-circle', 'w-8 h-8 mb-2 opacity-40')
@@ -368,7 +357,4 @@
     <livewire:planner.project-settings-modal/>
     <livewire:planner.project-slot-settings-modal/>
     <livewire:planner.customer-project-settings-modal/>
-
-    {{-- Slide-in Task Panel --}}
-    <livewire:planner.task-panel/>
 </x-ui-page>
