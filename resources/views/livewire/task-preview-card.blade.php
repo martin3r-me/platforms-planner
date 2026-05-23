@@ -16,16 +16,18 @@
     $dodProgress = $task->has_dod ? $task->dod_progress : null;
     $isOverdue = $task->due_date && $task->due_date->isPast() && !$isDone;
 @endphp
+@if($usePanel)
+<div
+    x-data
+    x-on:click.prevent="$dispatch('openTaskPanel', { taskId: {{ $task->id }} })"
+    style="cursor: pointer;"
+>
+@endif
 <x-ui-kanban-card
     :title="''"
     :sortable-id="$task->id"
     :href="$cardHref"
     class="relative"
-    @if($usePanel)
-        x-data
-        @click.prevent="$dispatch('openTaskPanel', { taskId: {{ $task->id }} })"
-        style="cursor: pointer;"
-    @endif
 >
     {{-- Subtle left color edge --}}
     @if($contextColor)
@@ -92,3 +94,6 @@
         @endif
     </div>
 </x-ui-kanban-card>
+@if($usePanel)
+</div>
+@endif
