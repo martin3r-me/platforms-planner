@@ -1,3 +1,4 @@
+@include('planner::partials.planner-tokens')
 @php
     $allTasks = $groups->flatMap(fn($g) => $g->tasks);
     $openTasks = $groups->filter(fn($g) => !($g->isDoneGroup ?? false))->flatMap(fn($g) => $g->tasks);
@@ -34,21 +35,22 @@
             <div class="p-4 space-y-5">
 
                 {{-- Compact stats --}}
+                @php $frogCount = $openTasks->filter(fn($t) => $t->is_frog)->count(); @endphp
                 <div class="grid grid-cols-2 gap-2">
-                    <div class="px-3 py-2 bg-[var(--ui-muted-5)] rounded border border-[var(--ui-border)]/40">
-                        <div class="text-lg font-bold text-[var(--ui-secondary)]">{{ $openTasks->count() }}</div>
+                    <div class="px-3 py-2 rounded border border-[var(--planner-status-active)]/20 bg-[var(--planner-status-active)]/5">
+                        <div class="text-lg font-bold text-[var(--planner-status-active)]">{{ $openTasks->count() }}</div>
                         <div class="text-[10px] text-[var(--ui-muted)] uppercase tracking-wide">Offen</div>
                     </div>
-                    <div class="px-3 py-2 bg-[var(--ui-muted-5)] rounded border border-[var(--ui-border)]/40">
-                        <div class="text-lg font-bold text-[var(--ui-success)]">{{ $doneTasks->count() }}</div>
+                    <div class="px-3 py-2 rounded border border-[var(--planner-status-done)]/20 bg-[var(--planner-status-done)]/5">
+                        <div class="text-lg font-bold text-[var(--planner-status-done)]">{{ $doneTasks->count() }}</div>
                         <div class="text-[10px] text-[var(--ui-muted)] uppercase tracking-wide">Erledigt</div>
                     </div>
-                    <div class="px-3 py-2 bg-[var(--ui-muted-5)] rounded border border-[var(--ui-border)]/40">
-                        <div class="text-lg font-bold text-[var(--ui-secondary)]">{{ $openTasks->sum(fn($t) => $t->story_points?->points() ?? 0) }}</div>
+                    <div class="px-3 py-2 rounded border border-[var(--planner-status-active)]/20 bg-[var(--planner-status-active)]/5">
+                        <div class="text-lg font-bold text-[var(--planner-status-active)]">{{ $openTasks->sum(fn($t) => $t->story_points?->points() ?? 0) }}</div>
                         <div class="text-[10px] text-[var(--ui-muted)] uppercase tracking-wide">SP offen</div>
                     </div>
-                    <div class="px-3 py-2 bg-[var(--ui-muted-5)] rounded border border-[var(--ui-border)]/40">
-                        <div class="text-lg font-bold text-[var(--ui-danger)]">{{ $openTasks->filter(fn($t) => $t->is_frog)->count() }}</div>
+                    <div class="px-3 py-2 rounded border {{ $frogCount > 0 ? 'border-[var(--planner-frog)]/20 bg-[var(--planner-frog)]/5' : 'border-[var(--ui-border)]/40 bg-[var(--ui-muted-5)]' }}">
+                        <div class="text-lg font-bold {{ $frogCount > 0 ? 'text-[var(--planner-frog)]' : 'text-[var(--ui-secondary)]' }}">{{ $frogCount }}</div>
                         <div class="text-[10px] text-[var(--ui-muted)] uppercase tracking-wide">Frösche</div>
                     </div>
                 </div>
@@ -199,7 +201,7 @@
         @if($backlog)
             <x-ui-kanban-column :title="($backlog->label ?? 'Posteingang')" :sortable-id="null" :scrollable="true" :muted="true">
                 <x-slot name="headerActions">
-                    <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-[10px] font-semibold rounded-full bg-[var(--ui-muted-10)] text-[var(--ui-muted)]">
+                    <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-[10px] font-semibold rounded-full" style="background-color: color-mix(in srgb, var(--planner-col-backlog) 15%, transparent); color: var(--planner-col-backlog)">
                         {{ $backlog->tasks->count() }}
                     </span>
                 </x-slot>
@@ -208,7 +210,8 @@
                 @empty
                     <div class="flex flex-col items-center justify-center py-8 text-[var(--ui-muted)]">
                         @svg('heroicon-o-inbox', 'w-8 h-8 mb-2 opacity-40')
-                        <span class="text-xs">Keine Aufgaben</span>
+                        <span class="text-xs">Inbox ist leer</span>
+                        <span class="text-[10px] mt-0.5 opacity-60">Neue Aufgaben landen hier</span>
                     </div>
                 @endforelse
             </x-ui-kanban-column>
@@ -218,7 +221,7 @@
         @foreach($groups->filter(fn ($g) => !($g->isDoneGroup ?? false) && !($g->isBacklog ?? false) && !($g->isDueGroup ?? false)) as $column)
             <x-ui-kanban-column :title="($column->label ?? $column->name ?? 'Spalte')" :sortable-id="$column->id" :scrollable="true">
                 <x-slot name="headerActions">
-                    <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-[10px] font-semibold rounded-full bg-[var(--ui-muted-10)] text-[var(--ui-muted)]">
+                    <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-[10px] font-semibold rounded-full" style="background-color: color-mix(in srgb, var(--planner-col-default) 15%, transparent); color: var(--planner-col-default)">
                         {{ $column->tasks->count() }}
                     </span>
                     <button
@@ -242,6 +245,7 @@
                     <div class="flex flex-col items-center justify-center py-8 text-[var(--ui-muted)]">
                         @svg('heroicon-o-clipboard', 'w-8 h-8 mb-2 opacity-40')
                         <span class="text-xs">Keine Aufgaben</span>
+                        <span class="text-[10px] mt-0.5 opacity-60">Hierher ziehen oder neu erstellen</span>
                     </div>
                 @endforelse
             </x-ui-kanban-column>
@@ -253,7 +257,7 @@
             @if($done)
                 <x-ui-kanban-column :title="($done->label ?? 'Erledigt')" :sortable-id="null" :scrollable="true" :muted="true">
                     <x-slot name="headerActions">
-                        <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-[10px] font-semibold rounded-full bg-[var(--ui-success)]/10 text-[var(--ui-success)]">
+                        <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-[10px] font-semibold rounded-full" style="background-color: color-mix(in srgb, var(--planner-col-done) 15%, transparent); color: var(--planner-col-done)">
                             {{ $done->tasks->count() }}
                         </span>
                     </x-slot>
@@ -262,7 +266,7 @@
                     @empty
                         <div class="flex flex-col items-center justify-center py-8 text-[var(--ui-muted)]">
                             @svg('heroicon-o-check-circle', 'w-8 h-8 mb-2 opacity-40')
-                            <span class="text-xs">Keine erledigten Aufgaben</span>
+                            <span class="text-xs">Noch nichts erledigt</span>
                         </div>
                     @endforelse
                 </x-ui-kanban-column>

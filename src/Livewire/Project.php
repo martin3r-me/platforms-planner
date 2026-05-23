@@ -431,6 +431,19 @@ class Project extends Component
     }
 
     /**
+     * Quick-toggle done status from card hover action
+     */
+    #[On('quick-done')]
+    public function quickToggleDone(int $taskId)
+    {
+        $task = PlannerTask::findOrFail($taskId);
+        $this->authorize('update', $this->project);
+        $task->is_done = !$task->is_done;
+        $task->done_at = $task->is_done ? now() : null;
+        $task->save();
+    }
+
+    /**
      * Toggle für die Anzeige der Erledigt-Spalte
      */
     public function toggleShowDoneColumn()

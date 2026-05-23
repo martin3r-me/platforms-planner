@@ -322,6 +322,22 @@ class MyTasks extends Component
         ]);
     }
 
+    /**
+     * Quick-toggle done status from card hover action
+     */
+    public function quickToggleDone(int $taskId)
+    {
+        $task = PlannerTask::findOrFail($taskId);
+
+        if ($task->user_id !== auth()->id() && $task->user_in_charge_id !== auth()->id()) {
+            abort(403);
+        }
+
+        $task->is_done = !$task->is_done;
+        $task->done_at = $task->is_done ? now() : null;
+        $task->save();
+    }
+
     public function toggleDone($taskId)
     {
         $task = PlannerTask::findOrFail($taskId);

@@ -275,6 +275,22 @@ class DelegatedTasks extends Component
     }
 
     /**
+     * Quick-toggle done status from card hover action
+     */
+    public function quickToggleDone(int $taskId)
+    {
+        $task = PlannerTask::findOrFail($taskId);
+
+        if ($task->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        $task->is_done = !$task->is_done;
+        $task->done_at = $task->is_done ? now() : null;
+        $task->save();
+    }
+
+    /**
      * Toggle für die Anzeige der Erledigt-Spalte
      */
     public function toggleShowDoneColumn()

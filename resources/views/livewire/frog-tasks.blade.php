@@ -1,3 +1,4 @@
+@include('planner::partials.planner-tokens')
 <x-ui-page>
     <x-slot name="navbar">
         <x-ui-page-navbar title="Frösche" icon="heroicon-o-exclamation-triangle" />

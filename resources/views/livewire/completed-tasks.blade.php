@@ -1,3 +1,4 @@
+@include('planner::partials.planner-tokens')
 <x-ui-page>
     <x-slot name="navbar">
         <x-ui-page-navbar title="Erledigte Aufgaben" icon="heroicon-o-check-circle" />
