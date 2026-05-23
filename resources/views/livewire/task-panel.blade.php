@@ -1,12 +1,14 @@
 <div
     x-data="{
         isOpen: @entangle('open'),
+        originalUrl: window.location.pathname + window.location.search,
         init() {
             this.$watch('isOpen', (val) => {
                 if (val && {{ $task?->id ?? 'null' }}) {
-                    history.pushState({}, '', '/planner/tasks/' + {{ $task?->id ?? 'null' }});
+                    this.originalUrl = window.location.pathname + window.location.search;
+                    history.replaceState({taskPanel: true}, '', '/planner/tasks/' + {{ $task?->id ?? 'null' }});
                 } else if (!val) {
-                    history.back();
+                    history.replaceState({}, '', this.originalUrl);
                 }
             });
         },
@@ -42,6 +44,7 @@
         x-transition:leave="transition-transform ease-in duration-150"
         x-transition:leave-start="translate-x-0"
         x-transition:leave-end="translate-x-full"
+        @click.stop
         class="relative w-full max-w-[480px] h-full bg-white border-l border-[var(--ui-border)] shadow-xl overflow-y-auto"
     >
         @if($task)
@@ -66,6 +69,7 @@
                     </a>
                     <button
                         @click="close()"
+                        type="button"
                         class="p-1 text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] rounded hover:bg-[var(--ui-muted-5)] transition"
                     >
                         @svg('heroicon-o-x-mark', 'w-5 h-5')

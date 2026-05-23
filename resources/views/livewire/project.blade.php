@@ -6,7 +6,18 @@
 @endphp
 
 <x-ui-page
-    x-data="{}"
+    x-data="{
+        handleCardClick(e) {
+            if (e.target.closest('button, a, input, select, textarea')) return;
+            const card = e.target.closest('[data-task-panel-id]');
+            if (card && card.dataset.taskPanelId) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.$dispatch('openTaskPanel', { taskId: parseInt(card.dataset.taskPanelId) });
+            }
+        }
+    }"
+    x-on:click="handleCardClick($event)"
     @keydown.n.window.prevent="$wire.createTask()"
 >
     <x-slot name="navbar">
