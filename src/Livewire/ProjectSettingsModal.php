@@ -381,20 +381,6 @@ class ProjectSettingsModal extends Component
 
         $links = collect();
 
-        // a) OrganizationContext (primäre Quelle – UI)
-        $orgContext = $this->project->organizationContext()
-            ->where('is_active', true)
-            ->with('organizationEntity.type')
-            ->first();
-        if ($orgContext && $orgContext->organizationEntity) {
-            $links->push([
-                'id' => $orgContext->id,
-                'entity_name' => $orgContext->organizationEntity->name ?? 'Unbekannt',
-                'entity_type' => $orgContext->organizationEntity->type?->name ?? '',
-            ]);
-        }
-
-        // b) DimensionLink entity dimension (sekundäre Quelle – DimensionLinker / LLM Tools)
         $entityLinkResults = \Platform\Organization\Services\EntityDimensionBridge::linksForLinkables(
             ['project', 'planner_project', get_class($this->project)],
             [$this->project->id]

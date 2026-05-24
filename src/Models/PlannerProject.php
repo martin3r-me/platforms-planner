@@ -23,12 +23,13 @@ use Platform\ActivityLog\Traits\LogsActivity;
 use Platform\Core\Contracts\HasKeyResultAncestors;
 use Platform\Core\Contracts\HasDisplayName;
 use Platform\Core\Contracts\AgendaRenderable;
+use Platform\Organization\Contracts\HasChildContextRelations;
 use Platform\Planner\Enums\CustomerBillingMethod;
 
 /**
  * @ai.description Projekt bündelt Aufgaben (Tasks) und Sprints. Dient als Container für Planung, Ressourcen und Fortschritt eines Vorhabens im Team.
  */
-class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayName, AgendaRenderable
+class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayName, AgendaRenderable, HasChildContextRelations
 {
     use SoftDeletes, HasTimeEntries, HasOrganizationContexts, HasColors, HasTags, HasExtraFields, HasEntityLinks, LogsActivity, TracksLastViewed;
 
@@ -255,5 +256,12 @@ class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayN
             'url' => route('planner.projects.show', $this),
             'meta' => ['project_type' => $this->project_type?->value],
         ];
+    }
+
+    // ── HasChildContextRelations ─────────────────────────────
+
+    public static function childContextRelations(): array
+    {
+        return ['tasks', 'projectSlots.tasks'];
     }
 }

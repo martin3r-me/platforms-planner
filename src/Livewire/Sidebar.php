@@ -7,7 +7,6 @@ use Illuminate\Support\Facades\Auth;
 use Platform\Planner\Models\PlannerProject as Project;
 use Platform\Planner\Models\PlannerProjectSlot as ProjectSlot;
 use Platform\Planner\Models\PlannerTask;
-use Platform\Organization\Models\OrganizationContext;
 use Platform\Organization\Services\EntityDimensionBridge;
 use Platform\Organization\Models\OrganizationEntity;
 use Platform\Organization\Models\OrganizationEntityType;
@@ -115,34 +114,13 @@ class Sidebar extends Component
 
         $hasMoreProjects = $allProjects->count() > $projectsWithUserTasks->count();
 
-        // 2. Entity-Verknüpfungen laden aus BEIDEN Quellen:
-        //    a) OrganizationContext (UI: ModalOrganization → HasOrganizationContexts trait)
-        //    b) DimensionLink entity dimension (DimensionLinker / LLM Tools)
+        // 2. Entity-Verknüpfungen laden via DimensionLink
         $projectIds = $projectsToShow->pluck('id')->toArray();
 
         $entityProjectMap = []; // entity_id => [project_ids]
         $linkedProjectIds = [];
 
-        // a) OrganizationContext (primäre Quelle – wird von der UI erstellt)
-        // Drei mögliche Morph-Varianten: ContextTypeRegistry-Kurzform, Laravel Morph-Map-Alias, FQCN
         $contextMorphTypes = ['project', 'planner_project', Project::class];
-        $contexts = OrganizationContext::query()
-            ->whereIn('contextable_type', $contextMorphTypes)
-            ->whereIn('contextable_id', $projectIds)
-            ->where('is_active', true)
-            ->with(['organizationEntity.type'])
-            ->get();
-
-        foreach ($contexts as $ctx) {
-            $entityId = $ctx->organization_entity_id;
-            $projectId = $ctx->contextable_id;
-            if ($entityId) {
-                $entityProjectMap[$entityId][] = $projectId;
-                $linkedProjectIds[] = $projectId;
-            }
-        }
-
-        // b) DimensionLink entity dimension (sekundäre Quelle – DimensionLinker / LLM Tools)
         $entityLinks = EntityDimensionBridge::linksForLinkables($contextMorphTypes, $projectIds);
 
         foreach ($entityLinks as $link) {

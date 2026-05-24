@@ -227,22 +227,9 @@ class Project extends Component
         // === BOARD-GRUPPEN ZUSAMMENSTELLEN ===
         $groups = collect([$backlog])->concat($slots)->push($completedGroup);
 
-        // Entity-Verknüpfungen laden aus beiden Quellen (OrganizationContext + DimensionLink)
+        // Entity-Verknüpfungen laden via DimensionLink
         $linkedEntities = collect();
 
-        // a) OrganizationContext (primäre Quelle – UI)
-        $orgContext = $this->project->organizationContext()
-            ->where('is_active', true)
-            ->with('organizationEntity.type')
-            ->first();
-        if ($orgContext && $orgContext->organizationEntity) {
-            $linkedEntities->push([
-                'entity_name' => $orgContext->organizationEntity->name ?? 'Unbekannt',
-                'entity_type' => $orgContext->organizationEntity->type?->name ?? '',
-            ]);
-        }
-
-        // b) DimensionLink entity dimension (sekundäre Quelle – DimensionLinker / LLM Tools)
         $entityLinks = \Platform\Organization\Services\EntityDimensionBridge::linksForLinkables(
             ['project', 'planner_project', get_class($this->project)],
             [$this->project->id]
