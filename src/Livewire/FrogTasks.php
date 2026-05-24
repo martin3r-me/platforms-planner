@@ -29,6 +29,15 @@ class FrogTasks extends Component
 
     }
 
+    public function quickToggleDone(int $taskId)
+    {
+        $task = PlannerTask::findOrFail($taskId);
+        $this->authorize('update', $task);
+        $task->is_done = !$task->is_done;
+        $task->done_at = $task->is_done ? now() : null;
+        $task->save();
+    }
+
     public function rendered()
     {
         $this->dispatch('comms', [

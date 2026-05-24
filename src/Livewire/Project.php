@@ -437,7 +437,7 @@ class Project extends Component
     public function quickToggleDone(int $taskId)
     {
         $task = PlannerTask::findOrFail($taskId);
-        $this->authorize('update', $this->project);
+        $this->authorize('update', $task);
         $task->is_done = !$task->is_done;
         $task->done_at = $task->is_done ? now() : null;
         $task->save();
