@@ -13,6 +13,9 @@ class FrogTasks extends Component
 {
     public $userFilter = null;
     public $projectFilter = null;
+    public $priorityFilter = null;
+    public $overdueOnly = false;
+    public $groupBy = 'project'; // project, person, priority
 
     #[On('updateDashboard')]
     public function updateDashboard()
@@ -98,26 +101,48 @@ class FrogTasks extends Component
             ->when($this->projectFilter, function ($q) {
                 $q->where('project_id', $this->projectFilter);
             })
+            ->when($this->priorityFilter, function ($q) {
+                $q->where('priority', $this->priorityFilter);
+            })
+            ->when($this->overdueOnly, function ($q) {
+                $q->whereNotNull('due_date')
+                  ->where('due_date', '<', now()->startOfDay());
+            })
             ->with(['user', 'userInCharge', 'project', 'team'])
             ->orderBy('due_date')
             ->orderByDesc('created_at')
             ->get();
 
-        // Gruppierung nach Projekt
+        // Gruppierung
         $groupedTasks = $frogTasks->groupBy(function ($task) {
-            return $task->project ? $task->project->name : 'Ohne Projekt';
+            return match($this->groupBy) {
+                'person' => $task->userInCharge
+                    ? ($task->userInCharge->fullname ?? $task->userInCharge->name)
+                    : 'Nicht zugewiesen',
+                'priority' => $task->priority?->label() ?? 'Ohne Priorität',
+                default => $task->project?->name ?? 'Ohne Projekt',
+            };
         });
 
-        // Statistiken
-        $totalCount = $frogTasks->count();
-        $forcedFrogCount = $frogTasks->where('is_forced_frog', true)->count();
-        $totalPoints = $frogTasks->sum(fn ($task) => $task->story_points instanceof TaskStoryPoints ? $task->story_points->points() : 0);
+        // Statistiken (ungefiltert für KPIs)
+        $allFrogs = (clone $baseQuery)->get();
+        $totalCount = $allFrogs->count();
+        $forcedFrogCount = $allFrogs->where('is_forced_frog', true)->count();
+        $totalPoints = $allFrogs->sum(fn ($task) => $task->story_points instanceof TaskStoryPoints ? $task->story_points->points() : 0);
+        $overdueCount = $allFrogs->filter(fn($t) => $t->due_date && $t->due_date->isPast())->count();
+        $withoutDueDate = $allFrogs->filter(fn($t) => !$t->due_date)->count();
+        $highPriorityCount = $allFrogs->filter(fn($t) => $t->priority?->value === 'high')->count();
+        $filteredCount = $frogTasks->count();
 
         return view('planner::livewire.frog-tasks', [
             'groupedTasks' => $groupedTasks,
             'totalCount' => $totalCount,
+            'filteredCount' => $filteredCount,
             'forcedFrogCount' => $forcedFrogCount,
             'totalPoints' => $totalPoints,
+            'overdueCount' => $overdueCount,
+            'withoutDueDate' => $withoutDueDate,
+            'highPriorityCount' => $highPriorityCount,
             'availableUsers' => $availableUsers,
             'availableProjects' => $availableProjects,
         ])->layout('platform::layouts.app');
