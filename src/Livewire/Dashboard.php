@@ -106,8 +106,30 @@ class Dashboard extends Component
             ->where('user_in_charge_id', $user->id)
             ->with(['project'])
             ->orderByRaw('due_date IS NULL, due_date ASC')
-            ->limit(15)
+            ->limit(10)
             ->get();
+
+        // Meine offenen Aufgaben (Gesamtzahl)
+        $myOpenTasksCount = $teamTasksQuery()
+            ->where('is_done', false)
+            ->where('user_in_charge_id', $user->id)
+            ->count();
+
+        // Frösche (meine)
+        $myFrogsCount = $teamTasksQuery()
+            ->where('is_done', false)
+            ->where('user_in_charge_id', $user->id)
+            ->where('is_frog', true)
+            ->count();
+
+        // Delegierte Aufgaben (von mir erstellt, jemand anders verantwortlich)
+        $delegatedOpenCount = PlannerTask::withStale()
+            ->where('team_id', $team->id)
+            ->where('is_done', false)
+            ->where('user_id', $user->id)
+            ->whereNotNull('user_in_charge_id')
+            ->where('user_in_charge_id', '!=', $user->id)
+            ->count();
 
         // === PROJEKTE MIT FORTSCHRITT ===
         $projectsWithProgress = $activeProjectsCollection
@@ -127,6 +149,9 @@ class Dashboard extends Component
             'overdueTasksList' => $overdueTasksList,
             'upcomingTasksList' => $upcomingTasksList,
             'myTasksList' => $myTasksList,
+            'myOpenTasksCount' => $myOpenTasksCount,
+            'myFrogsCount' => $myFrogsCount,
+            'delegatedOpenCount' => $delegatedOpenCount,
             'projectsWithProgress' => $projectsWithProgress,
             'recentlyCompletedWithProgress' => $recentlyCompletedWithProgress,
             'showCompletedProjects' => $this->showCompletedProjects,
