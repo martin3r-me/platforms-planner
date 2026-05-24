@@ -118,8 +118,12 @@ class GetProjectTool implements ToolContract, ToolMetadataContract
             // Gesamt-Aufgaben im Projekt
             $totalTasks = PlannerTask::where('project_id', $project->id)->count();
 
-            // Entity-Links laden
-            $entityLinksData = $project->entityLinks()->with(['entity.type'])->get()->map(fn($l) => [
+            // Entity-Links laden (via DimensionLink Bridge)
+            $entityLinks = \Platform\Organization\Services\EntityDimensionBridge::linksForLinkables(
+                ['planner_project', PlannerProject::class],
+                [$project->id]
+            );
+            $entityLinksData = $entityLinks->map(fn($l) => [
                 'entity_id' => $l->entity_id,
                 'entity_name' => $l->entity?->name,
                 'entity_type' => $l->entity?->type?->name,
