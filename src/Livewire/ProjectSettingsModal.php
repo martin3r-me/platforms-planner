@@ -394,12 +394,11 @@ class ProjectSettingsModal extends Component
             ]);
         }
 
-        // b) OrganizationEntityLink (sekundäre Quelle – DimensionLinker / LLM Tools)
-        $entityLinkResults = \Platform\Organization\Models\OrganizationEntityLink::query()
-            ->whereIn('linkable_type', ['project', 'planner_project', get_class($this->project)])
-            ->where('linkable_id', $this->project->id)
-            ->with(['entity.type'])
-            ->get();
+        // b) DimensionLink entity dimension (sekundäre Quelle – DimensionLinker / LLM Tools)
+        $entityLinkResults = \Platform\Organization\Services\EntityDimensionBridge::linksForLinkables(
+            ['project', 'planner_project', get_class($this->project)],
+            [$this->project->id]
+        );
         foreach ($entityLinkResults as $link) {
             $links->push([
                 'id' => $link->id,

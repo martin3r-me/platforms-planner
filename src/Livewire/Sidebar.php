@@ -8,7 +8,7 @@ use Platform\Planner\Models\PlannerProject as Project;
 use Platform\Planner\Models\PlannerProjectSlot as ProjectSlot;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Organization\Models\OrganizationContext;
-use Platform\Organization\Models\OrganizationEntityLink;
+use Platform\Organization\Services\EntityDimensionBridge;
 use Platform\Organization\Models\OrganizationEntity;
 use Platform\Organization\Models\OrganizationEntityType;
 use Livewire\Attributes\On;
@@ -117,7 +117,7 @@ class Sidebar extends Component
 
         // 2. Entity-Verknüpfungen laden aus BEIDEN Quellen:
         //    a) OrganizationContext (UI: ModalOrganization → HasOrganizationContexts trait)
-        //    b) OrganizationEntityLink (DimensionLinker / LLM Tools)
+        //    b) DimensionLink entity dimension (DimensionLinker / LLM Tools)
         $projectIds = $projectsToShow->pluck('id')->toArray();
 
         $entityProjectMap = []; // entity_id => [project_ids]
@@ -142,12 +142,8 @@ class Sidebar extends Component
             }
         }
 
-        // b) OrganizationEntityLink (sekundäre Quelle – DimensionLinker / LLM Tools)
-        $entityLinks = OrganizationEntityLink::query()
-            ->whereIn('linkable_type', $contextMorphTypes)
-            ->whereIn('linkable_id', $projectIds)
-            ->with(['entity.type'])
-            ->get();
+        // b) DimensionLink entity dimension (sekundäre Quelle – DimensionLinker / LLM Tools)
+        $entityLinks = EntityDimensionBridge::linksForLinkables($contextMorphTypes, $projectIds);
 
         foreach ($entityLinks as $link) {
             $entityId = $link->entity_id;
