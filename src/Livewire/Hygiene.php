@@ -48,23 +48,34 @@ class Hygiene extends Component
             ->pluck('project_id')
             ->toArray();
 
-        // === STALE DATA ===
+        // Thresholds aus den Models auslesen
+        $projectThreshold = now()->subDays((new PlannerProject)->getStalenessThresholdDays());
+        $taskThreshold = now()->subDays((new PlannerTask)->getStalenessThresholdDays());
 
-        // Stale Projects (nicht erledigt, last_viewed_at abgelaufen)
-        $staleProjects = PlannerProject::onlyStale()
+        // === STALE DATA ===
+        // "Vergessen" = last_viewed_at IS NULL (nie angesehen) ODER aelter als Threshold
+
+        $staleProjects = PlannerProject::withStale()
             ->where('team_id', $team->id)
             ->where('done', false)
             ->visibleTo($user)
+            ->where(function ($q) use ($projectThreshold) {
+                $q->whereNull('last_viewed_at')
+                  ->orWhere('last_viewed_at', '<', $projectThreshold);
+            })
             ->withCount(['tasks as open_tasks_count' => function ($q) {
                 $q->where('is_done', false);
             }])
             ->withCount(['tasks as total_tasks_count'])
-            ->orderBy('last_viewed_at', 'asc')
+            ->orderByRaw('last_viewed_at IS NULL DESC, last_viewed_at ASC')
             ->get();
 
-        // Stale Tasks (nicht erledigt, last_viewed_at abgelaufen)
-        $staleTasksQuery = PlannerTask::onlyStale()
+        $staleTasksQuery = PlannerTask::withStale()
             ->where('is_done', false)
+            ->where(function ($q) use ($taskThreshold) {
+                $q->whereNull('last_viewed_at')
+                  ->orWhere('last_viewed_at', '<', $taskThreshold);
+            })
             ->where(function ($q) use ($user, $projectIds) {
                 $q->where(function ($q) use ($user) {
                     $q->whereNull('project_id')
@@ -82,7 +93,7 @@ class Hygiene extends Component
 
         $staleTasks = $staleTasksQuery
             ->with(['project', 'userInCharge'])
-            ->orderBy('last_viewed_at', 'asc')
+            ->orderByRaw('last_viewed_at IS NULL DESC, last_viewed_at ASC')
             ->get();
 
         // === RECENT DATA ===
@@ -127,8 +138,17 @@ class Hygiene extends Component
         $staleTasksWithDueDate = $staleTasks->filter(fn($t) => $t->due_date)->count();
         $staleOverdue = $staleTasks->filter(fn($t) => $t->due_date && $t->due_date->isPast())->count();
         $staleSP = $staleTasks->sum(fn($t) => $t->story_points instanceof TaskStoryPoints ? $t->story_points->points() : 0);
-        $oldestStaleProject = $staleProjects->sortBy('last_viewed_at')->first();
-        $oldestStaleTask = $staleTasks->sortBy('last_viewed_at')->first();
+        // NULL (nie angesehen) ist "aelter" als alles andere
+        $oldestStaleProject = $staleProjects
+            ->sortBy(fn($p) => $p->last_viewed_at ?? \Carbon\Carbon::createFromTimestamp(0))
+            ->first();
+        $oldestStaleTask = $staleTasks
+            ->sortBy(fn($t) => $t->last_viewed_at ?? \Carbon\Carbon::createFromTimestamp(0))
+            ->first();
+
+        // Counts: nie angesehen vs. tatsaechlich stale
+        $neverViewedProjectsCount = $staleProjects->filter(fn($p) => $p->last_viewed_at === null)->count();
+        $neverViewedTasksCount = $staleTasks->filter(fn($t) => $t->last_viewed_at === null)->count();
 
         // Available projects for filter (from stale tasks)
         $availableProjects = PlannerProject::withStale()
@@ -149,6 +169,8 @@ class Hygiene extends Component
             'staleSP' => $staleSP,
             'oldestStaleProject' => $oldestStaleProject,
             'oldestStaleTask' => $oldestStaleTask,
+            'neverViewedProjectsCount' => $neverViewedProjectsCount,
+            'neverViewedTasksCount' => $neverViewedTasksCount,
             'availableProjects' => $availableProjects,
         ])->layout('platform::layouts.app');
     }

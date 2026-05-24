@@ -111,7 +111,7 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
 
             // Standard-Operationen anwenden
             $this->applyStandardFilters($query, $arguments, [
-                'project_type', 'name', 'description', 'done', 'created_at', 'updated_at'
+                'project_type', 'name', 'description', 'done', 'created_at', 'updated_at', 'last_viewed_at'
             ]);
             
             // Legacy: project_type (für Backwards-Kompatibilität)
@@ -129,7 +129,7 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
             
             // Standard-Sortierung anwenden
             $this->applyStandardSort($query, $arguments, [
-                'name', 'created_at', 'updated_at', 'project_type', 'done'
+                'name', 'created_at', 'updated_at', 'project_type', 'done', 'last_viewed_at'
             ], 'name', 'asc');
             
             // Standard-Pagination anwenden
@@ -198,6 +198,7 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
                     'estimated_hours' => $project->estimated_hours ? (float) $project->estimated_hours : null,
                     'done' => $project->done,
                     'created_at' => $project->created_at->toIso8601String(),
+                    'last_viewed_at' => $project->last_viewed_at?->toIso8601String(),
                     // Struktur-Informationen
                     'structure' => [
                         'slots_count' => $slotsCount,

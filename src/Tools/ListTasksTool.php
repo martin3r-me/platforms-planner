@@ -120,8 +120,8 @@ class ListTasksTool implements ToolContract
 
             // Standard-Operationen anwenden
             $this->applyStandardFilters($query, $arguments, [
-                'project_id', 'project_slot_id', 'user_in_charge_id', 'is_done', 
-                'title', 'description', 'due_date', 'created_at', 'updated_at',
+                'project_id', 'project_slot_id', 'user_in_charge_id', 'is_done',
+                'title', 'description', 'due_date', 'created_at', 'updated_at', 'last_viewed_at',
                 // numeric effort/estimate field (used as proxy for points)
                 'planned_minutes',
                 // story points enum stored as string (xs..xxl)
@@ -192,8 +192,8 @@ class ListTasksTool implements ToolContract
             
             // Standard-Sortierung anwenden (Default: due_date asc, dann created_at desc)
             $this->applyStandardSort($query, $arguments, [
-                'title', 'description', 'due_date', 'created_at', 'updated_at', 
-                'is_done', 'done_at', 'user_in_charge_id', 'planned_minutes'
+                'title', 'description', 'due_date', 'created_at', 'updated_at',
+                'is_done', 'done_at', 'user_in_charge_id', 'planned_minutes', 'last_viewed_at'
             ], 'due_date', 'asc');
             
             // Wenn keine explizite Sortierung, füge created_at desc hinzu
@@ -242,6 +242,7 @@ class ListTasksTool implements ToolContract
                     'story_points_label' => $task->story_points?->label(),
                     'story_points_points' => $task->story_points?->points(),
                     'created_at' => $task->created_at->toIso8601String(),
+                    'last_viewed_at' => $task->last_viewed_at?->toIso8601String(),
                 ];
             })->values()->toArray();
 

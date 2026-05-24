@@ -41,14 +41,26 @@
                         @if($oldestStaleProject)
                             <div class="flex items-center justify-between py-1.5 px-2 rounded bg-[var(--planner-status-overdue)]/5">
                                 <span class="text-[var(--ui-muted)] truncate">Ältestes Projekt</span>
-                                <span class="font-semibold text-[var(--planner-status-overdue)] flex-shrink-0">{{ $oldestStaleProject->last_viewed_at?->diffForHumans() }}</span>
+                                <span class="font-semibold text-[var(--planner-status-overdue)] flex-shrink-0">{{ $oldestStaleProject->last_viewed_at ? $oldestStaleProject->last_viewed_at->diffForHumans() : 'Nie' }}</span>
                             </div>
                         @endif
                         @if($oldestStaleTask)
                             <div class="flex items-center justify-between py-1.5 px-2 rounded bg-amber-50">
                                 <span class="text-[var(--ui-muted)] truncate">Ältester Task</span>
-                                <span class="font-semibold text-amber-600 flex-shrink-0">{{ $oldestStaleTask->last_viewed_at?->diffForHumans() }}</span>
+                                <span class="font-semibold text-amber-600 flex-shrink-0">{{ $oldestStaleTask->last_viewed_at ? $oldestStaleTask->last_viewed_at->diffForHumans() : 'Nie' }}</span>
                             </div>
+                        @endif
+                    </div>
+                @endif
+
+                {{-- Nie-angesehen Info --}}
+                @if($neverViewedProjectsCount > 0 || $neverViewedTasksCount > 0)
+                    <div class="text-[10px] text-[var(--ui-muted)] px-1 leading-relaxed bg-[var(--ui-muted-5)] rounded p-2">
+                        @if($neverViewedProjectsCount > 0)
+                            <span class="font-medium text-[var(--planner-status-overdue)]">{{ $neverViewedProjectsCount }}</span> Projekt{{ $neverViewedProjectsCount > 1 ? 'e' : '' }} nie angesehen.
+                        @endif
+                        @if($neverViewedTasksCount > 0)
+                            <span class="font-medium text-amber-600">{{ $neverViewedTasksCount }}</span> Task{{ $neverViewedTasksCount > 1 ? 's' : '' }} nie angesehen.
                         @endif
                     </div>
                 @endif
@@ -108,7 +120,7 @@
 
                 {{-- Info --}}
                 <div class="text-[10px] text-[var(--ui-muted)] leading-relaxed px-1">
-                    Projekte gelten nach 180 Tagen ohne Besuch als vergessen, Tasks nach 120 Tagen.
+                    Nie besuchte Projekte &amp; Tasks werden immer angezeigt. Zusätzlich gelten Projekte nach 180 Tagen ohne Besuch als vergessen, Tasks nach 120 Tagen.
                 </div>
             </div>
         </x-ui-page-sidebar>
@@ -125,7 +137,7 @@
                         @svg('heroicon-o-shield-check', 'w-8 h-8 text-[var(--planner-status-done)]')
                     </div>
                     <h3 class="text-lg font-semibold text-[var(--ui-secondary)] mb-1">Alles aufgeräumt</h3>
-                    <p class="text-sm text-[var(--ui-muted)]">Keine vergessenen Projekte oder Aufgaben gefunden.</p>
+                    <p class="text-sm text-[var(--ui-muted)]">Alle Projekte und Aufgaben wurden kürzlich besucht.</p>
                 </div>
             @else
 
@@ -140,6 +152,7 @@
                             @foreach($staleProjects as $project)
                                 @php
                                     $daysSince = $project->last_viewed_at ? (int) now()->diffInDays($project->last_viewed_at) : null;
+                                    $neverViewed = $project->last_viewed_at === null;
                                     $pColor = $project->color ?? null;
                                 @endphp
                                 <a href="{{ route('planner.projects.show', ['plannerProject' => $project->id]) }}" wire:navigate class="flex items-center gap-3 px-4 py-3 bg-[var(--planner-card-overdue)] hover:bg-[var(--planner-status-overdue)]/8 transition-colors group">
@@ -157,7 +170,9 @@
                                             @endif
                                         </div>
                                     </div>
-                                    @if($daysSince !== null)
+                                    @if($neverViewed)
+                                        <span class="flex-shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[var(--planner-status-overdue)]/10 text-[var(--planner-status-overdue)]">Nie angesehen</span>
+                                    @elseif($daysSince !== null)
                                         <span class="flex-shrink-0 text-xs font-semibold text-[var(--planner-status-overdue)] tabular-nums">{{ $daysSince }}d</span>
                                     @endif
                                 </a>
@@ -189,6 +204,7 @@
                                         @foreach($tasks as $task)
                                             @php
                                                 $daysSince = $task->last_viewed_at ? (int) now()->diffInDays($task->last_viewed_at) : null;
+                                                $neverViewed = $task->last_viewed_at === null;
                                                 $isOverdue = $task->due_date && $task->due_date->isPast();
                                                 $priorityColor = match($task->priority?->value ?? null) {
                                                     'high' => 'var(--planner-priority-high)',
@@ -213,7 +229,9 @@
                                                 @if($isOverdue)
                                                     <span class="flex-shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[var(--planner-status-overdue)]/10 text-[var(--planner-status-overdue)]">überfällig</span>
                                                 @endif
-                                                @if($daysSince !== null)
+                                                @if($neverViewed)
+                                                    <span class="flex-shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-600">Nie</span>
+                                                @elseif($daysSince !== null)
                                                     <span class="flex-shrink-0 text-xs font-semibold text-amber-600 tabular-nums">{{ $daysSince }}d</span>
                                                 @endif
                                             </a>

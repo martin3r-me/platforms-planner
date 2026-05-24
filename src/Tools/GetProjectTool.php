@@ -144,6 +144,7 @@ class GetProjectTool implements ToolContract, ToolMetadataContract
                 'estimated_hours' => $project->estimated_hours ? (float) $project->estimated_hours : null,
                 'done' => $project->done,
                 'created_at' => $project->created_at->toIso8601String(),
+                'last_viewed_at' => $project->last_viewed_at?->toIso8601String(),
                 // Komplette Struktur-Informationen
                 'structure' => [
                     'slots_count' => $slotsCount,
