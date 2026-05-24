@@ -120,7 +120,7 @@
 
                 {{-- Info --}}
                 <div class="text-[10px] text-[var(--ui-muted)] leading-relaxed px-1">
-                    Nie besuchte Projekte &amp; Tasks werden immer angezeigt. Zusätzlich gelten Projekte nach 180 Tagen ohne Besuch als vergessen, Tasks nach 120 Tagen.
+                    Projekte gelten nach {{ $projectHygieneDays }} Tagen ohne Besuch als vernachlässigt, Tasks nach {{ $taskHygieneDays }} Tagen.
                 </div>
             </div>
         </x-ui-page-sidebar>

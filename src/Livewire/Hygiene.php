@@ -48,12 +48,15 @@ class Hygiene extends Component
             ->pluck('project_id')
             ->toArray();
 
-        // Thresholds aus den Models auslesen
-        $projectThreshold = now()->subDays((new PlannerProject)->getStalenessThresholdDays());
-        $taskThreshold = now()->subDays((new PlannerTask)->getStalenessThresholdDays());
+        // Hygiene-Thresholds: kuerzere Schwellenwerte als die Model-Staleness (120/180d).
+        // Diese beantworten "Was vernachlaessige ich?" — nicht "Was ist uralt?"
+        $projectHygieneDays = 14; // Projekt nicht besucht seit 14 Tagen
+        $taskHygieneDays = 7;     // Task nicht besucht seit 7 Tagen
+        $projectThreshold = now()->subDays($projectHygieneDays);
+        $taskThreshold = now()->subDays($taskHygieneDays);
 
         // === STALE DATA ===
-        // "Vergessen" = last_viewed_at IS NULL (nie angesehen) ODER aelter als Threshold
+        // "Vergessen" = last_viewed_at IS NULL (nie angesehen) ODER nicht besucht seit Threshold
 
         $staleProjects = PlannerProject::withStale()
             ->where('team_id', $team->id)
@@ -172,6 +175,8 @@ class Hygiene extends Component
             'neverViewedProjectsCount' => $neverViewedProjectsCount,
             'neverViewedTasksCount' => $neverViewedTasksCount,
             'availableProjects' => $availableProjects,
+            'projectHygieneDays' => $projectHygieneDays,
+            'taskHygieneDays' => $taskHygieneDays,
         ])->layout('platform::layouts.app');
     }
 }
