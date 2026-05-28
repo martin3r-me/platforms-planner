@@ -94,16 +94,20 @@ class Task extends Component
             return false;
         }
 
-        // Model-Dirty-Check OHNE verschlüsselte Felder (random IV = immer dirty)
+        // Model-Dirty-Check: Verschlüsselte Felder und deren Temp-Attribute
+        // ausschließen (EncryptedString-Cast erzeugt bei jedem Zugriff neuen
+        // Ciphertext durch random IV → getDirty() meldet immer dirty).
+        // Diese Felder werden auto-saved (updatedDescription, DoD-Methoden).
+        $ignoredKeys = [
+            'description', 'dod',
+            '_plain_description', '_plain_dod',
+            'description_hash', 'dod_hash',
+        ];
         $dirtyFields = array_diff_key(
             $this->task->getDirty(),
-            array_flip(['description', 'dod'])
+            array_flip($ignoredKeys)
         );
         $modelDirty = count($dirtyFields) > 0;
-
-        // Verschlüsselte Felder (description, dod) werden auto-saved via
-        // updatedDescription() und toggleDodItem/addDodItem/removeDodItem.
-        // Kein manueller Save nötig → nicht als dirty melden.
 
         // Extra-Felder prüfen
         $extraFieldsDirty = $this->isExtraFieldsDirty();
@@ -626,7 +630,7 @@ class Task extends Component
 
     public function toggleDone(): void
     {
-        $this->authorize('complete', $this->task);
+        $this->authorize('update', $this->task);
         $this->task->is_done = (bool)!$this->task->is_done;
         $this->task->done_at = $this->task->is_done ? now() : null;
         $this->task->save();
