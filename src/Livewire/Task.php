@@ -94,24 +94,21 @@ class Task extends Component
             return false;
         }
 
-        // Prüfe Model-Änderungen (nur wenn wirklich ungespeichert)
-        $modelDirty = count($this->task->getDirty()) > 0;
+        // Model-Dirty-Check OHNE verschlüsselte Felder (random IV = immer dirty)
+        $dirtyFields = array_diff_key(
+            $this->task->getDirty(),
+            array_flip(['description', 'dod'])
+        );
+        $modelDirty = count($dirtyFields) > 0;
 
-        // Prüfe verschlüsselte Felder (separate Properties)
-        // Vergleiche mit entschlüsselten Werten aus dem Model
-        $currentDescription = $this->task->description ?? '';
-
-        $descriptionDirty = isset($this->description) && $this->description !== $currentDescription;
-
-        // DoD: Vergleiche serialisierte dodItems mit gespeichertem Wert
-        $currentDod = $this->task->dod ?? '';
-        $serializedDodItems = $this->serializeDodItems($this->dodItems);
-        $dodDirty = $serializedDodItems !== $currentDod;
+        // Verschlüsselte Felder (description, dod) werden auto-saved via
+        // updatedDescription() und toggleDodItem/addDodItem/removeDodItem.
+        // Kein manueller Save nötig → nicht als dirty melden.
 
         // Extra-Felder prüfen
         $extraFieldsDirty = $this->isExtraFieldsDirty();
 
-        return $modelDirty || $descriptionDirty || $dodDirty || $extraFieldsDirty;
+        return $modelDirty || $extraFieldsDirty;
     }
 
     #[Computed]
@@ -629,9 +626,9 @@ class Task extends Component
 
     public function toggleDone(): void
     {
-        $this->authorize('update', $this->task);
+        $this->authorize('complete', $this->task);
         $this->task->is_done = (bool)!$this->task->is_done;
-        // done_at wird automatisch vom PlannerTaskObserver gesetzt
+        $this->task->done_at = $this->task->is_done ? now() : null;
         $this->task->save();
     }
 
