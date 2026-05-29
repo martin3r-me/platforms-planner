@@ -94,25 +94,24 @@ class Task extends Component
             return false;
         }
 
-        // Model-Dirty-Check: Verschlüsselte Felder und deren Temp-Attribute
-        // ausschließen (EncryptedString-Cast erzeugt bei jedem Zugriff neuen
-        // Ciphertext durch random IV → getDirty() meldet immer dirty).
-        // Diese Felder werden auto-saved (updatedDescription, DoD-Methoden).
-        $ignoredKeys = [
-            'description', 'dod',
-            '_plain_description', '_plain_dod',
-            'description_hash', 'dod_hash',
-        ];
-        $dirtyFields = array_diff_key(
-            $this->task->getDirty(),
-            array_flip($ignoredKeys)
-        );
-        $modelDirty = count($dirtyFields) > 0;
+        // Prüfe Model-Änderungen (nur wenn wirklich ungespeichert)
+        $modelDirty = count($this->task->getDirty()) > 0;
+
+        // Prüfe verschlüsselte Felder (separate Properties)
+        // Vergleiche mit entschlüsselten Werten aus dem Model
+        $currentDescription = $this->task->description ?? '';
+
+        $descriptionDirty = isset($this->description) && $this->description !== $currentDescription;
+
+        // DoD: Vergleiche serialisierte dodItems mit gespeichertem Wert
+        $currentDod = $this->task->dod ?? '';
+        $serializedDodItems = $this->serializeDodItems($this->dodItems);
+        $dodDirty = $serializedDodItems !== $currentDod;
 
         // Extra-Felder prüfen
         $extraFieldsDirty = $this->isExtraFieldsDirty();
 
-        return $modelDirty || $extraFieldsDirty;
+        return $modelDirty || $descriptionDirty || $dodDirty || $extraFieldsDirty;
     }
 
     #[Computed]
@@ -630,27 +629,10 @@ class Task extends Component
 
     public function toggleDone(): void
     {
-        try {
-            $this->authorize('update', $this->task);
-            $this->task->is_done = !$this->task->is_done;
-            $this->task->done_at = $this->task->is_done ? now() : null;
-            $this->task->save();
-
-            $this->dispatch('notify', [
-                'type' => 'success',
-                'message' => $this->task->is_done ? 'Aufgabe erledigt.' : 'Aufgabe wieder geöffnet.',
-            ]);
-        } catch (\Throwable $e) {
-            Log::error('toggleDone failed', [
-                'task_id' => $this->task?->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-            $this->dispatch('notify', [
-                'type' => 'error',
-                'message' => 'Fehler: ' . $e->getMessage(),
-            ]);
-        }
+        $this->authorize('update', $this->task);
+        $this->task->is_done = (bool)!$this->task->is_done;
+        // done_at wird automatisch vom PlannerTaskObserver gesetzt
+        $this->task->save();
     }
 
     public function toggleFrog(): void
