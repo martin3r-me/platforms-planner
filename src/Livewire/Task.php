@@ -630,10 +630,27 @@ class Task extends Component
 
     public function toggleDone(): void
     {
-        $this->authorize('update', $this->task);
-        $this->task->is_done = (bool)!$this->task->is_done;
-        $this->task->done_at = $this->task->is_done ? now() : null;
-        $this->task->save();
+        try {
+            $this->authorize('update', $this->task);
+            $this->task->is_done = !$this->task->is_done;
+            $this->task->done_at = $this->task->is_done ? now() : null;
+            $this->task->save();
+
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => $this->task->is_done ? 'Aufgabe erledigt.' : 'Aufgabe wieder geöffnet.',
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('toggleDone failed', [
+                'task_id' => $this->task?->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Fehler: ' . $e->getMessage(),
+            ]);
+        }
     }
 
     public function toggleFrog(): void
