@@ -80,7 +80,6 @@
                     name="task.title"
                     label=""
                     wire:model.live.debounce.1000ms="task.title"
-                    :value="$task->title"
                     placeholder="Aufgabentitel eingeben..."
                     required
                     :errorKey="'task.title'"
