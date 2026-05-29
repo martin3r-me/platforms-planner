@@ -66,7 +66,7 @@
             <button
                 type="button"
                 wire:click="toggleDone"
-                class="flex-shrink-0 mt-1 w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all duration-200
+                class="flex-shrink-0 mt-1 w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all duration-200 cursor-pointer
                     {{ $task->is_done
                         ? 'bg-[var(--planner-status-done)] border-[var(--planner-status-done)] text-white'
                         : 'border-[var(--ui-border)] text-transparent hover:border-[var(--planner-status-done)] hover:text-[var(--planner-status-done)]' }}"

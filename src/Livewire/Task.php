@@ -629,9 +629,9 @@ class Task extends Component
 
     public function toggleDone(): void
     {
-        $this->authorize('update', $this->task);
+        $this->authorize('complete', $this->task);
         $this->task->is_done = (bool)!$this->task->is_done;
-        // done_at wird automatisch vom PlannerTaskObserver gesetzt
+        $this->task->done_at = $this->task->is_done ? now() : null;
         $this->task->save();
     }
 
