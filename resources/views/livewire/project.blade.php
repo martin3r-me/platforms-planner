@@ -1,4 +1,3 @@
-@include('planner::partials.planner-tokens')
 @php
     $allTasks = $groups->flatMap(fn($g) => $g->tasks);
     $openTasks = $groups->filter(fn($g) => !($g->isDoneGroup ?? false))->flatMap(fn($g) => $g->tasks);
@@ -10,6 +9,7 @@
     x-data="{}"
     @keydown.n.window.prevent="$wire.createTask()"
 >
+    @include('planner::partials.planner-tokens')
     <x-slot name="navbar">
         <x-ui-page-navbar :title="$project->name" icon="heroicon-o-clipboard-document-list" />
     </x-slot>

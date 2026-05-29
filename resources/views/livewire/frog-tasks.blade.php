@@ -1,8 +1,8 @@
-@include('planner::partials.planner-tokens')
 @php
     $hasActiveFilters = $userFilter || $projectFilter || $priorityFilter || $overdueOnly;
 @endphp
 <x-ui-page>
+    @include('planner::partials.planner-tokens')
     <x-slot name="navbar">
         <x-ui-page-navbar title="Frösche" icon="heroicon-o-exclamation-triangle" />
     </x-slot>

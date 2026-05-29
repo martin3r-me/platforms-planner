@@ -1,5 +1,5 @@
-@include('planner::partials.planner-tokens')
 <x-ui-page>
+    @include('planner::partials.planner-tokens')
     <x-slot name="navbar">
         <x-ui-page-navbar title="Delegierte Aufgaben" icon="heroicon-o-user-group" />
     </x-slot>

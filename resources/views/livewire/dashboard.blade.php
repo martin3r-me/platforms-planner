@@ -1,9 +1,9 @@
-@include('planner::partials.planner-tokens')
 @php
     $hour = (int) now()->format('H');
     $greeting = $hour < 12 ? 'Guten Morgen' : ($hour < 18 ? 'Guten Tag' : 'Guten Abend');
 @endphp
 <x-ui-page>
+    @include('planner::partials.planner-tokens')
     <x-slot name="navbar">
         <x-ui-page-navbar title="Dashboard" icon="heroicon-o-home" />
     </x-slot>

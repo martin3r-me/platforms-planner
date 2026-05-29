@@ -1,4 +1,3 @@
-@include('planner::partials.planner-tokens')
 @php
     $isOverdue = $task->due_date && $task->due_date->isPast() && !$task->is_done;
     $isToday = $task->due_date?->isToday() ?? false;
@@ -13,6 +12,7 @@
     };
 @endphp
 <x-ui-page>
+    @include('planner::partials.planner-tokens')
     <x-slot name="navbar">
         <x-ui-page-navbar title="" />
     </x-slot>
