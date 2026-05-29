@@ -1,4 +1,3 @@
-@push('styles')
 <style>
     :root {
         /* Priority colors */
@@ -32,4 +31,3 @@
         --planner-col-done: #22c55e;
     }
 </style>
-@endpush
