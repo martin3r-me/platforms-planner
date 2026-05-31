@@ -16,27 +16,27 @@
 
     {{-- Abschnitt: Allgemein (über UI-Komponenten) --}}
     <x-ui-sidebar-list label="Allgemein">
-        <x-ui-sidebar-item :href="route('planner.dashboard')">
+        <x-ui-sidebar-item :href="route('planner.dashboard')" :active="request()->routeIs('planner.dashboard')">
             @svg('heroicon-o-home', 'w-4 h-4 text-[var(--ui-secondary)]')
             <span class="ml-2 text-sm">Dashboard</span>
         </x-ui-sidebar-item>
-        <x-ui-sidebar-item :href="route('planner.my-tasks')">
+        <x-ui-sidebar-item :href="route('planner.my-tasks')" :active="request()->routeIs('planner.my-tasks')">
             @svg('heroicon-o-clipboard-document-check', 'w-4 h-4 text-[var(--ui-secondary)]')
             <span class="ml-2 text-sm">Meine Aufgaben</span>
         </x-ui-sidebar-item>
-        <x-ui-sidebar-item :href="route('planner.delegated-tasks')">
+        <x-ui-sidebar-item :href="route('planner.delegated-tasks')" :active="request()->routeIs('planner.delegated-tasks')">
             @svg('heroicon-o-user-group', 'w-4 h-4 text-[var(--ui-secondary)]')
             <span class="ml-2 text-sm">Delegierte Aufgaben</span>
         </x-ui-sidebar-item>
-        <x-ui-sidebar-item :href="route('planner.completed-tasks')">
+        <x-ui-sidebar-item :href="route('planner.completed-tasks')" :active="request()->routeIs('planner.completed-tasks')">
             @svg('heroicon-o-check-circle', 'w-4 h-4 text-[var(--ui-secondary)]')
             <span class="ml-2 text-sm">Erledigte Aufgaben</span>
         </x-ui-sidebar-item>
-        <x-ui-sidebar-item :href="route('planner.frog-tasks')">
+        <x-ui-sidebar-item :href="route('planner.frog-tasks')" :active="request()->routeIs('planner.frog-tasks')">
             @svg('heroicon-o-exclamation-triangle', 'w-4 h-4 text-[var(--ui-secondary)]')
             <span class="ml-2 text-sm">Frösche</span>
         </x-ui-sidebar-item>
-        <x-ui-sidebar-item :href="route('planner.hygiene')">
+        <x-ui-sidebar-item :href="route('planner.hygiene')" :active="request()->routeIs('planner.hygiene')">
             @svg('heroicon-o-shield-check', 'w-4 h-4 text-[var(--ui-secondary)]')
             <span class="ml-2 text-sm">Hygiene</span>
         </x-ui-sidebar-item>
@@ -53,22 +53,22 @@
     {{-- Collapsed: Icons-only für Allgemein --}}
     <div x-show="collapsed" class="px-2 py-2 border-b border-[var(--ui-border)]">
         <div class="flex flex-col gap-2">
-            <a href="{{ route('planner.dashboard') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]">
+            <a href="{{ route('planner.dashboard') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.dashboard') ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)]' : 'text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}">
                 @svg('heroicon-o-home', 'w-5 h-5')
             </a>
-            <a href="{{ route('planner.my-tasks') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]">
+            <a href="{{ route('planner.my-tasks') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.my-tasks') ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)]' : 'text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}">
                 @svg('heroicon-o-clipboard-document-check', 'w-5 h-5')
             </a>
-            <a href="{{ route('planner.delegated-tasks') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]">
+            <a href="{{ route('planner.delegated-tasks') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.delegated-tasks') ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)]' : 'text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}">
                 @svg('heroicon-o-user-group', 'w-5 h-5')
             </a>
-            <a href="{{ route('planner.completed-tasks') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]">
+            <a href="{{ route('planner.completed-tasks') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.completed-tasks') ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)]' : 'text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}">
                 @svg('heroicon-o-check-circle', 'w-5 h-5')
             </a>
-            <a href="{{ route('planner.frog-tasks') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]">
+            <a href="{{ route('planner.frog-tasks') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.frog-tasks') ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)]' : 'text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}">
                 @svg('heroicon-o-exclamation-triangle', 'w-5 h-5')
             </a>
-            <a href="{{ route('planner.hygiene') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]">
+            <a href="{{ route('planner.hygiene') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.hygiene') ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)]' : 'text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}">
                 @svg('heroicon-o-shield-check', 'w-5 h-5')
             </a>
         </div>

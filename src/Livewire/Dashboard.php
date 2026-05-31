@@ -6,10 +6,12 @@ use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Models\PlannerProject;
+use Platform\Planner\Livewire\Concerns\QuickTogglesDone;
 use Platform\Organization\Models\OrganizationTimeEntry;
 
 class Dashboard extends Component
 {
+    use QuickTogglesDone;
     public $showCompletedProjects = false;
 
     public function toggleCompletedProjects(): void

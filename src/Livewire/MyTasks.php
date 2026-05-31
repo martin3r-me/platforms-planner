@@ -6,10 +6,13 @@ use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Models\PlannerTaskGroup;
+use Platform\Planner\Livewire\Concerns\QuickTogglesDone;
 use Livewire\Attributes\On;
 
 class MyTasks extends Component
 {
+    use QuickTogglesDone;
+
     public bool $showDoneColumn = false; // Erledigt-Spalte ein/ausblenden
 
     // Filter
@@ -294,10 +297,10 @@ class MyTasks extends Component
         $newTaskGroup->save();
     }
 
-    public function createTask($taskGroupId = null)
+    public function createTask($taskGroupId = null, $title = null)
     {
         $user = Auth::user();
-        
+
         $lowestOrder = PlannerTask::where('user_id', Auth::id())
             ->where('team_id', Auth::user()->currentTeam->id)
             ->min('order') ?? 0;
@@ -312,7 +315,7 @@ class MyTasks extends Component
             'user_in_charge_id' => $user->id,
             'project_id' => null,
             'task_group_id' => $taskGroupId,
-            'title' => 'Neue Aufgabe',
+            'title' => $title ?: 'Neue Aufgabe',
             'description' => null,
             'due_date' => null,
             'priority' => null,
@@ -320,18 +323,6 @@ class MyTasks extends Component
             'team_id' => Auth::user()->currentTeam->id,
             'order' => $order,
         ]);
-    }
-
-    /**
-     * Quick-toggle done status from card hover action
-     */
-    public function quickToggleDone(int $taskId)
-    {
-        $task = PlannerTask::findOrFail($taskId);
-        $this->authorize('update', $task);
-        $task->is_done = !$task->is_done;
-        $task->done_at = $task->is_done ? now() : null;
-        $task->save();
     }
 
     public function toggleDone($taskId)

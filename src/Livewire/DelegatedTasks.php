@@ -6,10 +6,13 @@ use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Models\PlannerDelegatedTaskGroup;
+use Platform\Planner\Livewire\Concerns\QuickTogglesDone;
 use Livewire\Attributes\On;
 
 class DelegatedTasks extends Component
 {
+    use QuickTogglesDone;
+
     public bool $showDoneColumn = false; // Erledigt-Spalte ein/ausblenden
 
     #[On('updateDashboard')] 
@@ -186,10 +189,10 @@ class DelegatedTasks extends Component
         $newTaskGroup->save();
     }
 
-    public function createTask($taskGroupId = null)
+    public function createTask($taskGroupId = null, $title = null)
     {
         $user = Auth::user();
-        
+
         // Konvertiere 0 zu null für INBOX
         $taskGroupId = ($taskGroupId === 0 || $taskGroupId === '0') ? null : $taskGroupId;
 
@@ -218,7 +221,7 @@ class DelegatedTasks extends Component
             'project_id' => null,
             'delegated_group_id' => $taskGroupId,
             'delegated_group_order' => $order,
-            'title' => 'Neue Aufgabe',
+            'title' => $title ?: 'Neue Aufgabe',
             'description' => null,
             'due_date' => null,
             'priority' => null,
@@ -272,18 +275,6 @@ class DelegatedTasks extends Component
                 $taskGroupDb->save();
             }
         }
-    }
-
-    /**
-     * Quick-toggle done status from card hover action
-     */
-    public function quickToggleDone(int $taskId)
-    {
-        $task = PlannerTask::findOrFail($taskId);
-        $this->authorize('update', $task);
-        $task->is_done = !$task->is_done;
-        $task->done_at = $task->is_done ? now() : null;
-        $task->save();
     }
 
     /**

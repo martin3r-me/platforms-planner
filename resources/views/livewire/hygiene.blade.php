@@ -6,7 +6,7 @@
 
     <x-slot name="actionbar">
         <x-ui-page-actionbar :breadcrumbs="[
-            ['label' => 'Projekte', 'href' => route('planner.dashboard'), 'icon' => 'clipboard-document-list'],
+            ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
             ['label' => 'Hygiene'],
         ]" />
     </x-slot>
@@ -206,16 +206,20 @@
                                                 $daysSince = $task->last_viewed_at ? (int) now()->diffInDays($task->last_viewed_at) : null;
                                                 $neverViewed = $task->last_viewed_at === null;
                                                 $isOverdue = $task->due_date && $task->due_date->isPast();
-                                                $priorityColor = match($task->priority?->value ?? null) {
-                                                    'high' => 'var(--planner-priority-high)',
-                                                    'normal' => 'var(--planner-priority-normal)',
-                                                    'low' => 'var(--planner-priority-low)',
-                                                    default => 'var(--ui-muted)',
-                                                };
+                                                $priorityColor = $task->priority?->color() ?? 'var(--ui-muted)';
                                             @endphp
-                                            <a href="{{ route('planner.tasks.show', ['plannerTask' => $task->id]) }}" wire:navigate class="flex items-center gap-3 px-4 py-2.5 {{ $isOverdue ? 'bg-[var(--planner-card-overdue)]' : 'bg-amber-50/50' }} hover:bg-amber-100/50 transition-colors group">
+                                            <div class="flex items-center gap-3 px-4 py-2.5 {{ $isOverdue ? 'bg-[var(--planner-card-overdue)]' : 'bg-amber-50/50' }} hover:bg-amber-100/50 transition-colors group">
+                                                {{-- Done toggle --}}
+                                                <button
+                                                    type="button"
+                                                    wire:click="quickToggleDone({{ $task->id }})"
+                                                    class="flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors border-[var(--ui-border)] text-transparent hover:border-[var(--planner-status-done)] hover:text-[var(--planner-status-done)] cursor-pointer"
+                                                    title="Als erledigt markieren"
+                                                >
+                                                    @svg('heroicon-s-check', 'w-3 h-3')
+                                                </button>
                                                 <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {{ $priorityColor }}"></span>
-                                                <div class="flex-1 min-w-0">
+                                                <a href="{{ route('planner.tasks.show', ['plannerTask' => $task->id]) }}?from=hygiene" wire:navigate class="flex-1 min-w-0">
                                                     <span class="text-sm text-[var(--ui-secondary)] truncate block group-hover:text-amber-700">{{ $task->title }}</span>
                                                     <div class="flex items-center gap-2 text-[10px] text-[var(--ui-muted)] mt-0.5">
                                                         @if($task->userInCharge)
@@ -225,7 +229,7 @@
                                                             <span class="{{ $isOverdue ? 'text-[var(--planner-status-overdue)] font-medium' : '' }}">{{ $task->due_date->format('d.m.Y') }}</span>
                                                         @endif
                                                     </div>
-                                                </div>
+                                                </a>
                                                 @if($isOverdue)
                                                     <span class="flex-shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[var(--planner-status-overdue)]/10 text-[var(--planner-status-overdue)]">überfällig</span>
                                                 @endif
@@ -234,7 +238,7 @@
                                                 @elseif($daysSince !== null)
                                                     <span class="flex-shrink-0 text-xs font-semibold text-amber-600 tabular-nums">{{ $daysSince }}d</span>
                                                 @endif
-                                            </a>
+                                            </div>
                                         @endforeach
                                     </div>
                                 </div>
@@ -292,7 +296,7 @@
                                     default => 'var(--ui-muted)',
                                 };
                             @endphp
-                            <a href="{{ route('planner.tasks.show', ['plannerTask' => $task->id]) }}" wire:navigate class="flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--ui-muted-5)] transition-colors group">
+                            <a href="{{ route('planner.tasks.show', ['plannerTask' => $task->id]) }}?from=hygiene" wire:navigate class="flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--ui-muted-5)] transition-colors group">
                                 <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {{ $priorityColor }}"></span>
                                 <div class="flex-1 min-w-0">
                                     <span class="text-sm text-[var(--ui-secondary)] truncate block">{{ $task->title }}</span>

@@ -8,19 +8,14 @@
     $initials = $userInCharge ? mb_strtoupper(mb_substr($userInCharge->name ?? $userInCharge->email ?? 'U', 0, 1)) : null;
     $cardHref = ($publicMode ?? false)
         ? route('planner.public.task', ['token' => $publicToken ?? '', 'task' => $task->id])
-        : route('planner.tasks.show', $task);
+        : route('planner.tasks.show', $task) . '?from=' . ($cardFrom ?? 'my-tasks');
     $priorityLabel = $task->priority?->label() ?? null;
     $spValue = is_object($task->story_points) ? $task->story_points->points() : $task->story_points;
     $dodProgress = $task->has_dod ? $task->dod_progress : null;
     $isOverdue = $task->due_date && $task->due_date->isPast() && !$isDone;
 
     // Priority color mapping
-    $priorityColor = match($task->priority?->value ?? null) {
-        'high' => 'var(--planner-priority-high)',
-        'normal' => 'var(--planner-priority-normal)',
-        'low' => 'var(--planner-priority-low)',
-        default => null,
-    };
+    $priorityColor = $task->priority?->color() ?? null;
 
     // Status-aware background class
     $statusBg = $isOverdue

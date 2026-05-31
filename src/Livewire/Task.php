@@ -39,6 +39,7 @@ class Task extends Component
     public bool $moveModalOpen = false;
     public array $projectMoveOptions = [];
     public array $projectSlotOptions = [];
+    public ?string $referrer = null;
 
 	protected $rules = [
         'task.title' => 'required|string|max:255',
@@ -62,9 +63,10 @@ class Task extends Component
             $this->redirect(route('planner.my-tasks'), navigate: true);
             return;
         }
-        
+
         $this->authorize('view', $plannerTask);
         $this->task = $plannerTask->load(['user', 'userInCharge', 'project', 'team']);
+        $this->referrer = request()->query('from');
 
         // Staleness-Tracking
         $this->task->recordView();
@@ -94,8 +96,9 @@ class Task extends Component
             return false;
         }
 
-        // Prüfe Model-Änderungen (nur wenn wirklich ungespeichert)
-        $modelDirty = count($this->task->getDirty()) > 0;
+        // Prüfe Model-Änderungen — verschlüsselte Felder ausschließen (werden separat geprüft)
+        $dirty = collect($this->task->getDirty())->except(['description', 'dod'])->count();
+        $modelDirty = $dirty > 0;
 
         // Prüfe verschlüsselte Felder (separate Properties)
         // Vergleiche mit entschlüsselten Werten aus dem Model
@@ -312,6 +315,36 @@ class Task extends Component
     {
         // Für Kompatibilität mit anderen Eingabewegen nur den lokalen State setzen
         $this->dueDateInput = $value;
+    }
+
+    public function setQuickDueDate(string $preset): void
+    {
+        if (!$this->task) {
+            return;
+        }
+
+        $this->authorize('update', $this->task);
+
+        $date = match ($preset) {
+            'today' => now()->setTime(17, 0),
+            'tomorrow' => now()->addDay()->setTime(17, 0),
+            'next_week' => now()->next('Monday')->setTime(17, 0),
+            'next_month' => now()->addMonth()->startOfMonth()->setTime(17, 0),
+            default => null,
+        };
+
+        if (!$date) {
+            return;
+        }
+
+        $this->task->due_date = $date;
+        $this->task->save();
+        $this->dueDateInput = $date->format('Y-m-d\TH:i');
+
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => 'Fälligkeit gesetzt: ' . $date->format('d.m.Y H:i'),
+        ]);
     }
 
     public function updatedDescription($value)

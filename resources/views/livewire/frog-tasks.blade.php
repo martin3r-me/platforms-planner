@@ -9,7 +9,7 @@
 
     <x-slot name="actionbar">
         <x-ui-page-actionbar :breadcrumbs="[
-            ['label' => 'Projekte', 'href' => route('planner.dashboard'), 'icon' => 'clipboard-document-list'],
+            ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
             ['label' => 'Frösche'],
         ]" />
     </x-slot>
@@ -231,18 +231,19 @@
                             @php
                                 $isOverdue = $task->due_date && $task->due_date->isPast();
                                 $daysOverdue = $isOverdue ? now()->startOfDay()->diffInDays($task->due_date->startOfDay()) : 0;
-                                $priorityColor = match($task->priority?->value ?? null) {
-                                    'high' => 'var(--planner-priority-high)',
-                                    'normal' => 'var(--planner-priority-normal)',
-                                    'low' => 'var(--planner-priority-low)',
-                                    default => 'var(--ui-muted)',
-                                };
+                                $priorityColor = $task->priority?->color() ?? 'var(--ui-muted)';
                             @endphp
-                            <a
-                                href="{{ route('planner.tasks.show', $task) }}"
-                                wire:navigate
-                                class="flex items-center gap-3 px-4 py-3 hover:bg-[var(--ui-muted-5)] transition-colors group {{ $isOverdue ? 'bg-[var(--planner-card-overdue)]' : '' }}"
-                            >
+                            <div class="flex items-center gap-3 px-4 py-3 hover:bg-[var(--ui-muted-5)] transition-colors group {{ $isOverdue ? 'bg-[var(--planner-card-overdue)]' : '' }}">
+                                {{-- Done toggle --}}
+                                <button
+                                    type="button"
+                                    wire:click="quickToggleDone({{ $task->id }})"
+                                    class="flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors border-[var(--ui-border)] text-transparent hover:border-[var(--planner-status-done)] hover:text-[var(--planner-status-done)] cursor-pointer"
+                                    title="Als erledigt markieren"
+                                >
+                                    @svg('heroicon-s-check', 'w-3 h-3')
+                                </button>
+
                                 {{-- Priority dot --}}
                                 <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {{ $priorityColor }}"></span>
 
@@ -250,7 +251,7 @@
                                 <span class="flex-shrink-0 text-sm">🐸</span>
 
                                 {{-- Title + meta --}}
-                                <div class="flex-1 min-w-0">
+                                <a href="{{ route('planner.tasks.show', $task) }}?from=frog" wire:navigate class="flex-1 min-w-0">
                                     <div class="flex items-center gap-2">
                                         <span class="text-sm font-medium text-[var(--ui-secondary)] truncate group-hover:text-[var(--planner-status-active)]">{{ $task->title }}</span>
                                         @if($task->is_forced_frog)
@@ -268,7 +269,7 @@
                                             <span>{{ $task->story_points->points() }} SP</span>
                                         @endif
                                     </div>
-                                </div>
+                                </a>
 
                                 {{-- Due date / overdue badge --}}
                                 @if($task->due_date)
@@ -289,7 +290,7 @@
                                         <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[var(--ui-muted-10)] text-[9px] font-medium text-[var(--ui-muted)] flex-shrink-0">{{ mb_strtoupper(mb_substr($task->userInCharge->name ?? 'U', 0, 1)) }}</span>
                                     @endif
                                 @endif
-                            </a>
+                            </div>
                         @endforeach
                     </div>
                 </div>

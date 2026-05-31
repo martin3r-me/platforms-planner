@@ -8,12 +8,15 @@ use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectSlot;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Enums\StoryPoints;
+use Platform\Planner\Livewire\Concerns\QuickTogglesDone;
 use Illuminate\Database\Eloquent\Collection;
 use Livewire\Attributes\On;
 use Platform\Core\Services\EntityLinkService;
 
 class Project extends Component
 {
+    use QuickTogglesDone;
+
     public PlannerProject $project;
     public $sprint; // Aktueller Sprint des Projekts
     public bool $showDoneColumn = false; // Erledigt-Spalte ein/ausblenden
@@ -341,7 +344,7 @@ class Project extends Component
     /**
      * Legt eine neue Aufgabe an, optional direkt in einem Slot.
      */
-    public function createTask($projectSlotId = null)
+    public function createTask($projectSlotId = null, $title = null)
     {
         // Policy-Berechtigung prüfen
         $this->authorize('update', $this->project);
@@ -359,7 +362,7 @@ class Project extends Component
             'user_in_charge_id' => $user->id,
             'project_id'     => $this->project->id,
             'project_slot_id' => $projectSlotId,
-            'title'          => 'Neue Aufgabe',
+            'title'          => $title ?: 'Neue Aufgabe',
             'description'    => null,
             'due_date'       => null,
             'priority'       => null,
@@ -416,18 +419,6 @@ class Project extends Component
         $this->mount($this->project);
     }
 
-    /**
-     * Quick-toggle done status from card hover action
-     */
-    #[On('quick-done')]
-    public function quickToggleDone(int $taskId)
-    {
-        $task = PlannerTask::findOrFail($taskId);
-        $this->authorize('update', $task);
-        $task->is_done = !$task->is_done;
-        $task->done_at = $task->is_done ? now() : null;
-        $task->save();
-    }
 
     /**
      * Toggle für die Anzeige der Erledigt-Spalte

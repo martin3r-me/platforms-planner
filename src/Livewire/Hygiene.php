@@ -8,10 +8,13 @@ use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectUser;
 use Platform\Planner\Enums\TaskStoryPoints;
+use Platform\Planner\Livewire\Concerns\QuickTogglesDone;
 use Livewire\Attributes\On;
 
 class Hygiene extends Component
 {
+    use QuickTogglesDone;
+
     public string $tab = 'stale'; // stale, recent
     public string $entityType = 'all'; // all, projects, tasks
     public ?int $projectFilter = null;
@@ -21,15 +24,6 @@ class Hygiene extends Component
 
     #[On('taskUpdated')]
     public function tasksUpdated() {}
-
-    public function quickToggleDone(int $taskId)
-    {
-        $task = PlannerTask::findOrFail($taskId);
-        $this->authorize('update', $task);
-        $task->is_done = !$task->is_done;
-        $task->done_at = $task->is_done ? now() : null;
-        $task->save();
-    }
 
     public function rendered()
     {

@@ -7,10 +7,13 @@ use Illuminate\Support\Facades\Auth;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Models\PlannerProjectUser;
 use Platform\Planner\Enums\TaskStoryPoints;
+use Platform\Planner\Livewire\Concerns\QuickTogglesDone;
 use Livewire\Attributes\On;
 
 class CompletedTasks extends Component
 {
+    use QuickTogglesDone;
+
     public $daysFilter = 30; // Standard: letzte 30 Tage
     public $userFilter = null; // Filter nach Person (user_in_charge_id)
 
@@ -24,15 +27,6 @@ class CompletedTasks extends Component
     public function tasksUpdated()
     {
         // Optional: neu rendern bei Event
-    }
-
-    public function quickToggleDone(int $taskId)
-    {
-        $task = PlannerTask::findOrFail($taskId);
-        $this->authorize('update', $task);
-        $task->is_done = !$task->is_done;
-        $task->done_at = $task->is_done ? now() : null;
-        $task->save();
     }
 
     public function rendered()

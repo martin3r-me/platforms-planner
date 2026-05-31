@@ -10,7 +10,7 @@
 
     <x-slot name="actionbar">
         <x-ui-page-actionbar :breadcrumbs="[
-            ['label' => 'Projekte', 'icon' => 'clipboard-document-list'],
+            ['label' => 'Dashboard', 'icon' => 'home'],
         ]" />
     </x-slot>
 
@@ -83,18 +83,22 @@
                     @foreach($overdueTasksList as $task)
                         @php
                             $daysOverdue = now()->startOfDay()->diffInDays($task->due_date->startOfDay());
-                            $priorityColor = match($task->priority?->value ?? null) {
-                                'high' => 'var(--planner-priority-high)',
-                                'normal' => 'var(--planner-priority-normal)',
-                                'low' => 'var(--planner-priority-low)',
-                                default => 'var(--ui-muted)',
-                            };
+                            $priorityColor = $task->priority?->color() ?? 'var(--ui-muted)';
                             $uic = $task->userInCharge;
                             $uicInitial = $uic ? mb_strtoupper(mb_substr($uic->name ?? $uic->email ?? 'U', 0, 1)) : null;
                         @endphp
-                        <a href="{{ route('planner.tasks.show', ['plannerTask' => $task->id]) }}" wire:navigate class="flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--planner-status-overdue)]/5 transition group">
+                        <div class="flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--planner-status-overdue)]/5 transition group">
+                            {{-- Done toggle --}}
+                            <button
+                                type="button"
+                                wire:click="quickToggleDone({{ $task->id }})"
+                                class="flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors border-[var(--ui-border)] text-transparent hover:border-[var(--planner-status-done)] hover:text-[var(--planner-status-done)] cursor-pointer"
+                                title="Als erledigt markieren"
+                            >
+                                @svg('heroicon-s-check', 'w-3 h-3')
+                            </button>
                             <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {{ $priorityColor }}"></span>
-                            <span class="flex-1 min-w-0 text-sm text-[var(--ui-secondary)] truncate group-hover:text-[var(--planner-status-overdue)]">{{ $task->title }}</span>
+                            <a href="{{ route('planner.tasks.show', ['plannerTask' => $task->id]) }}" wire:navigate class="flex-1 min-w-0 text-sm text-[var(--ui-secondary)] truncate group-hover:text-[var(--planner-status-overdue)]">{{ $task->title }}</a>
                             @if($task->project)
                                 <span class="hidden sm:inline-flex items-center px-1.5 py-0.5 text-[10px] rounded bg-[var(--planner-status-overdue)]/10 text-[var(--planner-status-overdue)] truncate max-w-[120px]">{{ $task->project->name }}</span>
                             @endif
@@ -106,7 +110,7 @@
                                 @endif
                             @endif
                             <span class="text-xs font-semibold text-[var(--planner-status-overdue)] flex-shrink-0 tabular-nums">-{{ (int) $daysOverdue }}d</span>
-                        </a>
+                        </div>
                     @endforeach
                 </div>
             </div>
@@ -165,12 +169,7 @@
                         @forelse($myTasksList as $task)
                             <a href="{{ route('planner.tasks.show', ['plannerTask' => $task->id]) }}" wire:navigate class="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-[var(--ui-muted-5)] transition group">
                                 @php
-                                    $pColor = match($task->priority?->value ?? null) {
-                                        'high' => 'var(--planner-priority-high)',
-                                        'normal' => 'var(--planner-priority-normal)',
-                                        'low' => 'var(--planner-priority-low)',
-                                        default => 'var(--ui-muted)',
-                                    };
+                                    $pColor = $task->priority?->color() ?? 'var(--ui-muted)';
                                 @endphp
                                 <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" style="background-color: {{ $pColor }}"></span>
                                 <span class="flex-1 min-w-0 text-sm text-[var(--ui-secondary)] truncate">{{ $task->title }}</span>

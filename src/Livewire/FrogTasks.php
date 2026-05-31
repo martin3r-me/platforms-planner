@@ -7,10 +7,13 @@ use Illuminate\Support\Facades\Auth;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Models\PlannerProjectUser;
 use Platform\Planner\Enums\TaskStoryPoints;
+use Platform\Planner\Livewire\Concerns\QuickTogglesDone;
 use Livewire\Attributes\On;
 
 class FrogTasks extends Component
 {
+    use QuickTogglesDone;
+
     public $userFilter = null;
     public $projectFilter = null;
     public $priorityFilter = null;
@@ -27,15 +30,6 @@ class FrogTasks extends Component
     public function tasksUpdated()
     {
 
-    }
-
-    public function quickToggleDone(int $taskId)
-    {
-        $task = PlannerTask::findOrFail($taskId);
-        $this->authorize('update', $task);
-        $task->is_done = !$task->is_done;
-        $task->done_at = $task->is_done ? now() : null;
-        $task->save();
     }
 
     public function rendered()

@@ -6,7 +6,7 @@
 
     <x-slot name="actionbar">
         <x-ui-page-actionbar :breadcrumbs="[
-            ['label' => 'Projekte', 'href' => route('planner.dashboard'), 'icon' => 'clipboard-document-list'],
+            ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
             ['label' => 'Erledigte Aufgaben'],
         ]" />
     </x-slot>
@@ -128,7 +128,7 @@
                     <div class="divide-y divide-[var(--ui-border)]/40">
                         @foreach($tasks as $task)
                             <a 
-                                href="{{ route('planner.tasks.show', $task) }}" 
+                                href="{{ route('planner.tasks.show', $task) }}?from=completed" 
                                 wire:navigate
                                 class="block p-4 hover:bg-[var(--ui-muted-5)] transition-colors"
                             >

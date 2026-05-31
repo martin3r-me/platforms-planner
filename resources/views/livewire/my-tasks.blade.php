@@ -16,7 +16,7 @@
 
     <x-slot name="actionbar">
         <x-ui-page-actionbar :breadcrumbs="[
-            ['label' => 'Projekte', 'href' => route('planner.dashboard'), 'icon' => 'clipboard-document-list'],
+            ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
             ['label' => 'Meine Aufgaben'],
         ]">
             <x-ui-button variant="primary" size="sm" wire:click="createTask()" title="Neue Aufgabe (N)">
@@ -248,6 +248,26 @@
                         <span class="text-[10px] mt-0.5 opacity-60">Hierher ziehen oder neu erstellen</span>
                     </div>
                 @endforelse
+                <x-slot name="footer">
+                    <div x-data="{ open: false, title: '' }">
+                        <button x-show="!open" @click="open = true; $nextTick(() => $refs.inlineInput.focus())" class="w-full text-left text-xs text-[var(--ui-muted)] hover:text-[var(--ui-primary)] transition-colors flex items-center gap-1.5">
+                            @svg('heroicon-o-plus', 'w-3.5 h-3.5')
+                            <span>Aufgabe</span>
+                        </button>
+                        <div x-show="open" x-cloak>
+                            <input
+                                x-ref="inlineInput"
+                                x-model="title"
+                                @keydown.enter.prevent="if(title.trim()) { $wire.createTask('{{ $column->id ?? 0 }}', title.trim()); title = ''; open = false; }"
+                                @keydown.escape="open = false; title = ''"
+                                @click.outside="open = false; title = ''"
+                                type="text"
+                                placeholder="Titel eingeben..."
+                                class="w-full text-xs border border-[var(--ui-border)] rounded px-2 py-1.5 bg-white focus:border-[var(--ui-primary)] focus:ring-1 focus:ring-[var(--ui-primary)]/30 outline-none"
+                            />
+                        </div>
+                    </div>
+                </x-slot>
             </x-ui-kanban-column>
         @endforeach
 

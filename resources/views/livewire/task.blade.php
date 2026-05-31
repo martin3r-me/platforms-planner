@@ -4,12 +4,7 @@
     $isTomorrow = $task->due_date?->isTomorrow() ?? false;
     $dueDateColor = $isOverdue ? 'var(--planner-status-overdue)' : ($isToday || $isTomorrow ? '#f59e0b' : 'var(--ui-muted)');
     $spValue = is_object($task->story_points) ? $task->story_points->points() : $task->story_points;
-    $priorityColor = match($task->priority?->value ?? null) {
-        'high' => 'var(--planner-priority-high)',
-        'normal' => 'var(--planner-priority-normal)',
-        'low' => 'var(--planner-priority-low)',
-        default => null,
-    };
+    $priorityColor = $task->priority?->color() ?? null;
 @endphp
 <x-ui-page>
     @include('planner::partials.planner-tokens')
@@ -18,10 +13,20 @@
     </x-slot>
 
     <x-slot name="actionbar">
+        @php
+            $breadcrumbSource = match($referrer ?? null) {
+                'project' => $task->project ? ['label' => $task->project->name, 'href' => route('planner.projects.show', ['plannerProject' => $task->project->id])] : ['label' => 'Meine Aufgaben', 'href' => route('planner.my-tasks')],
+                'frog' => ['label' => 'Frösche', 'href' => route('planner.frog-tasks')],
+                'hygiene' => ['label' => 'Hygiene', 'href' => route('planner.hygiene')],
+                'completed' => ['label' => 'Erledigte Aufgaben', 'href' => route('planner.completed-tasks')],
+                'delegated' => ['label' => 'Delegierte Aufgaben', 'href' => route('planner.delegated-tasks')],
+                default => ['label' => 'Meine Aufgaben', 'href' => route('planner.my-tasks')],
+            };
+        @endphp
         <x-ui-page-actionbar :breadcrumbs="array_filter([
-            ['label' => 'Projekte', 'href' => route('planner.dashboard'), 'icon' => 'clipboard-document-list'],
-            ['label' => 'Meine Aufgaben', 'href' => route('planner.my-tasks')],
-            $task->project ? ['label' => $task->project->name, 'href' => route('planner.projects.show', ['plannerProject' => $task->project->id])] : null,
+            ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
+            $breadcrumbSource,
+            ($referrer !== 'project' && $task->project) ? ['label' => $task->project->name, 'href' => route('planner.projects.show', ['plannerProject' => $task->project->id])] : null,
             ['label' => Str::limit($task->title, 40)],
         ])">
             <x-slot name="left">
@@ -80,6 +85,7 @@
                     name="task.title"
                     label=""
                     wire:model.live.debounce.1000ms="task.title"
+                    :value="$task->title"
                     placeholder="Aufgabentitel eingeben..."
                     required
                     :errorKey="'task.title'"
@@ -114,8 +120,8 @@
                 <div>
                     <div class="flex items-center gap-2 mb-3">
                         <h2 class="text-sm font-semibold uppercase tracking-wider text-[var(--ui-muted)]">Anmerkung</h2>
-                        <span class="text-[10px] text-[var(--ui-muted)] px-1.5 py-0.5 bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40 rounded">
-                            Verschlüsselt
+                        <span title="Verschlüsselt" class="text-[var(--ui-muted)]">
+                            @svg('heroicon-o-lock-closed', 'w-3.5 h-3.5')
                         </span>
                     </div>
                     <x-ui-input-textarea
@@ -133,8 +139,8 @@
                     <div class="flex items-center justify-between mb-3">
                         <div class="flex items-center gap-2">
                             <h2 class="text-sm font-semibold uppercase tracking-wider text-[var(--ui-muted)]">Definition of Done</h2>
-                            <span class="text-[10px] text-[var(--ui-muted)] px-1.5 py-0.5 bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40 rounded">
-                                Verschlüsselt
+                            <span title="Verschlüsselt" class="text-[var(--ui-muted)]">
+                                @svg('heroicon-o-lock-closed', 'w-3.5 h-3.5')
                             </span>
                         </div>
                         @if(count($dodItems) > 0)
@@ -311,6 +317,12 @@
                             @endif
                         </span>
                     </button>
+                    {{-- Quick Due-Date Buttons --}}
+                    <div class="flex items-center gap-1.5 px-3 -mt-1">
+                        <button type="button" wire:click="setQuickDueDate('today')" class="px-2 py-0.5 text-[10px] rounded border border-[var(--ui-border)]/40 text-[var(--ui-muted)] hover:border-[var(--ui-primary)]/60 hover:text-[var(--ui-primary)] transition-colors">Heute</button>
+                        <button type="button" wire:click="setQuickDueDate('tomorrow')" class="px-2 py-0.5 text-[10px] rounded border border-[var(--ui-border)]/40 text-[var(--ui-muted)] hover:border-[var(--ui-primary)]/60 hover:text-[var(--ui-primary)] transition-colors">Morgen</button>
+                        <button type="button" wire:click="setQuickDueDate('next_week')" class="px-2 py-0.5 text-[10px] rounded border border-[var(--ui-border)]/40 text-[var(--ui-muted)] hover:border-[var(--ui-primary)]/60 hover:text-[var(--ui-primary)] transition-colors">+1W</button>
+                    </div>
 
                     {{-- Story Points --}}
                     <div class="py-2 px-3 rounded-lg hover:bg-[var(--ui-muted-5)] transition-colors">

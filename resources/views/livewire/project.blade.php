@@ -16,7 +16,7 @@
 
     <x-slot name="actionbar">
         <x-ui-page-actionbar :breadcrumbs="[
-            ['label' => 'Projekte', 'href' => route('planner.dashboard'), 'icon' => 'clipboard-document-list'],
+            ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
             ['label' => $project->name],
         ]">
             <x-slot name="left">
@@ -284,7 +284,7 @@
                     </span>
                 </x-slot>
                 @forelse($backlog->tasks as $task)
-                    @include('planner::livewire.task-preview-card', ['task' => $task])
+                    @include('planner::livewire.task-preview-card', ['task' => $task, 'cardFrom' => 'project'])
                 @empty
                     <div class="flex flex-col items-center justify-center py-8 text-[var(--ui-muted)]">
                         @svg('heroicon-o-inbox', 'w-8 h-8 mb-2 opacity-40')
@@ -323,7 +323,7 @@
                 </x-slot>
 
                 @forelse($column->tasks as $task)
-                    @include('planner::livewire.task-preview-card', ['task' => $task])
+                    @include('planner::livewire.task-preview-card', ['task' => $task, 'cardFrom' => 'project'])
                 @empty
                     <div class="flex flex-col items-center justify-center py-8 text-[var(--ui-muted)]">
                         @svg('heroicon-o-clipboard', 'w-8 h-8 mb-2 opacity-40')
@@ -331,6 +331,28 @@
                         <span class="text-[10px] mt-0.5 opacity-60">Hierher ziehen oder neu erstellen</span>
                     </div>
                 @endforelse
+                @can('update', $project)
+                    <x-slot name="footer">
+                        <div x-data="{ open: false, title: '' }">
+                            <button x-show="!open" @click="open = true; $nextTick(() => $refs.inlineInput.focus())" class="w-full text-left text-xs text-[var(--ui-muted)] hover:text-[var(--ui-primary)] transition-colors flex items-center gap-1.5">
+                                @svg('heroicon-o-plus', 'w-3.5 h-3.5')
+                                <span>Aufgabe</span>
+                            </button>
+                            <div x-show="open" x-cloak>
+                                <input
+                                    x-ref="inlineInput"
+                                    x-model="title"
+                                    @keydown.enter.prevent="if(title.trim()) { $wire.createTask('{{ $column->id }}', title.trim()); title = ''; open = false; }"
+                                    @keydown.escape="open = false; title = ''"
+                                    @click.outside="open = false; title = ''"
+                                    type="text"
+                                    placeholder="Titel eingeben..."
+                                    class="w-full text-xs border border-[var(--ui-border)] rounded px-2 py-1.5 bg-white focus:border-[var(--ui-primary)] focus:ring-1 focus:ring-[var(--ui-primary)]/30 outline-none"
+                                />
+                            </div>
+                        </div>
+                    </x-slot>
+                @endcan
             </x-ui-kanban-column>
         @endforeach
 
@@ -345,7 +367,7 @@
                         </span>
                     </x-slot>
                     @forelse($done->tasks as $task)
-                        @include('planner::livewire.task-preview-card', ['task' => $task])
+                        @include('planner::livewire.task-preview-card', ['task' => $task, 'cardFrom' => 'project'])
                     @empty
                         <div class="flex flex-col items-center justify-center py-8 text-[var(--ui-muted)]">
                             @svg('heroicon-o-check-circle', 'w-8 h-8 mb-2 opacity-40')
