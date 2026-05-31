@@ -5,16 +5,16 @@ namespace Platform\Planner\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Platform\Organization\Traits\HasPlannedPeriod;
 use Symfony\Component\Uid\UuidV7;
 
 class PlannerSprint extends Model
 {
+    use HasPlannedPeriod;
     protected $fillable = [
         'uuid',
         'project_id',
         'name',
-        'start_date',
-        'end_date',
         'order',
         'user_id',
         'team_id',
@@ -22,8 +22,6 @@ class PlannerSprint extends Model
 
     protected $casts = [
         'uuid' => 'string',
-        'start_date' => 'date',
-        'end_date' => 'date',
     ];
 
     protected static function booted(): void

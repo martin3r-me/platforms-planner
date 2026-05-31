@@ -8,6 +8,10 @@ use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Tools\Concerns\HasStandardizedWriteOperations;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Enums\ProjectType;
+use Platform\Organization\Models\OrganizationTimePlanned;
+use Platform\Organization\Models\OrganizationTimePeriod;
+use Platform\Organization\Services\StorePlannedTime;
+use Platform\Organization\Services\StorePlannedPeriod;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Auth\Access\AuthorizationException;
 
@@ -57,9 +61,13 @@ class UpdateProjectTool implements ToolContract
                     'type' => 'integer',
                     'description' => 'Optional: Neue geplante Minuten. Frage nach, wenn der Nutzer das Zeitbudget ändern möchte.'
                 ],
+                'planned_start' => [
+                    'type' => 'string',
+                    'description' => 'Optional: Neuer geplanter Projektstart (Datum im Format YYYY-MM-DD, "" zum Leeren). Frage nach, wenn der Nutzer das Startdatum ändern möchte.'
+                ],
                 'planned_end' => [
                     'type' => 'string',
-                    'description' => 'Optional: Neues geplantes Projektende (Datum im Format YYYY-MM-DD). Frage nach, wenn der Nutzer das Enddatum ändern möchte.'
+                    'description' => 'Optional: Neues geplantes Projektende (Datum im Format YYYY-MM-DD, "" zum Leeren). Frage nach, wenn der Nutzer das Enddatum ändern möchte.'
                 ],
                 'estimated_hours' => [
                     'type' => 'number',
@@ -139,16 +147,77 @@ class UpdateProjectTool implements ToolContract
                 }
             }
 
+            // planned_minutes und estimated_hours → zentrales System
+            $newPlannedMinutes = null;
             if (isset($arguments['planned_minutes'])) {
-                $updateData['planned_minutes'] = $arguments['planned_minutes'];
+                $newPlannedMinutes = (int) $arguments['planned_minutes'];
+            } elseif (isset($arguments['estimated_hours'])) {
+                $newPlannedMinutes = (int) round((float) $arguments['estimated_hours'] * 60);
             }
 
-            if (isset($arguments['planned_end'])) {
-                $updateData['planned_end'] = $arguments['planned_end'];
+            if ($newPlannedMinutes !== null) {
+                if ($newPlannedMinutes > 0) {
+                    $existing = OrganizationTimePlanned::where('context_type', PlannerProject::class)
+                        ->where('context_id', $project->id)
+                        ->where('is_active', true)
+                        ->first();
+
+                    if ($existing) {
+                        app(StorePlannedTime::class)->update($existing, ['planned_minutes' => $newPlannedMinutes]);
+                    } else {
+                        app(StorePlannedTime::class)->store([
+                            'team_id' => $project->team_id,
+                            'user_id' => $context->user->id,
+                            'context_type' => PlannerProject::class,
+                            'context_id' => $project->id,
+                            'planned_minutes' => $newPlannedMinutes,
+                            'note' => null,
+                            'is_active' => true,
+                        ]);
+                    }
+                } else {
+                    OrganizationTimePlanned::where('context_type', PlannerProject::class)
+                        ->where('context_id', $project->id)
+                        ->where('is_active', true)
+                        ->update(['is_active' => false]);
+                }
             }
 
-            if (isset($arguments['estimated_hours'])) {
-                $updateData['estimated_hours'] = $arguments['estimated_hours'];
+            // Soll-Zeitraum über zentrales System speichern
+            if (array_key_exists('planned_start', $arguments) || array_key_exists('planned_end', $arguments)) {
+                $existing = OrganizationTimePeriod::where('context_type', PlannerProject::class)
+                    ->where('context_id', $project->id)
+                    ->where('is_active', true)
+                    ->first();
+
+                $periodData = [];
+                if (array_key_exists('planned_start', $arguments)) {
+                    $val = (string) ($arguments['planned_start'] ?? '');
+                    $periodData['planned_start'] = $val === '' ? null : $val;
+                }
+                if (array_key_exists('planned_end', $arguments)) {
+                    $val = (string) ($arguments['planned_end'] ?? '');
+                    $periodData['planned_end'] = $val === '' ? null : $val;
+                }
+
+                if ($existing) {
+                    app(StorePlannedPeriod::class)->update($existing, $periodData);
+                } else {
+                    $start = $periodData['planned_start'] ?? null;
+                    $end = $periodData['planned_end'] ?? null;
+                    if ($start || $end) {
+                        app(StorePlannedPeriod::class)->store([
+                            'team_id' => $project->team_id,
+                            'user_id' => $context->user->id,
+                            'context_type' => PlannerProject::class,
+                            'context_id' => $project->id,
+                            'planned_start' => $start,
+                            'planned_end' => $end,
+                            'note' => null,
+                            'is_active' => true,
+                        ]);
+                    }
+                }
             }
 
             if (isset($arguments['customer_cost_center'])) {
@@ -242,8 +311,10 @@ class UpdateProjectTool implements ToolContract
                 'budget_amount' => $project->budget_amount ? (float) $project->budget_amount : null,
                 'currency' => $project->currency,
                 'entity_links' => $entityLinksData,
-                'planned_end' => $project->planned_end?->toDateString(),
-                'estimated_hours' => $project->estimated_hours ? (float) $project->estimated_hours : null,
+                'planned_start' => $project->plannedStart()?->toDateString(),
+                'planned_end' => $project->plannedEnd()?->toDateString(),
+                'planned_minutes' => $project->totalPlannedMinutes(),
+                'estimated_hours' => $project->totalPlannedHours(),
                 'done' => $project->done,
                 'done_at' => $project->done_at?->toIso8601String(),
                 'updated_at' => $project->updated_at->toIso8601String(),

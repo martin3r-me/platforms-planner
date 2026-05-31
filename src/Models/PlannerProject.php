@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Symfony\Component\Uid\UuidV7;
 use Illuminate\Support\Facades\Log;
 use Platform\Organization\Traits\HasTimeEntries;
+use Platform\Organization\Traits\HasPlannedTime;
+use Platform\Organization\Traits\HasPlannedPeriod;
 use Platform\Organization\Traits\HasOrganizationContexts;
 use Platform\Core\Traits\HasColors;
 use Platform\Core\Traits\HasTags;
@@ -31,7 +33,7 @@ use Platform\Planner\Enums\CustomerBillingMethod;
  */
 class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayName, AgendaRenderable, HasChildContextRelations
 {
-    use SoftDeletes, HasTimeEntries, HasOrganizationContexts, HasColors, HasTags, HasExtraFields, HasEntityLinks, LogsActivity, TracksLastViewed;
+    use SoftDeletes, HasTimeEntries, HasPlannedTime, HasPlannedPeriod, HasOrganizationContexts, HasColors, HasTags, HasExtraFields, HasEntityLinks, LogsActivity, TracksLastViewed;
 
     protected int $stalenessThresholdDays = 180;
 
@@ -40,9 +42,6 @@ class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayN
         'name',
         'description',
         'order',
-        'planned_minutes',
-        'planned_end',
-        'estimated_hours',
         'customer_cost_center',
         'user_id',
         'team_id',
@@ -64,8 +63,6 @@ class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayN
         'billing_method' => CustomerBillingMethod::class,
         'hourly_rate' => 'decimal:2',
         'budget_amount' => 'decimal:2',
-        'planned_end' => 'date',
-        'estimated_hours' => 'decimal:2',
         'done' => 'boolean',
         'done_at' => 'datetime',
         'is_public' => 'boolean',

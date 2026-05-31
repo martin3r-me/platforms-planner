@@ -57,7 +57,7 @@ class GetProjectTool implements ToolContract, ToolMetadataContract
             }
 
             // Projekt holen
-            $project = PlannerProject::with(['user', 'team', 'projectUsers.user', 'projectSlots'])
+            $project = PlannerProject::with(['user', 'team', 'projectUsers.user', 'projectSlots', 'plannedTimeEntries', 'plannedPeriodEntries'])
                 ->find($arguments['id']);
 
             if (!$project) {
@@ -144,8 +144,10 @@ class GetProjectTool implements ToolContract, ToolMetadataContract
                 'budget_amount' => $project->budget_amount ? (float) $project->budget_amount : null,
                 'currency' => $project->currency,
                 'entity_links' => $entityLinksData,
-                'planned_end' => $project->planned_end?->toDateString(),
-                'estimated_hours' => $project->estimated_hours ? (float) $project->estimated_hours : null,
+                'planned_start' => $project->plannedStart()?->toDateString(),
+                'planned_end' => $project->plannedEnd()?->toDateString(),
+                'planned_minutes' => $project->totalPlannedMinutes(),
+                'estimated_hours' => $project->totalPlannedHours(),
                 'done' => $project->done,
                 'created_at' => $project->created_at->toIso8601String(),
                 'last_viewed_at' => $project->last_viewed_at?->toIso8601String(),

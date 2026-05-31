@@ -94,7 +94,7 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
             // Query aufbauen - nur Projekte dieses Teams
             $query = PlannerProject::query()
                 ->where('team_id', $teamIdArg)
-                ->with(['user', 'team', 'projectUsers.user', 'projectSlots']);
+                ->with(['user', 'team', 'projectUsers.user', 'projectSlots', 'plannedTimeEntries', 'plannedPeriodEntries']);
 
             // Stale Records einblenden wenn gewuenscht
             if (!empty($arguments['include_stale'])) {
@@ -198,8 +198,10 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
                     'budget_amount' => $project->budget_amount ? (float) $project->budget_amount : null,
                     'currency' => $project->currency,
                     'entity_links' => $entityLinksData,
-                    'planned_end' => $project->planned_end?->toDateString(),
-                    'estimated_hours' => $project->estimated_hours ? (float) $project->estimated_hours : null,
+                    'planned_start' => $project->plannedStart()?->toDateString(),
+                    'planned_end' => $project->plannedEnd()?->toDateString(),
+                    'planned_minutes' => $project->totalPlannedMinutes(),
+                    'estimated_hours' => $project->totalPlannedHours(),
                     'done' => $project->done,
                     'created_at' => $project->created_at->toIso8601String(),
                     'last_viewed_at' => $project->last_viewed_at?->toIso8601String(),

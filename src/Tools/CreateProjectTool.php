@@ -11,6 +11,8 @@ use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectUser;
 use Platform\Planner\Enums\ProjectRole;
 use Platform\Planner\Enums\ProjectType;
+use Platform\Organization\Services\StorePlannedTime;
+use Platform\Organization\Services\StorePlannedPeriod;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Auth\Access\AuthorizationException;
 
@@ -86,6 +88,10 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract, ToolMet
                 'planned_minutes' => [
                     'type' => 'integer',
                     'description' => 'Optional: Geplante Minuten für das Projekt. Frage nach, wenn der Nutzer ein Zeitbudget angibt.'
+                ],
+                'planned_start' => [
+                    'type' => 'string',
+                    'description' => 'Optional: Geplanter Projektstart (Datum im Format YYYY-MM-DD). Frage nach, wenn der Nutzer ein Startdatum angibt.'
                 ],
                 'planned_end' => [
                     'type' => 'string',
@@ -185,6 +191,12 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract, ToolMet
             // Order berechnen (neues Projekt kommt ans Ende)
             $maxOrder = PlannerProject::where('team_id', $team->id)->max('order') ?? 0;
 
+            // Soll-Minuten aus planned_minutes oder estimated_hours ableiten
+            $plannedMinutesValue = $arguments['planned_minutes'] ?? null;
+            if (!$plannedMinutesValue && !empty($arguments['estimated_hours'])) {
+                $plannedMinutesValue = (int) round((float) $arguments['estimated_hours'] * 60);
+            }
+
             // Projekt erstellen
             $project = PlannerProject::create([
                 'name' => $arguments['name'],
@@ -193,15 +205,41 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract, ToolMet
                 'team_id' => $team->id,
                 'project_type' => $projectType,
                 'order' => $maxOrder + 1,
-                'planned_minutes' => $arguments['planned_minutes'] ?? null,
-                'planned_end' => $arguments['planned_end'] ?? null,
-                'estimated_hours' => $arguments['estimated_hours'] ?? null,
                 'customer_cost_center' => $arguments['customer_cost_center'] ?? null,
                 'billing_method' => $arguments['billing_method'] ?? null,
                 'hourly_rate' => $arguments['hourly_rate'] ?? null,
                 'budget_amount' => $arguments['budget_amount'] ?? null,
                 'currency' => $arguments['currency'] ?? null,
             ]);
+
+            // Soll-Zeitraum über zentrales System speichern
+            $plannedStart = ($arguments['planned_start'] ?? null) ?: null;
+            $plannedEnd = ($arguments['planned_end'] ?? null) ?: null;
+            if ($plannedStart || $plannedEnd) {
+                app(StorePlannedPeriod::class)->store([
+                    'team_id' => $team->id,
+                    'user_id' => $ownerUserId,
+                    'context_type' => PlannerProject::class,
+                    'context_id' => $project->id,
+                    'planned_start' => $plannedStart,
+                    'planned_end' => $plannedEnd,
+                    'note' => null,
+                    'is_active' => true,
+                ]);
+            }
+
+            // Soll-Zeit über zentrales System speichern
+            if ($plannedMinutesValue && (int) $plannedMinutesValue > 0) {
+                app(StorePlannedTime::class)->store([
+                    'team_id' => $team->id,
+                    'user_id' => $ownerUserId,
+                    'context_type' => PlannerProject::class,
+                    'context_id' => $project->id,
+                    'planned_minutes' => (int) $plannedMinutesValue,
+                    'note' => null,
+                    'is_active' => true,
+                ]);
+            }
 
             // Entity-Link erstellen (falls entity_id angegeben)
             if (!empty($arguments['entity_id'])) {
@@ -290,8 +328,10 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract, ToolMet
                 'budget_amount' => $project->budget_amount ? (float) $project->budget_amount : null,
                 'currency' => $project->currency,
                 'entity_links' => $entityLinksData,
-                'planned_end' => $project->planned_end?->toDateString(),
-                'estimated_hours' => $project->estimated_hours ? (float) $project->estimated_hours : null,
+                'planned_start' => $project->plannedStart()?->toDateString(),
+                'planned_end' => $project->plannedEnd()?->toDateString(),
+                'planned_minutes' => $project->totalPlannedMinutes(),
+                'estimated_hours' => $project->totalPlannedHours(),
                 'created_at' => $project->created_at->toIso8601String(),
                 'message' => "Projekt '{$project->name}' erfolgreich erstellt."
             ]);

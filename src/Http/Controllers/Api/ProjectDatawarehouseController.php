@@ -43,7 +43,7 @@ class ProjectDatawarehouseController extends ApiController
         // ===== PAGINATION =====
         $perPage = min($request->get('per_page', 100), 1000); // Max 1000 pro Seite
         // Team-Relation laden für Team-Name
-        $query->with('team:id,name');
+        $query->with('team:id,name', 'plannedTimeEntries', 'plannedPeriodEntries');
         $projects = $query->paginate($perPage);
 
         // ===== FORMATTING =====
@@ -60,9 +60,10 @@ class ProjectDatawarehouseController extends ApiController
                 'project_type' => $project->project_type?->value,
                 'done' => $project->done,
                 'done_at' => $project->done_at?->toIso8601String(),
-                'planned_minutes' => $project->planned_minutes,
-                'planned_end' => $project->planned_end?->toDateString(),
-                'estimated_hours' => $project->estimated_hours ? (float) $project->estimated_hours : null,
+                'planned_minutes' => $project->totalPlannedMinutes(),
+                'planned_start' => $project->plannedStart()?->toDateString(),
+                'planned_end' => $project->plannedEnd()?->toDateString(),
+                'estimated_hours' => $project->totalPlannedHours(),
                 'created_at' => $project->created_at->toIso8601String(),
                 'updated_at' => $project->updated_at->toIso8601String(),
             ];
@@ -164,7 +165,7 @@ class ProjectDatawarehouseController extends ApiController
     public function health(Request $request)
     {
         try {
-            $example = PlannerProject::with('team:id,name')
+            $example = PlannerProject::with('team:id,name', 'plannedTimeEntries', 'plannedPeriodEntries')
                 ->orderBy('created_at', 'desc')
                 ->first();
 
@@ -188,9 +189,10 @@ class ProjectDatawarehouseController extends ApiController
                 'project_type' => $example->project_type?->value,
                 'done' => $example->done,
                 'done_at' => $example->done_at?->toIso8601String(),
-                'planned_minutes' => $example->planned_minutes,
-                'planned_end' => $example->planned_end?->toDateString(),
-                'estimated_hours' => $example->estimated_hours ? (float) $example->estimated_hours : null,
+                'planned_minutes' => $example->totalPlannedMinutes(),
+                'planned_start' => $example->plannedStart()?->toDateString(),
+                'planned_end' => $example->plannedEnd()?->toDateString(),
+                'estimated_hours' => $example->totalPlannedHours(),
                 'created_at' => $example->created_at->toIso8601String(),
                 'updated_at' => $example->updated_at->toIso8601String(),
             ];
