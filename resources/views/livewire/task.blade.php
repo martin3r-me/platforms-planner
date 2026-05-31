@@ -5,6 +5,9 @@
     $dueDateColor = $isOverdue ? 'var(--planner-status-overdue)' : ($isToday || $isTomorrow ? '#f59e0b' : 'var(--ui-muted)');
     $spValue = is_object($task->story_points) ? $task->story_points->points() : $task->story_points;
     $priorityColor = $task->priority?->color() ?? null;
+    $heroColor = $task->is_done
+        ? 'var(--planner-status-done)'
+        : ($isOverdue ? 'var(--planner-status-overdue)' : ($priorityColor ?? 'var(--planner-status-active)'));
 @endphp
 <x-ui-page>
     @include('planner::partials.planner-tokens')
@@ -64,87 +67,112 @@
         </x-ui-page-actionbar>
     </x-slot>
 
-    <x-ui-page-container spacing="space-y-0">
-        {{-- Hero Title + Status Circle --}}
-        <div class="flex items-start gap-4 mb-1">
-            {{-- Status Circle (clickable done toggle) --}}
-            <button
-                type="button"
-                wire:click="toggleDone"
-                class="flex-shrink-0 mt-1 w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all duration-200 cursor-pointer
-                    {{ $task->is_done
-                        ? 'bg-[var(--planner-status-done)] border-[var(--planner-status-done)] text-white'
-                        : 'border-[var(--ui-border)] text-transparent hover:border-[var(--planner-status-done)] hover:text-[var(--planner-status-done)]' }}"
-                title="{{ $task->is_done ? 'Als offen markieren' : 'Als erledigt markieren' }}"
-            >
-                @svg('heroicon-s-check', 'w-4 h-4')
-            </button>
+    <x-ui-page-container spacing="space-y-6">
+        {{-- Hero Card --}}
+        <div class="rounded-lg border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]/30 overflow-hidden" style="border-top: 3px solid {{ $heroColor }}">
+            <div class="p-5">
+                {{-- Title Row --}}
+                <div class="flex items-start gap-4">
+                    <button
+                        type="button"
+                        wire:click="toggleDone"
+                        class="flex-shrink-0 mt-1 w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all duration-200 cursor-pointer
+                            {{ $task->is_done
+                                ? 'bg-[var(--planner-status-done)] border-[var(--planner-status-done)] text-white'
+                                : 'border-[var(--ui-border)] text-transparent hover:border-[var(--planner-status-done)] hover:text-[var(--planner-status-done)]' }}"
+                        title="{{ $task->is_done ? 'Als offen markieren' : 'Als erledigt markieren' }}"
+                    >
+                        @svg('heroicon-s-check', 'w-4 h-4')
+                    </button>
 
-            <div class="flex-1 min-w-0">
-                <x-ui-input-text
-                    name="task.title"
-                    label=""
-                    wire:model.live.debounce.1000ms="task.title"
-                    :value="$task->title"
-                    placeholder="Aufgabentitel eingeben..."
-                    required
-                    :errorKey="'task.title'"
-                    class="!text-2xl !font-bold !border-none !shadow-none !ring-0 !p-0 !bg-transparent text-[var(--ui-secondary)] tracking-tight"
-                />
+                    <div class="flex-1 min-w-0">
+                        <x-ui-input-text
+                            name="task.title"
+                            label=""
+                            wire:model.live.debounce.1000ms="task.title"
+                            :value="$task->title"
+                            placeholder="Aufgabentitel eingeben..."
+                            required
+                            :errorKey="'task.title'"
+                            class="!text-2xl !font-bold !border-none !shadow-none !ring-0 !p-0 !bg-transparent text-[var(--ui-secondary)] tracking-tight"
+                        />
+                    </div>
+                </div>
+
+                {{-- Context Line --}}
+                <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[var(--ui-muted)] mt-2 pl-12">
+                    @if($task->project)
+                        <a href="{{ route('planner.projects.show', ['plannerProject' => $task->project->id]) }}" class="hover:text-[var(--planner-status-active)] transition-colors">{{ $task->project->name }}</a>
+                        <span class="text-[var(--ui-muted)]/40">/</span>
+                    @endif
+                    @if($task->created_at)
+                        <span>{{ $task->created_at->format('d.m.Y') }}</span>
+                    @endif
+                    @if($task->user)
+                        <span class="text-[var(--ui-muted)]/40">/</span>
+                        <span>von {{ $task->user->fullname ?? $task->user->name }}</span>
+                    @endif
+                </div>
+
+                {{-- Badges --}}
+                @if($task->is_frog || $isOverdue || $task->is_done)
+                    <div class="flex flex-wrap items-center gap-2 mt-3 pl-12">
+                        @if($task->is_frog)
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+                                🐸 Frosch
+                            </span>
+                        @endif
+                        @if($isOverdue)
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                                Überfällig {{ $task->due_date->diffInDays(now()) }}d
+                            </span>
+                        @endif
+                        @if($task->is_done)
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                                @svg('heroicon-s-check', 'w-3 h-3')
+                                Erledigt
+                            </span>
+                        @endif
+                    </div>
+                @endif
             </div>
         </div>
 
-        {{-- Context line --}}
-        <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[var(--ui-muted)] mb-6 pl-12">
-            @if($task->project)
-                <a href="{{ route('planner.projects.show', ['plannerProject' => $task->project->id]) }}" class="hover:text-[var(--planner-status-active)] transition-colors">{{ $task->project->name }}</a>
-                <span class="text-[var(--ui-muted)]/40">/</span>
-            @endif
-            @if($task->created_at)
-                <span>{{ $task->created_at->format('d.m.Y') }}</span>
-            @endif
-            @if($task->user)
-                <span class="text-[var(--ui-muted)]/40">/</span>
-                <span>von {{ $task->user->fullname ?? $task->user->name }}</span>
-            @endif
-            @if($task->is_frog)
-                <span class="ml-1" title="Frosch">🐸</span>
-            @endif
-        </div>
-
         {{-- Two-column layout: Main + Properties Sidebar --}}
-        <div class="flex flex-col lg:flex-row gap-8">
-            {{-- Main Area --}}
-            <div class="flex-1 min-w-0 space-y-8">
-                {{-- Anmerkung / Description --}}
-                <div>
-                    <div class="flex items-center gap-2 mb-3">
-                        <h2 class="text-sm font-semibold uppercase tracking-wider text-[var(--ui-muted)]">Anmerkung</h2>
+        <div class="flex flex-col lg:flex-row gap-6">
+            {{-- Main Content --}}
+            <div class="flex-1 min-w-0 space-y-6">
+                {{-- Anmerkung Card --}}
+                <div class="rounded-lg border border-[var(--ui-border)]/60 bg-white dark:bg-[var(--ui-surface)] shadow-xs overflow-hidden">
+                    <div class="px-5 py-3 border-b border-[var(--ui-border)]/40 bg-[var(--ui-muted-5)]/50 flex items-center gap-2">
+                        @svg('heroicon-o-document-text', 'w-4 h-4 text-[var(--ui-muted)]')
+                        <h2 class="text-xs font-semibold uppercase tracking-wider text-[var(--ui-muted)]">Anmerkung</h2>
                         <span title="Verschlüsselt" class="text-[var(--ui-muted)]">
                             @svg('heroicon-o-lock-closed', 'w-3.5 h-3.5')
                         </span>
                     </div>
-                    <x-ui-input-textarea
-                        name="description"
-                        label=""
-                        wire:model.live.debounce.1000ms="description"
-                        :placeholder="empty($description) ? 'Zusätzliche Notizen und Informationen zur Aufgabe (optional)' : ''"
-                        rows="6"
-                        :errorKey="'description'"
-                    />
+                    <div class="p-5">
+                        <x-ui-input-textarea
+                            name="description"
+                            label=""
+                            wire:model.live.debounce.1000ms="description"
+                            :placeholder="empty($description) ? 'Zusätzliche Notizen und Informationen zur Aufgabe (optional)' : ''"
+                            rows="6"
+                            :errorKey="'description'"
+                        />
+                    </div>
                 </div>
 
-                {{-- Definition of Done --}}
-                <div>
-                    <div class="flex items-center justify-between mb-3">
-                        <div class="flex items-center gap-2">
-                            <h2 class="text-sm font-semibold uppercase tracking-wider text-[var(--ui-muted)]">Definition of Done</h2>
-                            <span title="Verschlüsselt" class="text-[var(--ui-muted)]">
-                                @svg('heroicon-o-lock-closed', 'w-3.5 h-3.5')
-                            </span>
-                        </div>
+                {{-- Definition of Done Card --}}
+                <div class="rounded-lg border border-[var(--ui-border)]/60 bg-white dark:bg-[var(--ui-surface)] shadow-xs overflow-hidden">
+                    <div class="px-5 py-3 border-b border-[var(--ui-border)]/40 bg-[var(--ui-muted-5)]/50 flex items-center gap-2">
+                        @svg('heroicon-o-clipboard-document-check', 'w-4 h-4 text-[var(--ui-muted)]')
+                        <h2 class="text-xs font-semibold uppercase tracking-wider text-[var(--ui-muted)]">Definition of Done</h2>
+                        <span title="Verschlüsselt" class="text-[var(--ui-muted)]">
+                            @svg('heroicon-o-lock-closed', 'w-3.5 h-3.5')
+                        </span>
                         @if(count($dodItems) > 0)
-                            <div class="flex items-center gap-2">
+                            <div class="ml-auto flex items-center gap-2">
                                 <span class="text-xs font-medium text-[var(--ui-muted)]">
                                     {{ $this->dodProgress['checked'] }}/{{ $this->dodProgress['total'] }}
                                 </span>
@@ -157,114 +185,117 @@
                             </div>
                         @endif
                     </div>
+                    <div class="p-5">
+                        {{-- DoD Items --}}
+                        <div class="space-y-2">
+                            @forelse($dodItems as $index => $item)
+                                <div
+                                    class="group flex items-start gap-3 p-3 rounded-lg border border-[var(--ui-border)]/60 bg-[var(--ui-surface)] hover:border-[var(--planner-status-active)]/40 transition-all duration-200 {{ $item['checked'] ? 'bg-[var(--planner-card-done)]' : '' }}"
+                                    wire:key="dod-item-{{ $index }}"
+                                >
+                                    <button
+                                        type="button"
+                                        wire:click="toggleDodItem({{ $index }})"
+                                        class="flex-shrink-0 w-5 h-5 mt-0.5 rounded border-2 transition-all duration-200 flex items-center justify-center {{ $item['checked'] ? 'bg-[var(--planner-status-done)] border-[var(--planner-status-done)] text-white' : 'border-[var(--ui-border)] hover:border-[var(--planner-status-active)]' }}"
+                                    >
+                                        @if($item['checked'])
+                                            @svg('heroicon-s-check', 'w-3 h-3')
+                                        @endif
+                                    </button>
+                                    <div class="flex-1 min-w-0">
+                                        <input
+                                            type="text"
+                                            value="{{ $item['text'] }}"
+                                            wire:blur="updateDodItemText({{ $index }}, $event.target.value)"
+                                            class="w-full bg-transparent border-none p-0 text-sm focus:ring-0 focus:outline-none {{ $item['checked'] ? 'line-through text-[var(--ui-muted)]' : 'text-[var(--ui-secondary)]' }}"
+                                            placeholder="DoD-Kriterium eingeben..."
+                                        />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        wire:click="removeDodItem({{ $index }})"
+                                        wire:confirm="Möchten Sie diesen DoD-Punkt wirklich entfernen?"
+                                        class="flex-shrink-0 opacity-0 group-hover:opacity-100 p-1 rounded text-[var(--ui-muted)] hover:text-[var(--ui-danger)] hover:bg-[var(--ui-danger-5)] transition-all duration-200"
+                                    >
+                                        @svg('heroicon-o-trash', 'w-4 h-4')
+                                    </button>
+                                </div>
+                            @empty
+                                <div class="text-center py-6 text-[var(--ui-muted)]">
+                                    <div class="flex justify-center mb-2">
+                                        @svg('heroicon-o-clipboard-document-check', 'w-8 h-8')
+                                    </div>
+                                    <p class="text-sm">Noch keine DoD-Kriterien definiert</p>
+                                </div>
+                            @endforelse
+                        </div>
 
-                    {{-- DoD Items --}}
-                    <div class="space-y-2">
-                        @forelse($dodItems as $index => $item)
+                        {{-- Add DoD item --}}
+                        <div class="mt-3">
                             <div
-                                class="group flex items-start gap-3 p-3 rounded-lg border border-[var(--ui-border)]/60 bg-[var(--ui-surface)] hover:border-[var(--planner-status-active)]/40 transition-all duration-200 {{ $item['checked'] ? 'bg-[var(--planner-card-done)]' : '' }}"
-                                wire:key="dod-item-{{ $index }}"
+                                x-data="{ newDodText: '', isAdding: false }"
+                                class="relative"
                             >
-                                <button
-                                    type="button"
-                                    wire:click="toggleDodItem({{ $index }})"
-                                    class="flex-shrink-0 w-5 h-5 mt-0.5 rounded border-2 transition-all duration-200 flex items-center justify-center {{ $item['checked'] ? 'bg-[var(--planner-status-done)] border-[var(--planner-status-done)] text-white' : 'border-[var(--ui-border)] hover:border-[var(--planner-status-active)]' }}"
-                                >
-                                    @if($item['checked'])
-                                        @svg('heroicon-s-check', 'w-3 h-3')
-                                    @endif
-                                </button>
-                                <div class="flex-1 min-w-0">
-                                    <input
-                                        type="text"
-                                        value="{{ $item['text'] }}"
-                                        wire:blur="updateDodItemText({{ $index }}, $event.target.value)"
-                                        class="w-full bg-transparent border-none p-0 text-sm focus:ring-0 focus:outline-none {{ $item['checked'] ? 'line-through text-[var(--ui-muted)]' : 'text-[var(--ui-secondary)]' }}"
-                                        placeholder="DoD-Kriterium eingeben..."
-                                    />
-                                </div>
-                                <button
-                                    type="button"
-                                    wire:click="removeDodItem({{ $index }})"
-                                    wire:confirm="Möchten Sie diesen DoD-Punkt wirklich entfernen?"
-                                    class="flex-shrink-0 opacity-0 group-hover:opacity-100 p-1 rounded text-[var(--ui-muted)] hover:text-[var(--ui-danger)] hover:bg-[var(--ui-danger-5)] transition-all duration-200"
-                                >
-                                    @svg('heroicon-o-trash', 'w-4 h-4')
-                                </button>
-                            </div>
-                        @empty
-                            <div class="text-center py-6 text-[var(--ui-muted)]">
-                                <div class="flex justify-center mb-2">
-                                    @svg('heroicon-o-clipboard-document-check', 'w-8 h-8')
-                                </div>
-                                <p class="text-sm">Noch keine DoD-Kriterien definiert</p>
-                            </div>
-                        @endforelse
-                    </div>
-
-                    {{-- Add DoD item --}}
-                    <div class="mt-3">
-                        <div
-                            x-data="{ newDodText: '', isAdding: false }"
-                            class="relative"
-                        >
-                            <template x-if="!isAdding">
-                                <button
-                                    type="button"
-                                    @click="isAdding = true; $nextTick(() => $refs.newDodInput?.focus())"
-                                    class="w-full flex items-center gap-2 p-3 rounded-lg border border-dashed border-[var(--ui-border)]/60 text-[var(--ui-muted)] hover:border-[var(--planner-status-active)]/60 hover:text-[var(--planner-status-active)] hover:bg-[var(--planner-status-active)]/5 transition-all duration-200"
-                                >
-                                    @svg('heroicon-o-plus', 'w-4 h-4')
-                                    <span class="text-sm">DoD-Kriterium hinzufügen</span>
-                                </button>
-                            </template>
-
-                            <template x-if="isAdding">
-                                <div class="flex items-center gap-2 p-2 rounded-lg border border-[var(--planner-status-active)]/60 bg-[var(--planner-status-active)]/5">
-                                    <input
-                                        type="text"
-                                        x-ref="newDodInput"
-                                        x-model="newDodText"
-                                        @keydown.enter.prevent="if(newDodText.trim()) { $wire.addDodItem(newDodText); newDodText = ''; }"
-                                        @keydown.escape="isAdding = false; newDodText = ''"
-                                        @blur="if(!newDodText.trim()) { isAdding = false; }"
-                                        class="flex-1 bg-transparent border-none p-1 text-sm focus:ring-0 focus:outline-none text-[var(--ui-secondary)]"
-                                        placeholder="Neues DoD-Kriterium eingeben..."
-                                    />
+                                <template x-if="!isAdding">
                                     <button
                                         type="button"
-                                        @click="if(newDodText.trim()) { $wire.addDodItem(newDodText); newDodText = ''; } isAdding = false;"
-                                        class="flex-shrink-0 p-1 rounded text-[var(--planner-status-active)] hover:bg-[var(--planner-status-active)]/10 transition-colors"
+                                        @click="isAdding = true; $nextTick(() => $refs.newDodInput?.focus())"
+                                        class="w-full flex items-center gap-2 p-3 rounded-lg border border-dashed border-[var(--ui-border)]/60 text-[var(--ui-muted)] hover:border-[var(--planner-status-active)]/60 hover:text-[var(--planner-status-active)] hover:bg-[var(--planner-status-active)]/5 transition-all duration-200"
                                     >
-                                        @svg('heroicon-o-check', 'w-5 h-5')
+                                        @svg('heroicon-o-plus', 'w-4 h-4')
+                                        <span class="text-sm">DoD-Kriterium hinzufügen</span>
                                     </button>
-                                    <button
-                                        type="button"
-                                        @click="isAdding = false; newDodText = ''"
-                                        class="flex-shrink-0 p-1 rounded text-[var(--ui-muted)] hover:text-[var(--ui-danger)] transition-colors"
-                                    >
-                                        @svg('heroicon-o-x-mark', 'w-5 h-5')
-                                    </button>
-                                </div>
-                            </template>
+                                </template>
+
+                                <template x-if="isAdding">
+                                    <div class="flex items-center gap-2 p-2 rounded-lg border border-[var(--planner-status-active)]/60 bg-[var(--planner-status-active)]/5">
+                                        <input
+                                            type="text"
+                                            x-ref="newDodInput"
+                                            x-model="newDodText"
+                                            @keydown.enter.prevent="if(newDodText.trim()) { $wire.addDodItem(newDodText); newDodText = ''; }"
+                                            @keydown.escape="isAdding = false; newDodText = ''"
+                                            @blur="if(!newDodText.trim()) { isAdding = false; }"
+                                            class="flex-1 bg-transparent border-none p-1 text-sm focus:ring-0 focus:outline-none text-[var(--ui-secondary)]"
+                                            placeholder="Neues DoD-Kriterium eingeben..."
+                                        />
+                                        <button
+                                            type="button"
+                                            @click="if(newDodText.trim()) { $wire.addDodItem(newDodText); newDodText = ''; } isAdding = false;"
+                                            class="flex-shrink-0 p-1 rounded text-[var(--planner-status-active)] hover:bg-[var(--planner-status-active)]/10 transition-colors"
+                                        >
+                                            @svg('heroicon-o-check', 'w-5 h-5')
+                                        </button>
+                                        <button
+                                            type="button"
+                                            @click="isAdding = false; newDodText = ''"
+                                            class="flex-shrink-0 p-1 rounded text-[var(--ui-muted)] hover:text-[var(--ui-danger)] transition-colors"
+                                        >
+                                            @svg('heroicon-o-x-mark', 'w-5 h-5')
+                                        </button>
+                                    </div>
+                                </template>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {{-- Extra Fields --}}
+                {{-- Extra Fields Card --}}
                 <x-core-extra-fields-section
                     :definitions="$this->extraFieldDefinitions"
                     :model="$task"
                 />
             </div>
 
-            {{-- Properties Sidebar (right) --}}
+            {{-- Properties Sidebar --}}
             <div class="lg:w-72 flex-shrink-0">
-                <div class="lg:sticky lg:top-4 space-y-1">
-                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] mb-2 px-2">Eigenschaften</h3>
+                <div class="lg:sticky lg:top-4 rounded-lg border border-[var(--ui-border)]/60 bg-white dark:bg-[var(--ui-surface)] shadow-xs overflow-hidden">
+
+                    {{-- Group: Status & Priority --}}
+                    <div class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] px-4 pt-4 pb-2">Status & Priorität</div>
 
                     {{-- Status --}}
-                    <button type="button" wire:click="toggleDone" class="w-full flex items-center justify-between py-2 px-3 rounded-lg hover:bg-[var(--ui-muted-5)] transition-colors group">
+                    <button type="button" wire:click="toggleDone" class="w-full flex items-center justify-between py-2 px-4 hover:bg-[var(--ui-muted-5)] rounded transition-colors">
                         <span class="text-xs text-[var(--ui-muted)]">Status</span>
                         <span class="flex items-center gap-1.5 text-xs font-medium">
                             <span class="w-2 h-2 rounded-full {{ $task->is_done ? 'bg-[var(--planner-status-done)]' : 'bg-[var(--planner-status-active)]' }}"></span>
@@ -273,7 +304,7 @@
                     </button>
 
                     {{-- Priority --}}
-                    <div class="py-2 px-3 rounded-lg hover:bg-[var(--ui-muted-5)] transition-colors">
+                    <div class="py-2 px-4 hover:bg-[var(--ui-muted-5)] rounded transition-colors">
                         <div class="flex items-center justify-between mb-1.5">
                             <span class="text-xs text-[var(--ui-muted)]">Priorität</span>
                             @if($priorityColor)
@@ -291,8 +322,26 @@
                         />
                     </div>
 
+                    {{-- Frog --}}
+                    <button type="button" wire:click="toggleFrog" class="w-full flex items-center justify-between py-2 px-4 hover:bg-[var(--ui-muted-5)] rounded transition-colors">
+                        <span class="text-xs text-[var(--ui-muted)]">Frosch</span>
+                        <span class="text-xs font-medium text-[var(--ui-secondary)]">
+                            @if($task->is_frog)
+                                🐸 Ja
+                            @else
+                                Nein
+                            @endif
+                        </span>
+                    </button>
+
+                    {{-- Divider --}}
+                    <div class="border-t border-[var(--ui-border)]/40 mx-4"></div>
+
+                    {{-- Group: Planning --}}
+                    <div class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] px-4 pt-4 pb-2">Planung</div>
+
                     {{-- Assignee --}}
-                    <div class="py-2 px-3 rounded-lg hover:bg-[var(--ui-muted-5)] transition-colors">
+                    <div class="py-2 px-4 hover:bg-[var(--ui-muted-5)] rounded transition-colors">
                         <span class="text-xs text-[var(--ui-muted)] block mb-1.5">Verantwortlich</span>
                         <x-ui-input-select
                             name="task.user_in_charge_id"
@@ -307,7 +356,7 @@
                     </div>
 
                     {{-- Due Date --}}
-                    <button type="button" wire:click="openDueDateModal" class="w-full flex items-center justify-between py-2 px-3 rounded-lg hover:bg-[var(--ui-muted-5)] transition-colors group">
+                    <button type="button" wire:click="openDueDateModal" class="w-full flex items-center justify-between py-2 px-4 hover:bg-[var(--ui-muted-5)] rounded transition-colors">
                         <span class="text-xs text-[var(--ui-muted)]">Fällig</span>
                         <span class="text-xs font-medium" style="color: {{ $dueDateColor }}">
                             @if($task->due_date)
@@ -318,14 +367,14 @@
                         </span>
                     </button>
                     {{-- Quick Due-Date Buttons --}}
-                    <div class="flex items-center gap-1.5 px-3 -mt-1">
+                    <div class="flex items-center gap-1.5 px-4 pb-1">
                         <button type="button" wire:click="setQuickDueDate('today')" class="px-2 py-0.5 text-[10px] rounded border border-[var(--ui-border)]/40 text-[var(--ui-muted)] hover:border-[var(--ui-primary)]/60 hover:text-[var(--ui-primary)] transition-colors">Heute</button>
                         <button type="button" wire:click="setQuickDueDate('tomorrow')" class="px-2 py-0.5 text-[10px] rounded border border-[var(--ui-border)]/40 text-[var(--ui-muted)] hover:border-[var(--ui-primary)]/60 hover:text-[var(--ui-primary)] transition-colors">Morgen</button>
                         <button type="button" wire:click="setQuickDueDate('next_week')" class="px-2 py-0.5 text-[10px] rounded border border-[var(--ui-border)]/40 text-[var(--ui-muted)] hover:border-[var(--ui-primary)]/60 hover:text-[var(--ui-primary)] transition-colors">+1W</button>
                     </div>
 
                     {{-- Story Points --}}
-                    <div class="py-2 px-3 rounded-lg hover:bg-[var(--ui-muted-5)] transition-colors">
+                    <div class="py-2 px-4 hover:bg-[var(--ui-muted-5)] rounded transition-colors">
                         <span class="text-xs text-[var(--ui-muted)] block mb-1.5">Story Points</span>
                         <x-ui-input-select
                             name="task.story_points"
@@ -339,50 +388,43 @@
                         />
                     </div>
 
-                    {{-- Frog --}}
-                    <button type="button" wire:click="toggleFrog" class="w-full flex items-center justify-between py-2 px-3 rounded-lg hover:bg-[var(--ui-muted-5)] transition-colors group">
-                        <span class="text-xs text-[var(--ui-muted)]">Frosch</span>
-                        <span class="text-xs font-medium text-[var(--ui-secondary)]">
-                            @if($task->is_frog)
-                                🐸 Ja
-                            @else
-                                Nein
-                            @endif
-                        </span>
-                    </button>
+                    {{-- Divider --}}
+                    <div class="border-t border-[var(--ui-border)]/40 mx-4"></div>
 
-                    {{-- Separator --}}
-                    <div class="border-t border-[var(--ui-border)]/40 my-2"></div>
+                    {{-- Group: Metadata --}}
+                    <div class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] px-4 pt-4 pb-2">Details</div>
 
-                    {{-- Metadata (read-only) --}}
                     @if($task->team)
-                        <div class="flex items-center justify-between py-1.5 px-3">
+                        <div class="flex items-center justify-between py-2 px-4 hover:bg-[var(--ui-muted-5)] rounded transition-colors">
                             <span class="text-[10px] text-[var(--ui-muted)]">Team</span>
                             <span class="text-[10px] text-[var(--ui-secondary)]">{{ $task->team->name }}</span>
                         </div>
                     @endif
-                    <div class="flex items-center justify-between py-1.5 px-3">
+                    <div class="flex items-center justify-between py-2 px-4 hover:bg-[var(--ui-muted-5)] rounded transition-colors">
                         <span class="text-[10px] text-[var(--ui-muted)]">Erstellt</span>
                         <span class="text-[10px] text-[var(--ui-secondary)]">{{ $task->created_at->format('d.m.Y') }}</span>
                     </div>
                     @if(($task->postpone_count ?? 0) > 0)
-                        <div class="flex items-center justify-between py-1.5 px-3">
+                        <div class="flex items-center justify-between py-2 px-4 hover:bg-[var(--ui-muted-5)] rounded transition-colors">
                             <span class="text-[10px] text-[var(--ui-muted)]">Verschoben</span>
                             <span class="text-[10px] text-[var(--ui-secondary)]">{{ $task->postpone_count }}×</span>
                         </div>
                     @endif
                     @if($task->original_due_date)
-                        <div class="flex items-center justify-between py-1.5 px-3">
+                        <div class="flex items-center justify-between py-2 px-4 hover:bg-[var(--ui-muted-5)] rounded transition-colors">
                             <span class="text-[10px] text-[var(--ui-muted)]">Ursprünglich</span>
                             <span class="text-[10px] text-[var(--ui-secondary)]">{{ $task->original_due_date->format('d.m.Y') }}</span>
                         </div>
                     @endif
                     @if($this->contextFileCount > 0)
-                        <div class="flex items-center justify-between py-1.5 px-3">
+                        <div class="flex items-center justify-between py-2 px-4 hover:bg-[var(--ui-muted-5)] rounded transition-colors">
                             <span class="text-[10px] text-[var(--ui-muted)]">Anhänge</span>
                             <span class="text-[10px] text-[var(--ui-secondary)]">{{ $this->contextFileCount }}</span>
                         </div>
                     @endif
+
+                    {{-- Bottom padding --}}
+                    <div class="pb-3"></div>
                 </div>
             </div>
         </div>
