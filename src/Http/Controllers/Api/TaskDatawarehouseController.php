@@ -6,6 +6,7 @@ use Platform\Core\Http\Controllers\ApiController;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Core\Models\Team;
 use Platform\Okr\Models\KeyResultContext;
+use Platform\Organization\Models\OrganizationTimePlanned;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -50,7 +51,7 @@ class TaskDatawarehouseController extends ApiController
         // ===== PAGINATION =====
         $perPage = min($request->get('per_page', 100), 1000); // Max 1000 pro Seite
         // Projekt- und Team-Relationen laden für Namen und KeyResult-Prüfung
-        $query->with('project:id,name', 'team:id,name');
+        $query->with('project:id,name', 'team:id,name', 'plannedTimeEntries');
         $tasks = $query->paginate($perPage);
         
         // KeyResult-IDs für alle Projects sammeln (für has_key_result Flag)
@@ -107,7 +108,7 @@ class TaskDatawarehouseController extends ApiController
                 'is_frog' => $task->is_frog,
                 'is_forced_frog' => $task->is_forced_frog,
                 'is_backlog' => $task->is_backlog, // Berechnetes Attribut
-                'planned_minutes' => $task->planned_minutes,
+                'planned_minutes' => $task->totalPlannedMinutes(),
                 'has_key_result' => $hasKeyResult, // KeyResult-Bezug über Project
             ];
         });
@@ -418,7 +419,7 @@ class TaskDatawarehouseController extends ApiController
     {
         try {
             // Versuche einen Beispiel-Datensatz zu finden
-            $example = PlannerTask::with('project:id,name', 'team:id,name')
+            $example = PlannerTask::with('project:id,name', 'team:id,name', 'plannedTimeEntries')
                 ->orderBy('created_at', 'desc')
                 ->first();
 
@@ -468,7 +469,7 @@ class TaskDatawarehouseController extends ApiController
                 'due_date' => $example->due_date?->format('Y-m-d'),
                 'is_frog' => $example->is_frog,
                 'is_backlog' => $example->is_backlog,
-                'planned_minutes' => $example->planned_minutes,
+                'planned_minutes' => $example->totalPlannedMinutes(),
                 'has_key_result' => $hasKeyResult,
                 'project_slot_id' => $example->project_slot_id,
                 'created_at' => $example->created_at->toIso8601String(),

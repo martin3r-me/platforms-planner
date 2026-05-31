@@ -10,6 +10,7 @@ use Symfony\Component\Uid\UuidV7;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Platform\ActivityLog\Traits\LogsActivity;
+use Platform\Organization\Services\StorePlannedTime;
 
 /**
  * @ai.description Wiederkehrende Aufgaben werden automatisch in regelmäßigen Abständen als Tasks erstellt. Sie können einem Projekt, ProjectSlot, Sprint oder persönlich zugeordnet sein.
@@ -151,7 +152,6 @@ class PlannerRecurringTask extends Model
             'description' => $this->description,
             'story_points' => $this->story_points,
             'priority' => $this->priority,
-            'planned_minutes' => $this->planned_minutes,
             'project_id' => $this->project_id,
             'project_slot_id' => $this->project_slot_id,
             'task_group_id' => $this->task_group_id,
@@ -159,6 +159,19 @@ class PlannerRecurringTask extends Model
             'due_date' => $this->next_due_date,
             'is_done' => $this->auto_mark_as_done,
         ]);
+
+        // Soll-Zeit über zentrales System speichern
+        if ($this->planned_minutes && (int) $this->planned_minutes > 0) {
+            app(StorePlannedTime::class)->store([
+                'team_id' => $this->team_id,
+                'user_id' => $this->user_id,
+                'context_type' => PlannerTask::class,
+                'context_id' => $task->id,
+                'planned_minutes' => (int) $this->planned_minutes,
+                'note' => null,
+                'is_active' => true,
+            ]);
+        }
 
         // Wenn automatisch als erledigt markiert, auch done_at setzen
         if ($this->auto_mark_as_done) {

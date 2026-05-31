@@ -80,7 +80,7 @@ class GetProjectSlotTool implements ToolContract, ToolMetadataContract
 
             // Aufgaben im Slot holen
             $tasks = PlannerTask::where('project_slot_id', $slot->id)
-                ->with(['userInCharge'])
+                ->with(['userInCharge', 'plannedTimeEntries'])
                 ->orderBy('order')
                 ->orderBy('created_at')
                 ->get();
@@ -97,7 +97,7 @@ class GetProjectSlotTool implements ToolContract, ToolMetadataContract
                     'due_date' => $task->due_date?->toIso8601String(),
                     'user_in_charge_id' => $task->user_in_charge_id,
                     'user_in_charge_name' => $task->userInCharge?->name ?? 'Unbekannt',
-                    'planned_minutes' => $task->planned_minutes,
+                    'planned_minutes' => $task->totalPlannedMinutes(),
                     'order' => $task->order,
                     'created_at' => $task->created_at->toIso8601String(),
                     'updated_at' => $task->updated_at->toIso8601String(),

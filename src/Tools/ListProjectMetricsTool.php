@@ -7,6 +7,7 @@ use Platform\Core\Contracts\ToolContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolResult;
+use Platform\Organization\Models\OrganizationTimePlanned;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerTask;
 use Illuminate\Support\Facades\Gate;
@@ -133,6 +134,9 @@ class ListProjectMetricsTool implements ToolContract, ToolMetadataContract
                 $tasksQuery->where('is_done', false);
             }
 
+            // Task-IDs für planned_minutes Batch-Query sammeln
+            $taskIdsForPlanned = (clone $tasksQuery)->pluck('id')->all();
+
             $rows = $tasksQuery
                 ->select([
                     'project_id',
@@ -142,10 +146,36 @@ class ListProjectMetricsTool implements ToolContract, ToolMetadataContract
                     DB::raw("SUM({$pointsCase}) as points_total"),
                     DB::raw("SUM(CASE WHEN is_done = 0 THEN {$pointsCase} ELSE 0 END) as points_open"),
                     DB::raw("SUM(CASE WHEN is_done = 1 THEN {$pointsCase} ELSE 0 END) as points_done"),
-                    DB::raw('COALESCE(SUM(planned_minutes), 0) as planned_minutes_total'),
                 ])
                 ->groupBy('project_id')
                 ->get();
+
+            // Planned minutes aus zentralem System aggregieren
+            $plannedByTask = [];
+            if (!empty($taskIdsForPlanned)) {
+                $plannedByTask = OrganizationTimePlanned::where('context_type', PlannerTask::class)
+                    ->whereIn('context_id', $taskIdsForPlanned)
+                    ->where('is_active', true)
+                    ->groupBy('context_id')
+                    ->selectRaw('context_id, SUM(planned_minutes) as total')
+                    ->pluck('total', 'context_id')
+                    ->toArray();
+            }
+
+            // Task→Project Mapping für planned_minutes Zuordnung
+            $taskProjectMap = PlannerTask::withStale()
+                ->whereIn('id', array_keys($plannedByTask))
+                ->pluck('project_id', 'id')
+                ->toArray();
+
+            // Planned minutes pro Projekt aggregieren
+            $plannedByProject = [];
+            foreach ($plannedByTask as $taskId => $minutes) {
+                $pid = $taskProjectMap[$taskId] ?? null;
+                if ($pid) {
+                    $plannedByProject[$pid] = ($plannedByProject[$pid] ?? 0) + (int) $minutes;
+                }
+            }
 
             $byProjectId = [];
             foreach ($rows as $r) {
@@ -157,7 +187,7 @@ class ListProjectMetricsTool implements ToolContract, ToolMetadataContract
                     'points_total' => (int)($r->points_total ?? 0),
                     'points_open' => (int)($r->points_open ?? 0),
                     'points_done' => (int)($r->points_done ?? 0),
-                    'planned_minutes_total' => (int)($r->planned_minutes_total ?? 0),
+                    'planned_minutes_total' => $plannedByProject[$pid] ?? 0,
                 ];
             }
 

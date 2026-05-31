@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Platform\ActivityLog\Traits\LogsActivity;
 use Platform\Organization\Traits\HasTimeEntries;
+use Platform\Organization\Traits\HasPlannedTime;
 use Platform\Core\Traits\HasTags;
 use Platform\Core\Traits\HasColors;
 use Platform\Core\Traits\Encryptable;
@@ -27,7 +28,7 @@ use Platform\Core\Contracts\AgendaRenderable;
  */
 class PlannerTask extends Model implements HasKeyResultAncestors, HasDisplayName, InheritsExtraFields, AgendaRenderable
 {
-    use HasFactory, SoftDeletes, LogsActivity, HasTimeEntries, HasTags, HasColors, Encryptable, HasExtraFields, TracksLastViewed;
+    use HasFactory, SoftDeletes, LogsActivity, HasTimeEntries, HasPlannedTime, HasTags, HasColors, Encryptable, HasExtraFields, TracksLastViewed;
 
     protected int $stalenessThresholdDays = 120;
 
@@ -42,7 +43,6 @@ class PlannerTask extends Model implements HasKeyResultAncestors, HasDisplayName
         'due_date',
         'original_due_date',
         'postpone_count',
-        'planned_minutes',
         'status',
         'is_done',
         'done_at',

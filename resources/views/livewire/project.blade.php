@@ -118,10 +118,10 @@
                             <span class="text-[var(--ui-muted)]">Erstellt</span>
                             <span class="text-[var(--ui-secondary)] font-medium">{{ $project->created_at->format('d.m.Y') }}</span>
                         </div>
-                        @if($project->planned_minutes)
+                        @if($project->totalPlannedMinutes() > 0)
                             <div class="flex justify-between py-1.5 px-2 rounded bg-[var(--ui-muted-5)]">
                                 <span class="text-[var(--ui-muted)]">Geplant</span>
-                                <span class="text-[var(--ui-secondary)] font-medium">{{ number_format($project->planned_minutes / 60, 1, ',', '.') }}h</span>
+                                <span class="text-[var(--ui-secondary)] font-medium">{{ number_format($project->totalPlannedMinutes() / 60, 1, ',', '.') }}h</span>
                             </div>
                         @endif
                         @if($project->billing_method)

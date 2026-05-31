@@ -92,7 +92,7 @@ class ExportService
      */
     public function buildTaskData(PlannerTask $task): array
     {
-        $task->load(['user', 'userInCharge', 'project', 'projectSlot', 'taskGroup', 'team']);
+        $task->load(['user', 'userInCharge', 'project', 'projectSlot', 'taskGroup', 'team', 'plannedTimeEntries']);
 
         $data = [
             'id' => $task->id,
@@ -111,7 +111,7 @@ class ExportService
             'due_date' => $task->due_date?->format('Y-m-d'),
             'original_due_date' => $task->original_due_date?->format('Y-m-d'),
             'postpone_count' => $task->postpone_count,
-            'planned_minutes' => $task->planned_minutes,
+            'planned_minutes' => $task->totalPlannedMinutes(),
             'created_at' => $task->created_at?->toIso8601String(),
             'updated_at' => $task->updated_at?->toIso8601String(),
             'creator' => $task->user ? [
@@ -158,11 +158,14 @@ class ExportService
         $project->load([
             'user',
             'team',
+            'plannedTimeEntries',
             'projectSlots.tasks.user',
             'projectSlots.tasks.userInCharge',
+            'projectSlots.tasks.plannedTimeEntries',
             'projectUsers.user',
             'tasks.user',
             'tasks.userInCharge',
+            'tasks.plannedTimeEntries',
         ]);
 
         $data = [
@@ -174,7 +177,7 @@ class ExportService
             'project_type_label' => $project->project_type?->label(),
             'done' => $project->done,
             'done_at' => $project->done_at?->toIso8601String(),
-            'planned_minutes' => $project->planned_minutes,
+            'planned_minutes' => $project->totalPlannedMinutes(),
             'created_at' => $project->created_at?->toIso8601String(),
             'updated_at' => $project->updated_at?->toIso8601String(),
             'creator' => $project->user ? [

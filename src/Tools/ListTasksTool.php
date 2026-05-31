@@ -111,7 +111,7 @@ class ListTasksTool implements ToolContract
 
             // Query aufbauen
             $query = PlannerTask::query()
-                ->with(['project', 'projectSlot', 'user', 'userInCharge']);
+                ->with(['project', 'projectSlot', 'user', 'userInCharge', 'plannedTimeEntries']);
 
             // Stale Records einblenden wenn gewuenscht
             if (!empty($arguments['include_stale'])) {
@@ -237,7 +237,7 @@ class ListTasksTool implements ToolContract
                     'user_in_charge_id' => $task->user_in_charge_id,
                     'user_in_charge_name' => $task->userInCharge?->name ?? 'Unbekannt',
                     'is_personal' => $task->project_id === null,
-                    'planned_minutes' => $task->planned_minutes,
+                    'planned_minutes' => $task->totalPlannedMinutes(),
                     'story_points' => $task->story_points?->value,
                     'story_points_label' => $task->story_points?->label(),
                     'story_points_points' => $task->story_points?->points(),

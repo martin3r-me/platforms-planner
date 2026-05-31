@@ -49,7 +49,6 @@ class Task extends Component
         'task.is_forced_frog' => 'boolean',
         'task.is_done' => 'boolean',
         'task.due_date' => 'nullable|date',
-        'task.planned_minutes' => 'nullable|integer|min:0',
         'task.user_in_charge_id' => 'nullable|integer',
         'task.priority' => 'required|in:low,normal,high',
         'task.story_points' => 'nullable|in:xs,s,m,l,xl,xxl',

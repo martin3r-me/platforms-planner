@@ -113,14 +113,14 @@
 
                 @can('update', $project)
                     <x-ui-input-text
-                        name="project.planned_minutes"
+                        name="plannedMinutes"
                         label="Geplante Minuten"
                         type="number"
                         min="0"
                         step="15"
-                        wire:model.live.debounce.500ms="project.planned_minutes"
+                        wire:model.live.debounce.500ms="plannedMinutes"
                         placeholder="z. B. 480 fuer 8 Stunden"
-                        :errorKey="'project.planned_minutes'"
+                        :errorKey="'plannedMinutes'"
                     />
                 @endcan
             </x-ui-form-grid>

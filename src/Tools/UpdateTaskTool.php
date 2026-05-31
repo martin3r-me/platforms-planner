@@ -10,6 +10,8 @@ use Platform\Planner\Enums\TaskStoryPoints;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectSlot;
 use Platform\Planner\Models\PlannerTask;
+use Platform\Organization\Models\OrganizationTimePlanned;
+use Platform\Organization\Services\StorePlannedTime;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -455,9 +457,32 @@ class UpdateTaskTool implements ToolContract
                 if ($val === '' ) {
                     // ignore (Bulk-Overwrites vermeiden)
                 } elseif ($val === null || $val === 'null') {
-                    $updateData['planned_minutes'] = null;
+                    // Deaktiviere alle aktiven Soll-Zeiteinträge für diesen Task
+                    OrganizationTimePlanned::where('context_type', PlannerTask::class)
+                        ->where('context_id', $task->id)
+                        ->where('is_active', true)
+                        ->update(['is_active' => false]);
                 } elseif (is_numeric($val)) {
-                    $updateData['planned_minutes'] = (int)$val;
+                    $minutes = (int) $val;
+                    // Bestehenden aktiven Eintrag suchen oder neuen anlegen
+                    $existing = OrganizationTimePlanned::where('context_type', PlannerTask::class)
+                        ->where('context_id', $task->id)
+                        ->where('is_active', true)
+                        ->first();
+
+                    if ($existing) {
+                        app(StorePlannedTime::class)->update($existing, ['planned_minutes' => $minutes]);
+                    } else {
+                        app(StorePlannedTime::class)->store([
+                            'team_id' => $task->team_id,
+                            'user_id' => $context->user->id,
+                            'context_type' => PlannerTask::class,
+                            'context_id' => $task->id,
+                            'planned_minutes' => $minutes,
+                            'note' => null,
+                            'is_active' => true,
+                        ]);
+                    }
                 } else {
                     return ToolResult::error('VALIDATION_ERROR', 'planned_minutes muss eine Zahl sein (oder null zum Entfernen).');
                 }
@@ -539,7 +564,7 @@ class UpdateTaskTool implements ToolContract
                 'user_name' => $task->user?->name ?? 'Unbekannt',
                 'user_in_charge_id' => $task->user_in_charge_id,
                 'user_in_charge_name' => $task->userInCharge?->name ?? 'Unbekannt',
-                'planned_minutes' => $task->planned_minutes,
+                'planned_minutes' => $task->totalPlannedMinutes(),
                 'story_points' => $task->story_points?->value,
                 'story_points_label' => $task->story_points?->label(),
                 'story_points_points' => $task->story_points?->points(),

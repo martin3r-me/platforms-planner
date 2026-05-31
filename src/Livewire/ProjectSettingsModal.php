@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
 use Platform\Planner\Enums\ProjectType;
 use Platform\Core\Services\EntityLinkService;
+use Platform\Organization\Models\OrganizationTimePlanned;
+use Platform\Organization\Services\StorePlannedTime;
 
 class ProjectSettingsModal extends Component
 {
@@ -28,6 +30,9 @@ class ProjectSettingsModal extends Component
     public array $linkedCanvases = [];
     public string $canvasSearch = '';
     public array $availableCanvases = [];
+
+    // Planned Time (zentral)
+    public $plannedMinutes = null;
 
     // Public Sharing
     public bool $isPublic = false;
@@ -80,6 +85,9 @@ class ProjectSettingsModal extends Component
         // Canvas-Links laden
         $this->loadLinkedCanvases();
 
+        // Planned Time aus zentralem System laden
+        $this->plannedMinutes = $this->project->totalPlannedMinutes() ?: null;
+
         // Public Sharing laden
         $this->isPublic = (bool) $this->project->is_public;
         $this->publicUrl = $this->project->getPublicUrl();
@@ -105,7 +113,7 @@ class ProjectSettingsModal extends Component
         return [
             'project.name' => 'required|string|max:255',
             'project.description' => 'nullable|string',
-            'project.planned_minutes' => 'nullable|integer|min:0',
+            'plannedMinutes' => 'nullable|integer|min:0',
             'project.project_type' => 'nullable|in:internal,customer,event,cooking',
             'roles' => 'array',
             'roles.*' => 'nullable|string|in:' . implode(',', array_column(ProjectRole::cases(), 'value')),
@@ -133,6 +141,35 @@ class ProjectSettingsModal extends Component
         }
 
         $this->project->save();
+
+        // Soll-Zeit über zentrales System speichern
+        $minutes = $this->plannedMinutes ? (int) $this->plannedMinutes : 0;
+        if ($minutes > 0) {
+            $existing = OrganizationTimePlanned::where('context_type', PlannerProject::class)
+                ->where('context_id', $this->project->id)
+                ->where('is_active', true)
+                ->first();
+
+            if ($existing) {
+                app(StorePlannedTime::class)->update($existing, ['planned_minutes' => $minutes]);
+            } else {
+                app(StorePlannedTime::class)->store([
+                    'team_id' => $this->project->team_id,
+                    'user_id' => Auth::id(),
+                    'context_type' => PlannerProject::class,
+                    'context_id' => $this->project->id,
+                    'planned_minutes' => $minutes,
+                    'note' => null,
+                    'is_active' => true,
+                ]);
+            }
+        } else {
+            OrganizationTimePlanned::where('context_type', PlannerProject::class)
+                ->where('context_id', $this->project->id)
+                ->where('is_active', true)
+                ->update(['is_active' => false]);
+        }
+
         $this->originalProjectType = is_string($this->project->project_type)
             ? $this->project->project_type
             : ($this->project->project_type?->value ?? null);

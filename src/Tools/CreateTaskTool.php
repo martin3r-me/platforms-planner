@@ -10,6 +10,7 @@ use Platform\Planner\Enums\TaskStoryPoints;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectSlot;
 use Platform\Planner\Models\PlannerTask;
+use Platform\Organization\Services\StorePlannedTime;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -238,7 +239,6 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
                 'user_id' => $context->user->id,
                 'user_in_charge_id' => $userInChargeId,
                 'team_id' => $teamId,
-                'planned_minutes' => $arguments['planned_minutes'] ?? null,
                 'story_points' => $storyPointsValue,
                 'order' => $order,
                 'project_slot_order' => $projectSlotOrder, // 0 für Backlog, >0 für Slot-Aufgaben
@@ -276,6 +276,19 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
             // Nur speichern, wenn verschlüsselte Felder gesetzt wurden
             if ($needsUpdate) {
                 $task->save();
+            }
+
+            // Soll-Zeit über zentrales System speichern
+            if (!empty($arguments['planned_minutes']) && (int) $arguments['planned_minutes'] > 0) {
+                app(StorePlannedTime::class)->store([
+                    'team_id' => $teamId,
+                    'user_id' => $context->user->id,
+                    'context_type' => PlannerTask::class,
+                    'context_id' => $task->id,
+                    'planned_minutes' => (int) $arguments['planned_minutes'],
+                    'note' => null,
+                    'is_active' => true,
+                ]);
             }
 
             // Response zusammenstellen
