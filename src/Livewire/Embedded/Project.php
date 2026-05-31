@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Auth;
 
 class Project extends BaseProject
 {
-    public function createTask($projectSlotId = null)
+    public function createTask($projectSlotId = null, $title = null)
     {
         $user = Auth::user();
 
@@ -25,7 +25,7 @@ class Project extends BaseProject
             'user_in_charge_id' => $user->id,
             'project_id'     => $this->project->id,
             'project_slot_id' => $projectSlotId,
-            'title'          => 'Neue Aufgabe',
+            'title'          => $title ?: 'Neue Aufgabe',
             'description'    => null,
             'due_date'       => null,
             'priority'       => null,
