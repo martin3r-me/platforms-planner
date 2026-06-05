@@ -21,10 +21,8 @@ class Project extends Component
     public PlannerProject $project;
     public $sprint; // Aktueller Sprint des Projekts
     public bool $showDoneColumn = false; // Erledigt-Spalte ein/ausblenden
-    public bool $showDashboardColumn = true; // Dashboard-Spalte links ein/ausklappen
 
     protected $queryString = [
-        'showDashboardColumn' => ['except' => true, 'as' => 'context'],
         'showDoneColumn' => ['except' => false, 'as' => 'done'],
     ];
 
@@ -182,120 +180,117 @@ class Project extends Component
             ];
         }
 
-        // === DASHBOARD-SPALTE: nur laden wenn aufgeklappt ===
-        $dashboardData = null;
-        if ($this->showDashboardColumn) {
-            // Task-Counts (eine Query)
-            $taskCounts = PlannerTask::where('project_id', $this->project->id)
+        // === DASHBOARD-DATEN (für die linke Sidebar) ===
+        // Task-Counts (eine Query)
+        $taskCounts = PlannerTask::where('project_id', $this->project->id)
                 ->selectRaw('COUNT(*) as total')
                 ->selectRaw('SUM(CASE WHEN is_done = 0 THEN 1 ELSE 0 END) as open_count')
                 ->selectRaw('SUM(CASE WHEN is_done = 1 THEN 1 ELSE 0 END) as done_count')
                 ->first();
 
-            $pointsData = PlannerTask::where('project_id', $this->project->id)
-                ->get(['is_done', 'story_points']);
+        $pointsData = PlannerTask::where('project_id', $this->project->id)
+            ->get(['is_done', 'story_points']);
 
-            $openPoints = $pointsData->filter(fn ($t) => !$t->is_done)->sum(
-                fn ($t) => $t->story_points instanceof StoryPoints ? $t->story_points->points() : 0
-            );
-            $donePoints = $pointsData->filter(fn ($t) => $t->is_done)->sum(
-                fn ($t) => $t->story_points instanceof StoryPoints ? $t->story_points->points() : 0
-            );
+        $openPoints = $pointsData->filter(fn ($t) => !$t->is_done)->sum(
+            fn ($t) => $t->story_points instanceof StoryPoints ? $t->story_points->points() : 0
+        );
+        $donePoints = $pointsData->filter(fn ($t) => $t->is_done)->sum(
+            fn ($t) => $t->story_points instanceof StoryPoints ? $t->story_points->points() : 0
+        );
 
-            $overdueTasks = PlannerTask::with('userInCharge')
-                ->where('project_id', $this->project->id)
-                ->where('is_done', false)
-                ->whereNotNull('due_date')
-                ->where('due_date', '<', now())
-                ->orderBy('due_date')
-                ->limit(10)
-                ->get()
-                ->map(fn ($t) => [
-                    'id' => $t->id,
-                    'title' => $t->title,
-                    'due_date' => $t->due_date,
-                    'days_overdue' => (int) now()->diffInDays($t->due_date),
-                    'assignee' => $t->userInCharge?->name,
-                ]);
-
-            $slotsBreakdown = PlannerProjectSlot::where('project_id', $this->project->id)
-                ->withCount([
-                    'tasks as open_count' => fn ($q) => $q->where('is_done', false),
-                    'tasks as done_count' => fn ($q) => $q->where('is_done', true),
-                ])
-                ->orderBy('order')
-                ->get();
-
-            $canvasData = $canvas ? [
-                'name' => $canvas->name,
-                'id' => $canvas->id,
-                'analysis' => $canvasAnalysis,
-                'route' => $canvasInfo['route'],
-            ] : null;
-
-            $canvasBriefing = null;
-            if ($canvas) {
-                $blockConfig = config('planner.canvas_block_types', []);
-                $byType = $canvas->blocks->keyBy('block_type');
-                $briefing = [];
-                foreach ($blockConfig as $key => $cfg) {
-                    $block = $byType->get($key);
-                    $entries = $block ? $block->entries->map(fn ($e) => [
-                        'title' => $e->title,
-                        'content' => $e->content,
-                        'type' => $e->entry_type,
-                    ])->all() : [];
-                    $briefing[$key] = [
-                        'key' => $key,
-                        'label' => $cfg['label'] ?? $key,
-                        'description' => $cfg['description'] ?? null,
-                        'has_block' => (bool) $block,
-                        'entries' => $entries,
-                        'count' => count($entries),
-                    ];
-                }
-                $canvasBriefing = $briefing;
-            }
-
-            $teamMembers = $allProjectUsers->map(fn ($pu) => [
-                'name' => $pu->user?->name ?? 'Unbekannt',
-                'role' => $pu->role,
-                'open_tasks' => PlannerTask::where('project_id', $this->project->id)
-                    ->where('user_in_charge_id', $pu->user_id)
-                    ->where('is_done', false)
-                    ->count(),
+        $overdueTasks = PlannerTask::with('userInCharge')
+            ->where('project_id', $this->project->id)
+            ->where('is_done', false)
+            ->whereNotNull('due_date')
+            ->where('due_date', '<', now())
+            ->orderBy('due_date')
+            ->limit(10)
+            ->get()
+            ->map(fn ($t) => [
+                'id' => $t->id,
+                'title' => $t->title,
+                'due_date' => $t->due_date,
+                'days_overdue' => (int) now()->diffInDays($t->due_date),
+                'assignee' => $t->userInCharge?->name,
             ]);
 
-            $activities = $this->project->activities()->with('user')->latest()->limit(10)->get();
+        $slotsBreakdown = PlannerProjectSlot::where('project_id', $this->project->id)
+            ->withCount([
+                'tasks as open_count' => fn ($q) => $q->where('is_done', false),
+                'tasks as done_count' => fn ($q) => $q->where('is_done', true),
+            ])
+            ->orderBy('order')
+            ->get();
 
-            $dashboardData = [
-                'planned_hours'  => $this->project->totalPlannedHours(),
-                'logged_minutes' => $this->project->totalLoggedMinutes(),
-                'logged_hours'   => round($this->project->totalLoggedMinutes() / 60, 2),
-                'billed_hours'   => round($this->project->billedMinutes() / 60, 2),
-                'unbilled_hours' => round($this->project->unbilledMinutes() / 60, 2),
-                'planned_start' => $this->project->plannedStart(),
-                'planned_end'   => $this->project->plannedEnd(),
-                'budget_amount'  => $this->project->budget_amount,
-                'hourly_rate'    => $this->project->hourly_rate,
-                'currency'       => $this->project->currency ?? 'EUR',
-                'billing_method' => $this->project->billing_method,
-                'budget_used'    => $this->project->hourly_rate
-                    ? round(($this->project->totalLoggedMinutes() / 60) * (float) $this->project->hourly_rate, 2)
-                    : null,
-                'open_count'    => (int) $taskCounts->open_count,
-                'done_count'    => (int) $taskCounts->done_count,
-                'total_count'   => (int) $taskCounts->total,
-                'open_points'   => $openPoints,
-                'done_points'   => $donePoints,
-                'overdue_tasks' => $overdueTasks,
-                'slots' => $slotsBreakdown,
-                'canvas' => $canvasData,
-                'canvas_briefing' => $canvasBriefing,
-                'team_members' => $teamMembers,
-                'activities' => $activities,
-            ];
+        $canvasData = $canvas ? [
+            'name' => $canvas->name,
+            'id' => $canvas->id,
+            'analysis' => $canvasAnalysis,
+            'route' => $canvasInfo['route'],
+        ] : null;
+
+        $canvasBriefing = null;
+        if ($canvas) {
+            $blockConfig = config('planner.canvas_block_types', []);
+            $byType = $canvas->blocks->keyBy('block_type');
+            $briefing = [];
+            foreach ($blockConfig as $key => $cfg) {
+                $block = $byType->get($key);
+                $entries = $block ? $block->entries->map(fn ($e) => [
+                    'title' => $e->title,
+                    'content' => $e->content,
+                    'type' => $e->entry_type,
+                ])->all() : [];
+                $briefing[$key] = [
+                    'key' => $key,
+                    'label' => $cfg['label'] ?? $key,
+                    'description' => $cfg['description'] ?? null,
+                    'has_block' => (bool) $block,
+                    'entries' => $entries,
+                    'count' => count($entries),
+                ];
+            }
+            $canvasBriefing = $briefing;
         }
+
+        $teamMembers = $allProjectUsers->map(fn ($pu) => [
+            'name' => $pu->user?->name ?? 'Unbekannt',
+            'role' => $pu->role,
+            'open_tasks' => PlannerTask::where('project_id', $this->project->id)
+                ->where('user_in_charge_id', $pu->user_id)
+                ->where('is_done', false)
+                ->count(),
+        ]);
+
+        $activities = $this->project->activities()->with('user')->latest()->limit(10)->get();
+
+        $dashboardData = [
+            'planned_hours'  => $this->project->totalPlannedHours(),
+            'logged_minutes' => $this->project->totalLoggedMinutes(),
+            'logged_hours'   => round($this->project->totalLoggedMinutes() / 60, 2),
+            'billed_hours'   => round($this->project->billedMinutes() / 60, 2),
+            'unbilled_hours' => round($this->project->unbilledMinutes() / 60, 2),
+            'planned_start' => $this->project->plannedStart(),
+            'planned_end'   => $this->project->plannedEnd(),
+            'budget_amount'  => $this->project->budget_amount,
+            'hourly_rate'    => $this->project->hourly_rate,
+            'currency'       => $this->project->currency ?? 'EUR',
+            'billing_method' => $this->project->billing_method,
+            'budget_used'    => $this->project->hourly_rate
+                ? round(($this->project->totalLoggedMinutes() / 60) * (float) $this->project->hourly_rate, 2)
+                : null,
+            'open_count'    => (int) $taskCounts->open_count,
+            'done_count'    => (int) $taskCounts->done_count,
+            'total_count'   => (int) $taskCounts->total,
+            'open_points'   => $openPoints,
+            'done_points'   => $donePoints,
+            'overdue_tasks' => $overdueTasks,
+            'slots' => $slotsBreakdown,
+            'canvas' => $canvasData,
+            'canvas_briefing' => $canvasBriefing,
+            'team_members' => $teamMembers,
+            'activities' => $activities,
+        ];
 
         // === BOARD ===
 
@@ -575,15 +570,6 @@ class Project extends Component
 
         if ($this->showDoneColumn) {
             $this->dispatch('done-column-expanded');
-        }
-    }
-
-    public function toggleShowDashboardColumn()
-    {
-        $this->showDashboardColumn = !$this->showDashboardColumn;
-
-        if ($this->showDashboardColumn) {
-            $this->dispatch('dashboard-column-expanded');
         }
     }
 

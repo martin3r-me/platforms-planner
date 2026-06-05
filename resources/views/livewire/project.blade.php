@@ -85,14 +85,20 @@
     </x-slot>
 
     <x-slot name="sidebar">
-        <x-ui-page-sidebar title="Projekt" icon="heroicon-o-clipboard-document-list" width="w-72" :defaultOpen="true">
-            @include('planner::livewire.project._sidebar', [
-                'project' => $project,
-                'currentUserRole' => $currentUserRole,
-                'hasAnyTasks' => $hasAnyTasks ?? false,
-                'userOpenTaskCount' => $userOpenTaskCount ?? 0,
-                'allProjectUsers' => $allProjectUsers,
-            ])
+        <x-ui-page-sidebar
+            title="Dashboard"
+            icon="heroicon-o-chart-bar-square"
+            width="w-96"
+            :minWidth="280"
+            :maxWidth="720"
+            :defaultOpen="true"
+        >
+            @if($dashboardData)
+                @include('planner::livewire.project._dashboard', [
+                    'dashboardData' => $dashboardData,
+                    'project' => $project,
+                ])
+            @endif
         </x-ui-page-sidebar>
     </x-slot>
 
@@ -143,71 +149,8 @@
                 }
             });
         "
-        @dashboard-column-expanded.window="
-            $nextTick(() => {
-                const scroller = $el.querySelector('.overflow-x-auto');
-                if (scroller) {
-                    scroller.scrollTo({ left: 0, behavior: 'smooth' });
-                }
-            });
-        "
     >
     <x-ui-kanban-container sortable="updateTaskGroupOrder" sortable-group="updateTaskOrder">
-        {{-- Dashboard column (immer erste Position, expanded oder collapsed) --}}
-        @if($showDashboardColumn && $dashboardData)
-            <div class="planner-dashboard-column flex-shrink-0 h-full flex flex-col sticky left-0 z-10"
-                style="width: 40rem; min-width: 40rem;"
-            >
-                {{-- Column header --}}
-                <div class="pt-1 flex-shrink-0">
-                    <div class="px-4 h-10 flex items-center justify-between">
-                        <div class="inline-flex items-center gap-2">
-                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-md bg-white shadow-sm">
-                                @svg('heroicon-o-chart-bar-square', 'w-3.5 h-3.5 text-[var(--planner-status-active)]')
-                            </span>
-                            <span class="text-xs font-semibold text-[var(--ui-secondary)]">Dashboard</span>
-                            <span class="text-[10px] text-[var(--ui-muted)] px-1.5 py-0.5 rounded bg-white/60">{{ $project->name }}</span>
-                        </div>
-                        <button
-                            type="button"
-                            wire:click="toggleShowDashboardColumn"
-                            class="inline-flex items-center justify-center w-7 h-7 rounded-md text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] hover:bg-white/60 transition-colors"
-                            title="Dashboard einklappen"
-                        >
-                            @svg('heroicon-o-chevron-double-left', 'w-4 h-4')
-                        </button>
-                    </div>
-                </div>
-                {{-- Column body (scrollt intern) --}}
-                <div class="flex-1 min-h-0 overflow-y-auto">
-                    @include('planner::livewire.project._dashboard', [
-                        'dashboardData' => $dashboardData,
-                        'project' => $project,
-                    ])
-                </div>
-            </div>
-        @else
-            <button
-                type="button"
-                wire:click="toggleShowDashboardColumn"
-                class="planner-dashboard-strip group/dash flex-shrink-0 h-full flex flex-col items-center justify-between py-4 px-2 sticky left-0 z-10 cursor-pointer hover:shadow-lg transition-all"
-                style="width: 2.75rem; min-width: 2.75rem;"
-                title="Dashboard ausklappen"
-            >
-                @svg('heroicon-o-chevron-double-right', 'w-4 h-4 text-[var(--planner-status-active)] mt-1')
-
-                <div class="flex flex-col items-center gap-2 flex-1 justify-center min-h-0">
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-[var(--planner-status-active)]" style="writing-mode: vertical-rl; transform: rotate(180deg);">
-                        Dashboard
-                    </span>
-                </div>
-
-                <span class="inline-flex items-center justify-center w-6 h-6 rounded-md bg-white shadow-sm">
-                    @svg('heroicon-o-chart-bar-square', 'w-3.5 h-3.5 text-[var(--planner-status-active)]')
-                </span>
-            </button>
-        @endif
-
         {{-- Backlog --}}
             @php $backlog = $groups->first(fn($g) => ($g->isBacklog ?? false)); @endphp
             @if($backlog)

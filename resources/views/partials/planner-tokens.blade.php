@@ -35,8 +35,6 @@
         --planner-column-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 8px rgba(15, 23, 42, 0.03);
         --planner-card-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
         --planner-card-shadow-hover: 0 8px 24px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04);
-        --planner-dashboard-bg: linear-gradient(180deg, #eef2ff 0%, #f5f7ff 50%, #ffffff 100%);
-        --planner-dashboard-accent: linear-gradient(90deg, #6366f1, #818cf8, #a5b4fc);
     }
 
     /* ═══════════════════════════════════════════════════════════
@@ -86,45 +84,6 @@
     .planner-board-canvas .kanban-card.wire-dragging {
         box-shadow: var(--planner-card-shadow-hover);
         transform: rotate(1.5deg);
-    }
-
-    /* Dashboard-Column distinct identity */
-    .planner-dashboard-column {
-        background: var(--planner-dashboard-bg) !important;
-        border-radius: 14px !important;
-        border: 1px solid rgba(99, 102, 241, 0.15) !important;
-        box-shadow:
-            0 2px 4px rgba(99, 102, 241, 0.06),
-            0 12px 28px rgba(99, 102, 241, 0.08),
-            12px 0 24px -12px rgba(15, 23, 42, 0.18) !important;
-        position: relative;
-    }
-    .planner-dashboard-column::before {
-        content: "";
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 3px;
-        background: var(--planner-dashboard-accent);
-        border-radius: 14px 14px 0 0;
-    }
-
-    /* Dashboard collapsed strip — gleiches Akzent-Token */
-    .planner-dashboard-strip {
-        background: linear-gradient(180deg, #eef2ff 0%, #ffffff 100%) !important;
-        border: 1px solid rgba(99, 102, 241, 0.15) !important;
-        border-radius: 14px !important;
-        box-shadow:
-            0 2px 4px rgba(99, 102, 241, 0.06),
-            12px 0 24px -12px rgba(15, 23, 42, 0.18) !important;
-        position: relative;
-    }
-    .planner-dashboard-strip::before {
-        content: "";
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 3px;
-        background: var(--planner-dashboard-accent);
-        border-radius: 14px 14px 0 0;
     }
 
     /* Done-Strip (rechts) bekommt analog einen leichten Polish */
