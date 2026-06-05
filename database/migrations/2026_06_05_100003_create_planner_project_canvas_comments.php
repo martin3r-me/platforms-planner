@@ -8,17 +8,28 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('planner_project_canvas_comments', function (Blueprint $table) {
-            $table->id();
-            $table->uuid('uuid')->unique();
-            $table->foreignId('canvas_id')->constrained('planner_project_canvases')->cascadeOnDelete();
-            $table->foreignId('building_block_id')->nullable()->constrained('planner_project_canvas_blocks')->cascadeOnDelete();
-            $table->foreignId('parent_id')->nullable()->constrained('planner_project_canvas_comments')->cascadeOnDelete();
-            $table->text('content');
-            $table->timestamps();
+        if (! Schema::hasTable('planner_project_canvas_comments')) {
+            Schema::create('planner_project_canvas_comments', function (Blueprint $table) {
+                $table->id();
+                $table->uuid('uuid')->unique();
+                $table->foreignId('canvas_id')->constrained('planner_project_canvases')->cascadeOnDelete();
+                $table->foreignId('building_block_id')->nullable()->constrained('planner_project_canvas_blocks')->cascadeOnDelete();
+                $table->foreignId('parent_id')->nullable()->constrained('planner_project_canvas_comments')->cascadeOnDelete();
+                $table->text('content');
+                $table->timestamps();
 
-            $table->index(['canvas_id', 'building_block_id']);
-        });
+                $table->index(['canvas_id', 'building_block_id'], 'ppc_comments_canvas_block_index');
+            });
+        } else {
+            // Table exists but index may be missing (failed on first run)
+            try {
+                Schema::table('planner_project_canvas_comments', function (Blueprint $table) {
+                    $table->index(['canvas_id', 'building_block_id'], 'ppc_comments_canvas_block_index');
+                });
+            } catch (\Throwable) {
+                // Index already exists
+            }
+        }
     }
 
     public function down(): void
