@@ -6,6 +6,11 @@
     $headerDoneCount = $doneTasks->count();
     $headerOverdueCount = $openTasks->filter(fn($t) => $t->due_date && $t->due_date->isPast() && !$t->is_done)->count();
     $hasActiveFilters = !empty($filterTagIds) || $filterColor;
+
+    // MeisterTask-Section-Tones — Spalten-Akzentfarben (rotierend nach Position)
+    $tonePalette = ['indigo', 'amber', 'teal', 'violet', 'sky', 'pink', 'rose', 'emerald'];
+    $middleColumns = $groups->filter(fn ($g) => !($g->isDoneGroup ?? false) && !($g->isBacklog ?? false))->values();
+    $columnTones = $middleColumns->mapWithKeys(fn ($col, $i) => [$col->id => $tonePalette[$i % count($tonePalette)]]);
 @endphp
 
 <x-ui-page
@@ -140,6 +145,7 @@
     {{-- Board --}}
     <div
         class="planner-board-canvas flex-1 min-h-0 flex"
+        @if($project->color) style="--planner-project-color: {{ $project->color }};" @endif
         x-data
         @done-column-expanded.window="
             $nextTick(() => {
@@ -154,7 +160,7 @@
         {{-- Backlog --}}
             @php $backlog = $groups->first(fn($g) => ($g->isBacklog ?? false)); @endphp
             @if($backlog)
-                <x-ui-kanban-column :title="($backlog->label ?? 'Backlog')" :sortable-id="null" :scrollable="true" :muted="true">
+                <x-ui-kanban-column :title="($backlog->label ?? 'Backlog')" :sortable-id="null" :scrollable="true" :muted="true" class="col-tone-slate">
                     <x-slot name="headerActions">
                         <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-[10px] font-semibold rounded-full" style="background-color: color-mix(in srgb, var(--planner-col-backlog) 15%, transparent); color: var(--planner-col-backlog)">
                             {{ $backlog->tasks->count() }}
@@ -173,8 +179,9 @@
             @endif
 
             {{-- Middle columns --}}
-            @foreach($groups->filter(fn ($g) => !($g->isDoneGroup ?? false) && !($g->isBacklog ?? false)) as $column)
-                <x-ui-kanban-column :title="($column->label ?? $column->name ?? 'Spalte')" :sortable-id="$column->id" :scrollable="true">
+            @foreach($middleColumns as $column)
+                @php $tone = $columnTones[$column->id] ?? 'indigo'; @endphp
+                <x-ui-kanban-column :title="($column->label ?? $column->name ?? 'Spalte')" :sortable-id="$column->id" :scrollable="true" :class="'col-tone-' . $tone">
                     <x-slot name="headerActions">
                         <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-[10px] font-semibold rounded-full" style="background-color: color-mix(in srgb, var(--planner-col-default) 15%, transparent); color: var(--planner-col-default)">
                             {{ $column->tasks->count() }}
@@ -237,7 +244,7 @@
             @php $done = $groups->first(fn($g) => ($g->isDoneGroup ?? false)); @endphp
             @if($done)
                 @if($showDoneColumn)
-                    <x-ui-kanban-column :title="($done->label ?? 'Erledigt')" :sortable-id="null" :scrollable="true" :muted="true">
+                    <x-ui-kanban-column :title="($done->label ?? 'Erledigt')" :sortable-id="null" :scrollable="true" :muted="true" class="col-tone-emerald">
                         <x-slot name="headerActions">
                             <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-[10px] font-semibold rounded-full" style="background-color: color-mix(in srgb, var(--planner-col-done) 15%, transparent); color: var(--planner-col-done)">
                                 {{ $done->tasks->count() }}

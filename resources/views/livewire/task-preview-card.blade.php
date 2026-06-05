@@ -18,6 +18,16 @@
     // Project name only when not already on the project board
     $showProjectName = ($cardFrom ?? null) !== 'project' && $task->project;
 
+    // MeisterTask-Style: linke Edge ist immer da, Farbe nach Status/Priorität-Hierarchie
+    $edgeColor = match (true) {
+        $isOverdue           => 'var(--planner-status-overdue)',
+        $isDone              => 'var(--planner-col-done)',
+        $isFrog              => 'var(--planner-frog)',
+        (bool) $priorityColor => $priorityColor,
+        (bool) ($task->color ?? null) => $task->color,
+        default              => 'var(--planner-status-active)',
+    };
+
     // Due-date phrase
     $duePhrase = null;
     if ($task->due_date) {
@@ -49,29 +59,18 @@
     :href="$cardHref"
     class="group/card relative {{ $surface }} transition-colors duration-150"
 >
-    {{-- Optional left edge: only when something signals --}}
-    @if($isOverdue)
-        <div class="absolute top-0 bottom-0 left-0 w-0.5 bg-[var(--planner-status-overdue)]"></div>
-    @elseif($isFrog && !$isDone)
-        <div class="absolute top-0 bottom-0 left-0 w-0.5 bg-[var(--planner-frog)]"></div>
-    @endif
+    {{-- Permanente Color-Edge links (MeisterTask-Signatur) --}}
+    <div class="absolute top-0 bottom-0 left-0 w-1" style="background-color: {{ $edgeColor }};"></div>
 
     {{-- Optional micro-line: project name (only on cross-project boards) --}}
     @if($showProjectName)
-        <div class="text-[10px] text-[var(--ui-muted)] leading-none truncate mb-1">
+        <div class="text-[10px] text-[var(--ui-muted)] leading-none truncate mb-1 pl-1">
             {{ $task->project->name }}
         </div>
     @endif
 
-    {{-- Title row: priority dot + title + hover quick-done --}}
-    <div class="flex items-start gap-1.5 pr-6">
-        @if($priorityColor)
-            <span
-                class="flex-shrink-0 w-1.5 h-1.5 rounded-full mt-[7px]"
-                style="background-color: {{ $priorityColor }}"
-                title="{{ $priorityLabel }}"
-            ></span>
-        @endif
+    {{-- Title row: title + hover quick-done --}}
+    <div class="flex items-start gap-1.5 pr-6 pl-1">
         <h4 class="text-[13px] font-medium leading-snug text-[var(--ui-secondary)] m-0 {{ $isDone ? 'line-through text-[var(--ui-muted)]' : '' }}">
             {{ $task->title }}
         </h4>
@@ -95,7 +94,7 @@
         $hasMeta = $duePhrase || $spValue || $firstTag || $dodProgress || ($task->postpone_count ?? 0) > 0 || ($isFrog && $isDone) || $userInCharge;
     @endphp
     @if($hasMeta)
-        <div class="mt-2 flex items-center gap-1.5 text-[10px] text-[var(--ui-muted)] leading-none">
+        <div class="mt-2 pl-1 flex items-center gap-1.5 text-[10px] text-[var(--ui-muted)] leading-none">
             @if($duePhrase)
                 <span
                     class="inline-flex items-center gap-0.5 flex-shrink-0 {{ $isOverdue ? 'text-[var(--planner-status-overdue)] font-medium' : '' }}"
@@ -111,14 +110,16 @@
             @endif
 
             @if($firstTag)
-                <span class="inline-flex items-center gap-0.5 flex-shrink-0 truncate max-w-[7rem]" title="{{ $firstTag->label }}">
-                    @if($firstTag->color)
-                        <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" style="background-color: {{ $firstTag->color }}"></span>
-                    @endif
-                    <span class="truncate">#{{ $firstTag->label }}</span>
+                @php $tColor = $firstTag->color ?: '#94a3b8'; @endphp
+                <span
+                    class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium flex-shrink-0 truncate max-w-[7rem] border"
+                    style="background-color: color-mix(in srgb, {{ $tColor }} 14%, white); color: {{ $tColor }}; border-color: color-mix(in srgb, {{ $tColor }} 30%, white);"
+                    title="{{ $firstTag->label }}"
+                >
+                    {{ $firstTag->label }}
                 </span>
                 @if($tagCount > 1)
-                    <span class="flex-shrink-0 tabular-nums">+{{ $tagCount - 1 }}</span>
+                    <span class="inline-flex items-center justify-center min-w-[1rem] h-4 px-1 rounded-full text-[9px] font-semibold tabular-nums bg-[var(--ui-muted-5)] text-[var(--ui-muted)] flex-shrink-0">+{{ $tagCount - 1 }}</span>
                 @endif
             @endif
 
