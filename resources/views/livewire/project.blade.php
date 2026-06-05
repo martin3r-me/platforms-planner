@@ -1,22 +1,16 @@
 @php
-    if ($activeTab === 'board') {
-        $allTasks = $groups->flatMap(fn($g) => $g->tasks);
-        $openTasks = $groups->filter(fn($g) => !($g->isDoneGroup ?? false))->flatMap(fn($g) => $g->tasks);
-        $doneTasks = $groups->filter(fn($g) => $g->isDoneGroup ?? false)->flatMap(fn($g) => $g->tasks);
-        $headerOpenCount = $openTasks->count();
-        $headerDoneCount = $doneTasks->count();
-        $headerOverdueCount = $openTasks->filter(fn($t) => $t->due_date && $t->due_date->isPast() && !$t->is_done)->count();
-    } else {
-        $headerOpenCount = $dashboardData['open_count'] ?? 0;
-        $headerDoneCount = $dashboardData['done_count'] ?? 0;
-        $headerOverdueCount = isset($dashboardData['overdue_tasks']) ? $dashboardData['overdue_tasks']->count() : 0;
-    }
+    $allTasks = $groups->flatMap(fn($g) => $g->tasks);
+    $openTasks = $groups->filter(fn($g) => !($g->isDoneGroup ?? false))->flatMap(fn($g) => $g->tasks);
+    $doneTasks = $groups->filter(fn($g) => $g->isDoneGroup ?? false)->flatMap(fn($g) => $g->tasks);
+    $headerOpenCount = $openTasks->count();
+    $headerDoneCount = $doneTasks->count();
+    $headerOverdueCount = $openTasks->filter(fn($t) => $t->due_date && $t->due_date->isPast() && !$t->is_done)->count();
     $hasActiveFilters = !empty($filterTagIds) || $filterColor;
 @endphp
 
 <x-ui-page
-    x-data="{ activeTab: @js($activeTab) }"
-    @keydown.n.window.prevent="if (activeTab === 'board') $wire.createTask()"
+    x-data
+    @keydown.n.window.prevent="$wire.createTask()"
 >
     @include('planner::partials.planner-tokens')
     <x-slot name="navbar">
@@ -28,37 +22,13 @@
             ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
             ['label' => $project->name],
         ]">
-            <x-slot name="left">
-                {{-- View-Tabs als segmented control --}}
-                <div class="inline-flex rounded-md border border-[var(--ui-border)]/60 overflow-hidden">
-                    <button
-                        type="button"
-                        wire:click="$set('activeTab', 'dashboard')"
-                        class="inline-flex items-center gap-1.5 px-2.5 h-7 text-xs transition-colors {{ $activeTab === 'dashboard' ? 'bg-[var(--ui-secondary)] text-white' : 'bg-transparent text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}"
-                    >
-                        @svg('heroicon-o-chart-bar-square', 'w-3.5 h-3.5')
-                        <span>Dashboard</span>
-                    </button>
-                    <button
-                        type="button"
-                        wire:click="$set('activeTab', 'board')"
-                        class="inline-flex items-center gap-1.5 px-2.5 h-7 text-xs border-l border-[var(--ui-border)]/60 transition-colors {{ $activeTab === 'board' ? 'bg-[var(--ui-secondary)] text-white' : 'bg-transparent text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}"
-                    >
-                        @svg('heroicon-o-view-columns', 'w-3.5 h-3.5')
-                        <span>Board</span>
-                    </button>
-                </div>
-            </x-slot>
-
             {{-- Primary action --}}
-            @if($activeTab === 'board')
-                @can('update', $project)
-                    <x-ui-button variant="primary" size="sm" wire:click="createTask()" title="Neue Aufgabe (N)">
-                        @svg('heroicon-o-plus', 'w-4 h-4')
-                        <span>Aufgabe</span>
-                    </x-ui-button>
-                @endcan
-            @endif
+            @can('update', $project)
+                <x-ui-button variant="primary" size="sm" wire:click="createTask()" title="Neue Aufgabe (N)">
+                    @svg('heroicon-o-plus', 'w-4 h-4')
+                    <span>Aufgabe</span>
+                </x-ui-button>
+            @endcan
 
             {{-- Overflow menu --}}
             <div x-data="{ open: false }" class="relative">
@@ -78,19 +48,17 @@
                     @keydown.escape.window="open = false"
                     class="absolute top-full right-0 mt-1 w-52 bg-white border border-[var(--ui-border)] rounded-lg shadow-lg z-30 py-1"
                 >
-                    @if($activeTab === 'board')
-                        @can('update', $project)
-                            <button
-                                type="button"
-                                wire:click="createProjectSlot"
-                                @click="open = false"
-                                class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)] transition-colors"
-                            >
-                                @svg('heroicon-o-square-2-stack', 'w-4 h-4 text-[var(--ui-muted)]')
-                                <span>Neue Spalte</span>
-                            </button>
-                        @endcan
-                    @endif
+                    @can('update', $project)
+                        <button
+                            type="button"
+                            wire:click="createProjectSlot"
+                            @click="open = false"
+                            class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)] transition-colors"
+                        >
+                            @svg('heroicon-o-square-2-stack', 'w-4 h-4 text-[var(--ui-muted)]')
+                            <span>Neue Spalte</span>
+                        </button>
+                    @endcan
                     <button
                         type="button"
                         wire:click="openCanvas"
@@ -155,30 +123,85 @@
         'canvasInfo' => $canvasInfo ?? null,
     ])
 
-    @if($activeTab === 'board')
-        @include('planner::livewire.project._filter-bar', [
-            'availableFilterTags' => $availableFilterTags,
-            'availableFilterColors' => $availableFilterColors,
-            'filterTagIds' => $filterTagIds,
-            'filterColor' => $filterColor,
-            'hasActiveFilters' => $hasActiveFilters,
-        ])
+    @include('planner::livewire.project._filter-bar', [
+        'availableFilterTags' => $availableFilterTags,
+        'availableFilterColors' => $availableFilterColors,
+        'filterTagIds' => $filterTagIds,
+        'filterColor' => $filterColor,
+        'hasActiveFilters' => $hasActiveFilters,
+    ])
 
-        {{-- Board --}}
-        <div
-            class="flex-1 min-h-0 flex"
-            x-data
-            @done-column-expanded.window="
-                $nextTick(() => {
-                    const scroller = $el.querySelector('.overflow-x-auto');
-                    if (scroller) {
-                        scroller.scrollTo({ left: scroller.scrollWidth, behavior: 'smooth' });
-                    }
-                });
-            "
-        >
-        <x-ui-kanban-container sortable="updateTaskGroupOrder" sortable-group="updateTaskOrder">
-            {{-- Backlog --}}
+    {{-- Board --}}
+    <div
+        class="flex-1 min-h-0 flex"
+        x-data
+        @done-column-expanded.window="
+            $nextTick(() => {
+                const scroller = $el.querySelector('.overflow-x-auto');
+                if (scroller) {
+                    scroller.scrollTo({ left: scroller.scrollWidth, behavior: 'smooth' });
+                }
+            });
+        "
+        @dashboard-column-expanded.window="
+            $nextTick(() => {
+                const scroller = $el.querySelector('.overflow-x-auto');
+                if (scroller) {
+                    scroller.scrollTo({ left: 0, behavior: 'smooth' });
+                }
+            });
+        "
+    >
+    <x-ui-kanban-container sortable="updateTaskGroupOrder" sortable-group="updateTaskOrder">
+        {{-- Dashboard column (immer erste Position, expanded oder collapsed) --}}
+        @if($showDashboardColumn && $dashboardData)
+            <div class="flex-shrink-0 h-full flex flex-col bg-[var(--ui-surface)] border border-[var(--ui-border)]/40 sticky left-0 z-10"
+                style="width: 40rem; min-width: 40rem; box-shadow: 10px 0 14px -10px rgba(15, 23, 42, 0.18);"
+            >
+                {{-- Column header --}}
+                <div class="px-4 h-9 flex-shrink-0 flex items-center justify-between border-b border-[var(--ui-border)]/40 bg-[var(--ui-surface)]">
+                    <div class="inline-flex items-center gap-2 text-xs font-semibold text-[var(--ui-secondary)]">
+                        @svg('heroicon-o-chart-bar-square', 'w-3.5 h-3.5 text-[var(--ui-muted)]')
+                        <span>Dashboard</span>
+                    </div>
+                    <button
+                        type="button"
+                        wire:click="toggleShowDashboardColumn"
+                        class="text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] transition-colors"
+                        title="Dashboard einklappen"
+                    >
+                        @svg('heroicon-o-chevron-double-left', 'w-4 h-4')
+                    </button>
+                </div>
+                {{-- Column body (scrollt intern) --}}
+                <div class="flex-1 min-h-0 overflow-y-auto">
+                    @include('planner::livewire.project._dashboard', [
+                        'dashboardData' => $dashboardData,
+                        'project' => $project,
+                    ])
+                </div>
+            </div>
+        @else
+            <button
+                type="button"
+                wire:click="toggleShowDashboardColumn"
+                class="group/dash flex-shrink-0 h-full flex flex-col items-center justify-between py-3 px-2 bg-[var(--ui-surface)] border border-[var(--ui-border)]/40 hover:border-[var(--planner-status-active)]/40 hover:bg-[var(--ui-muted-5)] transition-colors cursor-pointer sticky left-0 z-10"
+                style="width: 2.5rem; min-width: 2.5rem; box-shadow: 10px 0 14px -10px rgba(15, 23, 42, 0.18);"
+                title="Dashboard ausklappen"
+            >
+                @svg('heroicon-o-chevron-double-right', 'w-4 h-4 text-[var(--ui-muted)] group-hover/dash:text-[var(--planner-status-active)] transition-colors')
+
+                <div class="flex flex-col items-center gap-2 flex-1 justify-center min-h-0">
+                    <span class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)]" style="writing-mode: vertical-rl; transform: rotate(180deg);">
+                        Dashboard
+                    </span>
+                </div>
+
+                @svg('heroicon-o-chart-bar-square', 'w-3.5 h-3.5 text-[var(--ui-muted)]')
+            </button>
+        @endif
+
+        {{-- Backlog --}}
             @php $backlog = $groups->first(fn($g) => ($g->isBacklog ?? false)); @endphp
             @if($backlog)
                 <x-ui-kanban-column :title="($backlog->label ?? 'Backlog')" :sortable-id="null" :scrollable="true" :muted="true">
@@ -312,16 +335,6 @@
             @endif
         </x-ui-kanban-container>
         </div>
-    @endif
-
-    @if($activeTab === 'dashboard')
-        <div class="flex-1 overflow-y-auto">
-            @include('planner::livewire.project._dashboard', [
-                'dashboardData' => $dashboardData,
-                'project' => $project,
-            ])
-        </div>
-    @endif
     </div>
 
     {{-- Modals --}}

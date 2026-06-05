@@ -21,11 +21,11 @@ class Project extends Component
     public PlannerProject $project;
     public $sprint; // Aktueller Sprint des Projekts
     public bool $showDoneColumn = false; // Erledigt-Spalte ein/ausblenden
-
-    public string $activeTab = 'dashboard';
+    public bool $showDashboardColumn = true; // Dashboard-Spalte links ein/ausklappen
 
     protected $queryString = [
-        'activeTab' => ['except' => 'dashboard', 'as' => 'tab'],
+        'showDashboardColumn' => ['except' => true, 'as' => 'context'],
+        'showDoneColumn' => ['except' => false, 'as' => 'done'],
     ];
 
     // Filter
@@ -182,8 +182,9 @@ class Project extends Component
             ];
         }
 
-        // === DASHBOARD TAB ===
-        if ($this->activeTab === 'dashboard') {
+        // === DASHBOARD-SPALTE: nur laden wenn aufgeklappt ===
+        $dashboardData = null;
+        if ($this->showDashboardColumn) {
             // Task-Counts (eine Query)
             $taskCounts = PlannerTask::where('project_id', $this->project->id)
                 ->selectRaw('COUNT(*) as total')
@@ -201,7 +202,6 @@ class Project extends Component
                 fn ($t) => $t->story_points instanceof StoryPoints ? $t->story_points->points() : 0
             );
 
-            // Überfällige Tasks
             $overdueTasks = PlannerTask::with('userInCharge')
                 ->where('project_id', $this->project->id)
                 ->where('is_done', false)
@@ -218,7 +218,6 @@ class Project extends Component
                     'assignee' => $t->userInCharge?->name,
                 ]);
 
-            // Slots-Breakdown
             $slotsBreakdown = PlannerProjectSlot::where('project_id', $this->project->id)
                 ->withCount([
                     'tasks as open_count' => fn ($q) => $q->where('is_done', false),
@@ -227,7 +226,6 @@ class Project extends Component
                 ->orderBy('order')
                 ->get();
 
-            // Canvas (Daten aus shared section wiederverwenden)
             $canvasData = $canvas ? [
                 'name' => $canvas->name,
                 'id' => $canvas->id,
@@ -235,8 +233,6 @@ class Project extends Component
                 'route' => $canvasInfo['route'],
             ] : null;
 
-            // Canvas-Briefing: strukturierten Inhalt nach Block-Typ aufbereiten.
-            // Blocks + Entries sind durch analyze() bereits eager-loaded.
             $canvasBriefing = null;
             if ($canvas) {
                 $blockConfig = config('planner.canvas_block_types', []);
@@ -261,7 +257,6 @@ class Project extends Component
                 $canvasBriefing = $briefing;
             }
 
-            // Team
             $teamMembers = $allProjectUsers->map(fn ($pu) => [
                 'name' => $pu->user?->name ?? 'Unbekannt',
                 'role' => $pu->role,
@@ -271,22 +266,16 @@ class Project extends Component
                     ->count(),
             ]);
 
-            // Aktivitäten
             $activities = $this->project->activities()->with('user')->latest()->limit(10)->get();
 
             $dashboardData = [
-                // Zeit
                 'planned_hours'  => $this->project->totalPlannedHours(),
                 'logged_minutes' => $this->project->totalLoggedMinutes(),
                 'logged_hours'   => round($this->project->totalLoggedMinutes() / 60, 2),
                 'billed_hours'   => round($this->project->billedMinutes() / 60, 2),
                 'unbilled_hours' => round($this->project->unbilledMinutes() / 60, 2),
-
-                // Timeline
                 'planned_start' => $this->project->plannedStart(),
                 'planned_end'   => $this->project->plannedEnd(),
-
-                // Budget
                 'budget_amount'  => $this->project->budget_amount,
                 'hourly_rate'    => $this->project->hourly_rate,
                 'currency'       => $this->project->currency ?? 'EUR',
@@ -294,45 +283,21 @@ class Project extends Component
                 'budget_used'    => $this->project->hourly_rate
                     ? round(($this->project->totalLoggedMinutes() / 60) * (float) $this->project->hourly_rate, 2)
                     : null,
-
-                // Tasks
                 'open_count'    => (int) $taskCounts->open_count,
                 'done_count'    => (int) $taskCounts->done_count,
                 'total_count'   => (int) $taskCounts->total,
                 'open_points'   => $openPoints,
                 'done_points'   => $donePoints,
                 'overdue_tasks' => $overdueTasks,
-
-                // Slots
                 'slots' => $slotsBreakdown,
-
-                // Canvas
                 'canvas' => $canvasData,
                 'canvas_briefing' => $canvasBriefing,
-
-                // Team
                 'team_members' => $teamMembers,
-
-                // Aktivitäten
                 'activities' => $activities,
             ];
-
-            return view('planner::livewire.project', [
-                'groups' => collect(),
-                'linkedEntities' => $linkedEntities,
-                'currentUserRole' => $currentUserRole,
-                'userOpenTaskCount' => $userOpenTaskCount,
-                'hasAnyTasks' => $hasAnyTasks,
-                'permissions' => $permissions,
-                'allProjectUsers' => $allProjectUsers,
-                'availableFilterTags' => collect(),
-                'availableFilterColors' => collect(),
-                'dashboardData' => $dashboardData,
-                'canvasInfo' => $canvasInfo,
-            ])->layout('platform::layouts.app');
         }
 
-        // === BOARD TAB ===
+        // === BOARD ===
 
         // === 1. BACKLOG ===
         $backlogTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])
@@ -469,7 +434,7 @@ class Project extends Component
             'availableFilterTags' => $availableFilterTags,
             'availableFilterColors' => $availableFilterColors,
             'canvasInfo' => $canvasInfo,
-            'dashboardData' => null,
+            'dashboardData' => $dashboardData,
         ])->layout('platform::layouts.app');
     }
 
@@ -610,6 +575,15 @@ class Project extends Component
 
         if ($this->showDoneColumn) {
             $this->dispatch('done-column-expanded');
+        }
+    }
+
+    public function toggleShowDashboardColumn()
+    {
+        $this->showDashboardColumn = !$this->showDashboardColumn;
+
+        if ($this->showDashboardColumn) {
+            $this->dispatch('dashboard-column-expanded');
         }
     }
 

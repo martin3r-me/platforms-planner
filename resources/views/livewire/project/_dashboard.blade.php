@@ -19,9 +19,6 @@
     $budgetOver    = $budgetAmount > 0 && $budgetUsed > $budgetAmount;
     $currency      = $d['currency'];
 
-    $totalPoints = $d['open_points'] + $d['done_points'];
-
-    // Timeline
     $plannedStart = $d['planned_start'];
     $plannedEnd   = $d['planned_end'];
     $timelinePercent = 0;
@@ -37,153 +34,116 @@
         $timelinePercent = min(100, round(($elapsedDays / $totalDays) * 100));
     }
 
-    // Health-Status helper
     $health = function ($pct, $over = false) {
-        if ($over) return ['color' => 'var(--planner-status-overdue)', 'bg' => 'rgba(239,68,68,0.10)', 'label' => 'Überzogen'];
-        if ($pct === null) return ['color' => 'var(--ui-muted)', 'bg' => 'var(--ui-muted-5)', 'label' => '–'];
-        if ($pct >= 90)   return ['color' => '#d97706', 'bg' => 'rgba(217,119,6,0.10)', 'label' => 'Knapp'];
-        if ($pct >= 60)   return ['color' => 'var(--planner-status-active)', 'bg' => 'rgba(99,102,241,0.10)', 'label' => 'Auf Kurs'];
-        return ['color' => 'var(--planner-status-done)', 'bg' => 'rgba(34,197,94,0.10)', 'label' => 'Komfort'];
+        if ($over) return ['color' => 'var(--planner-status-overdue)', 'bg' => 'rgba(239,68,68,0.10)'];
+        if ($pct === null) return ['color' => 'var(--ui-muted)', 'bg' => 'var(--ui-muted-5)'];
+        if ($pct >= 90)   return ['color' => '#d97706', 'bg' => 'rgba(217,119,6,0.10)'];
+        if ($pct >= 60)   return ['color' => 'var(--planner-status-active)', 'bg' => 'rgba(99,102,241,0.10)'];
+        return ['color' => 'var(--planner-status-done)', 'bg' => 'rgba(34,197,94,0.10)'];
     };
     $taskHealth   = $health($taskPercent);
     $hoursHealth  = $hoursOver ? $health(100, true) : $health($plannedHours > 0 ? $hoursPercent : null);
     $budgetHealth = $budgetOver ? $health(100, true) : $health($budgetAmount > 0 ? $budgetPercent : null);
     $timeHealth   = $isOverdue ? $health(100, true) : $health($plannedEnd ? $timelinePercent : null);
 
-    // Slot-Heatmap
-    $maxSlotTotal = $d['slots']->isNotEmpty()
-        ? max(1, $d['slots']->max(fn($s) => $s->open_count + $s->done_count))
-        : 1;
-
-    // Team workload
     $maxTeamOpen = $d['team_members']->isNotEmpty()
         ? max(1, $d['team_members']->max(fn($m) => $m['open_tasks']))
         : 1;
 
-    // === CANVAS BRIEFING ===
+    // Canvas briefing
     $briefing = $d['canvas_briefing'] ?? null;
     $canvasExists = (bool) $d['canvas'];
     $canvasRoute = $d['canvas']['route'] ?? null;
+    $cAnalysis = $d['canvas']['analysis'] ?? [];
+    $cCompleteness = $cAnalysis['completeness_percent'] ?? 0;
+    $cStatus = $cAnalysis['status'] ?? ($canvasExists ? 'unknown' : 'missing');
+    $cTokens = [
+        'green'   => ['color' => 'var(--planner-status-done)',    'bg' => 'rgba(34,197,94,0.08)'],
+        'yellow'  => ['color' => '#d97706',                       'bg' => 'rgba(217,119,6,0.08)'],
+        'red'     => ['color' => 'var(--planner-status-overdue)', 'bg' => 'rgba(239,68,68,0.08)'],
+        'missing' => ['color' => 'var(--ui-muted)',               'bg' => 'var(--ui-muted-5)'],
+        'unknown' => ['color' => 'var(--ui-muted)',               'bg' => 'var(--ui-muted-5)'],
+    ];
+    $ct = $cTokens[$cStatus] ?? $cTokens['unknown'];
 
-    // Pick the headline goal: first entry of project_goal block
     $goalEntries = $briefing['project_goal']['entries'] ?? [];
     $goalHeadline = $goalEntries[0] ?? null;
 
-    // Briefing facet order (the four "strategic" blocks)
-    $briefingFacets = ['scope', 'stakeholders', 'milestones', 'risks'];
-    $briefingFacetIcons = [
+    $facetIcons = [
         'scope'        => 'heroicon-o-rectangle-group',
         'stakeholders' => 'heroicon-o-user-group',
         'milestones'   => 'heroicon-o-flag',
         'risks'        => 'heroicon-o-shield-exclamation',
     ];
-    $secondaryFacets = ['resources', 'budget', 'communication', 'governance'];
-    $secondaryFacetIcons = [
-        'resources'     => 'heroicon-o-wrench-screwdriver',
-        'budget'        => 'heroicon-o-banknotes',
-        'communication' => 'heroicon-o-chat-bubble-left-right',
-        'governance'    => 'heroicon-o-scale',
-    ];
+    $facetOrder = ['scope', 'stakeholders', 'milestones', 'risks'];
 
-    // Truncate helper for snippet preview
-    $snippet = function ($text, $len = 70) {
+    $snippet = function ($text, $len = 80) {
         if (!$text) return null;
         $text = trim(strip_tags($text));
         return mb_strlen($text) > $len ? mb_substr($text, 0, $len) . '…' : $text;
     };
 
-    // Progress-Narrative: ein Satz, der den Projektstand zusammenfasst
+    // Narrative
     $narrativeParts = [];
-    if ($taskPercent > 0 || $totalCount > 0) {
-        $narrativeParts[] = "{$taskPercent}% der Aufgaben erledigt";
-    }
+    if ($taskPercent > 0 || $totalCount > 0) $narrativeParts[] = "{$taskPercent}% erledigt";
     if ($plannedEnd) {
-        if ($isOverdue) {
-            $narrativeParts[] = abs($remainingDays) . " Tage über die geplante Frist";
-        } elseif ($remainingDays >= 0) {
-            $narrativeParts[] = $remainingDays === 0 ? "Frist heute" : "{$remainingDays} Tage bis zur Frist";
-        }
+        if ($isOverdue) $narrativeParts[] = abs($remainingDays) . "d über Frist";
+        elseif ($remainingDays === 0) $narrativeParts[] = "Frist heute";
+        else $narrativeParts[] = "{$remainingDays}d übrig";
     }
-    if ($overdueCount > 0) {
-        $narrativeParts[] = "{$overdueCount} überfällige Aufgabe" . ($overdueCount === 1 ? '' : 'n');
-    }
+    if ($overdueCount > 0) $narrativeParts[] = "{$overdueCount} überfällig";
     $narrative = !empty($narrativeParts) ? implode(' · ', $narrativeParts) : null;
 @endphp
 
-<div class="p-6 space-y-6 max-w-[1600px] mx-auto">
+<div class="divide-y divide-[var(--ui-border)]/40">
 
-    {{-- ═══════════════════════════════════════════════════════════ --}}
-    {{-- 1. BRIEFING — Warum gibt es das Projekt?                    --}}
-    {{--    Aus Canvas-Inhalten direkt destilliert                   --}}
-    {{-- ═══════════════════════════════════════════════════════════ --}}
-    @if($canvasExists && $briefing)
-        @php
-            $cAnalysis = $d['canvas']['analysis'] ?? [];
-            $cCompleteness = $cAnalysis['completeness_percent'] ?? 0;
-            $cStatus = $cAnalysis['status'] ?? 'unknown';
-            $cTokens = [
-                'green'   => ['color' => 'var(--planner-status-done)',    'bg' => 'rgba(34,197,94,0.06)',  'label' => 'OK'],
-                'yellow'  => ['color' => '#d97706',                       'bg' => 'rgba(217,119,6,0.06)',  'label' => 'Lücken'],
-                'red'     => ['color' => 'var(--planner-status-overdue)', 'bg' => 'rgba(239,68,68,0.06)',  'label' => 'Kritisch'],
-                'unknown' => ['color' => 'var(--ui-muted)',               'bg' => 'var(--ui-muted-5)',     'label' => '–'],
-            ];
-            $ct = $cTokens[$cStatus] ?? $cTokens['unknown'];
-        @endphp
-
-        <section class="rounded-xl border border-[var(--ui-border)] overflow-hidden bg-[var(--ui-surface)]">
-
-            {{-- Briefing-Header --}}
-            <div class="px-6 pt-5 pb-4 border-b border-[var(--ui-border)]/40" style="background: linear-gradient(to bottom, {{ $ct['bg'] }}, transparent);">
-                <div class="flex items-start justify-between gap-4 mb-3">
-                    <div class="min-w-0">
-                        <div class="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)]">
-                            @svg('heroicon-o-squares-2x2', 'w-3 h-3')
-                            <span>Project Briefing</span>
-                            <span class="text-[var(--ui-border)]">·</span>
-                            <span style="color: {{ $ct['color'] }};">{{ $cCompleteness }}% strukturiert</span>
-                        </div>
-                        <h2 class="text-base font-semibold text-[var(--ui-secondary)] m-0 mt-1">Warum gibt es dieses Projekt?</h2>
-                    </div>
-                    @if($canvasRoute)
-                        <a
-                            href="{{ $canvasRoute }}"
-                            wire:navigate
-                            class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-md border hover:shadow-sm transition-all flex-shrink-0"
-                            style="border-color: {{ $ct['color'] }}55; color: {{ $ct['color'] }};"
-                        >
-                            <span>Vollständiges Canvas</span>
-                            @svg('heroicon-o-arrow-right', 'w-3 h-3')
-                        </a>
-                    @endif
-                </div>
-
-                {{-- Goal headline --}}
-                @if($goalHeadline)
-                    <div class="space-y-1">
-                        @if($goalHeadline['title'])
-                            <p class="text-lg font-semibold text-[var(--ui-secondary)] leading-snug m-0">{{ $goalHeadline['title'] }}</p>
-                        @endif
-                        @if($goalHeadline['content'])
-                            <p class="text-sm text-[var(--ui-secondary)]/80 leading-relaxed m-0">{{ $snippet($goalHeadline['content'], 240) }}</p>
-                        @endif
-                        @if($briefing['project_goal']['count'] > 1)
-                            <p class="text-[11px] text-[var(--ui-muted)] mt-1">+ {{ $briefing['project_goal']['count'] - 1 }} weitere Zielsetzung{{ ($briefing['project_goal']['count'] - 1) === 1 ? '' : 'en' }} im Canvas</p>
-                        @endif
-                    </div>
-                @else
-                    <div class="flex items-start gap-2 p-3 rounded-md" style="background-color: {{ $ct['bg'] }};">
-                        @svg('heroicon-o-information-circle', 'w-4 h-4 flex-shrink-0 mt-0.5', ['style' => 'color: ' . $ct['color']])
-                        <div class="text-xs">
-                            <span class="text-[var(--ui-secondary)] font-medium">Noch kein Projekt-Ziel formuliert.</span>
-                            <span class="text-[var(--ui-muted)]">Im Canvas-Block „Project Goal" festhalten, warum dieses Projekt existiert.</span>
-                        </div>
-                    </div>
+    {{-- ═══ 1. BRIEFING — Warum gibt es das Projekt? ═══ --}}
+    <section class="p-4" style="background: linear-gradient(to bottom, {{ $ct['bg'] }}, transparent);">
+        <div class="flex items-center justify-between mb-2">
+            <div class="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)]">
+                @svg('heroicon-o-squares-2x2', 'w-3 h-3')
+                <span>Briefing</span>
+                @if($canvasExists)
+                    <span class="text-[var(--ui-border)]">·</span>
+                    <span style="color: {{ $ct['color'] }};">{{ $cCompleteness }}%</span>
                 @endif
             </div>
+            @if($canvasRoute)
+                <a href="{{ $canvasRoute }}" wire:navigate class="text-[10px] inline-flex items-center gap-0.5 hover:underline" style="color: {{ $ct['color'] }};">
+                    Canvas öffnen
+                    @svg('heroicon-o-arrow-right', 'w-3 h-3')
+                </a>
+            @endif
+        </div>
 
-            {{-- Strategic facets: Scope · Stakeholders · Milestones · Risks --}}
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[var(--ui-border)]/40">
-                @foreach($briefingFacets as $facetKey)
+        {{-- Goal headline --}}
+        @if($goalHeadline)
+            @if($goalHeadline['title'])
+                <p class="text-sm font-semibold text-[var(--ui-secondary)] leading-snug m-0 mb-1">{{ $goalHeadline['title'] }}</p>
+            @endif
+            @if($goalHeadline['content'])
+                <p class="text-[12px] text-[var(--ui-secondary)]/80 leading-relaxed m-0">{{ $snippet($goalHeadline['content'], 180) }}</p>
+            @endif
+            @if(($briefing['project_goal']['count'] ?? 0) > 1)
+                <p class="text-[10px] text-[var(--ui-muted)] mt-1">+ {{ $briefing['project_goal']['count'] - 1 }} weitere Zielsetzung{{ ($briefing['project_goal']['count'] - 1) === 1 ? '' : 'en' }}</p>
+            @endif
+        @elseif($canvasExists)
+            <div class="flex items-start gap-2 p-2.5 rounded-md text-[11px]" style="background-color: {{ $ct['bg'] }};">
+                @svg('heroicon-o-information-circle', 'w-3.5 h-3.5 flex-shrink-0 mt-0.5', ['style' => 'color: ' . $ct['color']])
+                <span class="text-[var(--ui-secondary)]">Noch kein Projekt-Ziel formuliert. Im Canvas-Block „Project Goal" festhalten.</span>
+            </div>
+        @else
+            <p class="text-[12px] text-[var(--ui-muted)] mb-2">Im Canvas wird festgehalten, was das Projekt erreichen soll, wer beteiligt ist, und welche Risiken existieren.</p>
+            <button type="button" wire:click="openCanvas" class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium rounded-md bg-[var(--ui-primary)] text-white hover:bg-[var(--ui-primary)]/90 transition-colors">
+                @svg('heroicon-o-plus', 'w-3 h-3')
+                Canvas anlegen
+            </button>
+        @endif
+
+        {{-- Strategic facets: 2x2 grid in der schmalen Spalte --}}
+        @if($briefing && $canvasExists)
+            <div class="grid grid-cols-2 gap-2 mt-3">
+                @foreach($facetOrder as $facetKey)
                     @php
                         $facet = $briefing[$facetKey] ?? null;
                         $facetEntries = $facet['entries'] ?? [];
@@ -191,508 +151,270 @@
                     @endphp
                     <a
                         @if($canvasRoute) href="{{ $canvasRoute }}" wire:navigate @endif
-                        class="block p-4 transition-colors @if($canvasRoute) hover:bg-[var(--ui-muted-5)] @endif group/facet"
+                        class="block p-2.5 rounded-md border border-[var(--ui-border)]/60 bg-[var(--ui-surface)] hover:border-[var(--ui-primary)]/40 hover:shadow-sm transition-all group/facet"
                     >
-                        <div class="flex items-center gap-2 mb-2">
-                            @svg($briefingFacetIcons[$facetKey], 'w-3.5 h-3.5 text-[var(--ui-muted)]')
-                            <h3 class="text-[11px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] m-0">{{ $facet['label'] ?? $facetKey }}</h3>
+                        <div class="flex items-center gap-1.5 mb-1">
+                            @svg($facetIcons[$facetKey], 'w-3 h-3 text-[var(--ui-muted)]')
+                            <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] m-0 truncate">{{ $facet['label'] ?? $facetKey }}</h3>
                             @if($facetCount > 0)
                                 <span class="ml-auto tabular-nums text-[10px] font-semibold text-[var(--ui-secondary)]">{{ $facetCount }}</span>
                             @endif
                         </div>
                         @if(!empty($facetEntries))
-                            <ul class="space-y-1.5">
-                                @foreach(array_slice($facetEntries, 0, 3) as $entry)
-                                    <li class="text-[11px] text-[var(--ui-secondary)] leading-snug">
+                            <ul class="space-y-0.5">
+                                @foreach(array_slice($facetEntries, 0, 2) as $entry)
+                                    <li class="text-[10px] text-[var(--ui-secondary)] leading-snug truncate">
                                         @if($entry['title'])
-                                            <span class="font-medium">{{ $snippet($entry['title'], 60) }}</span>
-                                            @if($entry['content'])
-                                                <span class="text-[var(--ui-muted)]">– {{ $snippet($entry['content'], 50) }}</span>
-                                            @endif
+                                            <span class="font-medium">{{ $snippet($entry['title'], 32) }}</span>
                                         @elseif($entry['content'])
-                                            <span>{{ $snippet($entry['content'], 90) }}</span>
+                                            <span>{{ $snippet($entry['content'], 40) }}</span>
                                         @endif
                                     </li>
                                 @endforeach
                             </ul>
-                            @if($facetCount > 3)
-                                <p class="mt-1.5 text-[10px] text-[var(--ui-muted)]">+ {{ $facetCount - 3 }} weitere</p>
+                            @if($facetCount > 2)
+                                <p class="mt-0.5 text-[9px] text-[var(--ui-muted)]">+{{ $facetCount - 2 }}</p>
                             @endif
                         @else
-                            <p class="text-[11px] text-[var(--ui-muted)] italic">Noch nicht ausgefüllt</p>
+                            <p class="text-[10px] text-[var(--ui-muted)] italic">leer</p>
                         @endif
                     </a>
                 @endforeach
             </div>
+        @endif
+    </section>
 
-            {{-- Secondary facets (compact row): Resources · Budget · Comm · Governance --}}
-            <div class="px-6 py-3 border-t border-[var(--ui-border)]/40 bg-[var(--ui-muted-5)] flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px]">
-                <span class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] mr-1">Mehr im Canvas</span>
-                @foreach($secondaryFacets as $facetKey)
-                    @php $facet = $briefing[$facetKey] ?? null; @endphp
-                    <a
-                        @if($canvasRoute) href="{{ $canvasRoute }}" wire:navigate @endif
-                        class="inline-flex items-center gap-1.5 transition-colors @if($canvasRoute) hover:text-[var(--ui-primary)] @endif {{ ($facet['count'] ?? 0) > 0 ? 'text-[var(--ui-secondary)]' : 'text-[var(--ui-muted)]' }}"
-                    >
-                        @svg($secondaryFacetIcons[$facetKey], 'w-3 h-3 opacity-60')
-                        <span>{{ $facet['label'] ?? $facetKey }}</span>
-                        @if(($facet['count'] ?? 0) > 0)
-                            <span class="tabular-nums font-semibold">{{ $facet['count'] }}</span>
-                        @else
-                            <span class="text-[var(--ui-border)]">–</span>
-                        @endif
-                    </a>
-                @endforeach
-            </div>
-        </section>
-    @else
-        {{-- Canvas fehlt komplett: einladender Briefing-Aufruf --}}
-        <section class="rounded-xl border-2 border-dashed border-[var(--ui-border)] bg-[var(--ui-surface)] p-6">
-            <div class="flex items-start gap-4">
-                <div class="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-[var(--ui-primary-5)] flex-shrink-0">
-                    @svg('heroicon-o-squares-2x2', 'w-6 h-6 text-[var(--ui-primary)]')
-                </div>
-                <div class="flex-1 min-w-0">
-                    <div class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] mb-1">Project Briefing</div>
-                    <h2 class="text-base font-semibold text-[var(--ui-secondary)] m-0">Warum gibt es dieses Projekt?</h2>
-                    <p class="text-sm text-[var(--ui-muted)] mt-1 mb-3">
-                        Im <strong class="text-[var(--ui-secondary)]">Project Canvas</strong> wird strukturiert festgehalten,
-                        was das Projekt erreichen soll, wer beteiligt ist, welche Risiken existieren
-                        und wie der Erfolg gemessen wird. Ohne diese Grundlage lassen sich Fortschritt
-                        und Entscheidungen schwer einordnen.
-                    </p>
-                    <button
-                        type="button"
-                        wire:click="openCanvas"
-                        class="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md bg-[var(--ui-primary)] text-white hover:bg-[var(--ui-primary)]/90 transition-colors"
-                    >
-                        @svg('heroicon-o-plus', 'w-3.5 h-3.5')
-                        <span>Canvas anlegen</span>
-                    </button>
-                </div>
-            </div>
-        </section>
-    @endif
-
-    {{-- ═══════════════════════════════════════════════════════════ --}}
-    {{-- 2. STATUS / VITAL SIGNS — Wie weit sind wir?                --}}
-    {{-- ═══════════════════════════════════════════════════════════ --}}
-    <section>
-        {{-- Narrative line --}}
-        <div class="flex items-center justify-between mb-3">
-            <div>
-                <h2 class="text-sm font-semibold text-[var(--ui-secondary)] m-0">Wie weit sind wir?</h2>
-                @if($narrative)
-                    <p class="text-[12px] text-[var(--ui-muted)] mt-0.5 m-0">{{ $narrative }}</p>
-                @endif
-            </div>
+    {{-- ═══ 2. WIE WEIT? — Vital Signs kompakt ═══ --}}
+    <section class="p-4">
+        <div class="flex items-baseline justify-between mb-3">
+            <h2 class="text-xs font-semibold text-[var(--ui-secondary)] m-0">Wie weit sind wir?</h2>
+            @if($narrative)
+                <span class="text-[10px] text-[var(--ui-muted)]">{{ $narrative }}</span>
+            @endif
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div class="grid grid-cols-2 gap-2">
 
             {{-- Aufgaben --}}
-            <div class="relative bg-[var(--ui-surface)] rounded-xl border border-[var(--ui-border)] p-5 overflow-hidden">
-                <div class="absolute top-0 left-0 right-0 h-1" style="background-color: {{ $taskHealth['color'] }}"></div>
-                <div class="flex items-center justify-between mb-3">
-                    <div class="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)]">
-                        @svg('heroicon-o-check-circle', 'w-3.5 h-3.5')
-                        <span>Aufgaben</span>
-                    </div>
-                    <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold rounded" style="background-color: {{ $taskHealth['bg'] }}; color: {{ $taskHealth['color'] }};">
-                        {{ $taskPercent }}%
+            <div class="rounded-md border border-[var(--ui-border)]/60 p-2.5">
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wider text-[var(--ui-muted)]">
+                        @svg('heroicon-o-check-circle', 'w-3 h-3')
+                        Aufgaben
                     </span>
+                    <span class="text-[9px] font-semibold tabular-nums" style="color: {{ $taskHealth['color'] }};">{{ $taskPercent }}%</span>
                 </div>
                 <div class="flex items-baseline gap-1">
-                    <span class="text-3xl font-bold tabular-nums text-[var(--ui-secondary)]">{{ $doneCount }}</span>
-                    <span class="text-sm text-[var(--ui-muted)]">/ {{ $totalCount }}</span>
+                    <span class="text-lg font-bold tabular-nums text-[var(--ui-secondary)]">{{ $doneCount }}</span>
+                    <span class="text-[10px] text-[var(--ui-muted)]">/ {{ $totalCount }}</span>
                 </div>
-                <div class="mt-3 w-full h-1.5 rounded-full bg-[var(--ui-muted-10)] overflow-hidden">
+                <div class="mt-1.5 w-full h-1 rounded-full bg-[var(--ui-muted-10)] overflow-hidden">
                     <div class="h-full rounded-full transition-all" style="width: {{ $taskPercent }}%; background-color: {{ $taskHealth['color'] }};"></div>
                 </div>
-                <div class="mt-3 flex items-center justify-between text-[11px]">
-                    <span class="text-[var(--ui-muted)]"><span class="tabular-nums font-medium text-[var(--ui-secondary)]">{{ $openCount }}</span> offen</span>
-                    @if($overdueCount > 0)
-                        <span class="inline-flex items-center gap-1 text-[var(--planner-status-overdue)] font-medium">
-                            @svg('heroicon-o-exclamation-triangle', 'w-3 h-3')
-                            <span class="tabular-nums">{{ $overdueCount }}</span> überfällig
-                        </span>
-                    @endif
-                </div>
-                @if($totalPoints > 0)
-                    <div class="mt-1 text-[10px] text-[var(--ui-muted)]">
-                        {{ $d['done_points'] }} / {{ $totalPoints }} SP
+                @if($overdueCount > 0)
+                    <div class="mt-1.5 text-[10px] text-[var(--planner-status-overdue)] font-medium inline-flex items-center gap-1">
+                        @svg('heroicon-o-exclamation-triangle', 'w-3 h-3')
+                        {{ $overdueCount }} überfällig
                     </div>
                 @endif
             </div>
 
             {{-- Stunden --}}
-            <div class="relative bg-[var(--ui-surface)] rounded-xl border border-[var(--ui-border)] p-5 overflow-hidden">
-                <div class="absolute top-0 left-0 right-0 h-1" style="background-color: {{ $hoursHealth['color'] }}"></div>
-                <div class="flex items-center justify-between mb-3">
-                    <div class="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)]">
-                        @svg('heroicon-o-clock', 'w-3.5 h-3.5')
-                        <span>Stunden</span>
-                    </div>
-                    <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold rounded" style="background-color: {{ $hoursHealth['bg'] }}; color: {{ $hoursHealth['color'] }};">
-                        @if($plannedHours > 0) {{ $hoursPercent }}% @else – @endif
+            <div class="rounded-md border border-[var(--ui-border)]/60 p-2.5">
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wider text-[var(--ui-muted)]">
+                        @svg('heroicon-o-clock', 'w-3 h-3')
+                        Stunden
                     </span>
+                    <span class="text-[9px] font-semibold tabular-nums" style="color: {{ $hoursHealth['color'] }};">@if($plannedHours > 0){{ $hoursPercent }}%@else –@endif</span>
                 </div>
                 <div class="flex items-baseline gap-1">
-                    <span class="text-3xl font-bold tabular-nums text-[var(--ui-secondary)]">{{ number_format($loggedHours, 1, ',', '.') }}</span>
+                    <span class="text-lg font-bold tabular-nums text-[var(--ui-secondary)]">{{ number_format($loggedHours, 1, ',', '.') }}</span>
                     @if($plannedHours > 0)
-                        <span class="text-sm text-[var(--ui-muted)]">/ {{ number_format($plannedHours, 1, ',', '.') }} h</span>
+                        <span class="text-[10px] text-[var(--ui-muted)]">/ {{ number_format($plannedHours, 1, ',', '.') }}h</span>
                     @else
-                        <span class="text-sm text-[var(--ui-muted)]">h</span>
+                        <span class="text-[10px] text-[var(--ui-muted)]">h</span>
                     @endif
                 </div>
                 @if($plannedHours > 0)
-                    <div class="mt-3 w-full h-1.5 rounded-full bg-[var(--ui-muted-10)] overflow-hidden">
+                    <div class="mt-1.5 w-full h-1 rounded-full bg-[var(--ui-muted-10)] overflow-hidden">
                         <div class="h-full rounded-full transition-all" style="width: {{ min(100, $hoursPercent) }}%; background-color: {{ $hoursHealth['color'] }};"></div>
                     </div>
                 @else
-                    <div class="mt-3 h-1.5"></div>
+                    <div class="mt-1.5 h-1"></div>
                 @endif
-                <div class="mt-3 grid grid-cols-2 gap-2 text-[11px]">
-                    <div>
-                        <div class="text-[var(--ui-muted)]">Abgerechnet</div>
-                        <div class="tabular-nums font-medium text-[var(--ui-secondary)]">{{ number_format($d['billed_hours'], 1, ',', '.') }} h</div>
-                    </div>
-                    <div>
-                        <div class="text-[var(--ui-muted)]">Offen</div>
-                        <div class="tabular-nums font-medium text-[var(--ui-secondary)]">{{ number_format($d['unbilled_hours'], 1, ',', '.') }} h</div>
-                    </div>
+                <div class="mt-1.5 text-[10px] text-[var(--ui-muted)]">
+                    {{ number_format($d['billed_hours'], 1, ',', '.') }}h abgerechnet
                 </div>
             </div>
 
             {{-- Budget --}}
-            <div class="relative bg-[var(--ui-surface)] rounded-xl border border-[var(--ui-border)] p-5 overflow-hidden">
-                <div class="absolute top-0 left-0 right-0 h-1" style="background-color: {{ $budgetHealth['color'] }}"></div>
-                <div class="flex items-center justify-between mb-3">
-                    <div class="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)]">
-                        @svg('heroicon-o-banknotes', 'w-3.5 h-3.5')
-                        <span>Budget</span>
-                    </div>
-                    <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold rounded" style="background-color: {{ $budgetHealth['bg'] }}; color: {{ $budgetHealth['color'] }};">
-                        @if($budgetAmount > 0) {{ $budgetPercent }}% @else – @endif
+            <div class="rounded-md border border-[var(--ui-border)]/60 p-2.5">
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wider text-[var(--ui-muted)]">
+                        @svg('heroicon-o-banknotes', 'w-3 h-3')
+                        Budget
                     </span>
+                    <span class="text-[9px] font-semibold tabular-nums" style="color: {{ $budgetHealth['color'] }};">@if($budgetAmount > 0){{ $budgetPercent }}%@else –@endif</span>
                 </div>
                 @if($budgetAmount > 0)
                     <div class="flex items-baseline gap-1">
-                        <span class="text-3xl font-bold tabular-nums text-[var(--ui-secondary)]">{{ number_format($budgetUsed, 0, ',', '.') }}</span>
-                        <span class="text-sm text-[var(--ui-muted)]">/ {{ number_format($budgetAmount, 0, ',', '.') }} {{ $currency }}</span>
+                        <span class="text-lg font-bold tabular-nums text-[var(--ui-secondary)]">{{ number_format($budgetUsed, 0, ',', '.') }}</span>
+                        <span class="text-[10px] text-[var(--ui-muted)]">/ {{ number_format($budgetAmount, 0, ',', '.') }} {{ $currency }}</span>
                     </div>
-                    <div class="mt-3 w-full h-1.5 rounded-full bg-[var(--ui-muted-10)] overflow-hidden">
+                    <div class="mt-1.5 w-full h-1 rounded-full bg-[var(--ui-muted-10)] overflow-hidden">
                         <div class="h-full rounded-full transition-all" style="width: {{ min(100, $budgetPercent) }}%; background-color: {{ $budgetHealth['color'] }};"></div>
                     </div>
-                    <div class="mt-3 flex items-center justify-between text-[11px]">
-                        <span>
-                            <span class="text-[var(--ui-muted)]">Verfügbar</span>
-                            <span class="tabular-nums font-medium {{ $budgetOver ? 'text-[var(--planner-status-overdue)]' : 'text-[var(--ui-secondary)]' }} ml-1">
-                                {{ number_format(max(0, $budgetAmount - $budgetUsed), 0, ',', '.') }} {{ $currency }}
-                            </span>
-                        </span>
-                        @if($d['hourly_rate'])
-                            <span class="text-[var(--ui-muted)]">{{ number_format((float) $d['hourly_rate'], 0, ',', '.') }}/h</span>
-                        @endif
+                    <div class="mt-1.5 text-[10px] text-[var(--ui-muted)]">
+                        {{ number_format(max(0, $budgetAmount - $budgetUsed), 0, ',', '.') }} {{ $currency }} verfügbar
                     </div>
                 @else
-                    <div class="text-sm text-[var(--ui-muted)]">Kein Budget definiert</div>
-                    <div class="mt-3 h-1.5"></div>
-                    <div class="mt-3 text-[11px] text-[var(--ui-muted)]">Im Settings-Modal hinzufügen</div>
+                    <div class="text-[11px] text-[var(--ui-muted)]">Nicht definiert</div>
+                    <div class="mt-1.5 h-1"></div>
                 @endif
             </div>
 
             {{-- Zeit --}}
-            <div class="relative bg-[var(--ui-surface)] rounded-xl border border-[var(--ui-border)] p-5 overflow-hidden">
-                <div class="absolute top-0 left-0 right-0 h-1" style="background-color: {{ $timeHealth['color'] }}"></div>
-                <div class="flex items-center justify-between mb-3">
-                    <div class="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)]">
-                        @svg('heroicon-o-calendar-days', 'w-3.5 h-3.5')
-                        <span>Zeit</span>
-                    </div>
-                    <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold rounded" style="background-color: {{ $timeHealth['bg'] }}; color: {{ $timeHealth['color'] }};">
-                        @if($plannedEnd) {{ $timelinePercent }}% @else – @endif
+            <div class="rounded-md border border-[var(--ui-border)]/60 p-2.5">
+                <div class="flex items-center justify-between mb-1.5">
+                    <span class="inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wider text-[var(--ui-muted)]">
+                        @svg('heroicon-o-calendar-days', 'w-3 h-3')
+                        Zeit
                     </span>
+                    <span class="text-[9px] font-semibold tabular-nums" style="color: {{ $timeHealth['color'] }};">@if($plannedEnd){{ $timelinePercent }}%@else –@endif</span>
                 </div>
                 @if($plannedEnd)
                     <div class="flex items-baseline gap-1">
-                        <span class="text-3xl font-bold tabular-nums {{ $isOverdue ? 'text-[var(--planner-status-overdue)]' : 'text-[var(--ui-secondary)]' }}">
-                            {{ $isOverdue ? abs($remainingDays) : $remainingDays }}
-                        </span>
-                        <span class="text-sm text-[var(--ui-muted)]">{{ $isOverdue ? 'd überzogen' : 'd übrig' }}</span>
+                        <span class="text-lg font-bold tabular-nums {{ $isOverdue ? 'text-[var(--planner-status-overdue)]' : 'text-[var(--ui-secondary)]' }}">{{ $isOverdue ? abs($remainingDays) : $remainingDays }}</span>
+                        <span class="text-[10px] text-[var(--ui-muted)]">{{ $isOverdue ? 'd über' : 'd übrig' }}</span>
                     </div>
-                    <div class="mt-3 w-full h-1.5 rounded-full bg-[var(--ui-muted-10)] overflow-hidden">
+                    <div class="mt-1.5 w-full h-1 rounded-full bg-[var(--ui-muted-10)] overflow-hidden">
                         <div class="h-full rounded-full transition-all" style="width: {{ $timelinePercent }}%; background-color: {{ $timeHealth['color'] }};"></div>
                     </div>
-                    <div class="mt-3 flex items-center justify-between text-[11px] text-[var(--ui-muted)]">
-                        <span>{{ $plannedStart->format('d.m.Y') }}</span>
-                        <span class="tabular-nums">Tag {{ $elapsedDays }} / {{ $totalDays }}</span>
-                        <span>{{ $plannedEnd->format('d.m.Y') }}</span>
+                    <div class="mt-1.5 text-[10px] text-[var(--ui-muted)] tabular-nums">
+                        Tag {{ $elapsedDays }} / {{ $totalDays }}
                     </div>
                 @else
-                    <div class="text-sm text-[var(--ui-muted)]">Kein Zeitplan</div>
-                    <div class="mt-3 h-1.5"></div>
-                    <div class="mt-3 text-[11px] text-[var(--ui-muted)]">Start- und Enddatum setzen</div>
+                    <div class="text-[11px] text-[var(--ui-muted)]">Kein Zeitplan</div>
+                    <div class="mt-1.5 h-1"></div>
                 @endif
             </div>
         </div>
     </section>
 
-    {{-- ═══════════════════════════════════════════════════════════ --}}
-    {{-- 3. TIMELINE-BAND                                            --}}
-    {{-- ═══════════════════════════════════════════════════════════ --}}
-    @if($plannedStart && $plannedEnd)
-        <section class="bg-[var(--ui-surface)] rounded-xl border border-[var(--ui-border)] p-5">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="text-sm font-semibold text-[var(--ui-secondary)] m-0">Projekt-Timeline</h2>
-                <span class="text-[11px] text-[var(--ui-muted)] tabular-nums">
-                    {{ $plannedStart->format('d.m.Y') }} → {{ $plannedEnd->format('d.m.Y') }}
-                </span>
-            </div>
-            <div class="relative h-8">
-                <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-2 rounded-full bg-[var(--ui-muted-10)]"></div>
-                <div class="absolute left-0 top-1/2 -translate-y-1/2 h-2 rounded-full transition-all" style="width: {{ $timelinePercent }}%; background-color: {{ $timeHealth['color'] }};"></div>
-                @if(!$isOverdue && $timelinePercent < 100)
-                    <div class="absolute top-0 bottom-0 flex flex-col items-center" style="left: {{ $timelinePercent }}%; transform: translateX(-50%);">
-                        <div class="w-3 h-3 rounded-full border-2 border-white shadow" style="background-color: {{ $timeHealth['color'] }}; margin-top: 10px;"></div>
-                        <span class="mt-1 text-[10px] font-medium whitespace-nowrap" style="color: {{ $timeHealth['color'] }}">heute</span>
-                    </div>
+    {{-- ═══ 3. RISIKEN ═══ --}}
+    <section class="p-4">
+        <div class="flex items-center justify-between mb-3">
+            <h2 class="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--ui-secondary)] m-0">
+                @if($overdueCount > 0)
+                    @svg('heroicon-o-exclamation-triangle', 'w-3.5 h-3.5 text-[var(--planner-status-overdue)]')
+                @else
+                    @svg('heroicon-o-check-circle', 'w-3.5 h-3.5 text-[var(--planner-status-done)]')
                 @endif
-                <div class="absolute left-0 top-0 bottom-0 flex items-center">
-                    <span class="w-1 h-3 rounded-full bg-[var(--ui-muted)]"></span>
-                </div>
-                <div class="absolute right-0 top-0 bottom-0 flex items-center">
-                    <span class="w-1 h-3 rounded-full bg-[var(--ui-muted)]"></span>
-                </div>
-            </div>
-            <div class="mt-2 flex items-center justify-between text-[11px] text-[var(--ui-muted)]">
-                <span class="tabular-nums">Tag {{ $elapsedDays }} von {{ $totalDays }}</span>
-                <span class="font-medium {{ $isOverdue ? 'text-[var(--planner-status-overdue)]' : 'text-[var(--ui-secondary)]' }}">
-                    @if($isOverdue) {{ abs($remainingDays) }} Tage überzogen
-                    @elseif($remainingDays === 0) Endet heute
-                    @else {{ $remainingDays }} Tage übrig
-                    @endif
-                </span>
-            </div>
-        </section>
-    @endif
-
-    {{-- ═══════════════════════════════════════════════════════════ --}}
-    {{-- 4. BOARD-ÜBERSICHT                                          --}}
-    {{-- ═══════════════════════════════════════════════════════════ --}}
-    <section class="bg-[var(--ui-surface)] rounded-xl border border-[var(--ui-border)] p-5">
-        <div class="flex items-center justify-between mb-4">
-            <div>
-                <h2 class="text-sm font-semibold text-[var(--ui-secondary)] m-0">Board-Übersicht</h2>
-                <p class="text-[11px] text-[var(--ui-muted)] mt-0.5">Volumen pro Spalte — Klick öffnet das Board</p>
-            </div>
-            <button
-                type="button"
-                wire:click="$set('activeTab', 'board')"
-                class="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium rounded-md border border-[var(--ui-border)] text-[var(--ui-secondary)] hover:border-[var(--ui-primary)] hover:text-[var(--ui-primary)] transition-colors"
-            >
-                @svg('heroicon-o-view-columns', 'w-3.5 h-3.5')
-                <span>Board öffnen</span>
-                @svg('heroicon-o-arrow-right', 'w-3 h-3 opacity-60')
-            </button>
+                Risiken
+            </h2>
+            @if($overdueCount > 0)
+                <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold rounded bg-[var(--planner-status-overdue)]/10 text-[var(--planner-status-overdue)]">{{ $overdueCount }}</span>
+            @endif
         </div>
 
-        @if($d['slots']->isNotEmpty())
-            <div class="space-y-2.5">
-                @foreach($d['slots'] as $slot)
+        @if($d['overdue_tasks']->isNotEmpty())
+            <ul class="space-y-1.5">
+                @foreach($d['overdue_tasks']->take(6) as $task)
                     @php
-                        $slotTotal = $slot->open_count + $slot->done_count;
-                        $slotPercent = $slotTotal > 0 ? round(($slot->done_count / $slotTotal) * 100) : 0;
-                        $widthPct = max(2, round(($slotTotal / $maxSlotTotal) * 100));
-                        $openPctOfBar = $slotTotal > 0 ? round(($slot->open_count / $slotTotal) * 100) : 0;
+                        $days = $task['days_overdue'];
+                        $severity = $days >= 14 ? 'critical' : ($days >= 7 ? 'high' : 'medium');
+                        $sev = [
+                            'critical' => ['color' => '#dc2626', 'bg' => 'rgba(220,38,38,0.10)'],
+                            'high'     => ['color' => 'var(--planner-status-overdue)', 'bg' => 'rgba(239,68,68,0.08)'],
+                            'medium'   => ['color' => '#d97706', 'bg' => 'rgba(217,119,6,0.08)'],
+                        ][$severity];
+                        $assigneeInitial = $task['assignee'] ? mb_strtoupper(mb_substr($task['assignee'], 0, 1)) : '?';
                     @endphp
-                    <button
-                        type="button"
-                        wire:click="$set('activeTab', 'board')"
-                        class="block w-full text-left group/slot hover:bg-[var(--ui-muted-5)] rounded-md px-2 -mx-2 py-1.5 transition-colors"
-                    >
-                        <div class="flex items-center gap-3 text-[11px]">
-                            <span class="w-28 truncate font-medium text-[var(--ui-secondary)] flex-shrink-0">{{ $slot->label ?? $slot->name ?? 'Spalte' }}</span>
-                            <div class="flex-1 h-3 rounded-md bg-[var(--ui-muted-5)] overflow-hidden relative" style="max-width: {{ $widthPct }}%;">
-                                <div class="absolute inset-y-0 left-0 bg-[var(--planner-status-active)]/70" style="width: {{ $openPctOfBar }}%;"></div>
-                                <div class="absolute inset-y-0 right-0 bg-[var(--planner-status-done)]/60" style="width: {{ 100 - $openPctOfBar }}%;"></div>
-                            </div>
-                            <span class="tabular-nums text-[var(--ui-muted)] w-16 text-right flex-shrink-0">
-                                <span class="font-semibold text-[var(--ui-secondary)]">{{ $slot->open_count }}</span> /
-                                <span>{{ $slot->done_count }}</span>
+                    <li>
+                        <a href="{{ route('planner.tasks.show', $task['id']) }}?from=project" wire:navigate
+                           class="flex items-center gap-2 p-1.5 -mx-1.5 rounded-md hover:bg-[var(--ui-muted-5)] transition-colors group/task">
+                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-semibold flex-shrink-0" style="background-color: {{ $sev['bg'] }}; color: {{ $sev['color'] }};">
+                                {{ $assigneeInitial }}
                             </span>
-                            <span class="tabular-nums text-[var(--ui-muted)] w-10 text-right flex-shrink-0">{{ $slotPercent }}%</span>
-                        </div>
-                    </button>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-[11px] font-medium text-[var(--ui-secondary)] truncate group-hover/task:text-[var(--ui-primary)]">{{ $task['title'] }}</div>
+                                <div class="text-[9px] text-[var(--ui-muted)]">{{ $task['due_date']->format('d.m.') }} @if($task['assignee']) · {{ $task['assignee'] }} @endif</div>
+                            </div>
+                            <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-bold rounded flex-shrink-0 tabular-nums" style="background-color: {{ $sev['bg'] }}; color: {{ $sev['color'] }};">
+                                {{ $days }}d
+                            </span>
+                        </a>
+                    </li>
                 @endforeach
-            </div>
-            <div class="mt-4 pt-3 border-t border-[var(--ui-border)]/40 flex items-center gap-4 text-[10px] text-[var(--ui-muted)]">
-                <span class="inline-flex items-center gap-1.5">
-                    <span class="w-2 h-2 rounded-sm bg-[var(--planner-status-active)]/70"></span>
-                    offen
-                </span>
-                <span class="inline-flex items-center gap-1.5">
-                    <span class="w-2 h-2 rounded-sm bg-[var(--planner-status-done)]/60"></span>
-                    erledigt
-                </span>
-                <span class="ml-auto">Balkenlänge ∝ Gesamtvolumen je Spalte</span>
-            </div>
+            </ul>
+            @if($overdueCount > 6)
+                <p class="text-[10px] text-[var(--ui-muted)] mt-1.5">+ {{ $overdueCount - 6 }} weitere</p>
+            @endif
         @else
-            <div class="text-center py-6 text-[var(--ui-muted)] text-xs">
-                @svg('heroicon-o-view-columns', 'w-8 h-8 mx-auto mb-2 opacity-30')
-                Noch keine Spalten — lege welche im Board an.
+            <div class="text-center py-4 text-[var(--ui-muted)] text-[11px]">
+                @svg('heroicon-o-check-circle', 'w-6 h-6 mx-auto mb-1 opacity-30 text-[var(--planner-status-done)]')
+                Alles unter Kontrolle
             </div>
         @endif
     </section>
 
-    {{-- ═══════════════════════════════════════════════════════════ --}}
-    {{-- 5. RISIKEN (2/3) + TEAM-AUSLASTUNG (1/3)                    --}}
-    {{-- ═══════════════════════════════════════════════════════════ --}}
-    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        <div class="lg:col-span-2 bg-[var(--ui-surface)] rounded-xl border border-[var(--ui-border)] p-5">
-            <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center gap-2">
-                    @if($overdueCount > 0)
-                        @svg('heroicon-o-exclamation-triangle', 'w-4 h-4 text-[var(--planner-status-overdue)]')
-                    @else
-                        @svg('heroicon-o-check-circle', 'w-4 h-4 text-[var(--planner-status-done)]')
-                    @endif
-                    <h2 class="text-sm font-semibold text-[var(--ui-secondary)] m-0">Risiken & Überfällig</h2>
-                </div>
-                @if($overdueCount > 0)
-                    <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-semibold rounded bg-[var(--planner-status-overdue)]/10 text-[var(--planner-status-overdue)]">
-                        {{ $overdueCount }}
-                    </span>
-                @endif
-            </div>
-
-            @if($d['overdue_tasks']->isNotEmpty())
-                <ul class="divide-y divide-[var(--ui-border)]/40">
-                    @foreach($d['overdue_tasks'] as $task)
-                        @php
-                            $days = $task['days_overdue'];
-                            $severity = $days >= 14 ? 'critical' : ($days >= 7 ? 'high' : 'medium');
-                            $sev = [
-                                'critical' => ['color' => '#dc2626', 'bg' => 'rgba(220,38,38,0.10)'],
-                                'high'     => ['color' => 'var(--planner-status-overdue)', 'bg' => 'rgba(239,68,68,0.08)'],
-                                'medium'   => ['color' => '#d97706', 'bg' => 'rgba(217,119,6,0.08)'],
-                            ][$severity];
-                            $assigneeInitial = $task['assignee'] ? mb_strtoupper(mb_substr($task['assignee'], 0, 1)) : '?';
-                        @endphp
-                        <li>
-                            <a
-                                href="{{ route('planner.tasks.show', $task['id']) }}?from=project"
-                                wire:navigate
-                                class="flex items-center gap-3 py-2.5 hover:bg-[var(--ui-muted-5)] rounded-md px-2 -mx-2 transition-colors group/task"
-                            >
-                                <span class="inline-flex items-center justify-center w-7 h-7 rounded-full text-[11px] font-semibold flex-shrink-0" style="background-color: {{ $sev['bg'] }}; color: {{ $sev['color'] }};" title="{{ $task['assignee'] ?? 'Niemand zugewiesen' }}">
-                                    {{ $assigneeInitial }}
-                                </span>
-                                <div class="flex-1 min-w-0">
-                                    <div class="text-xs font-medium text-[var(--ui-secondary)] truncate group-hover/task:text-[var(--ui-primary)] transition-colors">{{ $task['title'] }}</div>
-                                    <div class="text-[10px] text-[var(--ui-muted)] mt-0.5">
-                                        Fällig {{ $task['due_date']->format('d.m.Y') }}
-                                        @if($task['assignee']) · {{ $task['assignee'] }} @endif
-                                    </div>
-                                </div>
-                                <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded flex-shrink-0 tabular-nums" style="background-color: {{ $sev['bg'] }}; color: {{ $sev['color'] }};">
-                                    {{ $days }}d
-                                </span>
-                            </a>
-                        </li>
-                    @endforeach
-                </ul>
-            @else
-                <div class="text-center py-6 text-[var(--ui-muted)] text-xs">
-                    @svg('heroicon-o-check-circle', 'w-8 h-8 mx-auto mb-2 opacity-30 text-[var(--planner-status-done)]')
-                    Keine überfälligen Aufgaben — alles unter Kontrolle.
-                </div>
-            @endif
-        </div>
-
-        <div class="bg-[var(--ui-surface)] rounded-xl border border-[var(--ui-border)] p-5">
-            <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center gap-2">
-                    @svg('heroicon-o-users', 'w-4 h-4 text-[var(--ui-muted)]')
-                    <h2 class="text-sm font-semibold text-[var(--ui-secondary)] m-0">Team-Auslastung</h2>
-                </div>
+    {{-- ═══ 4. TEAM-AUSLASTUNG ═══ --}}
+    @if($d['team_members']->isNotEmpty())
+        <section class="p-4">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--ui-secondary)] m-0">
+                    @svg('heroicon-o-users', 'w-3.5 h-3.5 text-[var(--ui-muted)]')
+                    Team-Auslastung
+                </h2>
                 <span class="text-[10px] text-[var(--ui-muted)]">{{ $d['team_members']->count() }}</span>
             </div>
-
-            @if($d['team_members']->isNotEmpty())
-                <ul class="space-y-2.5">
-                    @foreach($d['team_members']->sortByDesc('open_tasks') as $member)
-                        @php
-                            $loadPct = $maxTeamOpen > 0 ? round(($member['open_tasks'] / $maxTeamOpen) * 100) : 0;
-                            $loadColor = $loadPct >= 80 ? '#d97706' : ($loadPct >= 40 ? 'var(--planner-status-active)' : 'var(--planner-status-done)');
-                            $memberInitial = mb_strtoupper(mb_substr($member['name'], 0, 1));
-                        @endphp
-                        <li>
-                            <div class="flex items-center gap-2 text-[11px]">
-                                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[var(--ui-secondary)] text-white text-[10px] font-semibold flex-shrink-0">{{ $memberInitial }}</span>
-                                <div class="flex-1 min-w-0">
-                                    <div class="flex items-center justify-between gap-2">
-                                        <span class="truncate text-[var(--ui-secondary)] font-medium">{{ $member['name'] }}</span>
-                                        <span class="tabular-nums text-[var(--ui-muted)] flex-shrink-0">{{ $member['open_tasks'] }}</span>
-                                    </div>
-                                    <div class="mt-1 w-full h-1 rounded-full bg-[var(--ui-muted-10)] overflow-hidden">
-                                        <div class="h-full rounded-full transition-all" style="width: {{ $loadPct }}%; background-color: {{ $loadColor }};"></div>
-                                    </div>
-                                    @if($member['role'])
-                                        <div class="mt-0.5 text-[10px] text-[var(--ui-muted)] truncate">{{ $member['role'] }}</div>
-                                    @endif
-                                </div>
-                            </div>
-                        </li>
-                    @endforeach
-                </ul>
-            @else
-                <p class="text-xs text-[var(--ui-muted)]">Keine Mitglieder</p>
-            @endif
-        </div>
-    </section>
-
-    {{-- ═══════════════════════════════════════════════════════════ --}}
-    {{-- 6. AKTIVITÄT                                                --}}
-    {{-- ═══════════════════════════════════════════════════════════ --}}
-    <section class="bg-[var(--ui-surface)] rounded-xl border border-[var(--ui-border)] p-5">
-        <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center gap-2">
-                @svg('heroicon-o-bolt', 'w-4 h-4 text-[var(--ui-muted)]')
-                <h2 class="text-sm font-semibold text-[var(--ui-secondary)] m-0">Aktivität</h2>
-            </div>
-            <span class="text-[10px] text-[var(--ui-muted)]">letzte {{ $d['activities']->count() }}</span>
-        </div>
-
-        @if($d['activities']->isNotEmpty())
-            <ol class="relative space-y-3 pl-5">
-                <span class="absolute left-1.5 top-1 bottom-1 w-px bg-[var(--ui-border)]"></span>
-                @foreach($d['activities'] as $activity)
+            <ul class="space-y-2">
+                @foreach($d['team_members']->sortByDesc('open_tasks')->take(6) as $member)
                     @php
-                        $userName = $activity->user?->name ?? 'System';
-                        $userInitial = mb_strtoupper(mb_substr($userName, 0, 1));
-                        $eventLabel = $activity->event ?? $activity->description ?? 'Aktivität';
+                        $loadPct = $maxTeamOpen > 0 ? round(($member['open_tasks'] / $maxTeamOpen) * 100) : 0;
+                        $loadColor = $loadPct >= 80 ? '#d97706' : ($loadPct >= 40 ? 'var(--planner-status-active)' : 'var(--planner-status-done)');
+                        $memberInitial = mb_strtoupper(mb_substr($member['name'], 0, 1));
                     @endphp
-                    <li class="relative">
-                        <span class="absolute -left-[18px] top-1 inline-flex items-center justify-center w-3 h-3 rounded-full bg-[var(--ui-surface)] border-2 border-[var(--planner-status-active)]"></span>
-                        <div class="text-[11px] text-[var(--ui-secondary)] leading-snug">{{ $eventLabel }}</div>
-                        <div class="mt-0.5 flex items-center gap-2 text-[10px] text-[var(--ui-muted)]">
-                            <span class="inline-flex items-center gap-1">
-                                <span class="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-[var(--ui-secondary)] text-white text-[8px] font-semibold">{{ $userInitial }}</span>
-                                <span>{{ $userName }}</span>
-                            </span>
-                            <span>·</span>
-                            <span title="{{ $activity->created_at->format('d.m.Y H:i') }}">{{ $activity->created_at->diffForHumans() }}</span>
+                    <li class="flex items-center gap-2 text-[11px]">
+                        <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[var(--ui-secondary)] text-white text-[9px] font-semibold flex-shrink-0">{{ $memberInitial }}</span>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="truncate text-[var(--ui-secondary)] font-medium">{{ $member['name'] }}</span>
+                                <span class="tabular-nums text-[var(--ui-muted)] flex-shrink-0">{{ $member['open_tasks'] }}</span>
+                            </div>
+                            <div class="mt-0.5 w-full h-0.5 rounded-full bg-[var(--ui-muted-10)] overflow-hidden">
+                                <div class="h-full rounded-full transition-all" style="width: {{ $loadPct }}%; background-color: {{ $loadColor }};"></div>
+                            </div>
                         </div>
                     </li>
                 @endforeach
+            </ul>
+        </section>
+    @endif
+
+    {{-- ═══ 5. AKTIVITÄT ═══ --}}
+    @if($d['activities']->isNotEmpty())
+        <section class="p-4">
+            <h2 class="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--ui-secondary)] m-0 mb-3">
+                @svg('heroicon-o-bolt', 'w-3.5 h-3.5 text-[var(--ui-muted)]')
+                Aktivität
+            </h2>
+            <ol class="relative space-y-2.5 pl-4">
+                <span class="absolute left-[5px] top-1 bottom-1 w-px bg-[var(--ui-border)]"></span>
+                @foreach($d['activities']->take(5) as $activity)
+                    @php
+                        $userName = $activity->user?->name ?? 'System';
+                        $eventLabel = $activity->event ?? $activity->description ?? 'Aktivität';
+                    @endphp
+                    <li class="relative">
+                        <span class="absolute -left-[14px] top-0.5 inline-block w-2 h-2 rounded-full bg-[var(--ui-surface)] border-2 border-[var(--planner-status-active)]"></span>
+                        <div class="text-[10px] text-[var(--ui-secondary)] leading-snug">{{ $eventLabel }}</div>
+                        <div class="text-[9px] text-[var(--ui-muted)]">{{ $userName }} · {{ $activity->created_at->diffForHumans() }}</div>
+                    </li>
+                @endforeach
             </ol>
-        @else
-            <div class="text-center py-6 text-[var(--ui-muted)] text-xs">
-                @svg('heroicon-o-bolt', 'w-8 h-8 mx-auto mb-2 opacity-30')
-                Noch keine Aktivität
-            </div>
-        @endif
-    </section>
+        </section>
+    @endif
+
 </div>
