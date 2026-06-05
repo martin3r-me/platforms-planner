@@ -52,41 +52,41 @@
        MeisterTask-Style Polish — scoped to .planner-board-canvas
        ═══════════════════════════════════════════════════════════ */
 
-    /* Aurora-Background: weiche Color-Blobs auf hellem Base, kein Punktraster */
+    /* Cleaner Background: ein weiches warmes Cream-Gradient, dezent + zwei sehr leise Color-Glühen */
     .planner-board-canvas {
         background:
-            radial-gradient(at 18% 18%, rgba(99, 102, 241, 0.18) 0%, transparent 45%),
-            radial-gradient(at 82% 22%, rgba(236, 72, 153, 0.14) 0%, transparent 45%),
-            radial-gradient(at 50% 78%, rgba(6, 182, 212, 0.14) 0%, transparent 45%),
-            radial-gradient(at 88% 88%, rgba(245, 158, 11, 0.10) 0%, transparent 40%),
-            radial-gradient(at 12% 88%, rgba(139, 92, 246, 0.12) 0%, transparent 45%),
-            linear-gradient(135deg, #fbfbfd 0%, #f3f4f9 100%);
+            radial-gradient(ellipse 60% 50% at 15% 0%, rgba(99, 102, 241, 0.06) 0%, transparent 70%),
+            radial-gradient(ellipse 60% 50% at 85% 100%, rgba(236, 72, 153, 0.05) 0%, transparent 70%),
+            linear-gradient(180deg, #fbf9f5 0%, #f5f3ee 100%);
     }
-    /* Optional Project-Color-Tint dominiert dezent das Aurora-Schema */
+    /* Optional Project-Color-Tint übernimmt die obere Glow-Zone */
     .planner-board-canvas[style*="--planner-project-color"] {
         background:
-            radial-gradient(at 18% 18%, color-mix(in srgb, var(--planner-project-color) 25%, transparent) 0%, transparent 45%),
-            radial-gradient(at 82% 22%, rgba(236, 72, 153, 0.12) 0%, transparent 45%),
-            radial-gradient(at 50% 78%, rgba(6, 182, 212, 0.12) 0%, transparent 45%),
-            radial-gradient(at 88% 88%, color-mix(in srgb, var(--planner-project-color) 12%, transparent) 0%, transparent 40%),
-            radial-gradient(at 12% 88%, rgba(139, 92, 246, 0.10) 0%, transparent 45%),
-            linear-gradient(135deg,
-                color-mix(in srgb, var(--planner-project-color) 5%, #fbfbfd),
-                color-mix(in srgb, var(--planner-project-color) 3%, #f3f4f9));
+            radial-gradient(ellipse 70% 55% at 15% 0%,
+                color-mix(in srgb, var(--planner-project-color) 12%, transparent) 0%,
+                transparent 70%),
+            radial-gradient(ellipse 60% 50% at 85% 100%, rgba(236, 72, 153, 0.04) 0%, transparent 70%),
+            linear-gradient(180deg,
+                color-mix(in srgb, var(--planner-project-color) 3%, #fbf9f5),
+                #f5f3ee);
     }
 
-    /* Spalten: keine eigene Fläche mehr — Cards liegen direkt auf dem Aurora-Background */
-    .planner-board-canvas .kanban-column > div {
+    /* Spalten-Wrapper komplett ohne Fläche */
+    .planner-board-canvas .kanban-column,
+    .planner-board-canvas .kanban-column > div,
+    .planner-board-canvas .kanban-column > div > div {
         background-color: transparent !important;
+        background: transparent !important;
+    }
+    .planner-board-canvas .kanban-column > div {
         border: none !important;
         box-shadow: none !important;
         border-radius: 0 !important;
         overflow: visible !important;
     }
 
-    /* Column header: transparent Base, nur das Tone-Band + sanfter Tone-Glow */
+    /* Column header: nur das Tone-Band + sanfter Glow, kein Surface */
     .planner-board-canvas .kanban-column > div > div:first-child {
-        background-color: transparent !important;
         border-bottom: none !important;
         position: relative;
         padding-top: 1rem !important;
