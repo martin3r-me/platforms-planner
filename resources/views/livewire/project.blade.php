@@ -22,6 +22,26 @@
             ['label' => $project->name],
         ]">
             <x-slot name="left">
+                {{-- View-Tabs --}}
+                <div class="inline-flex gap-1 mr-2 pr-2 border-r border-[var(--ui-border)]/40">
+                    <x-ui-button
+                        wire:click="$set('activeTab', 'board')"
+                        variant="{{ $activeTab === 'board' ? 'primary' : 'ghost' }}"
+                        size="sm"
+                    >
+                        @svg('heroicon-o-view-columns', 'w-4 h-4')
+                        <span>Board</span>
+                    </x-ui-button>
+                    <x-ui-button
+                        wire:click="$set('activeTab', 'dashboard')"
+                        variant="{{ $activeTab === 'dashboard' ? 'primary' : 'ghost' }}"
+                        size="sm"
+                    >
+                        @svg('heroicon-o-chart-bar-square', 'w-4 h-4')
+                        <span>Dashboard</span>
+                    </x-ui-button>
+                </div>
+
                 @can('settings', $project)
                     <x-ui-button variant="ghost" size="sm" x-data @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })">
                         @svg('heroicon-o-cog-6-tooth', 'w-4 h-4')
@@ -59,22 +79,6 @@
             @endif
         </x-ui-page-actionbar>
     </x-slot>
-
-    {{-- Tab-Bar --}}
-    <div class="px-4 py-2 border-b border-[var(--ui-border)]/40">
-        <div class="inline-flex gap-1.5">
-            <x-ui-button
-                wire:click="$set('activeTab', 'board')"
-                variant="{{ $activeTab === 'board' ? 'primary' : 'secondary-outline' }}"
-                size="sm"
-            >Board</x-ui-button>
-            <x-ui-button
-                wire:click="$set('activeTab', 'dashboard')"
-                variant="{{ $activeTab === 'dashboard' ? 'primary' : 'secondary-outline' }}"
-                size="sm"
-            >Dashboard</x-ui-button>
-        </div>
-    </div>
 
     @if($activeTab === 'board')
         <x-slot name="sidebar">
@@ -398,10 +402,12 @@
     @endif
 
     @if($activeTab === 'dashboard')
-        @include('planner::livewire.project._dashboard', [
-            'dashboardData' => $dashboardData,
-            'project' => $project,
-        ])
+        <div class="flex-1 overflow-y-auto">
+            @include('planner::livewire.project._dashboard', [
+                'dashboardData' => $dashboardData,
+                'project' => $project,
+            ])
+        </div>
     @endif
 
     {{-- Modals --}}
