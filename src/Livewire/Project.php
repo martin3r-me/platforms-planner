@@ -12,6 +12,7 @@ use Platform\Planner\Livewire\Concerns\QuickTogglesDone;
 use Illuminate\Database\Eloquent\Collection;
 use Livewire\Attributes\On;
 use Platform\Planner\Services\ProjectCanvasService;
+use Platform\Planner\Services\ProjectCanvasAnalysisService;
 
 class Project extends Component
 {
@@ -20,6 +21,12 @@ class Project extends Component
     public PlannerProject $project;
     public $sprint; // Aktueller Sprint des Projekts
     public bool $showDoneColumn = false; // Erledigt-Spalte ein/ausblenden
+
+    public string $activeTab = 'board';
+
+    protected $queryString = [
+        'activeTab' => ['except' => 'board', 'as' => 'tab'],
+    ];
 
     // Filter
     public array $filterTagIds = []; // Tag-IDs zum Filtern
@@ -105,6 +112,181 @@ class Project extends Component
     public function render()
     {
         $user = Auth::user();
+
+        // === SHARED DATA (beide Tabs) ===
+
+        // Entity-Verknüpfungen laden via DimensionLink
+        $linkedEntities = collect();
+
+        $entityLinks = \Platform\Organization\Services\EntityDimensionBridge::linksForLinkables(
+            ['project', 'planner_project', get_class($this->project)],
+            [$this->project->id]
+        );
+        foreach ($entityLinks as $link) {
+            $linkedEntities->push([
+                'entity_name' => $link->entity?->name ?? 'Unbekannt',
+                'entity_type' => $link->entity?->type?->name ?? '',
+            ]);
+        }
+
+        $linkedEntities = $linkedEntities->unique('entity_name');
+
+        // Aktuelle Rolle des Users im Projekt ermitteln
+        $projectUser = $this->project->projectUsers()
+            ->where('user_id', $user->id)
+            ->first();
+        $currentUserRole = $projectUser?->role;
+
+        // Prüfen ob User Aufgaben im Projekt hat (auch ohne Mitgliedschaft)
+        $hasTasks = $this->project->tasks()
+            ->where('user_in_charge_id', $user->id)
+            ->exists();
+
+        $hasTasksInSlots = $this->project->projectSlots()
+            ->whereHas('tasks', function ($q) use ($user) {
+                $q->where('user_in_charge_id', $user->id);
+            })
+            ->exists();
+
+        $hasAnyTasks = $hasTasks || $hasTasksInSlots;
+
+        $permissions = [
+            'view' => $user->can('view', $this->project),
+            'update' => $user->can('update', $this->project),
+            'delete' => $user->can('delete', $this->project),
+            'settings' => $user->can('settings', $this->project),
+            'invite' => $user->can('invite', $this->project),
+        ];
+
+        $allProjectUsers = $this->project->projectUsers()->with('user')->get();
+
+        // === DASHBOARD TAB ===
+        if ($this->activeTab === 'dashboard') {
+            // Task-Counts (eine Query)
+            $taskCounts = PlannerTask::where('project_id', $this->project->id)
+                ->selectRaw('COUNT(*) as total')
+                ->selectRaw('SUM(CASE WHEN is_done = 0 THEN 1 ELSE 0 END) as open_count')
+                ->selectRaw('SUM(CASE WHEN is_done = 1 THEN 1 ELSE 0 END) as done_count')
+                ->first();
+
+            $pointsData = PlannerTask::where('project_id', $this->project->id)
+                ->get(['is_done', 'story_points']);
+
+            $openPoints = $pointsData->filter(fn ($t) => !$t->is_done)->sum(
+                fn ($t) => $t->story_points instanceof StoryPoints ? $t->story_points->points() : 0
+            );
+            $donePoints = $pointsData->filter(fn ($t) => $t->is_done)->sum(
+                fn ($t) => $t->story_points instanceof StoryPoints ? $t->story_points->points() : 0
+            );
+
+            // Überfällige Tasks
+            $overdueTasks = PlannerTask::with('userInCharge')
+                ->where('project_id', $this->project->id)
+                ->where('is_done', false)
+                ->whereNotNull('due_date')
+                ->where('due_date', '<', now())
+                ->orderBy('due_date')
+                ->limit(10)
+                ->get()
+                ->map(fn ($t) => [
+                    'id' => $t->id,
+                    'title' => $t->title,
+                    'due_date' => $t->due_date,
+                    'days_overdue' => (int) now()->diffInDays($t->due_date),
+                    'assignee' => $t->userInCharge?->name,
+                ]);
+
+            // Slots-Breakdown
+            $slotsBreakdown = PlannerProjectSlot::where('project_id', $this->project->id)
+                ->withCount([
+                    'tasks as open_count' => fn ($q) => $q->where('is_done', false),
+                    'tasks as done_count' => fn ($q) => $q->where('is_done', true),
+                ])
+                ->orderBy('order')
+                ->get();
+
+            // Canvas
+            $canvasData = null;
+            $canvas = $this->project->canvases()->first();
+            if ($canvas) {
+                $analysis = (new ProjectCanvasAnalysisService())->analyze($canvas);
+                $canvasData = [
+                    'name' => $canvas->name,
+                    'id' => $canvas->id,
+                    'analysis' => $analysis,
+                    'route' => route('planner.projects.canvas.show', [$this->project, $canvas]),
+                ];
+            }
+
+            // Team
+            $teamMembers = $allProjectUsers->map(fn ($pu) => [
+                'name' => $pu->user?->name ?? 'Unbekannt',
+                'role' => $pu->role,
+                'open_tasks' => PlannerTask::where('project_id', $this->project->id)
+                    ->where('user_in_charge_id', $pu->user_id)
+                    ->where('is_done', false)
+                    ->count(),
+            ]);
+
+            // Aktivitäten
+            $activities = $this->project->activities()->with('user')->latest()->limit(10)->get();
+
+            $dashboardData = [
+                // Zeit
+                'planned_hours'  => $this->project->totalPlannedHours(),
+                'logged_minutes' => $this->project->totalLoggedMinutes(),
+                'logged_hours'   => round($this->project->totalLoggedMinutes() / 60, 2),
+                'billed_hours'   => round($this->project->billedMinutes() / 60, 2),
+                'unbilled_hours' => round($this->project->unbilledMinutes() / 60, 2),
+
+                // Timeline
+                'planned_start' => $this->project->plannedStart(),
+                'planned_end'   => $this->project->plannedEnd(),
+
+                // Budget
+                'budget_amount'  => $this->project->budget_amount,
+                'hourly_rate'    => $this->project->hourly_rate,
+                'currency'       => $this->project->currency ?? 'EUR',
+                'billing_method' => $this->project->billing_method,
+                'budget_used'    => $this->project->hourly_rate
+                    ? round(($this->project->totalLoggedMinutes() / 60) * (float) $this->project->hourly_rate, 2)
+                    : null,
+
+                // Tasks
+                'open_count'    => (int) $taskCounts->open_count,
+                'done_count'    => (int) $taskCounts->done_count,
+                'total_count'   => (int) $taskCounts->total,
+                'open_points'   => $openPoints,
+                'done_points'   => $donePoints,
+                'overdue_tasks' => $overdueTasks,
+
+                // Slots
+                'slots' => $slotsBreakdown,
+
+                // Canvas
+                'canvas' => $canvasData,
+
+                // Team
+                'team_members' => $teamMembers,
+
+                // Aktivitäten
+                'activities' => $activities,
+            ];
+
+            return view('planner::livewire.project', [
+                'groups' => collect(),
+                'linkedEntities' => $linkedEntities,
+                'currentUserRole' => $currentUserRole,
+                'hasAnyTasks' => $hasAnyTasks,
+                'permissions' => $permissions,
+                'allProjectUsers' => $allProjectUsers,
+                'availableFilterTags' => collect(),
+                'availableFilterColors' => collect(),
+                'dashboardData' => $dashboardData,
+            ])->layout('platform::layouts.app');
+        }
+
+        // === BOARD TAB ===
 
         // === 1. BACKLOG ===
         $backlogTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])
@@ -230,63 +412,16 @@ class Project extends Component
         // === BOARD-GRUPPEN ZUSAMMENSTELLEN ===
         $groups = collect([$backlog])->concat($slots)->push($completedGroup);
 
-        // Entity-Verknüpfungen laden via DimensionLink
-        $linkedEntities = collect();
-
-        $entityLinks = \Platform\Organization\Services\EntityDimensionBridge::linksForLinkables(
-            ['project', 'planner_project', get_class($this->project)],
-            [$this->project->id]
-        );
-        foreach ($entityLinks as $link) {
-            $linkedEntities->push([
-                'entity_name' => $link->entity?->name ?? 'Unbekannt',
-                'entity_type' => $link->entity?->type?->name ?? '',
-            ]);
-        }
-
-        $linkedEntities = $linkedEntities->unique('entity_name');
-
-        // Aktuelle Rolle des Users im Projekt ermitteln
-        $projectUser = $this->project->projectUsers()
-            ->where('user_id', $user->id)
-            ->first();
-        $currentUserRole = $projectUser?->role;
-
-        // Prüfen ob User Aufgaben im Projekt hat (auch ohne Mitgliedschaft)
-        $hasTasks = $this->project->tasks()
-            ->where('user_in_charge_id', $user->id)
-            ->exists();
-
-        $hasTasksInSlots = $this->project->projectSlots()
-            ->whereHas('tasks', function ($q) use ($user) {
-                $q->where('user_in_charge_id', $user->id);
-            })
-            ->exists();
-
-        $hasAnyTasks = $hasTasks || $hasTasksInSlots;
-
-        // Debug: Berechtigungen prüfen
-        $permissions = [
-            'view' => $user->can('view', $this->project),
-            'update' => $user->can('update', $this->project),
-            'delete' => $user->can('delete', $this->project),
-            'settings' => $user->can('settings', $this->project),
-            'invite' => $user->can('invite', $this->project),
-        ];
-
-        // Alle Projekt-Mitglieder für Debug
-        $allProjectUsers = $this->project->projectUsers()->with('user')->get();
-
         return view('planner::livewire.project', [
             'groups' => $groups,
             'linkedEntities' => $linkedEntities,
-
             'currentUserRole' => $currentUserRole,
             'hasAnyTasks' => $hasAnyTasks,
             'permissions' => $permissions,
             'allProjectUsers' => $allProjectUsers,
             'availableFilterTags' => $availableFilterTags,
             'availableFilterColors' => $availableFilterColors,
+            'dashboardData' => null,
         ])->layout('platform::layouts.app');
     }
 
