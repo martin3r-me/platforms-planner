@@ -273,24 +273,48 @@
                         @endforelse
                     </x-ui-kanban-column>
                 @else
-                    {{-- Collapsed: schmaler Streifen, klebt am rechten Rand und bleibt beim horizontalen Scrollen sichtbar --}}
+                    {{-- Collapsed-Done: im Board schmaler Streifen rechts, in der Liste eine voll-breite Leiste unten --}}
                     <button
+                        x-data="{ isList: localStorage.getItem('kanbanView') === 'list' }"
+                        x-init="this.isList = localStorage.getItem('kanbanView') === 'list'"
+                        @storage-change.window="isList = localStorage.getItem('kanbanView') === 'list'"
                         type="button"
                         wire:click="toggleShowDoneColumn"
-                        class="planner-done-strip group/done sticky right-0 z-10 flex-shrink-0 h-full flex flex-col items-center justify-between py-4 px-2 bg-white hover:shadow-lg transition-all cursor-pointer"
-                        style="width: 2.75rem; min-width: 2.75rem;"
+                        :class="isList
+                            ? 'planner-done-bar group/done sticky bottom-0 z-20 w-full flex flex-row items-center justify-start gap-3 py-3 px-4 pr-14 bg-white border-t border-[var(--planner-status-done)]/30 shadow-lg hover:bg-[var(--planner-card-done)] transition-all cursor-pointer'
+                            : 'planner-done-strip group/done sticky right-0 z-10 flex-shrink-0 h-full flex flex-col items-center justify-between py-4 px-2 bg-white hover:shadow-lg transition-all cursor-pointer'"
+                        :style="!isList ? 'width: 2.75rem; min-width: 2.75rem;' : ''"
                         title="Erledigte anzeigen ({{ $done->tasks->count() }})"
                     >
-                        @svg('heroicon-o-chevron-double-left', 'w-4 h-4 text-[var(--planner-status-done)] mt-1')
+                        <span x-show="!isList">
+                            @svg('heroicon-o-chevron-double-left', 'w-4 h-4 text-[var(--planner-status-done)] mt-1')
+                        </span>
+                        <span x-show="isList">
+                            @svg('heroicon-o-chevron-double-up', 'w-4 h-4 text-[var(--planner-status-done)]')
+                        </span>
 
-                        <div class="flex flex-col items-center gap-2 flex-1 justify-center min-h-0">
-                            <span class="text-[10px] font-bold uppercase tracking-wider text-[var(--planner-status-done)]" style="writing-mode: vertical-rl; transform: rotate(180deg);">
-                                {{ $done->label ?? 'Erledigt' }}
-                            </span>
-                        </div>
+                        {{-- Label: im Board vertikal, in der Liste horizontal --}}
+                        <span
+                            class="text-[10px] font-bold uppercase tracking-wider text-[var(--planner-status-done)]"
+                            :class="!isList ? 'flex-1 my-2' : ''"
+                            :style="!isList ? 'writing-mode: vertical-rl; transform: rotate(180deg);' : ''"
+                        >
+                            {{ $done->label ?? 'Erledigt' }}
+                        </span>
 
-                        <span class="inline-flex items-center justify-center min-w-[1.5rem] h-5 px-1 text-[10px] font-semibold rounded-full tabular-nums" style="background-color: color-mix(in srgb, var(--planner-col-done) 18%, transparent); color: var(--planner-col-done)">
+                        <span
+                            class="inline-flex items-center justify-center min-w-[1.5rem] h-5 px-1 text-[10px] font-semibold rounded-full tabular-nums"
+                            style="background-color: color-mix(in srgb, var(--planner-col-done) 18%, transparent); color: var(--planner-col-done)"
+                        >
                             {{ $done->tasks->count() }}
+                        </span>
+
+                        {{-- Sub-Hinweis nur in Liste --}}
+                        <span
+                            x-show="isList"
+                            class="text-[11px] text-[var(--ui-muted)] ml-auto mr-2"
+                        >
+                            Klick zum Anzeigen
                         </span>
                     </button>
                 @endif
