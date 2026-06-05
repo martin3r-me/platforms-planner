@@ -14,6 +14,111 @@
         ]" />
     </x-slot>
 
+    <x-slot name="sidebar">
+        <x-ui-page-sidebar title="Projekte" icon="heroicon-o-folder" width="w-80" :defaultOpen="true">
+            <div class="p-4 space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] m-0">Aktiv</h3>
+                    @if($recentlyCompletedWithProgress->count() > 0)
+                        <button
+                            wire:click="toggleCompletedProjects"
+                            type="button"
+                            class="text-[10px] text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] underline"
+                        >
+                            {{ $showCompletedProjects ? 'Ausblenden' : '+ ' . $recentlyCompletedWithProgress->count() . ' erledigt' }}
+                        </button>
+                    @endif
+                </div>
+                <div class="space-y-2">
+                    @forelse($projectsWithProgress as $project)
+                        @php
+                            $progress = $project['progress_percent'];
+                            $projectColor = $project['color'] ?? null;
+                            $progressCssColor = $progress >= 75 ? 'var(--planner-status-done)' : ($progress >= 40 ? 'var(--planner-status-active)' : 'var(--planner-col-backlog)');
+                        @endphp
+                        <a href="{{ route('planner.projects.show', ['plannerProject' => $project['id']]) }}" wire:navigate class="block px-3 py-2.5 rounded-lg border border-[var(--ui-border)]/60 hover:border-[var(--planner-status-active)]/30 hover:bg-[var(--planner-card-hover)] transition-all">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="flex items-center gap-2 text-sm font-medium text-[var(--ui-secondary)] truncate">
+                                    @if($projectColor)
+                                        <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background-color: {{ $projectColor }}"></span>
+                                    @endif
+                                    {{ $project['name'] }}
+                                </span>
+                                <span class="text-xs font-semibold flex-shrink-0 ml-2" style="color: {{ $progressCssColor }}">{{ $progress }}%</span>
+                            </div>
+                            <div class="h-1.5 bg-[var(--planner-track)] rounded-full overflow-hidden">
+                                <div class="h-full transition-all rounded-full" style="width: {{ $progress }}%; background-color: {{ $progressCssColor }}"></div>
+                            </div>
+                            <div class="flex items-center justify-between mt-1.5 text-[10px] text-[var(--ui-muted)]">
+                                <span>{{ $project['completed_tasks'] }}/{{ $project['total_tasks'] }}</span>
+                                @if($project['open_tasks'] > 0)
+                                    <span class="font-medium text-[var(--ui-secondary)]">{{ $project['open_tasks'] }} offen</span>
+                                @endif
+                            </div>
+                        </a>
+                    @empty
+                        <div class="px-3 py-6 text-sm text-[var(--ui-muted)] text-center">Keine aktiven Projekte.</div>
+                    @endforelse
+
+                    @if($showCompletedProjects && $recentlyCompletedWithProgress->count() > 0)
+                        <div class="pt-3 mt-2 border-t border-[var(--ui-border)]/40">
+                            @foreach($recentlyCompletedWithProgress as $project)
+                                <a href="{{ route('planner.projects.show', ['plannerProject' => $project['id']]) }}" wire:navigate class="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-[var(--ui-muted-5)] transition opacity-60">
+                                    @svg('heroicon-o-check-circle', 'w-4 h-4 text-[var(--planner-status-done)] flex-shrink-0')
+                                    <span class="text-sm text-[var(--ui-secondary)] truncate">{{ $project['name'] }}</span>
+                                    @if($project['done_at'])
+                                        <span class="text-[10px] text-[var(--ui-muted)] flex-shrink-0 ml-auto">{{ $project['done_at']->format('d.m.') }}</span>
+                                    @endif
+                                </a>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </x-ui-page-sidebar>
+    </x-slot>
+
+    <x-slot name="activity">
+        <x-ui-page-sidebar title="Heute" icon="heroicon-o-bolt" width="w-72" :defaultOpen="false" storeKey="activityOpen" side="right">
+            <div class="p-4 space-y-5">
+                <section>
+                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] mb-2">Zahlen</h3>
+                    <dl class="space-y-1.5 text-[11px]">
+                        <div class="flex items-baseline justify-between gap-3">
+                            <dt class="text-[var(--ui-muted)]">Stunden diesen Monat</dt>
+                            <dd class="text-[var(--ui-secondary)] font-medium tabular-nums m-0">{{ number_format($monthlyLoggedMinutes / 60, 1, ',', '.') }} h</dd>
+                        </div>
+                        <div class="flex items-baseline justify-between gap-3">
+                            <dt class="text-[var(--ui-muted)]">Heute fällig</dt>
+                            <dd class="font-medium tabular-nums m-0 {{ $dueTodayCount > 0 ? 'text-amber-600' : 'text-[var(--ui-secondary)]' }}">{{ $dueTodayCount }}</dd>
+                        </div>
+                        <div class="flex items-baseline justify-between gap-3">
+                            <dt class="text-[var(--ui-muted)]">Offen im Team</dt>
+                            <dd class="text-[var(--ui-secondary)] font-medium tabular-nums m-0">{{ $openTasks }}</dd>
+                        </div>
+                        @if($overdueTasksCount > 0)
+                            <div class="flex items-baseline justify-between gap-3">
+                                <dt class="text-[var(--ui-muted)]">Überfällig</dt>
+                                <dd class="text-[var(--planner-status-overdue)] font-medium tabular-nums m-0">{{ $overdueTasksCount }}</dd>
+                            </div>
+                        @endif
+                    </dl>
+                </section>
+
+                <section>
+                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] mb-2">Springe zu</h3>
+                    <ul class="space-y-0.5 text-[11px]">
+                        <li><a href="{{ route('planner.my-tasks') }}" wire:navigate class="flex items-center gap-2 px-2 py-1.5 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]">@svg('heroicon-o-clipboard-document-check', 'w-3.5 h-3.5 opacity-60') Meine Aufgaben</a></li>
+                        <li><a href="{{ route('planner.frog-tasks') }}" wire:navigate class="flex items-center gap-2 px-2 py-1.5 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]"><span class="text-xs leading-none">🐸</span> Frösche</a></li>
+                        <li><a href="{{ route('planner.delegated-tasks') }}" wire:navigate class="flex items-center gap-2 px-2 py-1.5 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]">@svg('heroicon-o-user-group', 'w-3.5 h-3.5 opacity-60') Delegiert</a></li>
+                        <li><a href="{{ route('planner.completed-tasks') }}" wire:navigate class="flex items-center gap-2 px-2 py-1.5 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]">@svg('heroicon-o-check-circle', 'w-3.5 h-3.5 opacity-60') Erledigt</a></li>
+                        <li><a href="{{ route('planner.hygiene') }}" wire:navigate class="flex items-center gap-2 px-2 py-1.5 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]">@svg('heroicon-o-shield-check', 'w-3.5 h-3.5 opacity-60') Hygiene</a></li>
+                    </ul>
+                </section>
+            </div>
+        </x-ui-page-sidebar>
+    </x-slot>
+
     <x-ui-page-container>
 
         {{-- Greeting --}}
@@ -116,11 +221,8 @@
             </div>
         @endif
 
-        {{-- Two-column layout --}}
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-            {{-- Left: Anstehend + Meine Aufgaben --}}
-            <div class="lg:col-span-2 space-y-8">
+        {{-- Main: Anstehend + Meine Aufgaben (Projekte sind in der linken Sidebar) --}}
+        <div class="space-y-8">
 
                 {{-- Anstehende Tasks (nächste 7 Tage) --}}
                 @if($upcomingTasksList->count() > 0)
@@ -188,89 +290,6 @@
                         @endforelse
                     </div>
                 </div>
-
-            </div>
-
-            {{-- Right: Projekte --}}
-            <div>
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--ui-muted)] flex items-center gap-2">
-                        @svg('heroicon-o-folder', 'w-4 h-4')
-                        Projekte
-                    </h3>
-                    @if($recentlyCompletedWithProgress->count() > 0)
-                        <button
-                            wire:click="toggleCompletedProjects"
-                            type="button"
-                            class="text-[10px] text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] underline"
-                        >
-                            {{ $showCompletedProjects ? 'Ausblenden' : '+ ' . $recentlyCompletedWithProgress->count() . ' erledigt' }}
-                        </button>
-                    @endif
-                </div>
-                <div class="space-y-2">
-                    @forelse($projectsWithProgress as $project)
-                        @php
-                            $progress = $project['progress_percent'];
-                            $projectColor = $project['color'] ?? null;
-                            $progressCssColor = $progress >= 75 ? 'var(--planner-status-done)' : ($progress >= 40 ? 'var(--planner-status-active)' : 'var(--planner-col-backlog)');
-                        @endphp
-                        <a href="{{ route('planner.projects.show', ['plannerProject' => $project['id']]) }}" wire:navigate class="block px-3 py-2.5 rounded-lg border border-[var(--ui-border)]/60 hover:border-[var(--planner-status-active)]/30 hover:bg-[var(--planner-card-hover)] transition-all">
-                            <div class="flex items-center justify-between mb-1.5">
-                                <span class="flex items-center gap-2 text-sm font-medium text-[var(--ui-secondary)] truncate">
-                                    @if($projectColor)
-                                        <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background-color: {{ $projectColor }}"></span>
-                                    @endif
-                                    {{ $project['name'] }}
-                                </span>
-                                <span class="text-xs font-semibold flex-shrink-0 ml-2" style="color: {{ $progressCssColor }}">{{ $progress }}%</span>
-                            </div>
-                            <div class="h-1.5 bg-[var(--planner-track)] rounded-full overflow-hidden">
-                                <div
-                                    class="h-full transition-all rounded-full"
-                                    style="width: {{ $progress }}%; background-color: {{ $progressCssColor }}"
-                                ></div>
-                            </div>
-                            <div class="flex items-center justify-between mt-1.5 text-[10px] text-[var(--ui-muted)]">
-                                <span>{{ $project['completed_tasks'] }}/{{ $project['total_tasks'] }}</span>
-                                @if($project['open_tasks'] > 0)
-                                    <span class="font-medium text-[var(--ui-secondary)]">{{ $project['open_tasks'] }} offen</span>
-                                @endif
-                            </div>
-                        </a>
-                    @empty
-                        <div class="px-3 py-6 text-sm text-[var(--ui-muted)] text-center">
-                            Keine aktiven Projekte.
-                        </div>
-                    @endforelse
-
-                    @if($showCompletedProjects && $recentlyCompletedWithProgress->count() > 0)
-                        <div class="pt-3 mt-2 border-t border-[var(--ui-border)]/40">
-                            @foreach($recentlyCompletedWithProgress as $project)
-                                <a href="{{ route('planner.projects.show', ['plannerProject' => $project['id']]) }}" wire:navigate class="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-[var(--ui-muted-5)] transition opacity-60">
-                                    @svg('heroicon-o-check-circle', 'w-4 h-4 text-[var(--planner-status-done)] flex-shrink-0')
-                                    <span class="text-sm text-[var(--ui-secondary)] truncate">{{ $project['name'] }}</span>
-                                    @if($project['done_at'])
-                                        <span class="text-[10px] text-[var(--ui-muted)] flex-shrink-0 ml-auto">{{ $project['done_at']->format('d.m.') }}</span>
-                                    @endif
-                                </a>
-                            @endforeach
-                        </div>
-                    @endif
-                </div>
-
-                {{-- Team-Zahlen compact --}}
-                <div class="mt-6 pt-4 border-t border-[var(--ui-border)]/40">
-                    <div class="flex items-center justify-between text-xs text-[var(--ui-muted)]">
-                        <span>Stunden diesen Monat</span>
-                        <span class="font-medium text-[var(--ui-secondary)]">{{ number_format($monthlyLoggedMinutes / 60, 1, ',', '.') }}h</span>
-                    </div>
-                    <div class="flex items-center justify-between text-xs text-[var(--ui-muted)] mt-1.5">
-                        <span>Heute fällig</span>
-                        <span class="font-medium {{ $dueTodayCount > 0 ? 'text-amber-600' : 'text-[var(--ui-secondary)]' }}">{{ $dueTodayCount }}</span>
-                    </div>
-                </div>
-            </div>
 
         </div>
 
