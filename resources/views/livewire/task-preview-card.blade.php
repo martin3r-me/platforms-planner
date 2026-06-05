@@ -59,19 +59,21 @@
     :href="$cardHref"
     class="group/card relative {{ $surface }} transition-colors duration-150"
 >
-    {{-- Permanente Color-Edge links (MeisterTask-Signatur) --}}
-    <div class="absolute top-0 bottom-0 left-0 w-1" style="background-color: {{ $edgeColor }};"></div>
-
     {{-- Optional micro-line: project name (only on cross-project boards) --}}
     @if($showProjectName)
-        <div class="text-[10px] text-[var(--ui-muted)] leading-none truncate mb-1 pl-1">
+        <div class="text-[10px] text-[var(--ui-muted)] leading-none truncate mb-1">
             {{ $task->project->name }}
         </div>
     @endif
 
-    {{-- Title row: title + hover quick-done --}}
-    <div class="flex items-start gap-1.5 pr-6 pl-1">
-        <h4 class="text-[13px] font-medium leading-snug text-[var(--ui-secondary)] m-0 {{ $isDone ? 'line-through text-[var(--ui-muted)]' : '' }}">
+    {{-- Title row: status dot + title + hover quick-done --}}
+    <div class="flex items-start gap-2 pr-6">
+        <span
+            class="flex-shrink-0 w-3 h-3 rounded-full mt-[3px] ring-2 ring-white shadow-sm"
+            style="background-color: {{ $edgeColor }};"
+            title="{{ $priorityLabel ?? '' }}"
+        ></span>
+        <h4 class="text-[13px] font-semibold leading-snug text-[var(--ui-secondary)] m-0 {{ $isDone ? 'line-through text-[var(--ui-muted)]' : '' }}">
             {{ $task->title }}
         </h4>
 
@@ -94,7 +96,7 @@
         $hasMeta = $duePhrase || $spValue || $firstTag || $dodProgress || ($task->postpone_count ?? 0) > 0 || ($isFrog && $isDone) || $userInCharge;
     @endphp
     @if($hasMeta)
-        <div class="mt-2 pl-1 flex items-center gap-1.5 text-[10px] text-[var(--ui-muted)] leading-none">
+        <div class="mt-2 flex items-center gap-1.5 text-[10px] text-[var(--ui-muted)] leading-none">
             @if($duePhrase)
                 <span
                     class="inline-flex items-center gap-0.5 flex-shrink-0 {{ $isOverdue ? 'text-[var(--planner-status-overdue)] font-medium' : '' }}"
@@ -112,14 +114,14 @@
             @if($firstTag)
                 @php $tColor = $firstTag->color ?: '#94a3b8'; @endphp
                 <span
-                    class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium flex-shrink-0 truncate max-w-[7rem] border"
-                    style="background-color: color-mix(in srgb, {{ $tColor }} 14%, white); color: {{ $tColor }}; border-color: color-mix(in srgb, {{ $tColor }} 30%, white);"
+                    class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold text-white flex-shrink-0 truncate max-w-[7rem]"
+                    style="background-color: {{ $tColor }};"
                     title="{{ $firstTag->label }}"
                 >
                     {{ $firstTag->label }}
                 </span>
                 @if($tagCount > 1)
-                    <span class="inline-flex items-center justify-center min-w-[1rem] h-4 px-1 rounded-full text-[9px] font-semibold tabular-nums bg-[var(--ui-muted-5)] text-[var(--ui-muted)] flex-shrink-0">+{{ $tagCount - 1 }}</span>
+                    <span class="inline-flex items-center justify-center min-w-[1.1rem] h-4 px-1 rounded-full text-[9px] font-bold tabular-nums bg-[var(--ui-muted-10)] text-[var(--ui-secondary)] flex-shrink-0">+{{ $tagCount - 1 }}</span>
                 @endif
             @endif
 
