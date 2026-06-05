@@ -11,7 +11,7 @@ use Platform\Planner\Enums\StoryPoints;
 use Platform\Planner\Livewire\Concerns\QuickTogglesDone;
 use Illuminate\Database\Eloquent\Collection;
 use Livewire\Attributes\On;
-
+use Platform\Planner\Services\ProjectCanvasService;
 
 class Project extends Component
 {
@@ -246,9 +246,6 @@ class Project extends Component
 
         $linkedEntities = $linkedEntities->unique('entity_name');
 
-        // Canvas-Anzahl für Badge
-        $canvasCount = $this->project->canvases()->count();
-
         // Aktuelle Rolle des Users im Projekt ermitteln
         $projectUser = $this->project->projectUsers()
             ->where('user_id', $user->id)
@@ -283,7 +280,7 @@ class Project extends Component
         return view('planner::livewire.project', [
             'groups' => $groups,
             'linkedEntities' => $linkedEntities,
-            'canvasCount' => $canvasCount,
+
             'currentUserRole' => $currentUserRole,
             'hasAnyTasks' => $hasAnyTasks,
             'permissions' => $permissions,
@@ -313,6 +310,33 @@ class Project extends Component
 
         // Slots/State neu laden (Livewire 3 Way)
         $this->mount($this->project);
+    }
+
+    /**
+     * Canvas öffnen — existiert noch keins, wird eins erstellt.
+     */
+    public function openCanvas()
+    {
+        $this->authorize('view', $this->project);
+
+        $canvas = $this->project->canvases()->first();
+
+        if (!$canvas) {
+            $this->authorize('update', $this->project);
+
+            $canvas = app(ProjectCanvasService::class)->createCanvas([
+                'project_id' => $this->project->id,
+                'team_id' => $this->project->team_id,
+                'name' => $this->project->name . ' — Canvas',
+                'status' => 'active',
+                'created_by_user_id' => Auth::id(),
+            ]);
+        }
+
+        return $this->redirect(
+            route('planner.projects.canvas.show', [$this->project, $canvas]),
+            navigate: true,
+        );
     }
 
     /**
