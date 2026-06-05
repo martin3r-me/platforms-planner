@@ -82,23 +82,33 @@ class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayN
             $model->uuid = $uuid;
         });
 
-        // Soft-Delete Cascade: Tasks mit-soft-deleten
+        // Soft-Delete Cascade: Tasks + Canvases mit-soft-deleten
         static::deleting(function (self $project) {
             if ($project->isForceDeleting()) {
                 return; // DB-Cascade greift bei hard-delete
             }
             $project->tasks()->each(fn (PlannerTask $task) => $task->delete());
+            $project->canvases()->each(fn (PlannerProjectCanvas $canvas) => $canvas->delete());
         });
 
-        // Restore Cascade: Tasks wiederherstellen
+        // Restore Cascade: Tasks + Canvases wiederherstellen
         static::restoring(function (self $project) {
             $project->tasks()->onlyTrashed()->each(fn (PlannerTask $task) => $task->restore());
+            $project->canvases()->onlyTrashed()->each(fn (PlannerProjectCanvas $canvas) => $canvas->restore());
         });
     }
 
     /**
+     * Project Canvases Relation
+     */
+    public function canvases(): HasMany
+    {
+        return $this->hasMany(PlannerProjectCanvas::class, 'project_id');
+    }
+
+    /**
      * Project Slots Relation
-     * 
+     *
      * @hint Alle Project Slots eines Projekts abrufen (enthält Tasks)
      */
     public function projectSlots(): HasMany
@@ -259,6 +269,6 @@ class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayN
 
     public static function childContextRelations(): array
     {
-        return ['tasks', 'projectSlots.tasks'];
+        return ['tasks', 'projectSlots.tasks', 'canvases'];
     }
 }

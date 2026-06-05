@@ -56,6 +56,7 @@ class PlannerServiceProvider extends ServiceProvider
         Relation::morphMap([
             'planner_task' => \Platform\Planner\Models\PlannerTask::class,
             'project' => \Platform\Planner\Models\PlannerProject::class,
+            'pc_canvas' => \Platform\Planner\Models\PlannerProjectCanvas::class,
         ]);
 
         // EntityLinkProvider registrieren (loose Kopplung mit Organization-Modul)
@@ -219,6 +220,26 @@ class PlannerServiceProvider extends ServiceProvider
             $registry->register(new \Platform\Planner\Tools\BulkUpdateTasksTool());
             $registry->register(new \Platform\Planner\Tools\DeleteTaskTool());
             $registry->register(new \Platform\Planner\Tools\TransferTaskTool());
+
+            // Canvas-Tools
+            $registry->register(new \Platform\Planner\Tools\Canvas\CanvasOverviewTool());
+            $registry->register(new \Platform\Planner\Tools\Canvas\ListCanvasesTool());
+            $registry->register(new \Platform\Planner\Tools\Canvas\GetCanvasTool());
+            $registry->register(new \Platform\Planner\Tools\Canvas\CreateCanvasTool());
+            $registry->register(new \Platform\Planner\Tools\Canvas\UpdateCanvasTool());
+            $registry->register(new \Platform\Planner\Tools\Canvas\DeleteCanvasTool());
+            $registry->register(new \Platform\Planner\Tools\Canvas\ListEntriesTool());
+            $registry->register(new \Platform\Planner\Tools\Canvas\CreateEntryTool());
+            $registry->register(new \Platform\Planner\Tools\Canvas\UpdateEntryTool());
+            $registry->register(new \Platform\Planner\Tools\Canvas\DeleteEntryTool());
+            $registry->register(new \Platform\Planner\Tools\Canvas\BulkCreateEntriesTool());
+            $registry->register(new \Platform\Planner\Tools\Canvas\ReorderEntriesTool());
+            $registry->register(new \Platform\Planner\Tools\Canvas\CreateSnapshotTool());
+            $registry->register(new \Platform\Planner\Tools\Canvas\ListSnapshotsTool());
+            $registry->register(new \Platform\Planner\Tools\Canvas\GetSnapshotTool());
+            $registry->register(new \Platform\Planner\Tools\Canvas\CompareSnapshotsTool());
+            $registry->register(new \Platform\Planner\Tools\Canvas\ExportCanvasTool());
+            $registry->register(new \Platform\Planner\Tools\Canvas\CanvasStatusTool());
         } catch (\Throwable $e) {
             // Silent fail - ToolRegistry möglicherweise nicht verfügbar
             \Log::warning('Planner: Tool-Registrierung fehlgeschlagen', ['error' => $e->getMessage()]);

@@ -246,33 +246,36 @@ class Project extends Component
 
         $linkedEntities = $linkedEntities->unique('entity_name');
 
-        // Canvas-Verknüpfungen laden
+        // Canvas-Verknüpfungen laden (direkt via Relationship + EntityLink für Canvas-Modul)
         $linkedCanvases = collect();
-        $service = app(EntityLinkService::class);
-        $teamId = $this->project->team_id;
-        $projectType = $this->project->getMorphClass();
-        $projectId = $this->project->getKey();
 
-        $canvasIds = $service->getLinkedIds($teamId, $projectType, $projectId, 'canvas');
-        if (!empty($canvasIds)) {
-            $canvasModels = \Platform\Canvas\Models\Canvas::whereIn('id', $canvasIds)->get();
-            foreach ($canvasModels as $canvas) {
-                $linkedCanvases->push([
-                    'name' => $canvas->name,
-                    'url' => route('canvas.canvases.show', $canvas->id),
-                ]);
-            }
+        // Direkte Project Canvases (neues System)
+        foreach ($this->project->canvases as $canvas) {
+            $linkedCanvases->push([
+                'name' => $canvas->name,
+                'url' => route('planner.projects.canvas.show', [$this->project, $canvas]),
+            ]);
         }
 
-        $pcCanvasIds = $service->getLinkedIds($teamId, $projectType, $projectId, 'pc_canvas');
-        if (!empty($pcCanvasIds)) {
-            $pcCanvasModels = \Platform\ProjectCanvas\Models\PcCanvas::whereIn('id', $pcCanvasIds)->get();
-            foreach ($pcCanvasModels as $canvas) {
-                $linkedCanvases->push([
-                    'name' => $canvas->name,
-                    'url' => route('project-canvas.canvases.show', $canvas->id),
-                ]);
+        // Canvas-Modul Links (via EntityLinkService, falls vorhanden)
+        try {
+            $service = app(EntityLinkService::class);
+            $teamId = $this->project->team_id;
+            $projectType = $this->project->getMorphClass();
+            $projectId = $this->project->getKey();
+
+            $canvasIds = $service->getLinkedIds($teamId, $projectType, $projectId, 'canvas');
+            if (!empty($canvasIds)) {
+                $canvasModels = \Platform\Canvas\Models\Canvas::whereIn('id', $canvasIds)->get();
+                foreach ($canvasModels as $canvas) {
+                    $linkedCanvases->push([
+                        'name' => $canvas->name,
+                        'url' => route('canvas.canvases.show', $canvas->id),
+                    ]);
+                }
             }
+        } catch (\Throwable $e) {
+            // Canvas-Modul nicht verfuegbar
         }
 
         // Aktuelle Rolle des Users im Projekt ermitteln

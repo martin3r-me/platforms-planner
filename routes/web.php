@@ -28,4 +28,14 @@ Route::get('/projects/{plannerProject}', Project::class)
 Route::get('/tasks/{plannerTask}', Task::class)
     ->name('planner.tasks.show');
 
+// Project Canvas Routes
+Route::get('/projects/{plannerProject}/canvas', \Platform\Planner\Livewire\ProjectCanvas\Index::class)
+    ->name('planner.projects.canvas.index');
+
+Route::get('/projects/{plannerProject}/canvas/{canvas}', \Platform\Planner\Livewire\ProjectCanvas\Show::class)
+    ->name('planner.projects.canvas.show');
+
+Route::get('/projects/{plannerProject}/canvas/{canvas}/pdf', \Platform\Planner\Http\Controllers\ProjectCanvasPdfController::class)
+    ->name('planner.projects.canvas.pdf');
+
 // Embedded Routes wurden in routes/embedded.php verschoben
