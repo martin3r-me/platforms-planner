@@ -8,30 +8,6 @@
 
 <div class="flex flex-col h-full">
 
-    {{-- Board-only: Done-Toggle (Step 6 wird das durch eine collapsed Spalte ersetzen) --}}
-    @if($activeTab === 'board')
-        <div class="px-4 pt-4">
-            <button
-                type="button"
-                wire:click="toggleShowDoneColumn"
-                class="w-full inline-flex items-center justify-between gap-2 h-8 px-2.5 rounded border border-[var(--ui-border)]/60 text-[11px] text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)] transition-colors"
-            >
-                <span class="inline-flex items-center gap-1.5">
-                    @if($showDoneColumn)
-                        @svg('heroicon-o-eye-slash', 'w-3.5 h-3.5 opacity-60')
-                        <span>Erledigte ausblenden</span>
-                    @else
-                        @svg('heroicon-o-eye', 'w-3.5 h-3.5 opacity-60')
-                        <span>Erledigte anzeigen</span>
-                    @endif
-                </span>
-                @if($headerDoneCount > 0)
-                    <span class="tabular-nums text-[var(--ui-muted)]">{{ $headerDoneCount }}</span>
-                @endif
-            </button>
-        </div>
-    @endif
-
     <div class="flex-1 overflow-y-auto px-4 py-4 space-y-6">
 
         {{-- ÜBER DAS PROJEKT --}}

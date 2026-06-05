@@ -120,9 +120,6 @@
         <x-ui-page-sidebar title="Projekt" width="w-72" :defaultOpen="true">
             @include('planner::livewire.project._sidebar', [
                 'project' => $project,
-                'activeTab' => $activeTab,
-                'showDoneColumn' => $showDoneColumn,
-                'headerDoneCount' => $headerDoneCount,
                 'currentUserRole' => $currentUserRole,
                 'hasAnyTasks' => $hasAnyTasks ?? false,
                 'userOpenTaskCount' => $userOpenTaskCount ?? 0,
@@ -250,15 +247,23 @@
                 </x-ui-kanban-column>
             @endforeach
 
-            {{-- Done column --}}
-            @if($showDoneColumn)
-                @php $done = $groups->first(fn($g) => ($g->isDoneGroup ?? false)); @endphp
-                @if($done)
+            {{-- Done column (immer sichtbar — expanded oder collapsed) --}}
+            @php $done = $groups->first(fn($g) => ($g->isDoneGroup ?? false)); @endphp
+            @if($done)
+                @if($showDoneColumn)
                     <x-ui-kanban-column :title="($done->label ?? 'Erledigt')" :sortable-id="null" :scrollable="true" :muted="true">
                         <x-slot name="headerActions">
                             <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-[10px] font-semibold rounded-full" style="background-color: color-mix(in srgb, var(--planner-col-done) 15%, transparent); color: var(--planner-col-done)">
                                 {{ $done->tasks->count() }}
                             </span>
+                            <button
+                                type="button"
+                                wire:click="toggleShowDoneColumn"
+                                class="text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] transition-colors"
+                                title="Einklappen"
+                            >
+                                @svg('heroicon-o-chevron-double-right', 'w-4 h-4')
+                            </button>
                         </x-slot>
                         @forelse($done->tasks as $task)
                             @include('planner::livewire.task-preview-card', ['task' => $task, 'cardFrom' => 'project'])
@@ -269,6 +274,27 @@
                             </div>
                         @endforelse
                     </x-ui-kanban-column>
+                @else
+                    {{-- Collapsed: schmaler Streifen, klick öffnet --}}
+                    <button
+                        type="button"
+                        wire:click="toggleShowDoneColumn"
+                        class="group/done flex-shrink-0 h-full flex flex-col items-center justify-between py-3 px-2 bg-[var(--ui-surface)] border border-[var(--ui-border)]/40 hover:border-[var(--planner-status-done)]/40 hover:bg-[var(--planner-card-done)] transition-colors cursor-pointer"
+                        style="width: 2.5rem; min-width: 2.5rem;"
+                        title="Erledigte anzeigen ({{ $done->tasks->count() }})"
+                    >
+                        @svg('heroicon-o-chevron-double-left', 'w-4 h-4 text-[var(--ui-muted)] group-hover/done:text-[var(--planner-status-done)] transition-colors')
+
+                        <div class="flex flex-col items-center gap-2 flex-1 justify-center min-h-0">
+                            <span class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)]" style="writing-mode: vertical-rl; transform: rotate(180deg);">
+                                {{ $done->label ?? 'Erledigt' }}
+                            </span>
+                        </div>
+
+                        <span class="inline-flex items-center justify-center min-w-[1.5rem] h-5 px-1 text-[10px] font-semibold rounded-full tabular-nums" style="background-color: color-mix(in srgb, var(--planner-col-done) 15%, transparent); color: var(--planner-col-done)">
+                            {{ $done->tasks->count() }}
+                        </span>
+                    </button>
                 @endif
             @endif
         </x-ui-kanban-container>
