@@ -57,6 +57,33 @@
         background: #ffffff;
     }
 
+    /* Schlanke, dezente Scrollbars in den Spalten + im Dashboard-Sidebar-Body */
+    .planner-board-canvas .kanban-column [class*="overflow-y-auto"],
+    .planner-board-canvas .overflow-y-auto {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+    }
+    .planner-board-canvas .kanban-column [class*="overflow-y-auto"]::-webkit-scrollbar,
+    .planner-board-canvas .overflow-y-auto::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+    .planner-board-canvas .kanban-column [class*="overflow-y-auto"]::-webkit-scrollbar-track,
+    .planner-board-canvas .overflow-y-auto::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .planner-board-canvas .kanban-column [class*="overflow-y-auto"]::-webkit-scrollbar-thumb,
+    .planner-board-canvas .overflow-y-auto::-webkit-scrollbar-thumb {
+        background-color: rgba(148, 163, 184, 0.30);
+        border-radius: 999px;
+        border: 1.5px solid transparent;
+        background-clip: padding-box;
+    }
+    .planner-board-canvas .kanban-column [class*="overflow-y-auto"]:hover::-webkit-scrollbar-thumb,
+    .planner-board-canvas .overflow-y-auto:hover::-webkit-scrollbar-thumb {
+        background-color: rgba(99, 102, 241, 0.40);
+    }
+
     /* Spalten-Wrapper komplett ohne Fläche */
     .planner-board-canvas .kanban-column,
     .planner-board-canvas .kanban-column > div,

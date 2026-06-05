@@ -17,7 +17,7 @@
     $cs = $canvasStatusTokens[$canvasInfo['status'] ?? 'unknown'] ?? $canvasStatusTokens['unknown'];
 @endphp
 
-<div class="px-4 pt-3 pb-2 border-b border-[var(--ui-border)]/40 bg-[var(--ui-surface)]">
+<div class="px-4 pt-3 pb-2 border-b border-[var(--ui-border)]/40 bg-white">
     <div class="flex items-start justify-between gap-6">
         {{-- Left: Title + subline --}}
         <div class="min-w-0 flex-1">

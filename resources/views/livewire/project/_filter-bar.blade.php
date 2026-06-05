@@ -5,7 +5,7 @@
 @endphp
 
 @if($shouldRender)
-    <div class="flex items-center gap-1.5 px-4 h-9 border-b border-[var(--ui-border)]/40 bg-[var(--ui-surface)] text-[11px]">
+    <div class="flex items-center gap-1.5 px-4 h-9 border-b border-[var(--ui-border)]/40 bg-white text-[11px]">
         <span class="text-[var(--ui-muted)] flex-shrink-0 mr-1">
             @svg('heroicon-o-funnel', 'w-3.5 h-3.5')
         </span>
