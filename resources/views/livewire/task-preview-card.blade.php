@@ -3,125 +3,162 @@
 @php
     $isDone = $task->is_done ?? false;
     $isFrog = $task->is_frog ?? false;
-    $contextColor = $task->color ?? null;
     $userInCharge = $task->userInCharge ?? null;
     $initials = $userInCharge ? mb_strtoupper(mb_substr($userInCharge->name ?? $userInCharge->email ?? 'U', 0, 1)) : null;
     $cardHref = ($publicMode ?? false)
         ? route('planner.public.task', ['token' => $publicToken ?? '', 'task' => $task->id])
         : route('planner.tasks.show', $task) . '?from=' . ($cardFrom ?? 'my-tasks');
+
     $priorityLabel = $task->priority?->label() ?? null;
+    $priorityColor = $task->priority?->color() ?? null;
     $spValue = is_object($task->story_points) ? $task->story_points->points() : $task->story_points;
     $dodProgress = $task->has_dod ? $task->dod_progress : null;
     $isOverdue = $task->due_date && $task->due_date->isPast() && !$isDone;
 
-    // Priority color mapping
-    $priorityColor = $task->priority?->color() ?? null;
+    // Project name only when not already on the project board
+    $showProjectName = ($cardFrom ?? null) !== 'project' && $task->project;
 
-    // Status-aware background class
-    $statusBg = $isOverdue
+    // Due-date phrase
+    $duePhrase = null;
+    if ($task->due_date) {
+        $diff = (int) now()->startOfDay()->diffInDays($task->due_date->copy()->startOfDay(), false);
+        if ($diff < 0)      $duePhrase = abs($diff) . 'd zu spät';
+        elseif ($diff === 0) $duePhrase = 'heute';
+        elseif ($diff === 1) $duePhrase = 'morgen';
+        elseif ($diff < 7)   $duePhrase = 'in ' . $diff . 'd';
+        else                 $duePhrase = $task->due_date->format('d.m.');
+    }
+
+    // Tag preview: first one labelled, rest as +N
+    $tagCount = $task->tags?->count() ?? 0;
+    $firstTag = $tagCount > 0 ? $task->tags->first() : null;
+
+    // Card surface — only signal states get a tint, default stays plain
+    $surface = $isOverdue
         ? '!bg-[var(--planner-card-overdue)]'
         : ($isDone
             ? '!bg-[var(--planner-card-done)] opacity-60'
             : ($isFrog
                 ? '!bg-[var(--planner-card-frog)]'
                 : 'hover:!bg-[var(--planner-card-hover)]'));
-
-    // Top accent color
-    $accentColor = $isOverdue
-        ? 'var(--planner-status-overdue)'
-        : ($isDone
-            ? 'var(--planner-status-done)'
-            : ($contextColor ?? 'var(--planner-status-active)'));
 @endphp
+
 <x-ui-kanban-card
     :title="''"
     :sortable-id="$task->id"
     :href="$cardHref"
-    class="group/card relative {{ $statusBg }} transition-all duration-150"
+    class="group/card relative {{ $surface }} transition-colors duration-150"
 >
-    {{-- Top accent bar (2px) --}}
-    <div class="absolute top-0 left-0 right-0 h-0.5 rounded-t" style="background-color: {{ $accentColor }}"></div>
+    {{-- Optional left edge: only when something signals --}}
+    @if($isOverdue)
+        <div class="absolute top-0 bottom-0 left-0 w-0.5 bg-[var(--planner-status-overdue)]"></div>
+    @elseif($isFrog && !$isDone)
+        <div class="absolute top-0 bottom-0 left-0 w-0.5 bg-[var(--planner-frog)]"></div>
+    @endif
 
-    {{-- Hover quick-actions (top right) --}}
-    @if(!($publicMode ?? false))
-        <div class="absolute top-1.5 right-1.5 opacity-0 group-hover/card:opacity-100 transition-opacity duration-150 z-10" @click.stop>
-            <button
-                type="button"
-                wire:click.prevent.stop="quickToggleDone({{ $task->id }})"
-                @click.stop.prevent
-                class="inline-flex items-center justify-center w-6 h-6 rounded-full {{ $isDone ? 'bg-[var(--planner-status-done)] text-white' : 'bg-white border border-[var(--ui-border)] text-[var(--ui-muted)] hover:border-[var(--planner-status-done)] hover:text-[var(--planner-status-done)]' }} shadow-sm transition-colors"
-                title="{{ $isDone ? 'Als offen markieren' : 'Als erledigt markieren' }}"
-            >
-                @svg('heroicon-s-check', 'w-3.5 h-3.5')
-            </button>
+    {{-- Optional micro-line: project name (only on cross-project boards) --}}
+    @if($showProjectName)
+        <div class="text-[10px] text-[var(--ui-muted)] leading-none truncate mb-1">
+            {{ $task->project->name }}
         </div>
     @endif
 
-    {{-- Micro line: Project · Due date --}}
-    <div class="flex items-center justify-between gap-2 text-[10px] text-[var(--ui-muted)] leading-none mt-1">
-        @if($task->project)
-            <span class="truncate">{{ $task->project->name }}</span>
-        @else
-            <span></span>
-        @endif
-        @if($task->due_date)
-            <span class="flex-shrink-0 {{ $isOverdue ? 'text-[var(--planner-status-overdue)] font-semibold' : '' }}" title="{{ $task->due_date->format('d.m.Y H:i') }}">
-                {{ $task->due_date->format('d.m.') }}
-            </span>
-        @endif
-    </div>
-
-    {{-- Title with priority dot --}}
-    <div class="flex items-start gap-1.5 mt-1">
+    {{-- Title row: priority dot + title + hover quick-done --}}
+    <div class="flex items-start gap-1.5 pr-6">
         @if($priorityColor)
-            <span class="flex-shrink-0 w-2 h-2 rounded-full mt-1" style="background-color: {{ $priorityColor }}" title="{{ $priorityLabel }}"></span>
+            <span
+                class="flex-shrink-0 w-1.5 h-1.5 rounded-full mt-[7px]"
+                style="background-color: {{ $priorityColor }}"
+                title="{{ $priorityLabel }}"
+            ></span>
         @endif
         <h4 class="text-[13px] font-medium leading-snug text-[var(--ui-secondary)] m-0 {{ $isDone ? 'line-through text-[var(--ui-muted)]' : '' }}">
             {{ $task->title }}
         </h4>
+
+        {{-- Quick-done (hover only) --}}
+        @if(!($publicMode ?? false))
+            <button
+                type="button"
+                wire:click.prevent.stop="quickToggleDone({{ $task->id }})"
+                @click.stop.prevent
+                class="absolute top-2 right-2 opacity-0 group-hover/card:opacity-100 transition-opacity inline-flex items-center justify-center w-5 h-5 rounded-full {{ $isDone ? 'bg-[var(--planner-status-done)] text-white' : 'bg-white border border-[var(--ui-border)] text-[var(--ui-muted)] hover:border-[var(--planner-status-done)] hover:text-[var(--planner-status-done)]' }}"
+                title="{{ $isDone ? 'Als offen markieren' : 'Als erledigt markieren' }}"
+            >
+                @svg('heroicon-s-check', 'w-3 h-3')
+            </button>
+        @endif
     </div>
 
-    {{-- Bottom bar: DoD + Frog + Postpone + Avatar --}}
-    <div class="flex items-center gap-2 mt-1.5 text-[11px] text-[var(--ui-muted)]">
-        {{-- DoD progress --}}
-        @if($dodProgress)
-            <span class="flex-shrink-0 inline-flex items-center gap-1" title="DoD: {{ $dodProgress['checked'] }}/{{ $dodProgress['total'] }}">
-                <span class="w-8 h-1.5 bg-[var(--planner-track)] rounded-full overflow-hidden inline-block">
-                    <span class="block h-full rounded-full {{ $dodProgress['isComplete'] ? 'bg-[var(--planner-status-done)]' : 'bg-[var(--planner-track-fill)]' }}" style="width: {{ $dodProgress['percentage'] }}%"></span>
+    {{-- Meta line: due · sp · tag · dod · spacer · postpone · frog · avatar --}}
+    @php
+        $hasMeta = $duePhrase || $spValue || $firstTag || $dodProgress || ($task->postpone_count ?? 0) > 0 || ($isFrog && $isDone) || $userInCharge;
+    @endphp
+    @if($hasMeta)
+        <div class="mt-2 flex items-center gap-1.5 text-[10px] text-[var(--ui-muted)] leading-none">
+            @if($duePhrase)
+                <span
+                    class="inline-flex items-center gap-0.5 flex-shrink-0 {{ $isOverdue ? 'text-[var(--planner-status-overdue)] font-medium' : '' }}"
+                    title="{{ $task->due_date->format('d.m.Y H:i') }}"
+                >
+                    @svg('heroicon-o-clock', 'w-3 h-3 opacity-60')
+                    <span>{{ $duePhrase }}</span>
                 </span>
-                <span class="text-[10px]">{{ $dodProgress['checked'] }}/{{ $dodProgress['total'] }}</span>
-            </span>
-        @endif
+            @endif
 
-        {{-- Frog emoji --}}
-        @if($isFrog)
-            <span class="flex-shrink-0" title="Frosch">🐸</span>
-        @endif
+            @if($spValue)
+                <span class="flex-shrink-0 tabular-nums" title="Story Points">{{ $spValue }} SP</span>
+            @endif
 
-        {{-- Postpone count --}}
-        @if(($task->postpone_count ?? 0) > 0)
-            <span class="flex-shrink-0 inline-flex items-center gap-0.5" title="Verschoben: {{ $task->postpone_count }}x">
-                {{ $task->postpone_count }}x↻
-            </span>
-        @endif
-
-        {{-- Story Points --}}
-        @if($spValue)
-            <span class="flex-shrink-0 px-1 py-0.5 rounded bg-[var(--ui-muted-5)] font-medium text-[10px]">{{ $spValue }} SP</span>
-        @endif
-
-        {{-- Spacer --}}
-        <span class="flex-1"></span>
-
-        {{-- Assignee avatar --}}
-        @if($userInCharge)
-            <span class="flex-shrink-0" title="{{ $userInCharge->name ?? $userInCharge->email }}">
-                @if($userInCharge->avatar)
-                    <img src="{{ $userInCharge->avatar }}" alt="" class="w-4 h-4 rounded-full object-cover">
-                @else
-                    <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[var(--ui-muted-10)] text-[9px] font-medium text-[var(--ui-muted)]">{{ $initials }}</span>
+            @if($firstTag)
+                <span class="inline-flex items-center gap-0.5 flex-shrink-0 truncate max-w-[7rem]" title="{{ $firstTag->label }}">
+                    @if($firstTag->color)
+                        <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" style="background-color: {{ $firstTag->color }}"></span>
+                    @endif
+                    <span class="truncate">#{{ $firstTag->label }}</span>
+                </span>
+                @if($tagCount > 1)
+                    <span class="flex-shrink-0 tabular-nums">+{{ $tagCount - 1 }}</span>
                 @endif
-            </span>
-        @endif
-    </div>
+            @endif
+
+            @if($dodProgress)
+                <span
+                    class="inline-flex items-center gap-1 flex-shrink-0"
+                    title="DoD: {{ $dodProgress['checked'] }}/{{ $dodProgress['total'] }}"
+                >
+                    <span class="w-6 h-1 rounded-full bg-[var(--planner-track)] overflow-hidden inline-block">
+                        <span
+                            class="block h-full rounded-full {{ $dodProgress['isComplete'] ? 'bg-[var(--planner-status-done)]' : 'bg-[var(--planner-track-fill)]' }}"
+                            style="width: {{ $dodProgress['percentage'] }}%"
+                        ></span>
+                    </span>
+                    <span class="tabular-nums">{{ $dodProgress['checked'] }}/{{ $dodProgress['total'] }}</span>
+                </span>
+            @endif
+
+            <span class="flex-1"></span>
+
+            @if(($task->postpone_count ?? 0) > 0)
+                <span class="flex-shrink-0 inline-flex items-center gap-0.5 tabular-nums" title="Verschoben: {{ $task->postpone_count }}x">
+                    @svg('heroicon-o-arrow-path', 'w-3 h-3 opacity-60')
+                    {{ $task->postpone_count }}
+                </span>
+            @endif
+
+            @if($isFrog && $isDone)
+                <span class="flex-shrink-0" title="Frosch (erledigt)">🐸</span>
+            @endif
+
+            @if($userInCharge)
+                <span class="flex-shrink-0 ml-0.5" title="{{ $userInCharge->name ?? $userInCharge->email }}">
+                    @if($userInCharge->avatar)
+                        <img src="{{ $userInCharge->avatar }}" alt="" class="w-4 h-4 rounded-full object-cover">
+                    @else
+                        <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[var(--ui-secondary)] text-white text-[9px] font-semibold">{{ $initials }}</span>
+                    @endif
+                </span>
+            @endif
+        </div>
+    @endif
 </x-ui-kanban-card>
