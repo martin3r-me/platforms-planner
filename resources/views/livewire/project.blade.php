@@ -152,6 +152,7 @@
         'doneCount' => $headerDoneCount,
         'overdueCount' => $headerOverdueCount,
         'linkedEntities' => $linkedEntities,
+        'canvasInfo' => $canvasInfo ?? null,
     ])
 
     @if($activeTab === 'board')

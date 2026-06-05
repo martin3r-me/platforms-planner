@@ -264,48 +264,85 @@
             </button>
 
             {{-- Canvas --}}
-            <div class="bg-[var(--ui-surface)] rounded-lg border border-[var(--ui-border)] p-4">
-                <h3 class="text-sm font-semibold text-[var(--ui-secondary)] mb-3">Canvas</h3>
-                @if($d['canvas'])
-                    @php
-                        $analysis = $d['canvas']['analysis'] ?? [];
-                        $completeness = $analysis['completeness_percent'] ?? null;
-                        $status = $analysis['status'] ?? 'unknown';
-                        $statusColors = [
-                            'green' => 'bg-green-100 text-green-800',
-                            'yellow' => 'bg-yellow-100 text-yellow-800',
-                            'red' => 'bg-red-100 text-red-800',
-                        ];
-                        $statusClass = $statusColors[$status] ?? 'bg-[var(--ui-muted-5)] text-[var(--ui-muted)]';
-                    @endphp
-                    <div class="space-y-2">
-                        <div class="flex items-center gap-2">
-                            <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-medium rounded {{ $statusClass }}">
-                                {{ ucfirst($status) }}
+            @php
+                $analysis = $d['canvas']['analysis'] ?? [];
+                $completeness = $analysis['completeness_percent'] ?? null;
+                $cStatus = $analysis['status'] ?? ($d['canvas'] ? 'unknown' : 'missing');
+                $cTokens = [
+                    'green'   => ['color' => 'var(--planner-status-done)',    'bg' => 'rgba(34,197,94,0.08)',  'label' => 'OK',         'border' => 'rgba(34,197,94,0.30)'],
+                    'yellow'  => ['color' => '#d97706',                       'bg' => 'rgba(217,119,6,0.08)',  'label' => 'Lücken',     'border' => 'rgba(217,119,6,0.30)'],
+                    'red'     => ['color' => 'var(--planner-status-overdue)', 'bg' => 'rgba(239,68,68,0.08)',  'label' => 'Kritisch',   'border' => 'rgba(239,68,68,0.30)'],
+                    'missing' => ['color' => 'var(--ui-muted)',               'bg' => 'var(--ui-muted-5)',     'label' => 'Fehlt',      'border' => 'var(--ui-border)'],
+                    'unknown' => ['color' => 'var(--ui-muted)',               'bg' => 'var(--ui-muted-5)',     'label' => 'Unbekannt',  'border' => 'var(--ui-border)'],
+                ];
+                $ct = $cTokens[$cStatus] ?? $cTokens['unknown'];
+                $canvasWarnings = $analysis['warnings'] ?? [];
+            @endphp
+
+            @if($d['canvas'])
+                <a
+                    href="{{ $d['canvas']['route'] }}"
+                    wire:navigate
+                    class="block bg-[var(--ui-surface)] rounded-lg border-2 p-4 hover:shadow-md hover:-translate-y-px transition-all"
+                    style="border-color: {{ $ct['border'] }};"
+                >
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="inline-flex items-center gap-2">
+                            @svg('heroicon-o-squares-2x2', 'w-4 h-4', ['style' => 'color: ' . $ct['color']])
+                            <h3 class="text-sm font-semibold text-[var(--ui-secondary)] m-0">Project Canvas</h3>
+                        </div>
+                        <span class="inline-flex items-center gap-1 text-[10px] font-medium" style="color: {{ $ct['color'] }};">
+                            Öffnen
+                            @svg('heroicon-o-arrow-right', 'w-3 h-3')
+                        </span>
+                    </div>
+
+                    {{-- Big completeness display --}}
+                    @if($completeness !== null)
+                        <div class="flex items-baseline gap-2 mb-2">
+                            <span class="text-2xl font-bold tabular-nums" style="color: {{ $ct['color'] }};">{{ $completeness }}%</span>
+                            <span class="text-[11px] text-[var(--ui-muted)]">vollständig</span>
+                            <span class="ml-auto inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold rounded" style="background-color: {{ $ct['bg'] }}; color: {{ $ct['color'] }};">
+                                {{ $ct['label'] }}
                             </span>
-                            @if($completeness !== null)
-                                <span class="text-xs text-[var(--ui-muted)]">{{ $completeness }}% vollständig</span>
+                        </div>
+                        <div class="w-full h-1.5 rounded-full bg-[var(--ui-muted-10)] overflow-hidden mb-3">
+                            <div class="h-full rounded-full transition-all" style="width: {{ $completeness }}%; background-color: {{ $ct['color'] }};"></div>
+                        </div>
+                    @endif
+
+                    {{-- Warnings preview --}}
+                    @if(!empty($canvasWarnings))
+                        <div class="space-y-1 pt-2 border-t border-[var(--ui-border)]/40">
+                            @foreach(array_slice($canvasWarnings, 0, 3) as $warning)
+                                <div class="text-[11px] flex items-start gap-1.5" style="color: {{ $ct['color'] }};">
+                                    @svg('heroicon-o-exclamation-triangle', 'w-3 h-3 flex-shrink-0 mt-0.5 opacity-70')
+                                    <span class="text-[var(--ui-secondary)] leading-snug">{{ $warning }}</span>
+                                </div>
+                            @endforeach
+                            @if(count($canvasWarnings) > 3)
+                                <div class="text-[10px] text-[var(--ui-muted)] pl-4.5">+ {{ count($canvasWarnings) - 3 }} weitere</div>
                             @endif
                         </div>
-                        @if(!empty($analysis['warnings']))
-                            <div class="space-y-1">
-                                @foreach(array_slice($analysis['warnings'], 0, 3) as $warning)
-                                    <div class="text-[10px] text-[var(--ui-warning)] flex items-center gap-1">
-                                        @svg('heroicon-o-exclamation-triangle', 'w-3 h-3 flex-shrink-0')
-                                        <span>{{ $warning }}</span>
-                                    </div>
-                                @endforeach
-                            </div>
-                        @endif
-                        <a href="{{ $d['canvas']['route'] }}" class="inline-flex items-center gap-1 text-xs text-[var(--ui-primary)] hover:underline" wire:navigate>
-                            @svg('heroicon-o-arrow-top-right-on-square', 'w-3 h-3')
-                            Canvas öffnen
-                        </a>
+                    @endif
+                </a>
+            @else
+                <button
+                    type="button"
+                    wire:click="openCanvas"
+                    class="block w-full text-left bg-[var(--ui-surface)] rounded-lg border-2 border-dashed border-[var(--ui-border)] p-4 hover:border-[var(--ui-primary)]/60 hover:bg-[var(--ui-primary-5)] transition-all group/canvas"
+                >
+                    <div class="flex items-center gap-2 mb-2">
+                        @svg('heroicon-o-squares-2x2', 'w-4 h-4 text-[var(--ui-muted)] group-hover/canvas:text-[var(--ui-primary)] transition-colors')
+                        <h3 class="text-sm font-semibold text-[var(--ui-secondary)] m-0">Project Canvas</h3>
                     </div>
-                @else
-                    <p class="text-xs text-[var(--ui-muted)]">Kein Canvas vorhanden</p>
-                @endif
-            </div>
+                    <p class="text-[11px] text-[var(--ui-muted)] mb-3">Noch nicht angelegt — Strukturiere Ziele, Stakeholder und Annahmen an einem Ort.</p>
+                    <span class="inline-flex items-center gap-1 text-xs font-medium text-[var(--ui-primary)]">
+                        @svg('heroicon-o-plus', 'w-3.5 h-3.5')
+                        Canvas anlegen
+                    </span>
+                </button>
+            @endif
 
             {{-- Team --}}
             <div class="bg-[var(--ui-surface)] rounded-lg border border-[var(--ui-border)] p-4">

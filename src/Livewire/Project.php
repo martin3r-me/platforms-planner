@@ -157,6 +157,31 @@ class Project extends Component
 
         $allProjectUsers = $this->project->projectUsers()->with('user')->get();
 
+        // === CANVAS-INFO (für Header + Dashboard) ===
+        $canvas = $this->project->canvases()->first();
+        $canvasInfo = null;
+        $canvasAnalysis = null;
+        if ($canvas) {
+            $canvasAnalysis = (new ProjectCanvasAnalysisService())->analyze($canvas);
+            $canvasInfo = [
+                'exists' => true,
+                'completeness' => $canvasAnalysis['completeness_percent'] ?? null,
+                'status' => $canvasAnalysis['status'] ?? 'unknown',
+                'warnings_count' => isset($canvasAnalysis['warnings']) ? count($canvasAnalysis['warnings']) : 0,
+                'route' => route('planner.projects.canvas.show', [$this->project, $canvas]),
+                'name' => $canvas->name,
+            ];
+        } else {
+            $canvasInfo = [
+                'exists' => false,
+                'completeness' => null,
+                'status' => 'missing',
+                'warnings_count' => 0,
+                'route' => null,
+                'name' => null,
+            ];
+        }
+
         // === DASHBOARD TAB ===
         if ($this->activeTab === 'dashboard') {
             // Task-Counts (eine Query)
@@ -202,18 +227,13 @@ class Project extends Component
                 ->orderBy('order')
                 ->get();
 
-            // Canvas
-            $canvasData = null;
-            $canvas = $this->project->canvases()->first();
-            if ($canvas) {
-                $analysis = (new ProjectCanvasAnalysisService())->analyze($canvas);
-                $canvasData = [
-                    'name' => $canvas->name,
-                    'id' => $canvas->id,
-                    'analysis' => $analysis,
-                    'route' => route('planner.projects.canvas.show', [$this->project, $canvas]),
-                ];
-            }
+            // Canvas (Daten aus shared section wiederverwenden)
+            $canvasData = $canvas ? [
+                'name' => $canvas->name,
+                'id' => $canvas->id,
+                'analysis' => $canvasAnalysis,
+                'route' => $canvasInfo['route'],
+            ] : null;
 
             // Team
             $teamMembers = $allProjectUsers->map(fn ($pu) => [
@@ -281,6 +301,7 @@ class Project extends Component
                 'availableFilterTags' => collect(),
                 'availableFilterColors' => collect(),
                 'dashboardData' => $dashboardData,
+                'canvasInfo' => $canvasInfo,
             ])->layout('platform::layouts.app');
         }
 
@@ -420,6 +441,7 @@ class Project extends Component
             'allProjectUsers' => $allProjectUsers,
             'availableFilterTags' => $availableFilterTags,
             'availableFilterColors' => $availableFilterColors,
+            'canvasInfo' => $canvasInfo,
             'dashboardData' => null,
         ])->layout('platform::layouts.app');
     }
