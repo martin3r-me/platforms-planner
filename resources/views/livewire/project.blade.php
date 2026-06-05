@@ -37,10 +37,10 @@
                         </span>
                     @endforeach
                 @endif
-                <button wire:click="openCanvas" class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded bg-[var(--ui-muted-5)] text-[var(--ui-secondary)] hover:bg-[var(--ui-primary-5)] hover:text-[var(--ui-primary)] transition-colors">
-                    @svg('heroicon-o-squares-2x2', 'w-3 h-3')
+                <x-ui-button variant="secondary" size="sm" wire:click="openCanvas" title="Project Canvas öffnen">
+                    @svg('heroicon-o-squares-2x2', 'w-4 h-4')
                     <span>Canvas</span>
-                </button>
+                </x-ui-button>
             </x-slot>
 
             @can('update', $project)
