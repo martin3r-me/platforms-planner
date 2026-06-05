@@ -80,11 +80,10 @@
         </x-ui-page-actionbar>
     </x-slot>
 
-    @if($activeTab === 'board')
-        <x-slot name="sidebar">
-            <x-ui-page-sidebar title="Projekt-Übersicht" width="w-72" :defaultOpen="true">
-                <div class="p-4 space-y-5">
-
+    <x-slot name="sidebar">
+        <x-ui-page-sidebar title="Projekt-Übersicht" width="w-72" :defaultOpen="true">
+            <div class="p-4 space-y-5">
+                @if($activeTab === 'board')
                     {{-- Kompakte Statistiken --}}
                     @php $overdueCount = $openTasks->filter(fn($t) => $t->due_date && $t->due_date->isPast() && !$t->is_done)->count(); @endphp
                     <div class="grid grid-cols-2 gap-2">
@@ -126,75 +125,99 @@
                             </span>
                         @endif
                     </button>
+                @endif
 
-                    {{-- Projekt-Details --}}
+                @if($activeTab === 'dashboard' && $dashboardData)
+                    {{-- Dashboard Sidebar Stats --}}
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="px-3 py-2 rounded border border-[var(--planner-status-active)]/20 bg-[var(--planner-status-active)]/5">
+                            <div class="text-lg font-bold text-[var(--planner-status-active)]">{{ $dashboardData['open_count'] }}</div>
+                            <div class="text-[10px] text-[var(--ui-muted)] uppercase tracking-wide">Offen</div>
+                        </div>
+                        <div class="px-3 py-2 rounded border border-[var(--planner-status-done)]/20 bg-[var(--planner-status-done)]/5">
+                            <div class="text-lg font-bold text-[var(--planner-status-done)]">{{ $dashboardData['done_count'] }}</div>
+                            <div class="text-[10px] text-[var(--ui-muted)] uppercase tracking-wide">Erledigt</div>
+                        </div>
+                        <div class="px-3 py-2 rounded border border-[var(--planner-status-active)]/20 bg-[var(--planner-status-active)]/5">
+                            <div class="text-lg font-bold text-[var(--planner-status-active)]">{{ $dashboardData['open_points'] }}</div>
+                            <div class="text-[10px] text-[var(--ui-muted)] uppercase tracking-wide">SP offen</div>
+                        </div>
+                        <div class="px-3 py-2 rounded border {{ $dashboardData['overdue_tasks']->count() > 0 ? 'border-[var(--planner-status-overdue)]/20 bg-[var(--planner-status-overdue)]/5' : 'border-[var(--ui-border)]/40 bg-[var(--ui-muted-5)]' }}">
+                            <div class="text-lg font-bold {{ $dashboardData['overdue_tasks']->count() > 0 ? 'text-[var(--planner-status-overdue)]' : 'text-[var(--ui-secondary)]' }}">{{ $dashboardData['overdue_tasks']->count() }}</div>
+                            <div class="text-[10px] text-[var(--ui-muted)] uppercase tracking-wide">Überfällig</div>
+                        </div>
+                    </div>
+                @endif
+
+                {{-- Projekt-Details --}}
+                <div>
+                    <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-2">Details</h3>
+                    <div class="space-y-1 text-xs">
+                        <div class="flex justify-between py-1.5 px-2 rounded bg-[var(--ui-muted-5)]">
+                            <span class="text-[var(--ui-muted)]">Typ</span>
+                            <span class="text-[var(--ui-secondary)] font-medium">{{ $project->project_type?->value ?? '–' }}</span>
+                        </div>
+                        <div class="flex justify-between py-1.5 px-2 rounded bg-[var(--ui-muted-5)]">
+                            <span class="text-[var(--ui-muted)]">Erstellt</span>
+                            <span class="text-[var(--ui-secondary)] font-medium">{{ $project->created_at->format('d.m.Y') }}</span>
+                        </div>
+                        @if($project->totalPlannedMinutes() > 0)
+                            <div class="flex justify-between py-1.5 px-2 rounded bg-[var(--ui-muted-5)]">
+                                <span class="text-[var(--ui-muted)]">Geplant</span>
+                                <span class="text-[var(--ui-secondary)] font-medium">{{ number_format($project->totalPlannedMinutes() / 60, 1, ',', '.') }}h</span>
+                            </div>
+                        @endif
+                        @if($project->billing_method)
+                            <div class="flex justify-between py-1.5 px-2 rounded bg-[var(--ui-muted-5)]">
+                                <span class="text-[var(--ui-muted)]">Abrechnung</span>
+                                <span class="text-[var(--ui-secondary)] font-medium">{{ $project->billing_method?->value ?? $project->billing_method }}</span>
+                            </div>
+                        @endif
+                        @if($project->budget_amount)
+                            <div class="flex justify-between py-1.5 px-2 rounded bg-[var(--ui-muted-5)]">
+                                <span class="text-[var(--ui-muted)]">Budget</span>
+                                <span class="text-[var(--ui-secondary)] font-medium">{{ number_format($project->budget_amount, 2, ',', '.') }} {{ $project->currency ?? 'EUR' }}</span>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- Member status --}}
+                @if($currentUserRole ?? null || $hasAnyTasks ?? false)
                     <div>
-                        <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-2">Details</h3>
-                        <div class="space-y-1 text-xs">
-                            <div class="flex justify-between py-1.5 px-2 rounded bg-[var(--ui-muted-5)]">
-                                <span class="text-[var(--ui-muted)]">Typ</span>
-                                <span class="text-[var(--ui-secondary)] font-medium">{{ $project->project_type?->value ?? '–' }}</span>
-                            </div>
-                            <div class="flex justify-between py-1.5 px-2 rounded bg-[var(--ui-muted-5)]">
-                                <span class="text-[var(--ui-muted)]">Erstellt</span>
-                                <span class="text-[var(--ui-secondary)] font-medium">{{ $project->created_at->format('d.m.Y') }}</span>
-                            </div>
-                            @if($project->totalPlannedMinutes() > 0)
-                                <div class="flex justify-between py-1.5 px-2 rounded bg-[var(--ui-muted-5)]">
-                                    <span class="text-[var(--ui-muted)]">Geplant</span>
-                                    <span class="text-[var(--ui-secondary)] font-medium">{{ number_format($project->totalPlannedMinutes() / 60, 1, ',', '.') }}h</span>
-                                </div>
-                            @endif
-                            @if($project->billing_method)
-                                <div class="flex justify-between py-1.5 px-2 rounded bg-[var(--ui-muted-5)]">
-                                    <span class="text-[var(--ui-muted)]">Abrechnung</span>
-                                    <span class="text-[var(--ui-secondary)] font-medium">{{ $project->billing_method?->value ?? $project->billing_method }}</span>
-                                </div>
-                            @endif
-                            @if($project->budget_amount)
-                                <div class="flex justify-between py-1.5 px-2 rounded bg-[var(--ui-muted-5)]">
-                                    <span class="text-[var(--ui-muted)]">Budget</span>
-                                    <span class="text-[var(--ui-secondary)] font-medium">{{ number_format($project->budget_amount, 2, ',', '.') }} {{ $project->currency ?? 'EUR' }}</span>
-                                </div>
-                            @endif
-                        </div>
+                        <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-2">Status</h3>
+                        @if($currentUserRole ?? null)
+                            <span class="text-xs font-medium px-2 py-0.5 rounded bg-[var(--ui-primary-5)] text-[var(--ui-primary)]">
+                                {{ ucfirst($currentUserRole) }}
+                            </span>
+                        @elseif($hasAnyTasks ?? false)
+                            <span class="text-xs font-medium px-2 py-0.5 rounded bg-[var(--ui-warning-5)] text-[var(--ui-warning)]">
+                                Mit Aufgaben
+                            </span>
+                        @endif
                     </div>
+                @endif
+            </div>
+        </x-ui-page-sidebar>
+    </x-slot>
 
-                    {{-- Member status --}}
-                    @if($currentUserRole ?? null || $hasAnyTasks ?? false)
-                        <div>
-                            <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-2">Status</h3>
-                            @if($currentUserRole ?? null)
-                                <span class="text-xs font-medium px-2 py-0.5 rounded bg-[var(--ui-primary-5)] text-[var(--ui-primary)]">
-                                    {{ ucfirst($currentUserRole) }}
-                                </span>
-                            @elseif($hasAnyTasks ?? false)
-                                <span class="text-xs font-medium px-2 py-0.5 rounded bg-[var(--ui-warning-5)] text-[var(--ui-warning)]">
-                                    Mit Aufgaben
-                                </span>
-                            @endif
+    <x-slot name="activity">
+        <x-ui-page-sidebar title="Aktivitäten" width="w-80" :defaultOpen="true" storeKey="activityOpen" side="right">
+            <div class="p-4 space-y-4">
+                <div class="text-sm text-[var(--ui-muted)]">Letzte Aktivitäten</div>
+                <div class="space-y-3 text-sm">
+                    @foreach(($activities ?? []) as $activity)
+                        <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
+                            <div class="font-medium text-[var(--ui-secondary)] truncate">{{ $activity['title'] ?? 'Aktivität' }}</div>
+                            <div class="text-[var(--ui-muted)]">{{ $activity['time'] ?? '' }}</div>
                         </div>
-                    @endif
+                    @endforeach
                 </div>
-            </x-ui-page-sidebar>
-        </x-slot>
+            </div>
+        </x-ui-page-sidebar>
+    </x-slot>
 
-        <x-slot name="activity">
-            <x-ui-page-sidebar title="Aktivitäten" width="w-80" :defaultOpen="true" storeKey="activityOpen" side="right">
-                <div class="p-4 space-y-4">
-                    <div class="text-sm text-[var(--ui-muted)]">Letzte Aktivitäten</div>
-                    <div class="space-y-3 text-sm">
-                        @foreach(($activities ?? []) as $activity)
-                            <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
-                                <div class="font-medium text-[var(--ui-secondary)] truncate">{{ $activity['title'] ?? 'Aktivität' }}</div>
-                                <div class="text-[var(--ui-muted)]">{{ $activity['time'] ?? '' }}</div>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-            </x-ui-page-sidebar>
-        </x-slot>
-
+    @if($activeTab === 'board')
         {{-- Filter Bar (above board) --}}
         @if($availableFilterTags->isNotEmpty() || $availableFilterColors->isNotEmpty() || $hasActiveFilters)
             <div class="flex items-center gap-2 px-4 py-2 border-b border-[var(--ui-border)]/60 bg-white/80 flex-wrap">
