@@ -235,6 +235,32 @@ class Project extends Component
                 'route' => $canvasInfo['route'],
             ] : null;
 
+            // Canvas-Briefing: strukturierten Inhalt nach Block-Typ aufbereiten.
+            // Blocks + Entries sind durch analyze() bereits eager-loaded.
+            $canvasBriefing = null;
+            if ($canvas) {
+                $blockConfig = config('planner.canvas_block_types', []);
+                $byType = $canvas->blocks->keyBy('block_type');
+                $briefing = [];
+                foreach ($blockConfig as $key => $cfg) {
+                    $block = $byType->get($key);
+                    $entries = $block ? $block->entries->map(fn ($e) => [
+                        'title' => $e->title,
+                        'content' => $e->content,
+                        'type' => $e->entry_type,
+                    ])->all() : [];
+                    $briefing[$key] = [
+                        'key' => $key,
+                        'label' => $cfg['label'] ?? $key,
+                        'description' => $cfg['description'] ?? null,
+                        'has_block' => (bool) $block,
+                        'entries' => $entries,
+                        'count' => count($entries),
+                    ];
+                }
+                $canvasBriefing = $briefing;
+            }
+
             // Team
             $teamMembers = $allProjectUsers->map(fn ($pu) => [
                 'name' => $pu->user?->name ?? 'Unbekannt',
@@ -282,6 +308,7 @@ class Project extends Component
 
                 // Canvas
                 'canvas' => $canvasData,
+                'canvas_briefing' => $canvasBriefing,
 
                 // Team
                 'team_members' => $teamMembers,
