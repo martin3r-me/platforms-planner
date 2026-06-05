@@ -275,12 +275,12 @@
                         @endforelse
                     </x-ui-kanban-column>
                 @else
-                    {{-- Collapsed: schmaler Streifen, klick öffnet --}}
+                    {{-- Collapsed: schmaler Streifen, klebt am rechten Rand und bleibt beim horizontalen Scrollen sichtbar --}}
                     <button
                         type="button"
                         wire:click="toggleShowDoneColumn"
-                        class="group/done flex-shrink-0 h-full flex flex-col items-center justify-between py-3 px-2 bg-[var(--ui-surface)] border border-[var(--ui-border)]/40 hover:border-[var(--planner-status-done)]/40 hover:bg-[var(--planner-card-done)] transition-colors cursor-pointer"
-                        style="width: 2.5rem; min-width: 2.5rem;"
+                        class="group/done sticky right-0 z-10 flex-shrink-0 h-full flex flex-col items-center justify-between py-3 px-2 bg-[var(--ui-surface)] border border-[var(--ui-border)]/40 hover:border-[var(--planner-status-done)]/40 hover:bg-[var(--planner-card-done)] transition-colors cursor-pointer"
+                        style="width: 2.5rem; min-width: 2.5rem; box-shadow: -10px 0 14px -10px rgba(15, 23, 42, 0.18);"
                         title="Erledigte anzeigen ({{ $done->tasks->count() }})"
                     >
                         @svg('heroicon-o-chevron-double-left', 'w-4 h-4 text-[var(--ui-muted)] group-hover/done:text-[var(--planner-status-done)] transition-colors')
