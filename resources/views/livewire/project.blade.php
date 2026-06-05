@@ -221,103 +221,13 @@
     ])
 
     @if($activeTab === 'board')
-        {{-- Filter Bar (above board) --}}
-        @if($availableFilterTags->isNotEmpty() || $availableFilterColors->isNotEmpty() || $hasActiveFilters)
-            <div class="flex items-center gap-2 px-4 py-2 border-b border-[var(--ui-border)]/60 bg-white/80 flex-wrap">
-                <span class="text-[var(--ui-muted)] flex-shrink-0">
-                    @svg('heroicon-o-funnel', 'w-4 h-4')
-                </span>
-
-                {{-- Active filter tokens --}}
-                @foreach($availableFilterTags->filter(fn($t) => in_array($t['id'], $filterTagIds)) as $tag)
-                    <button
-                        wire:click="toggleTagFilter({{ $tag['id'] }})"
-                        class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full border transition-colors bg-[var(--ui-primary)] text-white border-[var(--ui-primary)]"
-                    >
-                        @if($tag['color'])
-                            <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {{ $tag['color'] }}"></span>
-                        @endif
-                        {{ $tag['label'] }}
-                        @svg('heroicon-o-x-mark', 'w-3 h-3')
-                    </button>
-                @endforeach
-
-                @if($filterColor)
-                    <button
-                        wire:click="toggleColorFilter('{{ $filterColor }}')"
-                        class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full border border-[var(--ui-primary)] text-[var(--ui-secondary)]"
-                    >
-                        <span class="w-3 h-3 rounded-full flex-shrink-0 border border-white/50" style="background-color: {{ $filterColor }}"></span>
-                        @svg('heroicon-o-x-mark', 'w-3 h-3')
-                    </button>
-                @endif
-
-                {{-- Add filter dropdown --}}
-                <div x-data="{ open: false }" class="relative">
-                    <button @click="open = !open" class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full border border-dashed border-[var(--ui-border)] text-[var(--ui-muted)] hover:border-[var(--ui-primary)] hover:text-[var(--ui-primary)] transition-colors">
-                        @svg('heroicon-o-plus', 'w-3 h-3')
-                        Filter
-                    </button>
-                    <div
-                        x-show="open"
-                        x-cloak
-                        @click.outside="open = false"
-                        class="absolute top-full left-0 mt-1 w-56 bg-white border border-[var(--ui-border)] rounded-lg shadow-lg z-20 p-3 space-y-3"
-                    >
-                        @if($availableFilterTags->isNotEmpty())
-                            <div>
-                                <div class="text-[10px] uppercase tracking-wide text-[var(--ui-muted)] mb-1.5">Tags</div>
-                                <div class="flex flex-wrap gap-1">
-                                    @foreach($availableFilterTags as $tag)
-                                        <button
-                                            wire:click="toggleTagFilter({{ $tag['id'] }})"
-                                            @click="open = false"
-                                            class="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full border transition-colors
-                                                {{ in_array($tag['id'], $filterTagIds)
-                                                    ? 'bg-[var(--ui-primary)] text-white border-[var(--ui-primary)]'
-                                                    : 'bg-[var(--ui-muted-5)] text-[var(--ui-muted)] border-[var(--ui-border)]/40 hover:border-[var(--ui-primary)]/60' }}"
-                                        >
-                                            @if($tag['color'])
-                                                <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" style="background-color: {{ $tag['color'] }}"></span>
-                                            @endif
-                                            {{ $tag['label'] }}
-                                        </button>
-                                    @endforeach
-                                </div>
-                            </div>
-                        @endif
-                        @if($availableFilterColors->isNotEmpty())
-                            <div>
-                                <div class="text-[10px] uppercase tracking-wide text-[var(--ui-muted)] mb-1.5">Farben</div>
-                                <div class="flex flex-wrap gap-1.5">
-                                    @foreach($availableFilterColors as $color)
-                                        <button
-                                            wire:click="toggleColorFilter('{{ $color }}')"
-                                            @click="open = false"
-                                            class="w-6 h-6 rounded-full border-2 transition-all
-                                                {{ $filterColor === $color
-                                                    ? 'border-[var(--ui-primary)] ring-2 ring-[var(--ui-primary)]/30 scale-110'
-                                                    : 'border-[var(--ui-border)]/40 hover:border-[var(--ui-primary)]/60' }}"
-                                            style="background-color: {{ $color }}"
-                                        ></button>
-                                    @endforeach
-                                </div>
-                            </div>
-                        @endif
-                    </div>
-                </div>
-
-                {{-- Clear all --}}
-                @if($hasActiveFilters)
-                    <button
-                        wire:click="clearFilters"
-                        class="ml-auto inline-flex items-center gap-1 text-xs text-[var(--ui-muted)] hover:text-[var(--ui-danger)] transition-colors"
-                    >
-                        Alle entfernen
-                    </button>
-                @endif
-            </div>
-        @endif
+        @include('planner::livewire.project._filter-bar', [
+            'availableFilterTags' => $availableFilterTags,
+            'availableFilterColors' => $availableFilterColors,
+            'filterTagIds' => $filterTagIds,
+            'filterColor' => $filterColor,
+            'hasActiveFilters' => $hasActiveFilters,
+        ])
 
         {{-- Board --}}
         <x-ui-kanban-container sortable="updateTaskGroupOrder" sortable-group="updateTaskOrder">
