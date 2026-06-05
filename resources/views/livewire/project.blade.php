@@ -3,6 +3,13 @@
         $allTasks = $groups->flatMap(fn($g) => $g->tasks);
         $openTasks = $groups->filter(fn($g) => !($g->isDoneGroup ?? false))->flatMap(fn($g) => $g->tasks);
         $doneTasks = $groups->filter(fn($g) => $g->isDoneGroup ?? false)->flatMap(fn($g) => $g->tasks);
+        $headerOpenCount = $openTasks->count();
+        $headerDoneCount = $doneTasks->count();
+        $headerOverdueCount = $openTasks->filter(fn($t) => $t->due_date && $t->due_date->isPast() && !$t->is_done)->count();
+    } else {
+        $headerOpenCount = $dashboardData['open_count'] ?? 0;
+        $headerDoneCount = $dashboardData['done_count'] ?? 0;
+        $headerOverdueCount = isset($dashboardData['overdue_tasks']) ? $dashboardData['overdue_tasks']->count() : 0;
     }
     $hasActiveFilters = !empty($filterTagIds) || $filterColor;
 @endphp
@@ -84,28 +91,7 @@
         <x-ui-page-sidebar title="Projekt-Übersicht" width="w-72" :defaultOpen="true">
             <div class="p-4 space-y-5">
                 @if($activeTab === 'board')
-                    {{-- Kompakte Statistiken --}}
-                    @php $overdueCount = $openTasks->filter(fn($t) => $t->due_date && $t->due_date->isPast() && !$t->is_done)->count(); @endphp
-                    <div class="grid grid-cols-2 gap-2">
-                        <div class="px-3 py-2 rounded border border-[var(--planner-status-active)]/20 bg-[var(--planner-status-active)]/5">
-                            <div class="text-lg font-bold text-[var(--planner-status-active)]">{{ $openTasks->count() }}</div>
-                            <div class="text-[10px] text-[var(--ui-muted)] uppercase tracking-wide">Offen</div>
-                        </div>
-                        <div class="px-3 py-2 rounded border border-[var(--planner-status-done)]/20 bg-[var(--planner-status-done)]/5">
-                            <div class="text-lg font-bold text-[var(--planner-status-done)]">{{ $doneTasks->count() }}</div>
-                            <div class="text-[10px] text-[var(--ui-muted)] uppercase tracking-wide">Erledigt</div>
-                        </div>
-                        <div class="px-3 py-2 rounded border border-[var(--planner-status-active)]/20 bg-[var(--planner-status-active)]/5">
-                            <div class="text-lg font-bold text-[var(--planner-status-active)]">{{ $openTasks->sum(fn($t) => $t->story_points?->points() ?? 0) }}</div>
-                            <div class="text-[10px] text-[var(--ui-muted)] uppercase tracking-wide">SP offen</div>
-                        </div>
-                        <div class="px-3 py-2 rounded border {{ $overdueCount > 0 ? 'border-[var(--planner-status-overdue)]/20 bg-[var(--planner-status-overdue)]/5' : 'border-[var(--ui-border)]/40 bg-[var(--ui-muted-5)]' }}">
-                            <div class="text-lg font-bold {{ $overdueCount > 0 ? 'text-[var(--planner-status-overdue)]' : 'text-[var(--ui-secondary)]' }}">{{ $overdueCount }}</div>
-                            <div class="text-[10px] text-[var(--ui-muted)] uppercase tracking-wide">Überfällig</div>
-                        </div>
-                    </div>
-
-                    {{-- Done toggle --}}
+                    {{-- Done toggle (wird in Step 6 durch collapsed column ersetzt) --}}
                     <button
                         wire:click="toggleShowDoneColumn"
                         class="w-full flex items-center justify-between py-2 px-3 bg-[var(--ui-primary-5)] hover:bg-[var(--ui-primary-10)] border border-[var(--ui-primary)]/30 rounded transition-colors"
@@ -125,28 +111,6 @@
                             </span>
                         @endif
                     </button>
-                @endif
-
-                @if($activeTab === 'dashboard' && $dashboardData)
-                    {{-- Dashboard Sidebar Stats --}}
-                    <div class="grid grid-cols-2 gap-2">
-                        <div class="px-3 py-2 rounded border border-[var(--planner-status-active)]/20 bg-[var(--planner-status-active)]/5">
-                            <div class="text-lg font-bold text-[var(--planner-status-active)]">{{ $dashboardData['open_count'] }}</div>
-                            <div class="text-[10px] text-[var(--ui-muted)] uppercase tracking-wide">Offen</div>
-                        </div>
-                        <div class="px-3 py-2 rounded border border-[var(--planner-status-done)]/20 bg-[var(--planner-status-done)]/5">
-                            <div class="text-lg font-bold text-[var(--planner-status-done)]">{{ $dashboardData['done_count'] }}</div>
-                            <div class="text-[10px] text-[var(--ui-muted)] uppercase tracking-wide">Erledigt</div>
-                        </div>
-                        <div class="px-3 py-2 rounded border border-[var(--planner-status-active)]/20 bg-[var(--planner-status-active)]/5">
-                            <div class="text-lg font-bold text-[var(--planner-status-active)]">{{ $dashboardData['open_points'] }}</div>
-                            <div class="text-[10px] text-[var(--ui-muted)] uppercase tracking-wide">SP offen</div>
-                        </div>
-                        <div class="px-3 py-2 rounded border {{ $dashboardData['overdue_tasks']->count() > 0 ? 'border-[var(--planner-status-overdue)]/20 bg-[var(--planner-status-overdue)]/5' : 'border-[var(--ui-border)]/40 bg-[var(--ui-muted-5)]' }}">
-                            <div class="text-lg font-bold {{ $dashboardData['overdue_tasks']->count() > 0 ? 'text-[var(--planner-status-overdue)]' : 'text-[var(--ui-secondary)]' }}">{{ $dashboardData['overdue_tasks']->count() }}</div>
-                            <div class="text-[10px] text-[var(--ui-muted)] uppercase tracking-wide">Überfällig</div>
-                        </div>
-                    </div>
                 @endif
 
                 {{-- Projekt-Details --}}
@@ -216,6 +180,15 @@
             </div>
         </x-ui-page-sidebar>
     </x-slot>
+
+    <div class="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
+    {{-- Project Header (immer sichtbar, einheitlich für Board + Dashboard) --}}
+    @include('planner::livewire.project._header', [
+        'project' => $project,
+        'openCount' => $headerOpenCount,
+        'doneCount' => $headerDoneCount,
+        'overdueCount' => $headerOverdueCount,
+    ])
 
     @if($activeTab === 'board')
         {{-- Filter Bar (above board) --}}
@@ -432,6 +405,7 @@
             ])
         </div>
     @endif
+    </div>
 
     {{-- Modals --}}
     <livewire:planner.project-settings-modal/>
