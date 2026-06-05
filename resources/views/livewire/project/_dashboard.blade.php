@@ -31,7 +31,7 @@
     }
 @endphp
 
-<div class="max-w-6xl mx-auto p-6 space-y-6">
+<div class="p-6 space-y-6">
 
     {{-- Sektion 1: Projekt-Header --}}
     <div class="bg-[var(--ui-surface)] rounded-lg border border-[var(--ui-border)] p-4">
