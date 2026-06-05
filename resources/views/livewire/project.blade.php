@@ -33,19 +33,19 @@
                 <div class="inline-flex rounded-md border border-[var(--ui-border)]/60 overflow-hidden">
                     <button
                         type="button"
-                        wire:click="$set('activeTab', 'board')"
-                        class="inline-flex items-center gap-1.5 px-2.5 h-7 text-xs transition-colors {{ $activeTab === 'board' ? 'bg-[var(--ui-secondary)] text-white' : 'bg-transparent text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}"
-                    >
-                        @svg('heroicon-o-view-columns', 'w-3.5 h-3.5')
-                        <span>Board</span>
-                    </button>
-                    <button
-                        type="button"
                         wire:click="$set('activeTab', 'dashboard')"
-                        class="inline-flex items-center gap-1.5 px-2.5 h-7 text-xs border-l border-[var(--ui-border)]/60 transition-colors {{ $activeTab === 'dashboard' ? 'bg-[var(--ui-secondary)] text-white' : 'bg-transparent text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}"
+                        class="inline-flex items-center gap-1.5 px-2.5 h-7 text-xs transition-colors {{ $activeTab === 'dashboard' ? 'bg-[var(--ui-secondary)] text-white' : 'bg-transparent text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}"
                     >
                         @svg('heroicon-o-chart-bar-square', 'w-3.5 h-3.5')
                         <span>Dashboard</span>
+                    </button>
+                    <button
+                        type="button"
+                        wire:click="$set('activeTab', 'board')"
+                        class="inline-flex items-center gap-1.5 px-2.5 h-7 text-xs border-l border-[var(--ui-border)]/60 transition-colors {{ $activeTab === 'board' ? 'bg-[var(--ui-secondary)] text-white' : 'bg-transparent text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}"
+                    >
+                        @svg('heroicon-o-view-columns', 'w-3.5 h-3.5')
+                        <span>Board</span>
                     </button>
                 </div>
             </x-slot>

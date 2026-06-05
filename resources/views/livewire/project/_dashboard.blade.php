@@ -213,6 +213,56 @@
         {{-- Rechts: 1/3 --}}
         <div class="lg:col-span-1 space-y-6">
 
+            {{-- Board Teaser --}}
+            <button
+                type="button"
+                wire:click="$set('activeTab', 'board')"
+                class="block w-full text-left bg-[var(--ui-surface)] rounded-lg border border-[var(--ui-border)] p-4 hover:border-[var(--ui-primary)]/60 hover:shadow-sm transition-all group"
+            >
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-semibold text-[var(--ui-secondary)]">Board</h3>
+                    <span class="inline-flex items-center gap-1 text-[10px] text-[var(--ui-muted)] group-hover:text-[var(--ui-primary)] transition-colors">
+                        Öffnen
+                        @svg('heroicon-o-arrow-right', 'w-3 h-3')
+                    </span>
+                </div>
+
+                @if($d['slots']->isNotEmpty())
+                    {{-- Mini-Spalten: pro Slot eine kleine Bar --}}
+                    <div class="space-y-1.5">
+                        @foreach($d['slots'] as $slot)
+                            @php
+                                $slotTotal = $slot->open_count + $slot->done_count;
+                                $maxTotal = max($d['slots']->max(fn($s) => $s->open_count + $s->done_count), 1);
+                                $widthPct = max(4, round(($slotTotal / $maxTotal) * 100));
+                            @endphp
+                            <div class="flex items-center gap-2 text-[11px]">
+                                <span class="truncate text-[var(--ui-secondary)] flex-1 min-w-0">{{ $slot->label ?? $slot->name ?? 'Spalte' }}</span>
+                                <span class="h-1.5 rounded-full bg-[var(--planner-track-fill)]/60 flex-shrink-0" style="width: {{ $widthPct * 0.6 }}px"></span>
+                                <span class="tabular-nums text-[var(--ui-muted)] w-6 text-right">{{ $slotTotal }}</span>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <p class="text-xs text-[var(--ui-muted)]">Noch keine Spalten</p>
+                @endif
+
+                <div class="mt-3 pt-3 border-t border-[var(--ui-border)]/40 flex items-center gap-4 text-[11px]">
+                    <span class="inline-flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-[var(--planner-status-active)]"></span>
+                        <span class="font-semibold tabular-nums">{{ $d['open_count'] }}</span>
+                        <span class="text-[var(--ui-muted)]">offen</span>
+                    </span>
+                    @if($d['overdue_tasks']->count() > 0)
+                        <span class="inline-flex items-center gap-1.5 text-[var(--planner-status-overdue)]">
+                            <span class="w-1.5 h-1.5 rounded-full bg-[var(--planner-status-overdue)]"></span>
+                            <span class="font-semibold tabular-nums">{{ $d['overdue_tasks']->count() }}</span>
+                            <span>überfällig</span>
+                        </span>
+                    @endif
+                </div>
+            </button>
+
             {{-- Canvas --}}
             <div class="bg-[var(--ui-surface)] rounded-lg border border-[var(--ui-border)] p-4">
                 <h3 class="text-sm font-semibold text-[var(--ui-secondary)] mb-3">Canvas</h3>

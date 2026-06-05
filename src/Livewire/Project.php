@@ -22,10 +22,10 @@ class Project extends Component
     public $sprint; // Aktueller Sprint des Projekts
     public bool $showDoneColumn = false; // Erledigt-Spalte ein/ausblenden
 
-    public string $activeTab = 'board';
+    public string $activeTab = 'dashboard';
 
     protected $queryString = [
-        'activeTab' => ['except' => 'board', 'as' => 'tab'],
+        'activeTab' => ['except' => 'dashboard', 'as' => 'tab'],
     ];
 
     // Filter
