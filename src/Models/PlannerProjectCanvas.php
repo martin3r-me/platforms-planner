@@ -2,16 +2,60 @@
 
 namespace Platform\Planner\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Platform\ActivityLog\Traits\LogsActivity;
+use Platform\Core\Models\User;
 use Symfony\Component\Uid\UuidV7;
 
 class PlannerProjectCanvas extends Model
 {
     use LogsActivity, SoftDeletes;
+
+    // Visibility constants
+    public const VISIBILITY_TEAM = 'team';
+    public const VISIBILITY_PRIVATE = 'private';
+
+    // Status constants (aligned with Canvas module)
+    public const STATUS_OPEN = 'open';
+    public const STATUS_COMPLETED = 'completed';
+    public const STATUS_DISCARDED = 'discarded';
+
+    public const STATUSES = [
+        self::STATUS_OPEN,
+        self::STATUS_COMPLETED,
+        self::STATUS_DISCARDED,
+    ];
+
+    public const ACTIVE_STATUSES = [
+        self::STATUS_OPEN,
+    ];
+
+    public const DONE_STATUSES = [
+        self::STATUS_COMPLETED,
+        self::STATUS_DISCARDED,
+    ];
+
+    public const STATUS_LABELS = [
+        self::STATUS_OPEN => 'Offen',
+        self::STATUS_COMPLETED => 'Abgeschlossen',
+        self::STATUS_DISCARDED => 'Verworfen',
+    ];
+
+    public const STATUS_ICONS = [
+        self::STATUS_OPEN => 'heroicon-o-pencil-square',
+        self::STATUS_COMPLETED => 'heroicon-o-check-circle',
+        self::STATUS_DISCARDED => 'heroicon-o-x-circle',
+    ];
+
+    public const STATUS_VARIANTS = [
+        self::STATUS_OPEN => 'primary',
+        self::STATUS_COMPLETED => 'success',
+        self::STATUS_DISCARDED => 'secondary',
+    ];
 
     protected $table = 'planner_project_canvases';
 
@@ -22,11 +66,17 @@ class PlannerProjectCanvas extends Model
         'name',
         'description',
         'status',
+        'visibility',
+        'public_token',
+        'is_public',
+        'workshop_settings',
         'created_by_user_id',
     ];
 
     protected $casts = [
         'status' => 'string',
+        'is_public' => 'boolean',
+        'workshop_settings' => 'array',
     ];
 
     protected static function booted(): void
@@ -80,6 +130,16 @@ class PlannerProjectCanvas extends Model
         return $this->hasMany(PlannerProjectCanvasSnapshot::class, 'canvas_id')->orderBy('version', 'desc');
     }
 
+    public function comments(): HasMany
+    {
+        return $this->hasMany(PlannerProjectCanvasComment::class, 'canvas_id');
+    }
+
+    public function workshopNotes(): HasMany
+    {
+        return $this->hasMany(PlannerProjectCanvasWorkshopNote::class, 'canvas_id');
+    }
+
     /**
      * All entries across all blocks (for soft-delete cascade).
      */
@@ -108,6 +168,59 @@ class PlannerProjectCanvas extends Model
     public function scopeForProject($query, int $projectId)
     {
         return $query->where('project_id', $projectId);
+    }
+
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        return $query->where(function ($q) use ($user) {
+            $q->where('visibility', self::VISIBILITY_TEAM)
+              ->orWhere('created_by_user_id', $user->id);
+        });
+    }
+
+    public function isVisibleTo(User $user): bool
+    {
+        return $this->visibility === self::VISIBILITY_TEAM
+            || $this->created_by_user_id === $user->id;
+    }
+
+    // Public Link
+
+    public function generatePublicToken(): string
+    {
+        $this->public_token = bin2hex(random_bytes(16));
+        $this->is_public = true;
+        $this->save();
+
+        return $this->public_token;
+    }
+
+    public function getPublicUrl(): ?string
+    {
+        if (! $this->public_token) {
+            return null;
+        }
+
+        // Generic URL — public route can be added later
+        return url("/planner/projects/{$this->project_id}/canvas/{$this->id}/public/{$this->public_token}");
+    }
+
+    // Status helpers
+
+    public function close(?string $reason = 'completed'): void
+    {
+        $status = $reason === 'discarded' ? self::STATUS_DISCARDED : self::STATUS_COMPLETED;
+        $this->update(['status' => $status]);
+    }
+
+    public function reopen(): void
+    {
+        $this->update(['status' => self::STATUS_OPEN]);
+    }
+
+    public function isClosed(): bool
+    {
+        return in_array($this->status, self::DONE_STATUSES);
     }
 
     /**

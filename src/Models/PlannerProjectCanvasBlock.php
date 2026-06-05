@@ -51,6 +51,14 @@ class PlannerProjectCanvasBlock extends Model
     }
 
     /**
+     * Accessor: block_key as alias for block_type (Canvas module compatibility).
+     */
+    public function getBlockKeyAttribute(): string
+    {
+        return $this->block_type;
+    }
+
+    /**
      * Get guiding questions for this block type from config.
      */
     public function getGuidingQuestions(): array

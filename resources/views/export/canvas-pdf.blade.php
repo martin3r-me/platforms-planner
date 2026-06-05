@@ -21,7 +21,7 @@
             color: #1f2937;
         }
 
-        /* -- Font scale tiers -- */
+        /* Font scale tiers */
         body.scale-lg { font-size: 8pt; }
         body.scale-md { font-size: 7pt; }
         body.scale-sm { font-size: 6pt; }
@@ -50,7 +50,6 @@
             color: #6b7280;
         }
 
-        /* -- Canvas table (3x3 grid) -- */
         .canvas-table {
             width: 100%;
             border-collapse: collapse;
@@ -58,7 +57,6 @@
         }
 
         .canvas-table td {
-            width: 33.33%;
             border: 0.5pt solid #d1d5db;
             vertical-align: top;
             padding: 0;
@@ -99,17 +97,17 @@
             color: #1f2937;
         }
 
-        .entry-type {
-            font-size: 0.8em;
-            color: #9ca3af;
-            font-style: italic;
-        }
-
         .entry-content {
             font-size: 0.9em;
             color: #6b7280;
             margin-top: 0.2mm;
             word-wrap: break-word;
+        }
+
+        .entry-type-badge {
+            font-size: 0.75em;
+            color: #9ca3af;
+            font-style: italic;
         }
 
         .empty-hint {
@@ -141,48 +139,130 @@
 
     @php
         $blocks = $canvasData['blocks'] ?? [];
+        $layout = config('planner.canvas_layout', []);
+        $hasAreas = !empty($layout['areas'] ?? null) && !empty($layout['area_map'] ?? null);
+        $columns = $layout['columns'] ?? 3;
+        $rows = $layout['rows'] ?? 3;
 
-        $getBlock = function($type) use ($blocks, $blockTypes) {
-            $block = $blocks[$type] ?? null;
-            $config = $blockTypes[$type] ?? [];
-            $label = $config['label'] ?? ucfirst(str_replace('_', ' ', $type));
+        $getBlock = function($key) use ($blocks, $blockDefs) {
+            $block = $blocks[$key] ?? null;
+            $config = collect($blockDefs)->firstWhere('key', $key) ?? [];
+            $label = $config['label'] ?? ucfirst(str_replace('_', ' ', $key));
             $entries = $block['entries'] ?? [];
             return ['label' => $label, 'entries' => $entries];
         };
-
-        $grid = [
-            [$getBlock('project_goal'), $getBlock('scope'), $getBlock('stakeholders')],
-            [$getBlock('risks'), $getBlock('milestones'), $getBlock('resources')],
-            [$getBlock('budget'), $getBlock('communication'), $getBlock('governance')],
-        ];
     @endphp
 
-    <table class="canvas-table">
-        @foreach($grid as $row)
-        <tr>
-            @foreach($row as $block)
-            <td>
-                <div class="block-header"><h3>{{ $block['label'] }}</h3></div>
-                <div class="block-body">
-                    @forelse($block['entries'] as $entry)
-                        <div class="entry">
-                            @if(!empty($entry['title']))
-                                <span class="entry-title">{{ $entry['title'] }}</span>
-                                @if(!empty($entry['entry_type']) && $entry['entry_type'] !== 'text')
-                                    <span class="entry-type">({{ ucfirst($entry['entry_type']) }})</span>
-                                @endif
-                            @endif
-                            @if(!empty($entry['content']))<div class="entry-content">{{ $entry['content'] }}</div>@endif
+    @if($hasAreas)
+        {{-- Complex layout: parse areas string into 2D grid for HTML table --}}
+        @php
+            $areasRows = array_map('trim', explode('/', $layout['areas']));
+            $areaMap = $layout['area_map'];
+            $reverseMap = array_flip($areaMap);
+
+            $grid = [];
+            foreach ($areasRows as $rowIdx => $rowStr) {
+                $grid[$rowIdx] = preg_split('/\s+/', $rowStr);
+            }
+
+            $numRows = count($grid);
+            $numCols = count($grid[0] ?? []);
+
+            $rendered = [];
+            $colWidth = round(100 / $numCols, 4);
+        @endphp
+
+        <table class="canvas-table">
+            @for($r = 0; $r < $numRows; $r++)
+            <tr>
+                @for($c = 0; $c < $numCols; $c++)
+                    @php
+                        $areaCode = $grid[$r][$c] ?? '';
+
+                        if (isset($rendered[$areaCode])) {
+                            continue;
+                        }
+
+                        $colspan = 1;
+                        while ($c + $colspan < $numCols && ($grid[$r][$c + $colspan] ?? '') === $areaCode) {
+                            $colspan++;
+                        }
+
+                        $rowspan = 1;
+                        while ($r + $rowspan < $numRows) {
+                            $match = true;
+                            for ($cc = $c; $cc < $c + $colspan; $cc++) {
+                                if (($grid[$r + $rowspan][$cc] ?? '') !== $areaCode) {
+                                    $match = false;
+                                    break;
+                                }
+                            }
+                            if (!$match) break;
+                            $rowspan++;
+                        }
+
+                        $rendered[$areaCode] = true;
+                        $blockKey = $reverseMap[$areaCode] ?? null;
+                        $blockData = $blockKey ? $getBlock($blockKey) : null;
+                    @endphp
+
+                    @if($blockData)
+                    <td @if($colspan > 1) colspan="{{ $colspan }}" @endif
+                        @if($rowspan > 1) rowspan="{{ $rowspan }}" @endif
+                        style="width: {{ $colWidth * $colspan }}%;">
+                        <div class="block-header"><h3>{{ $blockData['label'] }}</h3></div>
+                        <div class="block-body">
+                            @forelse($blockData['entries'] as $entry)
+                                <div class="entry">
+                                    @if(!empty($entry['title']))<div class="entry-title">{{ $entry['title'] }}</div>@endif
+                                    @if(($entry['entry_type'] ?? 'text') !== 'text')<span class="entry-type-badge">[{{ $entry['entry_type'] }}]</span>@endif
+                                    @if(!empty($entry['content']))<div class="entry-content">{{ $entry['content'] }}</div>@endif
+                                </div>
+                            @empty
+                                <div class="empty-hint">&ndash;</div>
+                            @endforelse
                         </div>
-                    @empty
-                        <div class="empty-hint">&ndash;</div>
-                    @endforelse
-                </div>
-            </td>
+                    </td>
+                    @endif
+                @endfor
+            </tr>
+            @endfor
+        </table>
+    @else
+        {{-- Simple grid: NxM table --}}
+        @php
+            $orderedDefs = collect($blockDefs)->sortBy('position')->values();
+            $chunks = $orderedDefs->chunk($columns);
+        @endphp
+
+        <table class="canvas-table">
+            @foreach($chunks as $row)
+            <tr>
+                @foreach($row as $def)
+                    @php $blockData = $getBlock($def['key']); @endphp
+                    <td style="width: {{ round(100 / $columns, 4) }}%;">
+                        <div class="block-header"><h3>{{ $blockData['label'] }}</h3></div>
+                        <div class="block-body">
+                            @forelse($blockData['entries'] as $entry)
+                                <div class="entry">
+                                    @if(!empty($entry['title']))<div class="entry-title">{{ $entry['title'] }}</div>@endif
+                                    @if(($entry['entry_type'] ?? 'text') !== 'text')<span class="entry-type-badge">[{{ $entry['entry_type'] }}]</span>@endif
+                                    @if(!empty($entry['content']))<div class="entry-content">{{ $entry['content'] }}</div>@endif
+                                </div>
+                            @empty
+                                <div class="empty-hint">&ndash;</div>
+                            @endforelse
+                        </div>
+                    </td>
+                @endforeach
+                {{-- Fill remaining cells if last row is incomplete --}}
+                @for($i = $row->count(); $i < $columns; $i++)
+                    <td style="width: {{ round(100 / $columns, 4) }}%;"></td>
+                @endfor
+            </tr>
             @endforeach
-        </tr>
-        @endforeach
-    </table>
+        </table>
+    @endif
 
     {{-- Footer --}}
     <div class="footer">

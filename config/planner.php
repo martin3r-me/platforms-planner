@@ -57,8 +57,31 @@ return [
             ],
         ],
     ],
+    'canvas_analysis_config' => [
+        'strategy' => 'traffic_light',
+        'risk_block' => 'risks',
+        'milestone_block' => 'milestones',
+        'critical_blocks' => ['project_goal', 'scope', 'milestones', 'risks'],
+        'thresholds' => ['green' => 70, 'yellow' => 40],
+        'weights' => [
+            'completeness' => 40,
+            'critical_blocks' => 30,
+            'risk_assessment' => 15,
+            'milestone_health' => 15,
+        ],
+    ],
+
+    'canvas_layout' => [
+        'type' => 'grid',
+        'columns' => 3,
+        'rows' => 3,
+        'areas' => '',
+        'area_map' => [],
+    ],
+
     'canvas_block_types' => [
         'project_goal' => [
+            'key' => 'project_goal',
             'label' => 'Project Goal',
             'description' => 'The overarching objective and purpose of the project.',
             'position' => 1,
@@ -70,6 +93,7 @@ return [
             ],
         ],
         'scope' => [
+            'key' => 'scope',
             'label' => 'Scope',
             'description' => 'What is included in and excluded from the project.',
             'position' => 2,
@@ -81,6 +105,7 @@ return [
             ],
         ],
         'stakeholders' => [
+            'key' => 'stakeholders',
             'label' => 'Stakeholders',
             'description' => 'Key people and groups affected by or influencing the project.',
             'position' => 3,
@@ -92,6 +117,7 @@ return [
             ],
         ],
         'risks' => [
+            'key' => 'risks',
             'label' => 'Risks',
             'description' => 'Potential threats and uncertainties that could impact the project.',
             'position' => 4,
@@ -103,6 +129,7 @@ return [
             ],
         ],
         'milestones' => [
+            'key' => 'milestones',
             'label' => 'Milestones',
             'description' => 'Key dates and deliverables marking project progress.',
             'position' => 5,
@@ -114,6 +141,7 @@ return [
             ],
         ],
         'resources' => [
+            'key' => 'resources',
             'label' => 'Resources',
             'description' => 'People, tools, and capabilities needed for the project.',
             'position' => 6,
@@ -125,6 +153,7 @@ return [
             ],
         ],
         'budget' => [
+            'key' => 'budget',
             'label' => 'Budget',
             'description' => 'Financial planning and cost tracking for the project.',
             'position' => 7,
@@ -136,6 +165,7 @@ return [
             ],
         ],
         'communication' => [
+            'key' => 'communication',
             'label' => 'Communication',
             'description' => 'How project information is shared with stakeholders.',
             'position' => 8,
@@ -147,6 +177,7 @@ return [
             ],
         ],
         'governance' => [
+            'key' => 'governance',
             'label' => 'Governance',
             'description' => 'Decision-making structures and escalation paths.',
             'position' => 9,

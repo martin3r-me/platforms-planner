@@ -1,41 +1,58 @@
-@props(['blockType', 'blocks', 'blockTypes'])
+@props(['blockKey', 'blocks', 'blockDefs', 'blockIndex' => null])
 
 @php
-    $block = $blocks[$blockType] ?? null;
-    $config = $blockTypes[$blockType] ?? [];
-    $label = $config['label'] ?? ucfirst(str_replace('_', ' ', $blockType));
+    $block = $blocks[$blockKey] ?? null;
+    $config = collect($blockDefs)->firstWhere('key', $blockKey) ?? [];
+    $label = $config['label'] ?? ucfirst(str_replace('_', ' ', $blockKey));
     $entries = $block['entries'] ?? [];
     $entryCount = count($entries);
+
+    // Sticky-note color rotation
+    $colorIndex = $blockIndex ?? collect($blockDefs)->search(fn($d) => ($d['key'] ?? '') === $blockKey);
+    $colorIndex = $colorIndex !== false ? $colorIndex % 8 : 0;
+    $stickyColors = [
+        ['bg' => 'bg-yellow-50', 'border' => 'border-yellow-300', 'header' => 'bg-[#f2ca52]/20'],
+        ['bg' => 'bg-blue-50', 'border' => 'border-blue-300', 'header' => 'bg-blue-100'],
+        ['bg' => 'bg-green-50', 'border' => 'border-green-300', 'header' => 'bg-green-100'],
+        ['bg' => 'bg-pink-50', 'border' => 'border-pink-300', 'header' => 'bg-pink-100'],
+        ['bg' => 'bg-purple-50', 'border' => 'border-purple-300', 'header' => 'bg-purple-100'],
+        ['bg' => 'bg-orange-50', 'border' => 'border-orange-300', 'header' => 'bg-orange-100'],
+        ['bg' => 'bg-teal-50', 'border' => 'border-teal-300', 'header' => 'bg-teal-100'],
+        ['bg' => 'bg-rose-50', 'border' => 'border-rose-300', 'header' => 'bg-rose-100'],
+    ];
+    $c = $stickyColors[$colorIndex];
 @endphp
 
-<div class="rounded-lg border border-[var(--ui-border)]/60 bg-[var(--ui-surface)] flex flex-col h-full overflow-hidden">
+<div class="w-full rounded-2xl border-2 {{ $c['border'] }} {{ $c['bg'] }} flex flex-col overflow-hidden">
     {{-- Header --}}
-    <div class="d-flex items-center justify-between px-3 py-2 border-b border-[var(--ui-border)]/40 bg-[var(--ui-muted-5)]/50">
-        <h4 class="text-xs font-bold text-[var(--ui-secondary)] uppercase tracking-wider truncate">{{ $label }}</h4>
-        <x-ui-badge variant="secondary" size="sm">{{ $entryCount }}</x-ui-badge>
+    <div class="flex items-center justify-between px-5 py-3 border-b {{ $c['border'] }} {{ $c['header'] }}">
+        <h4 class="text-base font-bold text-[#1a1a2e] truncate">{{ $label }}</h4>
+        <span class="text-[10px] font-semibold text-gray-500 bg-white/60 rounded-full px-2 py-0.5">{{ $entryCount }}</span>
     </div>
 
     {{-- Body --}}
-    <div class="flex-grow-1 overflow-y-auto p-2 space-y-1.5" style="max-height: 220px;">
+    <div class="grow p-4 space-y-2">
         @if($entryCount > 0)
             @foreach($entries as $entry)
-            <div class="p-2 rounded-md bg-[var(--ui-muted-5)]/50 border border-[var(--ui-border)]/30">
-                <div class="d-flex items-center gap-1.5">
-                    @if(!empty($entry['title']))
-                    <div class="text-xs font-semibold text-[var(--ui-secondary)] leading-tight flex-grow-1">{{ $entry['title'] }}</div>
-                    @endif
-                    @if(!empty($entry['entry_type']) && $entry['entry_type'] !== 'text')
-                    <x-ui-badge variant="secondary" size="sm">{{ ucfirst($entry['entry_type']) }}</x-ui-badge>
+            <div class="p-2.5 rounded-xl bg-white/80 border border-white hover:shadow-sm transition-shadow">
+                <div class="flex items-start gap-2">
+                    <div class="grow min-w-0">
+                        @if(!empty($entry['title']))
+                        <div class="text-xs font-semibold text-[#1a1a2e] leading-tight">{{ $entry['title'] }}</div>
+                        @endif
+                        @if(!empty($entry['content']))
+                        <div class="text-[11px] text-gray-500 mt-1 leading-relaxed whitespace-pre-line">{{ $entry['content'] }}</div>
+                        @endif
+                    </div>
+                    @if(($entry['entry_type'] ?? 'text') !== 'text')
+                    <span class="shrink-0 text-[9px] font-medium text-gray-400 bg-white rounded px-1.5 py-0.5 uppercase tracking-wide">{{ $entry['entry_type'] }}</span>
                     @endif
                 </div>
-                @if(!empty($entry['content']))
-                <div class="text-[11px] text-[var(--ui-muted)] mt-0.5 leading-snug">{{ Str::limit($entry['content'], 120) }}</div>
-                @endif
             </div>
             @endforeach
         @else
-            <div class="p-3 text-center">
-                <span class="text-[11px] text-[var(--ui-muted)] italic">Keine Eintraege</span>
+            <div class="py-6 text-center">
+                <span class="text-[11px] text-gray-400 italic">Keine Eintr&auml;ge</span>
             </div>
         @endif
     </div>

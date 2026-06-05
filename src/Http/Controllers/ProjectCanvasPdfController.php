@@ -23,14 +23,16 @@ class ProjectCanvasPdfController extends Controller
         $canvas->load(['blocks.entries', 'createdByUser']);
 
         $canvasData = $canvas->toCanvasArray();
-        $blockTypes = config('planner.canvas_block_types', []);
+        $blockDefs = collect(config('planner.canvas_block_types', []))->map(function ($def, $key) {
+            return array_merge($def, ['key' => $key]);
+        })->values()->toArray();
 
         $fontScale = $this->calculateFontScale($canvasData);
 
         $html = view('planner::export.canvas-pdf', [
             'canvas' => $canvas,
             'canvasData' => $canvasData,
-            'blockTypes' => $blockTypes,
+            'blockDefs' => $blockDefs,
             'fontScale' => $fontScale,
         ])->render();
 
