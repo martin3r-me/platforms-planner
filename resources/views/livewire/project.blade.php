@@ -62,10 +62,18 @@
 
     {{-- Tab-Bar --}}
     <div class="px-4 py-2 border-b border-[var(--ui-border)]/40">
-        <x-ui-tab :tabs="[
-            ['value' => 'board', 'label' => 'Board'],
-            ['value' => 'dashboard', 'label' => 'Dashboard'],
-        ]" :model="$activeTab" />
+        <div class="inline-flex gap-1.5">
+            <x-ui-button
+                wire:click="$set('activeTab', 'board')"
+                variant="{{ $activeTab === 'board' ? 'primary' : 'secondary-outline' }}"
+                size="sm"
+            >Board</x-ui-button>
+            <x-ui-button
+                wire:click="$set('activeTab', 'dashboard')"
+                variant="{{ $activeTab === 'dashboard' ? 'primary' : 'secondary-outline' }}"
+                size="sm"
+            >Dashboard</x-ui-button>
+        </div>
     </div>
 
     @if($activeTab === 'board')
