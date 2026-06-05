@@ -95,10 +95,10 @@
     $narrative = !empty($narrativeParts) ? implode(' · ', $narrativeParts) : null;
 @endphp
 
-<div class="divide-y divide-[var(--ui-border)]/40">
+<div class="p-3 space-y-3 bg-[var(--ui-muted-5)]">
 
     {{-- ═══ 1. BRIEFING — Warum gibt es das Projekt? ═══ --}}
-    <section class="p-4" style="background: linear-gradient(to bottom, {{ $ct['bg'] }}, transparent);">
+    <section class="p-4 rounded-xl bg-white shadow-sm border border-[var(--ui-border)]/40" style="background: linear-gradient(to bottom, {{ $ct['bg'] }}, white);">
         <div class="flex items-center justify-between mb-2">
             <div class="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)]">
                 @svg('heroicon-o-squares-2x2', 'w-3 h-3')
@@ -185,7 +185,7 @@
     </section>
 
     {{-- ═══ 2. WIE WEIT? — Vital Signs kompakt ═══ --}}
-    <section class="p-4">
+    <section class="p-4 rounded-xl bg-white shadow-sm border border-[var(--ui-border)]/40">
         <div class="flex items-baseline justify-between mb-3">
             <h2 class="text-xs font-semibold text-[var(--ui-secondary)] m-0">Wie weit sind wir?</h2>
             @if($narrative)
@@ -303,7 +303,7 @@
     </section>
 
     {{-- ═══ 3. RISIKEN ═══ --}}
-    <section class="p-4">
+    <section class="p-4 rounded-xl bg-white shadow-sm border border-[var(--ui-border)]/40">
         <div class="flex items-center justify-between mb-3">
             <h2 class="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--ui-secondary)] m-0">
                 @if($overdueCount > 0)
@@ -361,7 +361,7 @@
 
     {{-- ═══ 4. TEAM-AUSLASTUNG ═══ --}}
     @if($d['team_members']->isNotEmpty())
-        <section class="p-4">
+        <section class="p-4 rounded-xl bg-white shadow-sm border border-[var(--ui-border)]/40">
             <div class="flex items-center justify-between mb-3">
                 <h2 class="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--ui-secondary)] m-0">
                     @svg('heroicon-o-users', 'w-3.5 h-3.5 text-[var(--ui-muted)]')
@@ -395,7 +395,7 @@
 
     {{-- ═══ 5. AKTIVITÄT ═══ --}}
     @if($d['activities']->isNotEmpty())
-        <section class="p-4">
+        <section class="p-4 rounded-xl bg-white shadow-sm border border-[var(--ui-border)]/40">
             <h2 class="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--ui-secondary)] m-0 mb-3">
                 @svg('heroicon-o-bolt', 'w-3.5 h-3.5 text-[var(--ui-muted)]')
                 Aktivität

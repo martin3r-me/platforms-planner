@@ -334,6 +334,7 @@ class Project extends Component
                 return (object) [
                     'id' => $slot->id,
                     'label' => $slot->name,
+                    'color' => $slot->color,
                     'isBacklog' => false,
                     'tasks' => $tasks,
                     'open_count' => $tasks->count(),

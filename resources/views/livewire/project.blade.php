@@ -7,10 +7,15 @@
     $headerOverdueCount = $openTasks->filter(fn($t) => $t->due_date && $t->due_date->isPast() && !$t->is_done)->count();
     $hasActiveFilters = !empty($filterTagIds) || $filterColor;
 
-    // MeisterTask-Section-Tones — Spalten-Akzentfarben (rotierend nach Position)
+    // MeisterTask-Section-Tones — Spalten-Akzentfarben (Slot-color zuerst, sonst rotierend nach Position)
     $tonePalette = ['indigo', 'amber', 'teal', 'violet', 'sky', 'pink', 'rose', 'emerald'];
+    $validTones = ['indigo','amber','teal','violet','sky','pink','rose','emerald','slate'];
     $middleColumns = $groups->filter(fn ($g) => !($g->isDoneGroup ?? false) && !($g->isBacklog ?? false))->values();
-    $columnTones = $middleColumns->mapWithKeys(fn ($col, $i) => [$col->id => $tonePalette[$i % count($tonePalette)]]);
+    $columnTones = $middleColumns->mapWithKeys(function ($col, $i) use ($tonePalette, $validTones) {
+        $slotColor = $col->color ?? null;
+        $tone = in_array($slotColor, $validTones, true) ? $slotColor : $tonePalette[$i % count($tonePalette)];
+        return [$col->id => $tone];
+    });
 @endphp
 
 <x-ui-page

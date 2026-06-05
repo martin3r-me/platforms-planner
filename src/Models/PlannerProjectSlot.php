@@ -16,6 +16,7 @@ class PlannerProjectSlot extends Model
         'uuid',
         'project_id',
         'name',
+        'color',
         'order',
         'user_id',
         'team_id',

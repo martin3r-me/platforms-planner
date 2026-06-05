@@ -90,14 +90,22 @@
         content: "";
         position: absolute;
         top: 0; left: 0; right: 0;
-        height: 4px;
+        height: 6px;
         background-color: var(--col-tone, var(--planner-status-active));
     }
-    /* Zugehörige Tinted-Background für den Header (subtiler Hauch der Section-Farbe) */
+    /* Header mit mehr Tone-Hauch + Padding-Top für das Band */
     .planner-board-canvas .kanban-column[class*="col-tone-"] > div > div:first-child {
         background: linear-gradient(180deg,
-            color-mix(in srgb, var(--col-tone, var(--planner-status-active)) 8%, white),
+            color-mix(in srgb, var(--col-tone, var(--planner-status-active)) 14%, white),
             #ffffff) !important;
+        padding-top: 0.875rem !important;
+        padding-bottom: 0.625rem !important;
+    }
+    /* Spalten-Title im Header etwas größer + bold */
+    .planner-board-canvas .kanban-column[class*="col-tone-"] > div > div:first-child > span:first-child {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
     }
 
     /* Tone-Variable Mappings */
@@ -111,7 +119,7 @@
     .planner-board-canvas .col-tone-pink    > div > div:first-child { --col-tone: var(--tone-pink); }
     .planner-board-canvas .col-tone-slate   > div > div:first-child { --col-tone: var(--tone-slate); }
 
-    /* Cards: rounded, soft shadow, plain white */
+    /* Cards: rounded, soft shadow, plain white, mehr Atem */
     .planner-board-canvas .kanban-card {
         border-radius: 10px !important;
         background-color: #ffffff !important;
@@ -120,15 +128,28 @@
         transition: box-shadow 180ms ease, transform 180ms ease, border-color 180ms ease;
         position: relative;
         overflow: hidden;
+        padding: 0.875rem 0.875rem !important;
+        margin: 0.5rem 0.5rem !important;
     }
     .planner-board-canvas .kanban-card:hover {
         box-shadow: var(--planner-card-shadow-hover);
-        transform: translateY(-1px);
-        border-color: rgba(99, 102, 241, 0.25);
+        transform: translateY(-2px);
+        border-color: rgba(99, 102, 241, 0.30);
     }
     .planner-board-canvas .kanban-card.wire-dragging {
         box-shadow: var(--planner-card-shadow-hover);
         transform: rotate(1.5deg);
+    }
+
+    /* Board-Inneres: mehr Gap zwischen Spalten, mehr Padding am Canvas */
+    .planner-board-canvas .kanban-column + .kanban-column,
+    .planner-board-canvas > div > div > .kanban-column:not(:first-child) {
+        margin-left: 0.5rem;
+    }
+    /* Innen-Container der Kanban-Spaltenwiege bekommt zusätzliche Atemluft */
+    .planner-board-canvas > div > [x-show="view === 'board'"] {
+        padding: 1.25rem !important;
+        gap: 1.25rem !important;
     }
 
     /* Done-Strip (rechts) Polish */
