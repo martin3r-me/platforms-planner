@@ -71,12 +71,17 @@
             {{ $task->title }}
         </h4>
 
-        {{-- Quick-done (hover only) --}}
+        {{-- Quick-done (hover only). Klick triggert nur wenn echter Klick — kein Drag-Drop --}}
         @if(!($publicMode ?? false))
             <button
                 type="button"
-                wire:click.prevent.stop="quickToggleDone({{ $task->id }})"
-                @click.stop.prevent
+                x-data="{ press: null }"
+                @mousedown.stop="press = { x: $event.clientX, y: $event.clientY }"
+                @click.stop.prevent="
+                    const ok = press && Math.abs($event.clientX - press.x) < 5 && Math.abs($event.clientY - press.y) < 5;
+                    press = null;
+                    if (ok) $wire.quickToggleDone({{ $task->id }});
+                "
                 class="absolute top-2 right-2 opacity-0 group-hover/card:opacity-100 transition-opacity inline-flex items-center justify-center w-5 h-5 rounded-full {{ $isDone ? 'bg-[var(--planner-status-done)] text-white' : 'bg-white border border-[var(--ui-border)] text-[var(--ui-muted)] hover:border-[var(--planner-status-done)] hover:text-[var(--planner-status-done)]' }}"
                 title="{{ $isDone ? 'Als offen markieren' : 'Als erledigt markieren' }}"
             >
