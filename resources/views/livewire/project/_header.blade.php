@@ -14,9 +14,22 @@
             <h1 class="text-base font-semibold text-[var(--ui-secondary)] truncate m-0 leading-tight">
                 {{ $project->name }}
             </h1>
-            @if($subline)
-                <div class="text-[11px] text-[var(--ui-muted)] mt-0.5 truncate">
-                    {{ $subline }}
+            @if($subline || (isset($linkedEntities) && $linkedEntities->isNotEmpty()))
+                <div class="flex items-center gap-2 mt-0.5 text-[11px] text-[var(--ui-muted)] min-w-0">
+                    @if($subline)
+                        <span class="truncate">{{ $subline }}</span>
+                    @endif
+                    @if(isset($linkedEntities) && $linkedEntities->isNotEmpty())
+                        <span class="text-[var(--ui-border)]">·</span>
+                        <div class="flex items-center gap-1 flex-wrap min-w-0">
+                            @foreach($linkedEntities as $entity)
+                                <span class="inline-flex items-center gap-1 text-[var(--ui-secondary)]">
+                                    @svg('heroicon-o-link', 'w-3 h-3 opacity-60')
+                                    <span class="truncate">{{ $entity['entity_name'] }}</span>
+                                </span>
+                            @endforeach
+                        </div>
+                    @endif
                 </div>
             @endif
         </div>

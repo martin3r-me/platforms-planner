@@ -29,61 +29,90 @@
             ['label' => $project->name],
         ]">
             <x-slot name="left">
-                {{-- View-Tabs --}}
-                <div class="inline-flex gap-1 mr-2 pr-2 border-r border-[var(--ui-border)]/40">
-                    <x-ui-button
+                {{-- View-Tabs als segmented control --}}
+                <div class="inline-flex rounded-md border border-[var(--ui-border)]/60 overflow-hidden">
+                    <button
+                        type="button"
                         wire:click="$set('activeTab', 'board')"
-                        variant="{{ $activeTab === 'board' ? 'primary' : 'ghost' }}"
-                        size="sm"
+                        class="inline-flex items-center gap-1.5 px-2.5 h-7 text-xs transition-colors {{ $activeTab === 'board' ? 'bg-[var(--ui-secondary)] text-white' : 'bg-transparent text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}"
                     >
-                        @svg('heroicon-o-view-columns', 'w-4 h-4')
+                        @svg('heroicon-o-view-columns', 'w-3.5 h-3.5')
                         <span>Board</span>
-                    </x-ui-button>
-                    <x-ui-button
+                    </button>
+                    <button
+                        type="button"
                         wire:click="$set('activeTab', 'dashboard')"
-                        variant="{{ $activeTab === 'dashboard' ? 'primary' : 'ghost' }}"
-                        size="sm"
+                        class="inline-flex items-center gap-1.5 px-2.5 h-7 text-xs border-l border-[var(--ui-border)]/60 transition-colors {{ $activeTab === 'dashboard' ? 'bg-[var(--ui-secondary)] text-white' : 'bg-transparent text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}"
                     >
-                        @svg('heroicon-o-chart-bar-square', 'w-4 h-4')
+                        @svg('heroicon-o-chart-bar-square', 'w-3.5 h-3.5')
                         <span>Dashboard</span>
-                    </x-ui-button>
+                    </button>
                 </div>
-
-                @can('settings', $project)
-                    <x-ui-button variant="ghost" size="sm" x-data @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })">
-                        @svg('heroicon-o-cog-6-tooth', 'w-4 h-4')
-                        <span>Einstellungen</span>
-                    </x-ui-button>
-                @endcan
-                @if($linkedEntities->isNotEmpty())
-                    @foreach($linkedEntities as $entity)
-                        <span class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded bg-[var(--ui-muted-5)] text-[var(--ui-secondary)]">
-                            @svg('heroicon-o-rectangle-group', 'w-3 h-3')
-                            {{ $entity['entity_name'] }}
-                            @if($entity['entity_type'])
-                                <span class="text-[var(--ui-muted)]">({{ $entity['entity_type'] }})</span>
-                            @endif
-                        </span>
-                    @endforeach
-                @endif
-                <x-ui-button variant="secondary" size="sm" wire:click="openCanvas" title="Project Canvas öffnen">
-                    @svg('heroicon-o-squares-2x2', 'w-4 h-4')
-                    <span>Canvas</span>
-                </x-ui-button>
             </x-slot>
 
+            {{-- Primary action --}}
             @if($activeTab === 'board')
                 @can('update', $project)
                     <x-ui-button variant="primary" size="sm" wire:click="createTask()" title="Neue Aufgabe (N)">
                         @svg('heroicon-o-plus', 'w-4 h-4')
                         <span>Aufgabe</span>
                     </x-ui-button>
-                    <x-ui-button variant="ghost" size="sm" wire:click="createProjectSlot">
-                        @svg('heroicon-o-square-2-stack', 'w-4 h-4')
-                        <span>Spalte</span>
-                    </x-ui-button>
                 @endcan
             @endif
+
+            {{-- Overflow menu --}}
+            <div x-data="{ open: false }" class="relative">
+                <button
+                    type="button"
+                    @click="open = !open"
+                    class="inline-flex items-center justify-center w-8 h-7 rounded-md text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)] transition-colors"
+                    title="Mehr"
+                >
+                    @svg('heroicon-o-ellipsis-horizontal', 'w-4 h-4')
+                </button>
+                <div
+                    x-show="open"
+                    x-cloak
+                    x-transition.opacity.duration.100ms
+                    @click.outside="open = false"
+                    @keydown.escape.window="open = false"
+                    class="absolute top-full right-0 mt-1 w-52 bg-white border border-[var(--ui-border)] rounded-lg shadow-lg z-30 py-1"
+                >
+                    @if($activeTab === 'board')
+                        @can('update', $project)
+                            <button
+                                type="button"
+                                wire:click="createProjectSlot"
+                                @click="open = false"
+                                class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)] transition-colors"
+                            >
+                                @svg('heroicon-o-square-2-stack', 'w-4 h-4 text-[var(--ui-muted)]')
+                                <span>Neue Spalte</span>
+                            </button>
+                        @endcan
+                    @endif
+                    <button
+                        type="button"
+                        wire:click="openCanvas"
+                        @click="open = false"
+                        class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)] transition-colors"
+                    >
+                        @svg('heroicon-o-squares-2x2', 'w-4 h-4 text-[var(--ui-muted)]')
+                        <span>Project Canvas</span>
+                    </button>
+                    @can('settings', $project)
+                        <div class="border-t border-[var(--ui-border)]/60 my-1"></div>
+                        <button
+                            type="button"
+                            @click="open = false; $dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })"
+                            class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)] transition-colors"
+                        >
+                            @svg('heroicon-o-cog-6-tooth', 'w-4 h-4 text-[var(--ui-muted)]')
+                            <span>Einstellungen</span>
+                        </button>
+                    @endcan
+                </div>
+            </div>
         </x-ui-page-actionbar>
     </x-slot>
 
@@ -188,6 +217,7 @@
         'openCount' => $headerOpenCount,
         'doneCount' => $headerDoneCount,
         'overdueCount' => $headerOverdueCount,
+        'linkedEntities' => $linkedEntities,
     ])
 
     @if($activeTab === 'board')
