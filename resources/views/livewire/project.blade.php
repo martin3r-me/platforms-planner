@@ -164,6 +164,18 @@
         ])
 
         {{-- Board --}}
+        <div
+            class="flex-1 min-h-0 flex"
+            x-data
+            @done-column-expanded.window="
+                $nextTick(() => {
+                    const scroller = $el.querySelector('.overflow-x-auto');
+                    if (scroller) {
+                        scroller.scrollTo({ left: scroller.scrollWidth, behavior: 'smooth' });
+                    }
+                });
+            "
+        >
         <x-ui-kanban-container sortable="updateTaskGroupOrder" sortable-group="updateTaskOrder">
             {{-- Backlog --}}
             @php $backlog = $groups->first(fn($g) => ($g->isBacklog ?? false)); @endphp
@@ -298,6 +310,7 @@
                 @endif
             @endif
         </x-ui-kanban-container>
+        </div>
     @endif
 
     @if($activeTab === 'dashboard')

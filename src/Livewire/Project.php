@@ -558,6 +558,10 @@ class Project extends Component
     public function toggleShowDoneColumn()
     {
         $this->showDoneColumn = !$this->showDoneColumn;
+
+        if ($this->showDoneColumn) {
+            $this->dispatch('done-column-expanded');
+        }
     }
 
     /**
