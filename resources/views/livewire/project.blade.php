@@ -85,7 +85,7 @@
     </x-slot>
 
     <x-slot name="sidebar">
-        <x-ui-page-sidebar title="Projekt" width="w-72" :defaultOpen="true">
+        <x-ui-page-sidebar title="Projekt" icon="heroicon-o-clipboard-document-list" width="w-72" :defaultOpen="true">
             @include('planner::livewire.project._sidebar', [
                 'project' => $project,
                 'currentUserRole' => $currentUserRole,
@@ -97,7 +97,7 @@
     </x-slot>
 
     <x-slot name="activity">
-        <x-ui-page-sidebar title="Aktivitäten" width="w-80" :defaultOpen="true" storeKey="activityOpen" side="right">
+        <x-ui-page-sidebar title="Aktivitäten" icon="heroicon-o-bolt" width="w-80" :defaultOpen="true" storeKey="activityOpen" side="right">
             <div class="p-4 space-y-4">
                 <div class="text-sm text-[var(--ui-muted)]">Letzte Aktivitäten</div>
                 <div class="space-y-3 text-sm">
