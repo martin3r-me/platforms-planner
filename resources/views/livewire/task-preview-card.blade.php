@@ -43,36 +43,30 @@
     $tagCount = $task->tags?->count() ?? 0;
     $firstTag = $tagCount > 0 ? $task->tags->first() : null;
 
-    // Card surface — only signal states get a tint, default stays plain
-    $surface = $isOverdue
-        ? '!bg-[var(--planner-card-overdue)]'
-        : ($isDone
-            ? '!bg-[var(--planner-card-done)] opacity-60'
-            : ($isFrog
-                ? '!bg-[var(--planner-card-frog)]'
-                : 'hover:!bg-[var(--planner-card-hover)]'));
+    // Card bleibt immer weiß. Done signalisiert sich nur über Opazität.
+    $surface = $isDone ? 'opacity-60' : '';
 @endphp
 
 <x-ui-kanban-card
     :title="''"
     :sortable-id="$task->id"
     :href="$cardHref"
-    class="group/card relative {{ $surface }} transition-colors duration-150"
+    class="group/card relative {{ $surface }}"
 >
+    {{-- Vertikales Color-Band links (Spiegel zum Spalten-Top-Band) --}}
+    <div
+        class="absolute top-2.5 bottom-2.5 left-1.5 w-[3px] rounded-full"
+        style="background-color: {{ $edgeColor }};"
+    ></div>
     {{-- Optional micro-line: project name (only on cross-project boards) --}}
     @if($showProjectName)
-        <div class="text-[10px] text-[var(--ui-muted)] leading-none truncate mb-1">
+        <div class="text-[10px] text-[var(--ui-muted)] leading-none truncate mb-1 pl-3">
             {{ $task->project->name }}
         </div>
     @endif
 
-    {{-- Title row: status dot + title + hover quick-done --}}
-    <div class="flex items-start gap-2 pr-6">
-        <span
-            class="flex-shrink-0 w-3 h-3 rounded-full mt-[3px] ring-2 ring-white shadow-sm"
-            style="background-color: {{ $edgeColor }};"
-            title="{{ $priorityLabel ?? '' }}"
-        ></span>
+    {{-- Title row: title + hover quick-done --}}
+    <div class="flex items-start gap-2 pr-6 pl-3">
         <h4 class="text-[13px] font-semibold leading-snug text-[var(--ui-secondary)] m-0 {{ $isDone ? 'line-through text-[var(--ui-muted)]' : '' }}">
             {{ $task->title }}
         </h4>
@@ -96,7 +90,7 @@
         $hasMeta = $duePhrase || $spValue || $firstTag || $dodProgress || ($task->postpone_count ?? 0) > 0 || ($isFrog && $isDone) || $userInCharge;
     @endphp
     @if($hasMeta)
-        <div class="mt-2 flex items-center gap-1.5 text-[10px] text-[var(--ui-muted)] leading-none">
+        <div class="mt-2 flex items-center gap-1.5 text-[10px] text-[var(--ui-muted)] leading-none pl-3">
             @if($duePhrase)
                 <span
                     class="inline-flex items-center gap-0.5 flex-shrink-0 {{ $isOverdue ? 'text-[var(--planner-status-overdue)] font-medium' : '' }}"
