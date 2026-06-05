@@ -52,60 +52,75 @@
        MeisterTask-Style Polish — scoped to .planner-board-canvas
        ═══════════════════════════════════════════════════════════ */
 
+    /* Aurora-Background: weiche Color-Blobs auf hellem Base, kein Punktraster */
     .planner-board-canvas {
-        background: var(--planner-canvas-bg);
-        background-image:
-            radial-gradient(rgba(99, 102, 241, 0.04) 1px, transparent 1px),
-            var(--planner-canvas-bg);
-        background-size: 28px 28px, auto;
-        background-position: 0 0, 0 0;
+        background:
+            radial-gradient(at 18% 18%, rgba(99, 102, 241, 0.18) 0%, transparent 45%),
+            radial-gradient(at 82% 22%, rgba(236, 72, 153, 0.14) 0%, transparent 45%),
+            radial-gradient(at 50% 78%, rgba(6, 182, 212, 0.14) 0%, transparent 45%),
+            radial-gradient(at 88% 88%, rgba(245, 158, 11, 0.10) 0%, transparent 40%),
+            radial-gradient(at 12% 88%, rgba(139, 92, 246, 0.12) 0%, transparent 45%),
+            linear-gradient(135deg, #fbfbfd 0%, #f3f4f9 100%);
     }
-    /* Optional Project-Color-Tint, injected via inline --planner-project-color */
+    /* Optional Project-Color-Tint dominiert dezent das Aurora-Schema */
     .planner-board-canvas[style*="--planner-project-color"] {
-        background-image:
-            radial-gradient(rgba(99, 102, 241, 0.04) 1px, transparent 1px),
+        background:
+            radial-gradient(at 18% 18%, color-mix(in srgb, var(--planner-project-color) 25%, transparent) 0%, transparent 45%),
+            radial-gradient(at 82% 22%, rgba(236, 72, 153, 0.12) 0%, transparent 45%),
+            radial-gradient(at 50% 78%, rgba(6, 182, 212, 0.12) 0%, transparent 45%),
+            radial-gradient(at 88% 88%, color-mix(in srgb, var(--planner-project-color) 12%, transparent) 0%, transparent 40%),
+            radial-gradient(at 12% 88%, rgba(139, 92, 246, 0.10) 0%, transparent 45%),
             linear-gradient(135deg,
-                color-mix(in srgb, var(--planner-project-color) 6%, #f6f4ef),
-                color-mix(in srgb, var(--planner-project-color) 4%, #eef0f5));
+                color-mix(in srgb, var(--planner-project-color) 5%, #fbfbfd),
+                color-mix(in srgb, var(--planner-project-color) 3%, #f3f4f9));
     }
 
-    /* Columns: weicher Schatten, runder */
+    /* Spalten: keine eigene Fläche mehr — Cards liegen direkt auf dem Aurora-Background */
     .planner-board-canvas .kanban-column > div {
-        border-radius: 12px !important;
-        border-color: transparent !important;
-        box-shadow: var(--planner-column-shadow);
-        background-color: #ffffff !important;
-        overflow: hidden;
+        background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        overflow: visible !important;
     }
 
-    /* Column header neutral base — Akzentband kommt über tone-* Klassen oben drauf */
+    /* Column header: transparent Base, nur das Tone-Band + sanfter Tone-Glow */
     .planner-board-canvas .kanban-column > div > div:first-child {
-        background-color: rgba(248, 250, 252, 0.6) !important;
-        border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+        background-color: transparent !important;
+        border-bottom: none !important;
         position: relative;
+        padding-top: 1rem !important;
+        padding-bottom: 0.625rem !important;
     }
 
-    /* MeisterTask-Signatur: farbiges Band oben auf jeder Spalte */
+    /* MeisterTask-Signatur: Pille-förmiges Tone-Band oben */
     .planner-board-canvas .kanban-column[class*="col-tone-"] > div > div:first-child::before {
         content: "";
         position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 6px;
+        top: 0.25rem; left: 0.5rem; right: 0.5rem;
+        height: 4px;
+        border-radius: 999px;
         background-color: var(--col-tone, var(--planner-status-active));
+        opacity: 0.95;
     }
-    /* Header mit mehr Tone-Hauch + Padding-Top für das Band */
-    .planner-board-canvas .kanban-column[class*="col-tone-"] > div > div:first-child {
-        background: linear-gradient(180deg,
-            color-mix(in srgb, var(--col-tone, var(--planner-status-active)) 14%, white),
-            #ffffff) !important;
-        padding-top: 0.875rem !important;
-        padding-bottom: 0.625rem !important;
+    /* Sanfter Tone-Glow hinter dem Header (statt fester Tint-Fläche) */
+    .planner-board-canvas .kanban-column[class*="col-tone-"] > div > div:first-child::after {
+        content: "";
+        position: absolute;
+        top: 0; left: 0; right: 0; height: 100%;
+        background: radial-gradient(ellipse at top,
+            color-mix(in srgb, var(--col-tone, var(--planner-status-active)) 22%, transparent) 0%,
+            transparent 70%);
+        pointer-events: none;
+        z-index: -1;
     }
-    /* Spalten-Title im Header etwas größer + bold */
+    /* Spalten-Title bolder, mit Tone-Farbe */
     .planner-board-canvas .kanban-column[class*="col-tone-"] > div > div:first-child > span:first-child {
         font-size: 12px;
         font-weight: 700;
-        letter-spacing: 0.02em;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: color-mix(in srgb, var(--col-tone, var(--planner-status-active)) 70%, #1e293b) !important;
     }
 
     /* Tone-Variable Mappings */
@@ -119,37 +134,35 @@
     .planner-board-canvas .col-tone-pink    > div > div:first-child { --col-tone: var(--tone-pink); }
     .planner-board-canvas .col-tone-slate   > div > div:first-child { --col-tone: var(--tone-slate); }
 
-    /* Cards: rounded, soft shadow, plain white, mehr Atem */
+    /* Cards: stärkere Schatten weil sie auf Aurora-BG floaten, mehr Atem */
     .planner-board-canvas .kanban-card {
-        border-radius: 10px !important;
+        border-radius: 12px !important;
         background-color: #ffffff !important;
-        box-shadow: var(--planner-card-shadow);
-        border: 1px solid rgba(226, 232, 240, 0.45);
-        transition: box-shadow 180ms ease, transform 180ms ease, border-color 180ms ease;
+        box-shadow:
+            0 1px 2px rgba(15, 23, 42, 0.06),
+            0 4px 14px rgba(15, 23, 42, 0.06) !important;
+        border: 1px solid rgba(255, 255, 255, 0.8) !important;
+        transition: box-shadow 200ms ease, transform 200ms ease, border-color 200ms ease;
         position: relative;
         overflow: hidden;
         padding: 0.875rem 0.875rem !important;
-        margin: 0.5rem 0.5rem !important;
+        margin: 0.625rem 0.5rem !important;
     }
     .planner-board-canvas .kanban-card:hover {
-        box-shadow: var(--planner-card-shadow-hover);
+        box-shadow:
+            0 2px 4px rgba(15, 23, 42, 0.06),
+            0 12px 32px rgba(15, 23, 42, 0.12) !important;
         transform: translateY(-2px);
-        border-color: rgba(99, 102, 241, 0.30);
+        border-color: rgba(99, 102, 241, 0.35) !important;
     }
     .planner-board-canvas .kanban-card.wire-dragging {
-        box-shadow: var(--planner-card-shadow-hover);
         transform: rotate(1.5deg);
     }
 
-    /* Board-Inneres: mehr Gap zwischen Spalten, mehr Padding am Canvas */
-    .planner-board-canvas .kanban-column + .kanban-column,
-    .planner-board-canvas > div > div > .kanban-column:not(:first-child) {
-        margin-left: 0.5rem;
-    }
-    /* Innen-Container der Kanban-Spaltenwiege bekommt zusätzliche Atemluft */
+    /* Board-Inneres: deutlich mehr Gap + Canvas-Padding */
     .planner-board-canvas > div > [x-show="view === 'board'"] {
-        padding: 1.25rem !important;
-        gap: 1.25rem !important;
+        padding: 1.75rem !important;
+        gap: 1.5rem !important;
     }
 
     /* Done-Strip (rechts) Polish */

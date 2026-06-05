@@ -19,6 +19,7 @@ class ProjectSlotSettingsModal extends Component
     {
         return [
             'projectSlot.name' => 'required|string|max:255',
+            'projectSlot.color' => 'nullable|string|max:32',
         ];
     }
 
