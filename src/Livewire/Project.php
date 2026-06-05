@@ -137,18 +137,15 @@ class Project extends Component
             ->first();
         $currentUserRole = $projectUser?->role;
 
-        // Prüfen ob User Aufgaben im Projekt hat (auch ohne Mitgliedschaft)
-        $hasTasks = $this->project->tasks()
+        // Offene Aufgaben dieses Users im Projekt (zählt Tasks mit oder ohne Slot)
+        $userOpenTaskCount = PlannerTask::where('project_id', $this->project->id)
+            ->where('user_in_charge_id', $user->id)
+            ->where('is_done', false)
+            ->count();
+
+        $hasAnyTasks = $userOpenTaskCount > 0 || PlannerTask::where('project_id', $this->project->id)
             ->where('user_in_charge_id', $user->id)
             ->exists();
-
-        $hasTasksInSlots = $this->project->projectSlots()
-            ->whereHas('tasks', function ($q) use ($user) {
-                $q->where('user_in_charge_id', $user->id);
-            })
-            ->exists();
-
-        $hasAnyTasks = $hasTasks || $hasTasksInSlots;
 
         $permissions = [
             'view' => $user->can('view', $this->project),
@@ -277,6 +274,7 @@ class Project extends Component
                 'groups' => collect(),
                 'linkedEntities' => $linkedEntities,
                 'currentUserRole' => $currentUserRole,
+                'userOpenTaskCount' => $userOpenTaskCount,
                 'hasAnyTasks' => $hasAnyTasks,
                 'permissions' => $permissions,
                 'allProjectUsers' => $allProjectUsers,
@@ -416,6 +414,7 @@ class Project extends Component
             'groups' => $groups,
             'linkedEntities' => $linkedEntities,
             'currentUserRole' => $currentUserRole,
+            'userOpenTaskCount' => $userOpenTaskCount,
             'hasAnyTasks' => $hasAnyTasks,
             'permissions' => $permissions,
             'allProjectUsers' => $allProjectUsers,

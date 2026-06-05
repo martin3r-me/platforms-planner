@@ -117,80 +117,17 @@
     </x-slot>
 
     <x-slot name="sidebar">
-        <x-ui-page-sidebar title="Projekt-Übersicht" width="w-72" :defaultOpen="true">
-            <div class="p-4 space-y-5">
-                @if($activeTab === 'board')
-                    {{-- Done toggle (wird in Step 6 durch collapsed column ersetzt) --}}
-                    <button
-                        wire:click="toggleShowDoneColumn"
-                        class="w-full flex items-center justify-between py-2 px-3 bg-[var(--ui-primary-5)] hover:bg-[var(--ui-primary-10)] border border-[var(--ui-primary)]/30 rounded transition-colors"
-                    >
-                        <span class="inline-flex items-center gap-2 text-xs font-medium text-[var(--ui-primary)]">
-                            @if($showDoneColumn)
-                                @svg('heroicon-o-eye-slash', 'w-3.5 h-3.5')
-                                <span>Erledigte ausblenden</span>
-                            @else
-                                @svg('heroicon-o-eye', 'w-3.5 h-3.5')
-                                <span>Erledigte anzeigen</span>
-                            @endif
-                        </span>
-                        @if($doneTasks->count() > 0)
-                            <span class="text-[10px] font-semibold text-[var(--ui-primary)] bg-[var(--ui-primary)]/20 px-1.5 py-0.5 rounded">
-                                {{ $doneTasks->count() }}
-                            </span>
-                        @endif
-                    </button>
-                @endif
-
-                {{-- Projekt-Details --}}
-                <div>
-                    <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-2">Details</h3>
-                    <div class="space-y-1 text-xs">
-                        <div class="flex justify-between py-1.5 px-2 rounded bg-[var(--ui-muted-5)]">
-                            <span class="text-[var(--ui-muted)]">Typ</span>
-                            <span class="text-[var(--ui-secondary)] font-medium">{{ $project->project_type?->value ?? '–' }}</span>
-                        </div>
-                        <div class="flex justify-between py-1.5 px-2 rounded bg-[var(--ui-muted-5)]">
-                            <span class="text-[var(--ui-muted)]">Erstellt</span>
-                            <span class="text-[var(--ui-secondary)] font-medium">{{ $project->created_at->format('d.m.Y') }}</span>
-                        </div>
-                        @if($project->totalPlannedMinutes() > 0)
-                            <div class="flex justify-between py-1.5 px-2 rounded bg-[var(--ui-muted-5)]">
-                                <span class="text-[var(--ui-muted)]">Geplant</span>
-                                <span class="text-[var(--ui-secondary)] font-medium">{{ number_format($project->totalPlannedMinutes() / 60, 1, ',', '.') }}h</span>
-                            </div>
-                        @endif
-                        @if($project->billing_method)
-                            <div class="flex justify-between py-1.5 px-2 rounded bg-[var(--ui-muted-5)]">
-                                <span class="text-[var(--ui-muted)]">Abrechnung</span>
-                                <span class="text-[var(--ui-secondary)] font-medium">{{ $project->billing_method?->value ?? $project->billing_method }}</span>
-                            </div>
-                        @endif
-                        @if($project->budget_amount)
-                            <div class="flex justify-between py-1.5 px-2 rounded bg-[var(--ui-muted-5)]">
-                                <span class="text-[var(--ui-muted)]">Budget</span>
-                                <span class="text-[var(--ui-secondary)] font-medium">{{ number_format($project->budget_amount, 2, ',', '.') }} {{ $project->currency ?? 'EUR' }}</span>
-                            </div>
-                        @endif
-                    </div>
-                </div>
-
-                {{-- Member status --}}
-                @if($currentUserRole ?? null || $hasAnyTasks ?? false)
-                    <div>
-                        <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-2">Status</h3>
-                        @if($currentUserRole ?? null)
-                            <span class="text-xs font-medium px-2 py-0.5 rounded bg-[var(--ui-primary-5)] text-[var(--ui-primary)]">
-                                {{ ucfirst($currentUserRole) }}
-                            </span>
-                        @elseif($hasAnyTasks ?? false)
-                            <span class="text-xs font-medium px-2 py-0.5 rounded bg-[var(--ui-warning-5)] text-[var(--ui-warning)]">
-                                Mit Aufgaben
-                            </span>
-                        @endif
-                    </div>
-                @endif
-            </div>
+        <x-ui-page-sidebar title="Projekt" width="w-72" :defaultOpen="true">
+            @include('planner::livewire.project._sidebar', [
+                'project' => $project,
+                'activeTab' => $activeTab,
+                'showDoneColumn' => $showDoneColumn,
+                'headerDoneCount' => $headerDoneCount,
+                'currentUserRole' => $currentUserRole,
+                'hasAnyTasks' => $hasAnyTasks ?? false,
+                'userOpenTaskCount' => $userOpenTaskCount ?? 0,
+                'allProjectUsers' => $allProjectUsers,
+            ])
         </x-ui-page-sidebar>
     </x-slot>
 
