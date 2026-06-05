@@ -37,14 +37,13 @@
                         </span>
                     @endforeach
                 @endif
-                @if($linkedCanvases->isNotEmpty())
-                    @foreach($linkedCanvases as $canvas)
-                        <a href="{{ $canvas['url'] }}" class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded bg-[var(--ui-muted-5)] text-[var(--ui-secondary)] hover:bg-[var(--ui-primary-5)] hover:text-[var(--ui-primary)] transition-colors" wire:navigate>
-                            @svg('heroicon-o-squares-2x2', 'w-3 h-3')
-                            {{ $canvas['name'] }}
-                        </a>
-                    @endforeach
-                @endif
+                <a href="{{ route('planner.projects.canvas.index', $project) }}" class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded bg-[var(--ui-muted-5)] text-[var(--ui-secondary)] hover:bg-[var(--ui-primary-5)] hover:text-[var(--ui-primary)] transition-colors" wire:navigate>
+                    @svg('heroicon-o-squares-2x2', 'w-3 h-3')
+                    <span>Canvas</span>
+                    @if($canvasCount > 0)
+                        <span class="ml-0.5 text-[10px] font-semibold bg-[var(--ui-primary)]/10 text-[var(--ui-primary)] px-1 rounded">{{ $canvasCount }}</span>
+                    @endif
+                </a>
             </x-slot>
 
             @can('update', $project)

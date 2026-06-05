@@ -9,7 +9,7 @@ use Platform\Planner\Enums\ProjectRole;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
 use Platform\Planner\Enums\ProjectType;
-use Platform\Core\Services\EntityLinkService;
+
 use Platform\Organization\Models\OrganizationTimePlanned;
 use Platform\Organization\Services\StorePlannedTime;
 
@@ -25,11 +25,6 @@ class ProjectSettingsModal extends Component
 
     // Entity-Links (read-only Anzeige)
     public $entityLinks = [];
-
-    // Canvas-Links
-    public array $linkedCanvases = [];
-    public string $canvasSearch = '';
-    public array $availableCanvases = [];
 
     // Planned Time (zentral)
     public $plannedMinutes = null;
@@ -81,9 +76,6 @@ class ProjectSettingsModal extends Component
 
         // Entity-Links laden (read-only)
         $this->loadEntityLinks();
-
-        // Canvas-Links laden
-        $this->loadLinkedCanvases();
 
         // Planned Time aus zentralem System laden
         $this->plannedMinutes = $this->project->totalPlannedMinutes() ?: null;
@@ -264,144 +256,6 @@ class ProjectSettingsModal extends Component
 
         $this->project->generatePublicToken();
         $this->publicUrl = $this->project->getPublicUrl();
-    }
-
-    // ── Canvas Links ──────────────────────────────────────────────
-
-    private function loadLinkedCanvases(): void
-    {
-        if (!$this->project) {
-            $this->linkedCanvases = [];
-            return;
-        }
-
-        $canvases = collect();
-
-        // Direkte Project Canvases (neues System — FK-basiert)
-        foreach ($this->project->canvases as $canvas) {
-            $canvases->push([
-                'id' => $canvas->id,
-                'name' => $canvas->name,
-                'type' => 'pc_canvas',
-                'status' => $canvas->status ?? '',
-                'url' => route('planner.projects.canvas.show', [$this->project, $canvas]),
-            ]);
-        }
-
-        // Canvas-Modul Links (via EntityLinkService, falls verfuegbar)
-        try {
-            $service = app(EntityLinkService::class);
-            $teamId = $this->project->team_id;
-            $projectType = $this->project->getMorphClass();
-            $projectId = $this->project->getKey();
-
-            $canvasIds = $service->getLinkedIds($teamId, $projectType, $projectId, 'canvas');
-            if (!empty($canvasIds)) {
-                $canvasModels = \Platform\Canvas\Models\Canvas::whereIn('id', $canvasIds)->get();
-                foreach ($canvasModels as $canvas) {
-                    $canvases->push([
-                        'id' => $canvas->id,
-                        'name' => $canvas->name,
-                        'type' => 'canvas',
-                        'status' => $canvas->status ?? '',
-                        'url' => route('canvas.canvases.show', $canvas->id),
-                    ]);
-                }
-            }
-        } catch (\Throwable $e) {
-            // Canvas-Modul nicht verfuegbar
-        }
-
-        $this->linkedCanvases = $canvases->toArray();
-    }
-
-    public function updatedCanvasSearch(): void
-    {
-        $this->searchCanvases();
-    }
-
-    public function searchCanvases(): void
-    {
-        if (!$this->project || strlen($this->canvasSearch) < 2) {
-            $this->availableCanvases = [];
-            return;
-        }
-
-        $teamId = $this->project->team_id;
-        $search = $this->canvasSearch;
-
-        // Bereits verknuepfte IDs sammeln
-        $linkedCanvasIds = collect($this->linkedCanvases)
-            ->where('type', 'canvas')
-            ->pluck('id')
-            ->toArray();
-
-        $results = collect();
-
-        // Canvas-Modul suchen (via EntityLinkService)
-        try {
-            $canvases = \Platform\Canvas\Models\Canvas::where('team_id', $teamId)
-                ->where('name', 'like', "%{$search}%")
-                ->whereNotIn('id', $linkedCanvasIds)
-                ->limit(10)
-                ->get();
-            foreach ($canvases as $canvas) {
-                $results->push([
-                    'id' => $canvas->id,
-                    'name' => $canvas->name,
-                    'type' => 'canvas',
-                    'type_label' => 'Canvas',
-                ]);
-            }
-        } catch (\Throwable $e) {
-            // Canvas-Modul nicht verfuegbar
-        }
-
-        $this->availableCanvases = $results->toArray();
-    }
-
-    public function attachCanvas(int $canvasId, string $canvasType): void
-    {
-        $this->authorize('update', $this->project);
-
-        // Canvas-Modul: weiterhin via EntityLinkService
-        if ($canvasType === 'canvas') {
-            app(EntityLinkService::class)->link(
-                $this->project->team_id,
-                $this->project->getMorphClass(),
-                $this->project->getKey(),
-                $canvasType,
-                $canvasId,
-            );
-        }
-
-        $this->loadLinkedCanvases();
-        $this->canvasSearch = '';
-        $this->availableCanvases = [];
-    }
-
-    public function detachCanvas(int $canvasId, string $canvasType): void
-    {
-        $this->authorize('update', $this->project);
-
-        if ($canvasType === 'pc_canvas') {
-            // Direkte Project Canvases: Soft-Delete
-            \Platform\Planner\Models\PlannerProjectCanvas::where('id', $canvasId)
-                ->where('project_id', $this->project->id)
-                ->first()
-                ?->delete();
-        } else {
-            // Canvas-Modul: via EntityLinkService
-            app(EntityLinkService::class)->unlink(
-                $this->project->team_id,
-                $this->project->getMorphClass(),
-                $this->project->getKey(),
-                $canvasType,
-                $canvasId,
-            );
-        }
-
-        $this->loadLinkedCanvases();
     }
 
     // ── Entity Links (read-only) ─────────────────────────────────

@@ -11,7 +11,7 @@ use Platform\Planner\Enums\StoryPoints;
 use Platform\Planner\Livewire\Concerns\QuickTogglesDone;
 use Illuminate\Database\Eloquent\Collection;
 use Livewire\Attributes\On;
-use Platform\Core\Services\EntityLinkService;
+
 
 class Project extends Component
 {
@@ -246,37 +246,8 @@ class Project extends Component
 
         $linkedEntities = $linkedEntities->unique('entity_name');
 
-        // Canvas-Verknüpfungen laden (direkt via Relationship + EntityLink für Canvas-Modul)
-        $linkedCanvases = collect();
-
-        // Direkte Project Canvases (neues System)
-        foreach ($this->project->canvases as $canvas) {
-            $linkedCanvases->push([
-                'name' => $canvas->name,
-                'url' => route('planner.projects.canvas.show', [$this->project, $canvas]),
-            ]);
-        }
-
-        // Canvas-Modul Links (via EntityLinkService, falls vorhanden)
-        try {
-            $service = app(EntityLinkService::class);
-            $teamId = $this->project->team_id;
-            $projectType = $this->project->getMorphClass();
-            $projectId = $this->project->getKey();
-
-            $canvasIds = $service->getLinkedIds($teamId, $projectType, $projectId, 'canvas');
-            if (!empty($canvasIds)) {
-                $canvasModels = \Platform\Canvas\Models\Canvas::whereIn('id', $canvasIds)->get();
-                foreach ($canvasModels as $canvas) {
-                    $linkedCanvases->push([
-                        'name' => $canvas->name,
-                        'url' => route('canvas.canvases.show', $canvas->id),
-                    ]);
-                }
-            }
-        } catch (\Throwable $e) {
-            // Canvas-Modul nicht verfuegbar
-        }
+        // Canvas-Anzahl für Badge
+        $canvasCount = $this->project->canvases()->count();
 
         // Aktuelle Rolle des Users im Projekt ermitteln
         $projectUser = $this->project->projectUsers()
@@ -312,7 +283,7 @@ class Project extends Component
         return view('planner::livewire.project', [
             'groups' => $groups,
             'linkedEntities' => $linkedEntities,
-            'linkedCanvases' => $linkedCanvases,
+            'canvasCount' => $canvasCount,
             'currentUserRole' => $currentUserRole,
             'hasAnyTasks' => $hasAnyTasks,
             'permissions' => $permissions,
