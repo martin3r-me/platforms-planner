@@ -55,10 +55,11 @@ class GenerateRecurringTasks extends Command
         foreach ($recurringTasks as $recurringTask) {
             $this->info("  📝 Verarbeite: '{$recurringTask->title}' (Fällig: {$recurringTask->next_due_date->format('d.m.Y')})");
 
-            // Prüfe, ob bereits eine Task in der aktuellen Frequenzperiode existiert (nur wenn auto_delete_old_tasks nicht aktiv ist)
+            // Doppelte Anlage in der gleichen Periode vermeiden (nur wenn auto_delete nicht aktiv ist).
+            // Periode = ab Beginn von next_due_date bis next_due_date - definiert durch period_start.
             if (!$recurringTask->auto_delete_old_tasks) {
                 $periodStart = $this->getPeriodStart($recurringTask->recurrence_type, $recurringTask->next_due_date);
-                
+
                 $existingTask = PlannerTask::where('recurring_task_id', $recurringTask->id)
                     ->where('created_at', '>=', $periodStart)
                     ->first();
@@ -66,8 +67,8 @@ class GenerateRecurringTasks extends Command
                 if ($existingTask) {
                     $this->warn("     ⚠️  Übersprungen: Task wurde bereits in dieser Periode erstellt (am {$existingTask->created_at->format('d.m.Y H:i')})");
                     $skippedCount++;
-                    
-                    // Trotzdem nächsten Termin berechnen
+
+                    // Nicht stehen bleiben — das Model selbst rollt sauber weiter
                     if (!$isDryRun) {
                         $recurringTask->calculateNextDueDate();
                         $recurringTask->save();
@@ -76,7 +77,7 @@ class GenerateRecurringTasks extends Command
                 }
             }
 
-            // Zeige Optionen an
+            // Optionen für Logging anzeigen
             $options = [];
             if ($recurringTask->auto_delete_old_tasks) {
                 $oldTasksCount = $recurringTask->tasks()->count();
@@ -84,6 +85,12 @@ class GenerateRecurringTasks extends Command
             }
             if ($recurringTask->auto_mark_as_done) {
                 $options[] = "Markiert als erledigt";
+            }
+            if ((int) $recurringTask->lead_time_days > 0) {
+                $options[] = "Vorlauf: {$recurringTask->lead_time_days}d";
+            }
+            if ($recurringTask->chain_on_complete) {
+                $options[] = "Chain-on-Complete";
             }
             if (!empty($options)) {
                 $this->info("     ⚙️  Optionen: " . implode(', ', $options));
