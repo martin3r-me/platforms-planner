@@ -32,6 +32,21 @@ class RecurringTasksTab extends Component
         'recurrence_end_date' => null,
         'next_due_date' => null,
         'is_active' => true,
+        'auto_delete_old_tasks' => false,
+        'auto_mark_as_done' => false,
+
+        // Erweiterte Muster
+        'weekday_mask' => null,
+        'monthly_pattern' => null,
+        'monthly_day_of_month' => null,
+        'monthly_ordinal' => null,
+        'monthly_weekday' => null,
+
+        // Vorlauf / Chain / Limit
+        'lead_time_days' => 0,
+        'chain_on_complete' => false,
+        'max_occurrences' => null,
+        'skip_weekends' => false,
     ];
 
     public $recurrenceEndDateInput = '';
@@ -74,7 +89,7 @@ class RecurringTasksTab extends Component
     public function openEditForm($id)
     {
         $recurringTask = PlannerRecurringTask::findOrFail($id);
-        
+
         $this->form = [
             'title' => $recurringTask->title,
             'description' => $recurringTask->description,
@@ -90,6 +105,17 @@ class RecurringTasksTab extends Component
             'is_active' => $recurringTask->is_active,
             'auto_delete_old_tasks' => $recurringTask->auto_delete_old_tasks,
             'auto_mark_as_done' => $recurringTask->auto_mark_as_done,
+
+            'weekday_mask' => $recurringTask->weekday_mask,
+            'monthly_pattern' => $recurringTask->monthly_pattern,
+            'monthly_day_of_month' => $recurringTask->monthly_day_of_month,
+            'monthly_ordinal' => $recurringTask->monthly_ordinal,
+            'monthly_weekday' => $recurringTask->monthly_weekday,
+
+            'lead_time_days' => (int) $recurringTask->lead_time_days,
+            'chain_on_complete' => (bool) $recurringTask->chain_on_complete,
+            'max_occurrences' => $recurringTask->max_occurrences,
+            'skip_weekends' => (bool) $recurringTask->skip_weekends,
         ];
 
         $this->recurrenceEndDateInput = $recurringTask->recurrence_end_date 
@@ -127,9 +153,57 @@ class RecurringTasksTab extends Component
             'is_active' => true,
             'auto_delete_old_tasks' => false,
             'auto_mark_as_done' => false,
+
+            'weekday_mask' => null,
+            'monthly_pattern' => null,
+            'monthly_day_of_month' => null,
+            'monthly_ordinal' => null,
+            'monthly_weekday' => null,
+
+            'lead_time_days' => 0,
+            'chain_on_complete' => false,
+            'max_occurrences' => null,
+            'skip_weekends' => false,
         ];
         $this->recurrenceEndDateInput = '';
         $this->nextDueDateInput = '';
+    }
+
+    /**
+     * Wochentag im Bitfeld umschalten. ISO Mo=0..So=6, Bit = 2^iso.
+     */
+    public function toggleWeekday(int $iso): void
+    {
+        $bit = (int) (PlannerRecurringTask::WEEKDAY_BITS[$iso] ?? 0);
+        if ($bit === 0) return;
+        $current = (int) ($this->form['weekday_mask'] ?? 0);
+        $this->form['weekday_mask'] = $current ^ $bit;
+        if ($this->form['weekday_mask'] === 0) {
+            $this->form['weekday_mask'] = null; // null = keine Einschränkung
+        }
+    }
+
+    public function applyWeekdayPreset(string $preset): void
+    {
+        $this->form['weekday_mask'] = match ($preset) {
+            'workdays' => PlannerRecurringTask::WEEKDAY_MASK_WORKDAYS,
+            'weekend'  => PlannerRecurringTask::WEEKDAY_MASK_WEEKEND,
+            'all'      => PlannerRecurringTask::WEEKDAY_MASK_ALL,
+            default    => null,
+        };
+    }
+
+    public function setMonthlyPattern(?string $pattern): void
+    {
+        $this->form['monthly_pattern'] = $pattern;
+        // Defaults setzen damit das Preview nicht leer bleibt
+        if ($pattern === 'day_of_month' && empty($this->form['monthly_day_of_month'])) {
+            $this->form['monthly_day_of_month'] = 1;
+        }
+        if ($pattern === 'ordinal_weekday') {
+            if ($this->form['monthly_ordinal'] === null) $this->form['monthly_ordinal'] = 1;
+            if ($this->form['monthly_weekday'] === null) $this->form['monthly_weekday'] = 0;
+        }
     }
 
     public function updatedRecurrenceEndDateInput($value)
@@ -159,6 +233,17 @@ class RecurringTasksTab extends Component
             'form.is_active' => 'boolean',
             'form.auto_delete_old_tasks' => 'boolean',
             'form.auto_mark_as_done' => 'boolean',
+
+            'form.weekday_mask' => 'nullable|integer|min:0|max:127',
+            'form.monthly_pattern' => 'nullable|in:day_of_month,ordinal_weekday',
+            'form.monthly_day_of_month' => 'nullable|integer|between:-1,31',
+            'form.monthly_ordinal' => 'nullable|integer|in:-1,1,2,3,4',
+            'form.monthly_weekday' => 'nullable|integer|between:0,6',
+
+            'form.lead_time_days' => 'nullable|integer|min:0|max:365',
+            'form.chain_on_complete' => 'boolean',
+            'form.max_occurrences' => 'nullable|integer|min:1',
+            'form.skip_weekends' => 'boolean',
         ]);
 
         $user = Auth::user();
@@ -221,9 +306,45 @@ class RecurringTasksTab extends Component
         $this->loadRecurringTasks();
     }
 
+    /**
+     * Berechnet eine Live-Vorschau der nächsten 3 Termine basierend auf dem aktuellen Form-Stand,
+     * ohne ein Model zu persistieren.
+     */
+    public function getPreviewOccurrencesProperty(): array
+    {
+        // Mindestens Datum + Typ + Intervall nötig für eine sinnvolle Vorschau
+        if (empty($this->form['next_due_date'])) return [];
+
+        $shadow = new PlannerRecurringTask();
+        $shadow->recurrence_type = $this->form['recurrence_type'];
+        $shadow->recurrence_interval = (int) ($this->form['recurrence_interval'] ?? 1);
+        $shadow->next_due_date = $this->form['next_due_date'] instanceof \Carbon\Carbon
+            ? $this->form['next_due_date']
+            : \Carbon\Carbon::parse($this->form['next_due_date']);
+        $shadow->recurrence_end_date = $this->form['recurrence_end_date']
+            ? ($this->form['recurrence_end_date'] instanceof \Carbon\Carbon
+                ? $this->form['recurrence_end_date']
+                : \Carbon\Carbon::parse($this->form['recurrence_end_date']))
+            : null;
+        $shadow->weekday_mask = $this->form['weekday_mask'] ?? null;
+        $shadow->monthly_pattern = $this->form['monthly_pattern'] ?? null;
+        $shadow->monthly_day_of_month = $this->form['monthly_day_of_month'] ?? null;
+        $shadow->monthly_ordinal = $this->form['monthly_ordinal'] ?? null;
+        $shadow->monthly_weekday = $this->form['monthly_weekday'] ?? null;
+        $shadow->skip_weekends = (bool) ($this->form['skip_weekends'] ?? false);
+        $shadow->max_occurrences = $this->form['max_occurrences'] ?? null;
+        $shadow->occurrences_count = 0;
+
+        try {
+            return $shadow->nextOccurrences(3);
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
     public function render()
     {
-        $projectSlots = $this->project 
+        $projectSlots = $this->project
             ? PlannerProjectSlot::where('project_id', $this->project->id)
                 ->orderBy('order')
                 ->get()

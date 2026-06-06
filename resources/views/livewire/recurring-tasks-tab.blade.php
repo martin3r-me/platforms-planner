@@ -1,5 +1,36 @@
 @php
-    $recurrenceLabel = function (string $type, int $interval) {
+    $recurrenceLabel = function (array $rt) {
+        $type = $rt['recurrence_type'] ?? 'daily';
+        $interval = (int) ($rt['recurrence_interval'] ?? 1);
+
+        // Spezialmuster zuerst
+        if ($type === 'monthly' && !empty($rt['monthly_pattern'])) {
+            if ($rt['monthly_pattern'] === 'day_of_month') {
+                $day = (int) ($rt['monthly_day_of_month'] ?? 1);
+                $dayLabel = $day === -1 ? 'letzten Tag' : "{$day}.";
+                return $interval > 1 ? "Alle {$interval} Monate am {$dayLabel}" : "Jeden Monat am {$dayLabel}";
+            }
+            if ($rt['monthly_pattern'] === 'ordinal_weekday') {
+                $ordinals = [1 => 'ersten', 2 => 'zweiten', 3 => 'dritten', 4 => 'vierten', -1 => 'letzten'];
+                $weekdays = ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
+                $ord = $ordinals[(int) ($rt['monthly_ordinal'] ?? 1)] ?? 'ersten';
+                $wd  = $weekdays[(int) ($rt['monthly_weekday'] ?? 0)] ?? 'Montag';
+                return $interval > 1
+                    ? "Alle {$interval} Monate am {$ord} {$wd}"
+                    : "Jeden {$ord} {$wd} im Monat";
+            }
+        }
+
+        if (in_array($type, ['daily','weekly']) && !empty($rt['weekday_mask'])) {
+            $mask = (int) $rt['weekday_mask'];
+            $labels = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+            $picked = [];
+            foreach ([0,1,2,3,4,5,6] as $iso) {
+                if (($mask & (1 << $iso)) !== 0) $picked[] = $labels[$iso];
+            }
+            return count($picked) > 0 ? implode(' · ', $picked) : 'Wochentage';
+        }
+
         $unit = match($type) {
             'daily'   => $interval === 1 ? 'Tag' : 'Tage',
             'weekly'  => $interval === 1 ? 'Woche' : 'Wochen',
@@ -66,8 +97,31 @@
                                 {{-- Recurrence chip --}}
                                 <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded-full bg-[var(--planner-status-active)]/10 text-[var(--planner-status-active)]">
                                     @svg('heroicon-o-arrow-path', 'w-3 h-3')
-                                    {{ $recurrenceLabel($rt['recurrence_type'], $rt['recurrence_interval']) }}
+                                    {{ $recurrenceLabel($rt) }}
                                 </span>
+                                @if(!empty($rt['lead_time_days']))
+                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] rounded-full bg-[var(--ui-muted-5)] text-[var(--ui-secondary)]" title="Vorlauf">
+                                        @svg('heroicon-o-clock', 'w-2.5 h-2.5 opacity-60')
+                                        {{ $rt['lead_time_days'] }}d Vorlauf
+                                    </span>
+                                @endif
+                                @if(!empty($rt['chain_on_complete']))
+                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] rounded-full bg-[var(--ui-muted-5)] text-[var(--ui-secondary)]" title="Bei Erledigen kommt sofort die nächste">
+                                        @svg('heroicon-o-link', 'w-2.5 h-2.5 opacity-60')
+                                        Chain
+                                    </span>
+                                @endif
+                                @if(!empty($rt['skip_weekends']))
+                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] rounded-full bg-[var(--ui-muted-5)] text-[var(--ui-secondary)]" title="Sa/So werden auf Montag verschoben">
+                                        @svg('heroicon-o-calendar', 'w-2.5 h-2.5 opacity-60')
+                                        Wochentage
+                                    </span>
+                                @endif
+                                @if(!empty($rt['max_occurrences']))
+                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] rounded-full bg-[var(--ui-muted-5)] text-[var(--ui-secondary)] tabular-nums" title="Limit">
+                                        {{ (int) ($rt['occurrences_count'] ?? 0) }} / {{ $rt['max_occurrences'] }}
+                                    </span>
+                                @endif
                                 {{-- Priority chip --}}
                                 @if($priority && $priority !== 'normal')
                                     <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded-full" style="background-color: color-mix(in srgb, {{ $priorityColor }} 14%, white); color: {{ $priorityColor }};">
@@ -271,30 +325,161 @@
                         @svg('heroicon-o-arrow-path', 'w-3 h-3')
                         Wiederholung
                     </h5>
-                    <div class="space-y-3">
-                        <div class="grid grid-cols-2 gap-3">
-                            <x-ui-input-select
-                                name="form.recurrence_type"
-                                label="Rhythmus"
-                                wire:model="form.recurrence_type"
-                                :options="$recurrenceTypes"
-                                :nullable="false"
-                                :errorKey="'form.recurrence_type'"
-                            />
-                            <x-ui-input-text
-                                name="form.recurrence_interval"
-                                label="Intervall"
-                                type="number"
-                                min="1"
-                                wire:model="form.recurrence_interval"
-                                placeholder="1"
-                                required
-                                :errorKey="'form.recurrence_interval'"
-                            />
+
+                    {{-- Typ + Intervall --}}
+                    <div class="grid grid-cols-2 gap-3">
+                        <x-ui-input-select
+                            name="form.recurrence_type"
+                            label="Rhythmus"
+                            wire:model.live="form.recurrence_type"
+                            :options="$recurrenceTypes"
+                            :nullable="false"
+                            :errorKey="'form.recurrence_type'"
+                        />
+                        <x-ui-input-text
+                            name="form.recurrence_interval"
+                            label="Intervall"
+                            type="number"
+                            min="1"
+                            wire:model.live="form.recurrence_interval"
+                            placeholder="1"
+                            required
+                            :errorKey="'form.recurrence_interval'"
+                        />
+                    </div>
+                    <p class="mt-1 text-[11px] text-[var(--ui-muted)]">
+                        Beispiel: „Wöchentlich" + Intervall „2" → alle zwei Wochen
+                    </p>
+
+                    {{-- Wochentag-Maske (für daily + weekly) --}}
+                    @if(in_array($form['recurrence_type'], ['daily', 'weekly']))
+                        @php
+                            $weekdays = [
+                                0 => 'Mo', 1 => 'Di', 2 => 'Mi', 3 => 'Do', 4 => 'Fr', 5 => 'Sa', 6 => 'So',
+                            ];
+                            $weekdayBits = [0=>1,1=>2,2=>4,3=>8,4=>16,5=>32,6=>64];
+                            $mask = (int) ($form['weekday_mask'] ?? 0);
+                        @endphp
+                        <div class="mt-3">
+                            <label class="block text-[11px] font-medium text-[var(--ui-secondary)] mb-1.5">
+                                Wochentage
+                                <span class="text-[10px] text-[var(--ui-muted)] font-normal">— optional, leer = alle</span>
+                            </label>
+                            <div class="flex flex-wrap gap-1 mb-1.5">
+                                @foreach($weekdays as $iso => $label)
+                                    @php $active = ($mask & $weekdayBits[$iso]) !== 0; @endphp
+                                    <button
+                                        type="button"
+                                        wire:click="toggleWeekday({{ $iso }})"
+                                        class="inline-flex items-center justify-center w-9 h-7 text-[11px] font-semibold rounded-md transition-colors {{ $active
+                                            ? 'bg-[var(--planner-status-active)] text-white'
+                                            : 'bg-[var(--ui-muted-5)] text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-10)]' }}"
+                                    >{{ $label }}</button>
+                                @endforeach
+                            </div>
+                            <div class="flex flex-wrap gap-1">
+                                <button type="button" wire:click="applyWeekdayPreset('workdays')" class="text-[10px] text-[var(--planner-status-active)] hover:underline">Werktage</button>
+                                <span class="text-[10px] text-[var(--ui-muted)]">·</span>
+                                <button type="button" wire:click="applyWeekdayPreset('weekend')" class="text-[10px] text-[var(--planner-status-active)] hover:underline">Wochenende</button>
+                                <span class="text-[10px] text-[var(--ui-muted)]">·</span>
+                                <button type="button" wire:click="applyWeekdayPreset('all')" class="text-[10px] text-[var(--planner-status-active)] hover:underline">Alle</button>
+                                <span class="text-[10px] text-[var(--ui-muted)]">·</span>
+                                <button type="button" wire:click="applyWeekdayPreset('')" class="text-[10px] text-[var(--ui-muted)] hover:underline">Leer</button>
+                            </div>
                         </div>
-                        <p class="text-[11px] text-[var(--ui-muted)] -mt-1">
-                            Beispiel: Rhythmus „Wöchentlich" + Intervall „2" → alle zwei Wochen
-                        </p>
+                    @endif
+
+                    {{-- Monatsmuster --}}
+                    @if($form['recurrence_type'] === 'monthly')
+                        <div class="mt-3">
+                            <label class="block text-[11px] font-medium text-[var(--ui-secondary)] mb-1.5">Monatsmuster</label>
+                            <div class="inline-flex rounded-md border border-[var(--ui-border)] overflow-hidden mb-2">
+                                <button
+                                    type="button"
+                                    wire:click="setMonthlyPattern(null)"
+                                    class="inline-flex items-center px-2.5 h-7 text-[11px] font-medium transition-colors {{ empty($form['monthly_pattern']) ? 'bg-[var(--planner-status-active)] text-white' : 'bg-transparent text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}"
+                                >Gleicher Tag</button>
+                                <button
+                                    type="button"
+                                    wire:click="setMonthlyPattern('day_of_month')"
+                                    class="inline-flex items-center px-2.5 h-7 text-[11px] font-medium border-l border-[var(--ui-border)] transition-colors {{ ($form['monthly_pattern'] ?? '') === 'day_of_month' ? 'bg-[var(--planner-status-active)] text-white' : 'bg-transparent text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}"
+                                >Fester Tag</button>
+                                <button
+                                    type="button"
+                                    wire:click="setMonthlyPattern('ordinal_weekday')"
+                                    class="inline-flex items-center px-2.5 h-7 text-[11px] font-medium border-l border-[var(--ui-border)] transition-colors {{ ($form['monthly_pattern'] ?? '') === 'ordinal_weekday' ? 'bg-[var(--planner-status-active)] text-white' : 'bg-transparent text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}"
+                                >N-ter Wochentag</button>
+                            </div>
+
+                            @if(($form['monthly_pattern'] ?? '') === 'day_of_month')
+                                <div class="grid grid-cols-2 gap-3">
+                                    <x-ui-input-text
+                                        name="form.monthly_day_of_month"
+                                        label="Tag im Monat (1–31, −1 = letzter)"
+                                        type="number"
+                                        min="-1"
+                                        max="31"
+                                        wire:model.live="form.monthly_day_of_month"
+                                        placeholder="z. B. 5 oder -1"
+                                    />
+                                </div>
+                                <p class="mt-1 text-[10px] text-[var(--ui-muted)]">
+                                    Wenn der Monat den Tag nicht hat (z. B. 31. Februar), wird der letzte Tag verwendet.
+                                </p>
+                            @elseif(($form['monthly_pattern'] ?? '') === 'ordinal_weekday')
+                                <div class="grid grid-cols-2 gap-3">
+                                    <x-ui-input-select
+                                        name="form.monthly_ordinal"
+                                        label="Welcher"
+                                        wire:model.live="form.monthly_ordinal"
+                                        :options="collect([
+                                            ['value' => 1, 'label' => 'Erster'],
+                                            ['value' => 2, 'label' => 'Zweiter'],
+                                            ['value' => 3, 'label' => 'Dritter'],
+                                            ['value' => 4, 'label' => 'Vierter'],
+                                            ['value' => -1, 'label' => 'Letzter'],
+                                        ])"
+                                        :nullable="false"
+                                    />
+                                    <x-ui-input-select
+                                        name="form.monthly_weekday"
+                                        label="Wochentag"
+                                        wire:model.live="form.monthly_weekday"
+                                        :options="collect([
+                                            ['value' => 0, 'label' => 'Montag'],
+                                            ['value' => 1, 'label' => 'Dienstag'],
+                                            ['value' => 2, 'label' => 'Mittwoch'],
+                                            ['value' => 3, 'label' => 'Donnerstag'],
+                                            ['value' => 4, 'label' => 'Freitag'],
+                                            ['value' => 5, 'label' => 'Samstag'],
+                                            ['value' => 6, 'label' => 'Sonntag'],
+                                        ])"
+                                        :nullable="false"
+                                    />
+                                </div>
+                                <p class="mt-1 text-[10px] text-[var(--ui-muted)]">
+                                    Beispiel: „Erster Montag" oder „Letzter Freitag" — gilt jeden Monat.
+                                </p>
+                            @endif
+                        </div>
+                    @endif
+
+                    {{-- Wochenend-Skip --}}
+                    @if(in_array($form['recurrence_type'], ['daily', 'weekly', 'monthly', 'yearly']))
+                        <label class="flex items-center gap-2 mt-3 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                wire:model.live="form.skip_weekends"
+                                class="rounded border-[var(--ui-border)] text-[var(--planner-status-active)] focus:ring-[var(--planner-status-active)]/30"
+                            />
+                            <span class="text-[11px] text-[var(--ui-secondary)]">
+                                Wochenend-Termine auf nächsten Montag verschieben
+                            </span>
+                        </label>
+                    @endif
+
+                    {{-- Datumsangaben --}}
+                    <div class="mt-3 space-y-3">
                         <x-ui-input-text
                             name="nextDueDateInput"
                             label="Nächste Fälligkeit"
@@ -303,27 +488,80 @@
                             required
                             :errorKey="'form.next_due_date'"
                         />
-                        <x-ui-input-text
-                            name="recurrenceEndDateInput"
-                            label="Endet am (optional)"
-                            type="datetime-local"
-                            wire:model.live="recurrenceEndDateInput"
-                            :errorKey="'form.recurrence_end_date'"
-                        />
+                        <div class="grid grid-cols-2 gap-3">
+                            <x-ui-input-text
+                                name="recurrenceEndDateInput"
+                                label="Endet am (optional)"
+                                type="datetime-local"
+                                wire:model.live="recurrenceEndDateInput"
+                                :errorKey="'form.recurrence_end_date'"
+                            />
+                            <x-ui-input-text
+                                name="form.max_occurrences"
+                                label="Max. Wiederholungen (optional)"
+                                type="number"
+                                min="1"
+                                wire:model.live="form.max_occurrences"
+                                placeholder="∞"
+                                :errorKey="'form.max_occurrences'"
+                            />
+                        </div>
                     </div>
+
+                    {{-- LIVE-VORSCHAU --}}
+                    @php $preview = $this->previewOccurrences; @endphp
+                    @if(!empty($preview))
+                        <div class="mt-4 p-3 rounded-lg border border-[var(--planner-status-active)]/20 bg-[var(--planner-status-active)]/5">
+                            <div class="flex items-center gap-1.5 mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--planner-status-active)]">
+                                @svg('heroicon-o-eye', 'w-3 h-3')
+                                Nächste 3 Termine
+                            </div>
+                            <ul class="space-y-1.5">
+                                @foreach($preview as $i => $date)
+                                    @php
+                                        $weekdayLabel = ['Mo','Di','Mi','Do','Fr','Sa','So'][($date->dayOfWeek + 6) % 7];
+                                    @endphp
+                                    <li class="flex items-center gap-2 text-[11px]">
+                                        <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[var(--planner-status-active)] text-white text-[9px] font-bold tabular-nums">{{ $i + 1 }}</span>
+                                        <span class="text-[var(--ui-secondary)] font-medium tabular-nums">{{ $weekdayLabel }}, {{ $date->format('d.m.Y · H:i') }}</span>
+                                        <span class="text-[var(--ui-muted)] ml-auto">{{ $date->diffForHumans() }}</span>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
                 </section>
 
-                {{-- 3. OPTIONEN --}}
+                {{-- 3. VERHALTEN --}}
                 <section class="pt-5 border-t border-[var(--ui-border)]/40">
                     <h5 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] mb-2.5 inline-flex items-center gap-1.5">
                         @svg('heroicon-o-cog-6-tooth', 'w-3 h-3')
                         Verhalten
                     </h5>
+
+                    {{-- Vorlauf --}}
+                    <div class="mb-3">
+                        <x-ui-input-text
+                            name="form.lead_time_days"
+                            label="Vorlauf"
+                            type="number"
+                            min="0"
+                            max="365"
+                            wire:model.live="form.lead_time_days"
+                            placeholder="0 = erst am Fälligkeitstag"
+                            :errorKey="'form.lead_time_days'"
+                        />
+                        <p class="mt-1 text-[10px] text-[var(--ui-muted)]">
+                            Tage vor der Fälligkeit, an denen die Aufgabe automatisch angelegt wird (0 = exakt am Tag).
+                        </p>
+                    </div>
+
+                    {{-- Toggle-Cards --}}
                     <div class="space-y-2">
                         <label class="flex items-start gap-3 p-3 rounded-lg border border-[var(--ui-border)]/60 hover:border-[var(--planner-status-active)]/40 cursor-pointer transition-colors">
                             <input
                                 type="checkbox"
-                                wire:model="form.is_active"
+                                wire:model.live="form.is_active"
                                 class="mt-0.5 rounded border-[var(--ui-border)] text-[var(--planner-status-active)] focus:ring-[var(--planner-status-active)]/30"
                             />
                             <div class="flex-1 min-w-0">
@@ -335,7 +573,21 @@
                         <label class="flex items-start gap-3 p-3 rounded-lg border border-[var(--ui-border)]/60 hover:border-[var(--planner-status-active)]/40 cursor-pointer transition-colors">
                             <input
                                 type="checkbox"
-                                wire:model="form.auto_delete_old_tasks"
+                                wire:model.live="form.chain_on_complete"
+                                class="mt-0.5 rounded border-[var(--ui-border)] text-[var(--planner-status-active)] focus:ring-[var(--planner-status-active)]/30"
+                            />
+                            <div class="flex-1 min-w-0">
+                                <div class="text-[12px] font-medium text-[var(--ui-secondary)]">Bei Erledigen sofort nächste anlegen</div>
+                                <div class="text-[11px] text-[var(--ui-muted)] leading-snug">
+                                    Wenn die zuletzt erzeugte Instanz erledigt oder gelöscht wird, springt die nächste Fälligkeit unmittelbar als neue Aufgabe in den Backlog — ohne auf den Cron zu warten.
+                                </div>
+                            </div>
+                        </label>
+
+                        <label class="flex items-start gap-3 p-3 rounded-lg border border-[var(--ui-border)]/60 hover:border-[var(--planner-status-active)]/40 cursor-pointer transition-colors">
+                            <input
+                                type="checkbox"
+                                wire:model.live="form.auto_delete_old_tasks"
                                 class="mt-0.5 rounded border-[var(--ui-border)] text-[var(--planner-status-active)] focus:ring-[var(--planner-status-active)]/30"
                             />
                             <div class="flex-1 min-w-0">
@@ -347,7 +599,7 @@
                         <label class="flex items-start gap-3 p-3 rounded-lg border border-[var(--ui-border)]/60 hover:border-[var(--planner-status-active)]/40 cursor-pointer transition-colors">
                             <input
                                 type="checkbox"
-                                wire:model="form.auto_mark_as_done"
+                                wire:model.live="form.auto_mark_as_done"
                                 class="mt-0.5 rounded border-[var(--ui-border)] text-[var(--planner-status-active)] focus:ring-[var(--planner-status-active)]/30"
                             />
                             <div class="flex-1 min-w-0">
