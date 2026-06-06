@@ -144,7 +144,7 @@
 
         {{-- Content --}}
         <div class="flex-1 overflow-y-auto bg-[var(--ui-muted-5)]">
-            <div class="max-w-6xl mx-auto p-6 space-y-6">
+            <div class="p-6 space-y-6">
 
                 @if($groupedTasks->isEmpty())
                     <div class="bg-white rounded-xl border border-[var(--ui-border)]/40 shadow-sm p-12 text-center">
