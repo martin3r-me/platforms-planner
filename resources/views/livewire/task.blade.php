@@ -5,12 +5,14 @@
     $dueDateColor = $isOverdue ? 'var(--planner-status-overdue)' : ($isToday || $isTomorrow ? '#f59e0b' : 'var(--ui-muted)');
     $spValue = is_object($task->story_points) ? $task->story_points->points() : $task->story_points;
     $priorityColor = $task->priority?->color() ?? null;
-    $heroColor = $task->is_done
+    $edgeColor = $task->is_done
         ? 'var(--planner-status-done)'
-        : ($isOverdue ? 'var(--planner-status-overdue)' : ($priorityColor ?? 'var(--planner-status-active)'));
+        : ($isOverdue ? 'var(--planner-status-overdue)' : ($task->is_frog ? 'var(--planner-frog)' : ($priorityColor ?? 'var(--planner-status-active)')));
 @endphp
+
 <x-ui-page>
     @include('planner::partials.planner-tokens')
+
     <x-slot name="navbar">
         <x-ui-page-navbar title="" />
     </x-slot>
@@ -67,246 +69,26 @@
         </x-ui-page-actionbar>
     </x-slot>
 
-    <x-ui-page-container spacing="space-y-6">
-        {{-- Hero Card --}}
-        <div class="rounded-lg border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]/30 overflow-hidden" style="border-top: 3px solid {{ $heroColor }}">
-            <div class="p-5">
-                {{-- Title Row --}}
-                <div class="flex items-start gap-4">
-                    <button
-                        type="button"
-                        wire:click="toggleDone"
-                        class="flex-shrink-0 mt-1 w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all duration-200 cursor-pointer
-                            {{ $task->is_done
-                                ? 'bg-[var(--planner-status-done)] border-[var(--planner-status-done)] text-white'
-                                : 'border-[var(--ui-border)] text-transparent hover:border-[var(--planner-status-done)] hover:text-[var(--planner-status-done)]' }}"
-                        title="{{ $task->is_done ? 'Als offen markieren' : 'Als erledigt markieren' }}"
-                    >
-                        @svg('heroicon-s-check', 'w-4 h-4')
-                    </button>
+    {{-- Left sidebar: Task-Eigenschaften --}}
+    <x-slot name="sidebar">
+        <x-ui-page-sidebar title="Eigenschaften" icon="heroicon-o-adjustments-horizontal" width="w-72" :defaultOpen="true">
+            <div class="p-4 space-y-4 bg-[var(--ui-muted-5)]">
 
-                    <div class="flex-1 min-w-0">
-                        <x-ui-input-text
-                            name="task.title"
-                            label=""
-                            wire:model.live.debounce.1000ms="task.title"
-                            :value="$task->title"
-                            placeholder="Aufgabentitel eingeben..."
-                            required
-                            :errorKey="'task.title'"
-                            class="!text-2xl !font-bold !border-none !shadow-none !ring-0 !p-0 !bg-transparent text-[var(--ui-secondary)] tracking-tight"
-                        />
-                    </div>
-                </div>
+                {{-- STATUS & PRIORITÄT --}}
+                <section class="rounded-lg bg-white border border-[var(--ui-border)]/40 shadow-sm overflow-hidden">
+                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] px-3 pt-3 pb-1.5">Status & Priorität</h3>
 
-                {{-- Context Line --}}
-                <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[var(--ui-muted)] mt-2 pl-12">
-                    @if($task->project)
-                        <a href="{{ route('planner.projects.show', ['plannerProject' => $task->project->id]) }}" class="hover:text-[var(--planner-status-active)] transition-colors">{{ $task->project->name }}</a>
-                        <span class="text-[var(--ui-muted)]/40">/</span>
-                    @endif
-                    @if($task->created_at)
-                        <span>{{ $task->created_at->format('d.m.Y') }}</span>
-                    @endif
-                    @if($task->user)
-                        <span class="text-[var(--ui-muted)]/40">/</span>
-                        <span>von {{ $task->user->fullname ?? $task->user->name }}</span>
-                    @endif
-                </div>
-
-                {{-- Badges --}}
-                @if($task->is_frog || $isOverdue || $task->is_done)
-                    <div class="flex flex-wrap items-center gap-2 mt-3 pl-12">
-                        @if($task->is_frog)
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
-                                🐸 Frosch
-                            </span>
-                        @endif
-                        @if($isOverdue)
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
-                                Überfällig {{ $task->due_date->diffInDays(now()) }}d
-                            </span>
-                        @endif
-                        @if($task->is_done)
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-                                @svg('heroicon-s-check', 'w-3 h-3')
-                                Erledigt
-                            </span>
-                        @endif
-                    </div>
-                @endif
-            </div>
-        </div>
-
-        {{-- Two-column layout: Main + Properties Sidebar --}}
-        <div class="flex flex-col lg:flex-row gap-6">
-            {{-- Main Content --}}
-            <div class="flex-1 min-w-0 space-y-6">
-                {{-- Anmerkung Card --}}
-                <div class="rounded-lg border border-[var(--ui-border)]/60 bg-white dark:bg-[var(--ui-surface)] shadow-xs overflow-hidden">
-                    <div class="px-5 py-3 border-b border-[var(--ui-border)]/40 bg-[var(--ui-muted-5)]/50 flex items-center gap-2">
-                        @svg('heroicon-o-document-text', 'w-4 h-4 text-[var(--ui-muted)]')
-                        <h2 class="text-xs font-semibold uppercase tracking-wider text-[var(--ui-muted)]">Anmerkung</h2>
-                        <span title="Verschlüsselt" class="text-[var(--ui-muted)]">
-                            @svg('heroicon-o-lock-closed', 'w-3.5 h-3.5')
-                        </span>
-                    </div>
-                    <div class="p-5">
-                        <x-ui-input-textarea
-                            name="description"
-                            label=""
-                            wire:model.live.debounce.1000ms="description"
-                            :placeholder="empty($description) ? 'Zusätzliche Notizen und Informationen zur Aufgabe (optional)' : ''"
-                            rows="6"
-                            :errorKey="'description'"
-                        />
-                    </div>
-                </div>
-
-                {{-- Definition of Done Card --}}
-                <div class="rounded-lg border border-[var(--ui-border)]/60 bg-white dark:bg-[var(--ui-surface)] shadow-xs overflow-hidden">
-                    <div class="px-5 py-3 border-b border-[var(--ui-border)]/40 bg-[var(--ui-muted-5)]/50 flex items-center gap-2">
-                        @svg('heroicon-o-clipboard-document-check', 'w-4 h-4 text-[var(--ui-muted)]')
-                        <h2 class="text-xs font-semibold uppercase tracking-wider text-[var(--ui-muted)]">Definition of Done</h2>
-                        <span title="Verschlüsselt" class="text-[var(--ui-muted)]">
-                            @svg('heroicon-o-lock-closed', 'w-3.5 h-3.5')
-                        </span>
-                        @if(count($dodItems) > 0)
-                            <div class="ml-auto flex items-center gap-2">
-                                <span class="text-xs font-medium text-[var(--ui-muted)]">
-                                    {{ $this->dodProgress['checked'] }}/{{ $this->dodProgress['total'] }}
-                                </span>
-                                <div class="w-24 h-2 bg-[var(--planner-track)] rounded-full overflow-hidden">
-                                    <div
-                                        class="h-full transition-all duration-300 rounded-full {{ $this->dodProgress['isComplete'] ? 'bg-[var(--planner-status-done)]' : 'bg-[var(--planner-track-fill)]' }}"
-                                        style="width: {{ $this->dodProgress['percentage'] }}%"
-                                    ></div>
-                                </div>
-                            </div>
-                        @endif
-                    </div>
-                    <div class="p-5">
-                        {{-- DoD Items --}}
-                        <div class="space-y-2">
-                            @forelse($dodItems as $index => $item)
-                                <div
-                                    class="group flex items-start gap-3 p-3 rounded-lg border border-[var(--ui-border)]/60 bg-[var(--ui-surface)] hover:border-[var(--planner-status-active)]/40 transition-all duration-200 {{ $item['checked'] ? 'bg-[var(--planner-card-done)]' : '' }}"
-                                    wire:key="dod-item-{{ $index }}"
-                                >
-                                    <button
-                                        type="button"
-                                        wire:click="toggleDodItem({{ $index }})"
-                                        class="flex-shrink-0 w-5 h-5 mt-0.5 rounded border-2 transition-all duration-200 flex items-center justify-center {{ $item['checked'] ? 'bg-[var(--planner-status-done)] border-[var(--planner-status-done)] text-white' : 'border-[var(--ui-border)] hover:border-[var(--planner-status-active)]' }}"
-                                    >
-                                        @if($item['checked'])
-                                            @svg('heroicon-s-check', 'w-3 h-3')
-                                        @endif
-                                    </button>
-                                    <div class="flex-1 min-w-0">
-                                        <input
-                                            type="text"
-                                            value="{{ $item['text'] }}"
-                                            wire:blur="updateDodItemText({{ $index }}, $event.target.value)"
-                                            class="w-full bg-transparent border-none p-0 text-sm focus:ring-0 focus:outline-none {{ $item['checked'] ? 'line-through text-[var(--ui-muted)]' : 'text-[var(--ui-secondary)]' }}"
-                                            placeholder="DoD-Kriterium eingeben..."
-                                        />
-                                    </div>
-                                    <button
-                                        type="button"
-                                        wire:click="removeDodItem({{ $index }})"
-                                        wire:confirm="Möchten Sie diesen DoD-Punkt wirklich entfernen?"
-                                        class="flex-shrink-0 opacity-0 group-hover:opacity-100 p-1 rounded text-[var(--ui-muted)] hover:text-[var(--ui-danger)] hover:bg-[var(--ui-danger-5)] transition-all duration-200"
-                                    >
-                                        @svg('heroicon-o-trash', 'w-4 h-4')
-                                    </button>
-                                </div>
-                            @empty
-                                <div class="text-center py-6 text-[var(--ui-muted)]">
-                                    <div class="flex justify-center mb-2">
-                                        @svg('heroicon-o-clipboard-document-check', 'w-8 h-8')
-                                    </div>
-                                    <p class="text-sm">Noch keine DoD-Kriterien definiert</p>
-                                </div>
-                            @endforelse
-                        </div>
-
-                        {{-- Add DoD item --}}
-                        <div class="mt-3">
-                            <div
-                                x-data="{ newDodText: '', isAdding: false }"
-                                class="relative"
-                            >
-                                <template x-if="!isAdding">
-                                    <button
-                                        type="button"
-                                        @click="isAdding = true; $nextTick(() => $refs.newDodInput?.focus())"
-                                        class="w-full flex items-center gap-2 p-3 rounded-lg border border-dashed border-[var(--ui-border)]/60 text-[var(--ui-muted)] hover:border-[var(--planner-status-active)]/60 hover:text-[var(--planner-status-active)] hover:bg-[var(--planner-status-active)]/5 transition-all duration-200"
-                                    >
-                                        @svg('heroicon-o-plus', 'w-4 h-4')
-                                        <span class="text-sm">DoD-Kriterium hinzufügen</span>
-                                    </button>
-                                </template>
-
-                                <template x-if="isAdding">
-                                    <div class="flex items-center gap-2 p-2 rounded-lg border border-[var(--planner-status-active)]/60 bg-[var(--planner-status-active)]/5">
-                                        <input
-                                            type="text"
-                                            x-ref="newDodInput"
-                                            x-model="newDodText"
-                                            @keydown.enter.prevent="if(newDodText.trim()) { $wire.addDodItem(newDodText); newDodText = ''; }"
-                                            @keydown.escape="isAdding = false; newDodText = ''"
-                                            @blur="if(!newDodText.trim()) { isAdding = false; }"
-                                            class="flex-1 bg-transparent border-none p-1 text-sm focus:ring-0 focus:outline-none text-[var(--ui-secondary)]"
-                                            placeholder="Neues DoD-Kriterium eingeben..."
-                                        />
-                                        <button
-                                            type="button"
-                                            @click="if(newDodText.trim()) { $wire.addDodItem(newDodText); newDodText = ''; } isAdding = false;"
-                                            class="flex-shrink-0 p-1 rounded text-[var(--planner-status-active)] hover:bg-[var(--planner-status-active)]/10 transition-colors"
-                                        >
-                                            @svg('heroicon-o-check', 'w-5 h-5')
-                                        </button>
-                                        <button
-                                            type="button"
-                                            @click="isAdding = false; newDodText = ''"
-                                            class="flex-shrink-0 p-1 rounded text-[var(--ui-muted)] hover:text-[var(--ui-danger)] transition-colors"
-                                        >
-                                            @svg('heroicon-o-x-mark', 'w-5 h-5')
-                                        </button>
-                                    </div>
-                                </template>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Extra Fields Card --}}
-                <x-core-extra-fields-section
-                    :definitions="$this->extraFieldDefinitions"
-                    :model="$task"
-                />
-            </div>
-
-            {{-- Properties Sidebar --}}
-            <div class="lg:w-72 flex-shrink-0">
-                <div class="lg:sticky lg:top-4 rounded-lg border border-[var(--ui-border)]/60 bg-white dark:bg-[var(--ui-surface)] shadow-xs overflow-hidden">
-
-                    {{-- Group: Status & Priority --}}
-                    <div class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] px-4 pt-4 pb-2">Status & Priorität</div>
-
-                    {{-- Status --}}
-                    <button type="button" wire:click="toggleDone" class="w-full flex items-center justify-between py-2 px-4 hover:bg-[var(--ui-muted-5)] rounded transition-colors">
-                        <span class="text-xs text-[var(--ui-muted)]">Status</span>
-                        <span class="flex items-center gap-1.5 text-xs font-medium">
+                    <button type="button" wire:click="toggleDone" class="w-full flex items-center justify-between py-2 px-3 hover:bg-[var(--ui-muted-5)] transition-colors text-[11px]">
+                        <span class="text-[var(--ui-muted)]">Status</span>
+                        <span class="inline-flex items-center gap-1.5 font-medium">
                             <span class="w-2 h-2 rounded-full {{ $task->is_done ? 'bg-[var(--planner-status-done)]' : 'bg-[var(--planner-status-active)]' }}"></span>
                             <span class="text-[var(--ui-secondary)]">{{ $task->is_done ? 'Erledigt' : 'Offen' }}</span>
                         </span>
                     </button>
 
-                    {{-- Priority --}}
-                    <div class="py-2 px-4 hover:bg-[var(--ui-muted-5)] rounded transition-colors">
+                    <div class="py-2 px-3 border-t border-[var(--ui-border)]/30 text-[11px]">
                         <div class="flex items-center justify-between mb-1.5">
-                            <span class="text-xs text-[var(--ui-muted)]">Priorität</span>
+                            <span class="text-[var(--ui-muted)]">Priorität</span>
                             @if($priorityColor)
                                 <span class="w-2 h-2 rounded-full" style="background-color: {{ $priorityColor }}"></span>
                             @endif
@@ -322,27 +104,20 @@
                         />
                     </div>
 
-                    {{-- Frog --}}
-                    <button type="button" wire:click="toggleFrog" class="w-full flex items-center justify-between py-2 px-4 hover:bg-[var(--ui-muted-5)] rounded transition-colors">
-                        <span class="text-xs text-[var(--ui-muted)]">Frosch</span>
-                        <span class="text-xs font-medium text-[var(--ui-secondary)]">
-                            @if($task->is_frog)
-                                🐸 Ja
-                            @else
-                                Nein
-                            @endif
+                    <button type="button" wire:click="toggleFrog" class="w-full flex items-center justify-between py-2 px-3 border-t border-[var(--ui-border)]/30 hover:bg-[var(--ui-muted-5)] transition-colors text-[11px]">
+                        <span class="text-[var(--ui-muted)]">Frosch</span>
+                        <span class="font-medium text-[var(--ui-secondary)]">
+                            @if($task->is_frog) 🐸 Ja @else Nein @endif
                         </span>
                     </button>
+                </section>
 
-                    {{-- Divider --}}
-                    <div class="border-t border-[var(--ui-border)]/40 mx-4"></div>
+                {{-- PLANUNG --}}
+                <section class="rounded-lg bg-white border border-[var(--ui-border)]/40 shadow-sm overflow-hidden">
+                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] px-3 pt-3 pb-1.5">Planung</h3>
 
-                    {{-- Group: Planning --}}
-                    <div class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] px-4 pt-4 pb-2">Planung</div>
-
-                    {{-- Assignee --}}
-                    <div class="py-2 px-4 hover:bg-[var(--ui-muted-5)] rounded transition-colors">
-                        <span class="text-xs text-[var(--ui-muted)] block mb-1.5">Verantwortlich</span>
+                    <div class="py-2 px-3 text-[11px]">
+                        <span class="text-[var(--ui-muted)] block mb-1.5">Verantwortlich</span>
                         <x-ui-input-select
                             name="task.user_in_charge_id"
                             label=""
@@ -355,27 +130,25 @@
                         />
                     </div>
 
-                    {{-- Due Date --}}
-                    <button type="button" wire:click="openDueDateModal" class="w-full flex items-center justify-between py-2 px-4 hover:bg-[var(--ui-muted-5)] rounded transition-colors">
-                        <span class="text-xs text-[var(--ui-muted)]">Fällig</span>
-                        <span class="text-xs font-medium" style="color: {{ $dueDateColor }}">
+                    <button type="button" wire:click="openDueDateModal" class="w-full flex items-center justify-between py-2 px-3 border-t border-[var(--ui-border)]/30 hover:bg-[var(--ui-muted-5)] transition-colors text-[11px]">
+                        <span class="text-[var(--ui-muted)]">Fällig</span>
+                        <span class="font-medium" style="color: {{ $dueDateColor }}">
                             @if($task->due_date)
                                 {{ $task->due_date->format('d.m.Y H:i') }}
                             @else
-                                <span class="text-[var(--ui-muted)]/50">Kein Datum</span>
+                                <span class="text-[var(--ui-muted)]/60">Kein Datum</span>
                             @endif
                         </span>
                     </button>
-                    {{-- Quick Due-Date Buttons --}}
-                    <div class="flex items-center gap-1.5 px-4 pb-1">
-                        <button type="button" wire:click="setQuickDueDate('today')" class="px-2 py-0.5 text-[10px] rounded border border-[var(--ui-border)]/40 text-[var(--ui-muted)] hover:border-[var(--ui-primary)]/60 hover:text-[var(--ui-primary)] transition-colors">Heute</button>
-                        <button type="button" wire:click="setQuickDueDate('tomorrow')" class="px-2 py-0.5 text-[10px] rounded border border-[var(--ui-border)]/40 text-[var(--ui-muted)] hover:border-[var(--ui-primary)]/60 hover:text-[var(--ui-primary)] transition-colors">Morgen</button>
-                        <button type="button" wire:click="setQuickDueDate('next_week')" class="px-2 py-0.5 text-[10px] rounded border border-[var(--ui-border)]/40 text-[var(--ui-muted)] hover:border-[var(--ui-primary)]/60 hover:text-[var(--ui-primary)] transition-colors">+1W</button>
+
+                    <div class="flex items-center gap-1 px-3 pb-2 pt-1">
+                        <button type="button" wire:click="setQuickDueDate('today')" class="flex-1 px-1.5 py-0.5 text-[10px] rounded border border-[var(--ui-border)]/40 text-[var(--ui-muted)] hover:border-[var(--ui-primary)]/60 hover:text-[var(--ui-primary)] transition-colors">Heute</button>
+                        <button type="button" wire:click="setQuickDueDate('tomorrow')" class="flex-1 px-1.5 py-0.5 text-[10px] rounded border border-[var(--ui-border)]/40 text-[var(--ui-muted)] hover:border-[var(--ui-primary)]/60 hover:text-[var(--ui-primary)] transition-colors">Morgen</button>
+                        <button type="button" wire:click="setQuickDueDate('next_week')" class="flex-1 px-1.5 py-0.5 text-[10px] rounded border border-[var(--ui-border)]/40 text-[var(--ui-muted)] hover:border-[var(--ui-primary)]/60 hover:text-[var(--ui-primary)] transition-colors">+1W</button>
                     </div>
 
-                    {{-- Story Points --}}
-                    <div class="py-2 px-4 hover:bg-[var(--ui-muted-5)] rounded transition-colors">
-                        <span class="text-xs text-[var(--ui-muted)] block mb-1.5">Story Points</span>
+                    <div class="py-2 px-3 border-t border-[var(--ui-border)]/30 text-[11px]">
+                        <span class="text-[var(--ui-muted)] block mb-1.5">Story Points</span>
                         <x-ui-input-select
                             name="task.story_points"
                             label=""
@@ -387,94 +160,319 @@
                             wire:model.live="task.story_points"
                         />
                     </div>
+                </section>
 
-                    {{-- Divider --}}
-                    <div class="border-t border-[var(--ui-border)]/40 mx-4"></div>
-
-                    {{-- Group: Metadata --}}
-                    <div class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] px-4 pt-4 pb-2">Details</div>
-
-                    @if($task->team)
-                        <div class="flex items-center justify-between py-2 px-4 hover:bg-[var(--ui-muted-5)] rounded transition-colors">
-                            <span class="text-[10px] text-[var(--ui-muted)]">Team</span>
-                            <span class="text-[10px] text-[var(--ui-secondary)]">{{ $task->team->name }}</span>
-                        </div>
-                    @endif
-                    <div class="flex items-center justify-between py-2 px-4 hover:bg-[var(--ui-muted-5)] rounded transition-colors">
-                        <span class="text-[10px] text-[var(--ui-muted)]">Erstellt</span>
-                        <span class="text-[10px] text-[var(--ui-secondary)]">{{ $task->created_at->format('d.m.Y') }}</span>
-                    </div>
-                    @if(($task->postpone_count ?? 0) > 0)
-                        <div class="flex items-center justify-between py-2 px-4 hover:bg-[var(--ui-muted-5)] rounded transition-colors">
-                            <span class="text-[10px] text-[var(--ui-muted)]">Verschoben</span>
-                            <span class="text-[10px] text-[var(--ui-secondary)]">{{ $task->postpone_count }}×</span>
-                        </div>
-                    @endif
-                    @if($task->original_due_date)
-                        <div class="flex items-center justify-between py-2 px-4 hover:bg-[var(--ui-muted-5)] rounded transition-colors">
-                            <span class="text-[10px] text-[var(--ui-muted)]">Ursprünglich</span>
-                            <span class="text-[10px] text-[var(--ui-secondary)]">{{ $task->original_due_date->format('d.m.Y') }}</span>
-                        </div>
-                    @endif
-                    @if($this->contextFileCount > 0)
-                        <div class="flex items-center justify-between py-2 px-4 hover:bg-[var(--ui-muted-5)] rounded transition-colors">
-                            <span class="text-[10px] text-[var(--ui-muted)]">Anhänge</span>
-                            <span class="text-[10px] text-[var(--ui-secondary)]">{{ $this->contextFileCount }}</span>
-                        </div>
-                    @endif
-
-                    {{-- Bottom padding --}}
-                    <div class="pb-3"></div>
-                </div>
-            </div>
-        </div>
-    </x-ui-page-container>
-
-    <x-slot name="activity">
-        <x-ui-page-sidebar title="Aktivitäten" width="w-80" :defaultOpen="false" storeKey="activityOpen" side="right">
-            <div class="p-6">
-                <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--ui-muted)] mb-4">Letzte Aktivitäten</h3>
-                <div class="space-y-3">
-                    @forelse(($activities ?? []) as $activity)
-                        <div class="p-3 rounded-lg border border-[var(--ui-border)]/40 bg-[var(--ui-muted-5)] hover:bg-[var(--ui-muted)] transition-colors">
-                            <div class="flex items-start justify-between gap-2 mb-1">
-                                <div class="flex-1 min-w-0">
-                                    <div class="text-sm font-medium text-[var(--ui-secondary)] leading-snug">
-                                        {{ $activity['title'] ?? 'Aktivität' }}
-                                    </div>
-                                </div>
-                                @if(($activity['type'] ?? null) === 'system')
-                                    <div class="flex-shrink-0">
-                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40 text-xs text-[var(--ui-muted)]">
-                                            @svg('heroicon-o-cog', 'w-3 h-3')
-                                            System
-                                        </span>
-                                    </div>
-                                @endif
+                {{-- DETAILS --}}
+                <section class="rounded-lg bg-white border border-[var(--ui-border)]/40 shadow-sm overflow-hidden">
+                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] px-3 pt-3 pb-1.5">Details</h3>
+                    <dl class="divide-y divide-[var(--ui-border)]/30 text-[11px]">
+                        @if($task->team)
+                            <div class="flex items-baseline justify-between gap-3 py-1.5 px-3">
+                                <dt class="text-[var(--ui-muted)]">Team</dt>
+                                <dd class="text-[var(--ui-secondary)] m-0 truncate">{{ $task->team->name }}</dd>
                             </div>
-                            <div class="flex items-center gap-2 text-xs text-[var(--ui-muted)]">
-                                @svg('heroicon-o-clock', 'w-3 h-3')
-                                <span>{{ $activity['time'] ?? '' }}</span>
-                            </div>
+                        @endif
+                        <div class="flex items-baseline justify-between gap-3 py-1.5 px-3">
+                            <dt class="text-[var(--ui-muted)]">Erstellt</dt>
+                            <dd class="text-[var(--ui-secondary)] m-0 tabular-nums">{{ $task->created_at->format('d.m.Y') }}</dd>
                         </div>
-                    @empty
-                        <div class="py-8 text-center">
-                            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[var(--ui-muted-5)] mb-3">
-                                @svg('heroicon-o-clock', 'w-6 h-6 text-[var(--ui-muted)]')
+                        @if(($task->postpone_count ?? 0) > 0)
+                            <div class="flex items-baseline justify-between gap-3 py-1.5 px-3">
+                                <dt class="text-[var(--ui-muted)]">Verschoben</dt>
+                                <dd class="text-[var(--ui-secondary)] m-0 tabular-nums">{{ $task->postpone_count }}×</dd>
                             </div>
-                            <p class="text-sm text-[var(--ui-muted)]">Noch keine Aktivitäten</p>
-                            <p class="text-xs text-[var(--ui-muted)] mt-1">Änderungen werden hier angezeigt</p>
-                        </div>
-                    @endforelse
-                </div>
+                        @endif
+                        @if($task->original_due_date)
+                            <div class="flex items-baseline justify-between gap-3 py-1.5 px-3">
+                                <dt class="text-[var(--ui-muted)]">Ursprünglich</dt>
+                                <dd class="text-[var(--ui-secondary)] m-0 tabular-nums">{{ $task->original_due_date->format('d.m.Y') }}</dd>
+                            </div>
+                        @endif
+                        @if($this->contextFileCount > 0)
+                            <div class="flex items-baseline justify-between gap-3 py-1.5 px-3">
+                                <dt class="text-[var(--ui-muted)]">Anhänge</dt>
+                                <dd class="text-[var(--ui-secondary)] m-0 tabular-nums">{{ $this->contextFileCount }}</dd>
+                            </div>
+                        @endif
+                    </dl>
+                </section>
             </div>
         </x-ui-page-sidebar>
     </x-slot>
 
-    <!-- Print Modal -->
+    {{-- Right sidebar: Aktivitäten --}}
+    <x-slot name="activity">
+        <x-ui-page-sidebar title="Aktivitäten" icon="heroicon-o-bolt" width="w-80" :defaultOpen="false" storeKey="activityOpen" side="right">
+            <div class="p-4 space-y-3 bg-[var(--ui-muted-5)]">
+                <div class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] px-1">Letzte Aktivitäten</div>
+                @forelse(($activities ?? []) as $activity)
+                    <div class="p-3 rounded-lg bg-white border border-[var(--ui-border)]/40 shadow-sm">
+                        <div class="flex items-start justify-between gap-2 mb-1.5">
+                            <div class="text-[12px] font-medium text-[var(--ui-secondary)] leading-snug">
+                                {{ $activity['title'] ?? 'Aktivität' }}
+                            </div>
+                            @if(($activity['type'] ?? null) === 'system')
+                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-medium rounded-full bg-[var(--ui-muted-5)] text-[var(--ui-muted)] flex-shrink-0">
+                                    @svg('heroicon-o-cog-6-tooth', 'w-2.5 h-2.5')
+                                    System
+                                </span>
+                            @endif
+                        </div>
+                        <div class="flex items-center gap-1.5 text-[10px] text-[var(--ui-muted)]">
+                            @svg('heroicon-o-clock', 'w-3 h-3 opacity-60')
+                            <span>{{ $activity['time'] ?? '' }}</span>
+                        </div>
+                    </div>
+                @empty
+                    <div class="py-8 text-center">
+                        <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white border border-[var(--ui-border)]/40 mb-3">
+                            @svg('heroicon-o-bolt', 'w-5 h-5 text-[var(--ui-muted)]')
+                        </div>
+                        <p class="text-xs text-[var(--ui-muted)] m-0">Noch keine Aktivitäten</p>
+                        <p class="text-[10px] text-[var(--ui-muted)] mt-1 m-0">Änderungen werden hier angezeigt</p>
+                    </div>
+                @endforelse
+            </div>
+        </x-ui-page-sidebar>
+    </x-slot>
+
+    <div class="flex-1 overflow-y-auto bg-[var(--ui-muted-5)]">
+        <div class="p-6 space-y-5">
+
+            {{-- HERO --}}
+            <div class="relative rounded-xl bg-white border border-[var(--ui-border)]/40 shadow-sm overflow-hidden">
+                <div class="absolute top-3 bottom-3 left-2 w-[3px] rounded-full" style="background-color: {{ $edgeColor }};"></div>
+
+                <div class="p-5 pl-7">
+                    <div class="flex items-start gap-4">
+                        {{-- Done checkbox --}}
+                        <button
+                            type="button"
+                            wire:click="toggleDone"
+                            class="flex-shrink-0 mt-1 w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all duration-200 cursor-pointer
+                                {{ $task->is_done
+                                    ? 'bg-[var(--planner-status-done)] border-[var(--planner-status-done)] text-white'
+                                    : 'border-[var(--ui-border)] text-transparent hover:border-[var(--planner-status-done)] hover:text-[var(--planner-status-done)]' }}"
+                            title="{{ $task->is_done ? 'Als offen markieren' : 'Als erledigt markieren' }}"
+                        >
+                            @svg('heroicon-s-check', 'w-4 h-4')
+                        </button>
+
+                        <div class="flex-1 min-w-0">
+                            <x-ui-input-text
+                                name="task.title"
+                                label=""
+                                wire:model.live.debounce.1000ms="task.title"
+                                :value="$task->title"
+                                placeholder="Aufgabentitel eingeben..."
+                                required
+                                :errorKey="'task.title'"
+                                class="!text-2xl !font-bold !border-none !shadow-none !ring-0 !p-0 !bg-transparent text-[var(--ui-secondary)] tracking-tight"
+                            />
+
+                            {{-- Context line --}}
+                            <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-[var(--ui-muted)] mt-2">
+                                @if($task->project)
+                                    <a href="{{ route('planner.projects.show', ['plannerProject' => $task->project->id]) }}" class="inline-flex items-center gap-1.5 hover:text-[var(--planner-status-active)] transition-colors">
+                                        <span class="w-1.5 h-1.5 rounded-full" style="background-color: {{ $task->project->color ?? 'var(--ui-muted)' }};"></span>
+                                        <span>{{ $task->project->name }}</span>
+                                    </a>
+                                    <span class="text-[var(--ui-border)]">·</span>
+                                @endif
+                                @if($task->created_at)
+                                    <span class="tabular-nums">{{ $task->created_at->format('d.m.Y') }}</span>
+                                @endif
+                                @if($task->user)
+                                    <span class="text-[var(--ui-border)]">·</span>
+                                    <span>von {{ $task->user->fullname ?? $task->user->name }}</span>
+                                @endif
+                                @if($spValue)
+                                    <span class="text-[var(--ui-border)]">·</span>
+                                    <span class="tabular-nums">{{ $spValue }} SP</span>
+                                @endif
+                            </div>
+
+                            {{-- Status pills --}}
+                            @if($task->is_frog || $isOverdue || $task->is_done || $task->due_date)
+                                <div class="flex flex-wrap items-center gap-1.5 mt-3">
+                                    @if($task->is_done)
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full bg-[var(--planner-status-done)] text-white">
+                                            @svg('heroicon-s-check', 'w-3 h-3')
+                                            Erledigt
+                                        </span>
+                                    @elseif($isOverdue)
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full bg-[var(--planner-status-overdue)] text-white">
+                                            @svg('heroicon-o-exclamation-triangle', 'w-3 h-3')
+                                            {{ (int) $task->due_date->diffInDays(now()) }}d überfällig
+                                        </span>
+                                    @elseif($task->due_date)
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded-full" style="background-color: color-mix(in srgb, {{ $dueDateColor }} 14%, white); color: {{ $dueDateColor }};">
+                                            @svg('heroicon-o-clock', 'w-3 h-3')
+                                            {{ $task->due_date->format('d.m.Y H:i') }}
+                                        </span>
+                                    @endif
+                                    @if($task->is_frog)
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full bg-[var(--planner-frog)]/15 text-[var(--planner-frog)]">
+                                            🐸 Frosch
+                                        </span>
+                                    @endif
+                                    @if($task->priority)
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded-full" style="background-color: color-mix(in srgb, {{ $task->priority->color() }} 14%, white); color: {{ $task->priority->color() }};">
+                                            <span class="w-1.5 h-1.5 rounded-full" style="background-color: {{ $task->priority->color() }};"></span>
+                                            {{ $task->priority->label() }}
+                                        </span>
+                                    @endif
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- ANMERKUNG --}}
+            <section class="rounded-xl bg-white border border-[var(--ui-border)]/40 shadow-sm overflow-hidden">
+                <div class="px-5 py-3 border-b border-[var(--ui-border)]/30 flex items-center gap-2">
+                    @svg('heroicon-o-document-text', 'w-4 h-4 text-[var(--ui-muted)]')
+                    <h2 class="text-[11px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] m-0">Anmerkung</h2>
+                    <span title="Verschlüsselt gespeichert" class="ml-auto text-[var(--ui-muted)]">
+                        @svg('heroicon-o-lock-closed', 'w-3.5 h-3.5')
+                    </span>
+                </div>
+                <div class="p-5">
+                    <x-ui-input-textarea
+                        name="description"
+                        label=""
+                        wire:model.live.debounce.1000ms="description"
+                        :placeholder="empty($description) ? 'Zusätzliche Notizen und Informationen zur Aufgabe (optional)' : ''"
+                        rows="6"
+                        :errorKey="'description'"
+                    />
+                </div>
+            </section>
+
+            {{-- DEFINITION OF DONE --}}
+            <section class="rounded-xl bg-white border border-[var(--ui-border)]/40 shadow-sm overflow-hidden">
+                <div class="px-5 py-3 border-b border-[var(--ui-border)]/30 flex items-center gap-2">
+                    @svg('heroicon-o-clipboard-document-check', 'w-4 h-4 text-[var(--ui-muted)]')
+                    <h2 class="text-[11px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] m-0">Definition of Done</h2>
+                    <span title="Verschlüsselt gespeichert" class="text-[var(--ui-muted)]">
+                        @svg('heroicon-o-lock-closed', 'w-3.5 h-3.5')
+                    </span>
+                    @if(count($dodItems) > 0)
+                        <div class="ml-auto flex items-center gap-2">
+                            <span class="text-[11px] font-medium text-[var(--ui-muted)] tabular-nums">
+                                {{ $this->dodProgress['checked'] }}/{{ $this->dodProgress['total'] }}
+                            </span>
+                            <div class="w-24 h-1.5 bg-[var(--planner-track)] rounded-full overflow-hidden">
+                                <div
+                                    class="h-full transition-all duration-300 rounded-full {{ $this->dodProgress['isComplete'] ? 'bg-[var(--planner-status-done)]' : 'bg-[var(--planner-track-fill)]' }}"
+                                    style="width: {{ $this->dodProgress['percentage'] }}%"
+                                ></div>
+                            </div>
+                        </div>
+                    @endif
+                </div>
+                <div class="p-5">
+                    <div class="space-y-1.5">
+                        @forelse($dodItems as $index => $item)
+                            <div
+                                class="group relative flex items-start gap-3 p-2.5 pl-4 rounded-lg border border-[var(--ui-border)]/40 hover:border-[var(--planner-status-active)]/40 hover:bg-[var(--ui-muted-5)] transition-all"
+                                wire:key="dod-item-{{ $index }}"
+                            >
+                                <span class="absolute top-2 bottom-2 left-1 w-[2px] rounded-full {{ $item['checked'] ? 'bg-[var(--planner-status-done)]' : 'bg-[var(--ui-border)]' }}"></span>
+                                <button
+                                    type="button"
+                                    wire:click="toggleDodItem({{ $index }})"
+                                    class="flex-shrink-0 w-5 h-5 mt-0.5 rounded border-2 transition-all flex items-center justify-center {{ $item['checked'] ? 'bg-[var(--planner-status-done)] border-[var(--planner-status-done)] text-white' : 'border-[var(--ui-border)] hover:border-[var(--planner-status-active)]' }}"
+                                >
+                                    @if($item['checked'])
+                                        @svg('heroicon-s-check', 'w-3 h-3')
+                                    @endif
+                                </button>
+                                <div class="flex-1 min-w-0">
+                                    <input
+                                        type="text"
+                                        value="{{ $item['text'] }}"
+                                        wire:blur="updateDodItemText({{ $index }}, $event.target.value)"
+                                        class="w-full bg-transparent border-none p-0 text-sm focus:ring-0 focus:outline-none {{ $item['checked'] ? 'line-through text-[var(--ui-muted)]' : 'text-[var(--ui-secondary)]' }}"
+                                        placeholder="DoD-Kriterium eingeben..."
+                                    />
+                                </div>
+                                <button
+                                    type="button"
+                                    wire:click="removeDodItem({{ $index }})"
+                                    wire:confirm="Möchten Sie diesen DoD-Punkt wirklich entfernen?"
+                                    class="flex-shrink-0 opacity-0 group-hover:opacity-100 p-1 rounded text-[var(--ui-muted)] hover:text-[var(--ui-danger)] hover:bg-[var(--ui-danger-5)] transition-all"
+                                >
+                                    @svg('heroicon-o-trash', 'w-4 h-4')
+                                </button>
+                            </div>
+                        @empty
+                            <div class="text-center py-6 text-[var(--ui-muted)]">
+                                <div class="flex justify-center mb-2">
+                                    @svg('heroicon-o-clipboard-document-check', 'w-8 h-8 opacity-40')
+                                </div>
+                                <p class="text-sm m-0">Noch keine DoD-Kriterien definiert</p>
+                            </div>
+                        @endforelse
+                    </div>
+
+                    {{-- Add DoD item --}}
+                    <div class="mt-3" x-data="{ newDodText: '', isAdding: false }">
+                        <template x-if="!isAdding">
+                            <button
+                                type="button"
+                                @click="isAdding = true; $nextTick(() => $refs.newDodInput?.focus())"
+                                class="w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-medium rounded-lg border border-dashed border-[var(--ui-border)] text-[var(--ui-muted)] hover:border-[var(--planner-status-active)]/60 hover:text-[var(--planner-status-active)] hover:bg-[var(--planner-status-active)]/5 transition-all"
+                            >
+                                @svg('heroicon-o-plus', 'w-4 h-4')
+                                <span>DoD-Kriterium hinzufügen</span>
+                            </button>
+                        </template>
+                        <template x-if="isAdding">
+                            <div class="flex items-center gap-2 p-2 rounded-lg border border-[var(--planner-status-active)]/60 bg-[var(--planner-status-active)]/5">
+                                <input
+                                    type="text"
+                                    x-ref="newDodInput"
+                                    x-model="newDodText"
+                                    @keydown.enter.prevent="if(newDodText.trim()) { $wire.addDodItem(newDodText); newDodText = ''; }"
+                                    @keydown.escape="isAdding = false; newDodText = ''"
+                                    @blur="if(!newDodText.trim()) { isAdding = false; }"
+                                    class="flex-1 bg-transparent border-none p-1 text-sm focus:ring-0 focus:outline-none text-[var(--ui-secondary)]"
+                                    placeholder="Neues DoD-Kriterium eingeben..."
+                                />
+                                <button
+                                    type="button"
+                                    @click="if(newDodText.trim()) { $wire.addDodItem(newDodText); newDodText = ''; } isAdding = false;"
+                                    class="flex-shrink-0 p-1 rounded text-[var(--planner-status-active)] hover:bg-[var(--planner-status-active)]/10 transition-colors"
+                                >
+                                    @svg('heroicon-o-check', 'w-5 h-5')
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="isAdding = false; newDodText = ''"
+                                    class="flex-shrink-0 p-1 rounded text-[var(--ui-muted)] hover:text-[var(--ui-danger)] transition-colors"
+                                >
+                                    @svg('heroicon-o-x-mark', 'w-5 h-5')
+                                </button>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </section>
+
+            {{-- EXTRA FIELDS --}}
+            <x-core-extra-fields-section
+                :definitions="$this->extraFieldDefinitions"
+                :model="$task"
+            />
+        </div>
+    </div>
+
+    {{-- Print Modal --}}
     <livewire:planner.print-modal />
 
-    <!-- Move Task Modal -->
+    {{-- Move Task Modal --}}
     <x-ui-modal size="md" wire:model="moveModalOpen" :backdropClosable="true" :escClosable="true">
         <x-slot name="header">
             <div class="flex items-center gap-3">
@@ -523,9 +521,7 @@
 
         <x-slot name="footer">
             <div class="flex justify-end gap-3">
-                <x-ui-button variant="secondary-outline" size="sm" wire:click="closeMoveModal">
-                    Abbrechen
-                </x-ui-button>
+                <x-ui-button variant="secondary-outline" size="sm" wire:click="closeMoveModal">Abbrechen</x-ui-button>
                 <x-ui-button
                     variant="primary"
                     size="sm"
@@ -543,7 +539,7 @@
         </x-slot>
     </x-ui-modal>
 
-    <!-- Due Date Modal -->
+    {{-- Due Date Modal --}}
     <x-ui-modal size="md" wire:model="dueDateModalShow" :backdropClosable="true" :escClosable="true">
         <x-slot name="header">
             <div class="flex items-center gap-3">
@@ -560,50 +556,31 @@
         </x-slot>
 
         <div class="space-y-6">
-            <!-- Kalender Navigation -->
             <div class="flex items-center justify-between">
-                <h2 class="flex-auto text-sm font-semibold text-[var(--ui-secondary)]">
-                    {{ $this->calendarMonthName }}
-                </h2>
+                <h2 class="flex-auto text-sm font-semibold text-[var(--ui-secondary)]">{{ $this->calendarMonthName }}</h2>
                 <div class="flex items-center gap-2">
-                    <button
-                        type="button"
-                        wire:click="previousMonth"
-                        class="flex flex-none items-center justify-center p-1.5 text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] transition-colors rounded-lg hover:bg-[var(--ui-muted-5)]"
-                    >
+                    <button type="button" wire:click="previousMonth" class="flex flex-none items-center justify-center p-1.5 text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] transition-colors rounded-lg hover:bg-[var(--ui-muted-5)]">
                         <span class="sr-only">Vorheriger Monat</span>
                         @svg('heroicon-o-chevron-left', 'w-5 h-5')
                     </button>
-                    <button
-                        type="button"
-                        wire:click="nextMonth"
-                        class="flex flex-none items-center justify-center p-1.5 text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] transition-colors rounded-lg hover:bg-[var(--ui-muted-5)]"
-                    >
+                    <button type="button" wire:click="nextMonth" class="flex flex-none items-center justify-center p-1.5 text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] transition-colors rounded-lg hover:bg-[var(--ui-muted-5)]">
                         <span class="sr-only">Nächster Monat</span>
                         @svg('heroicon-o-chevron-right', 'w-5 h-5')
                     </button>
                 </div>
             </div>
 
-            <!-- Wochentage Header -->
             <div class="grid grid-cols-7 text-center text-xs font-medium text-[var(--ui-muted)]">
-                <div>Mo</div>
-                <div>Di</div>
-                <div>Mi</div>
-                <div>Do</div>
-                <div>Fr</div>
-                <div>Sa</div>
-                <div>So</div>
+                <div>Mo</div><div>Di</div><div>Mi</div><div>Do</div><div>Fr</div><div>Sa</div><div>So</div>
             </div>
 
-            <!-- Kalender Grid -->
             <div class="grid grid-cols-7 gap-1 text-sm">
                 @foreach($this->calendarDays as $day)
                     <div class="py-2 {{ !$loop->first ? 'border-t border-[var(--ui-border)]/40' : '' }}">
                         <button
                             type="button"
                             wire:click="selectDate('{{ $day['date'] }}')"
-                            class="mx-auto flex w-8 h-8 items-center justify-center rounded-full transition-all duration-200
+                            class="mx-auto flex w-8 h-8 items-center justify-center rounded-full transition-all
                                 {{ !$day['isCurrentMonth'] ? 'text-[var(--ui-muted)]/50' : '' }}
                                 {{ $day['isCurrentMonth'] && !$day['isToday'] && !$day['isSelected'] ? 'text-[var(--ui-secondary)] hover:bg-[var(--ui-primary-5)] hover:text-[var(--ui-primary)]' : '' }}
                                 {{ $day['isToday'] && !$day['isSelected'] ? 'font-semibold text-[var(--ui-primary)]' : '' }}
@@ -617,41 +594,28 @@
                 @endforeach
             </div>
 
-            <!-- Zeitauswahl -->
             <div class="pt-4 border-t border-[var(--ui-border)]/60">
-                <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-3">
-                    Uhrzeit
-                </label>
-
+                <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-3">Uhrzeit</label>
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div class="flex items-center gap-3">
                         <div>
                             <label class="block text-xs font-medium text-[var(--ui-muted)] mb-1">Stunde</label>
-                            <select
-                                wire:model.live="selectedHour"
-                                class="w-28 px-3 py-2 text-sm rounded-lg border border-[var(--ui-border)]/60 bg-[var(--ui-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--ui-primary)]/20 focus:border-[var(--ui-primary)]"
-                            >
+                            <select wire:model.live="selectedHour" class="w-28 px-3 py-2 text-sm rounded-lg border border-[var(--ui-border)]/60 bg-[var(--ui-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--ui-primary)]/20 focus:border-[var(--ui-primary)]">
                                 @for($h = 0; $h < 24; $h++)
                                     <option value="{{ $h }}">{{ str_pad($h, 2, '0', STR_PAD_LEFT) }}</option>
                                 @endfor
                             </select>
                         </div>
-
                         <div class="text-2xl font-bold text-[var(--ui-muted)]">:</div>
-
                         <div>
                             <label class="block text-xs font-medium text-[var(--ui-muted)] mb-1">Minute</label>
-                            <select
-                                wire:model.live="selectedMinute"
-                                class="w-28 px-3 py-2 text-sm rounded-lg border border-[var(--ui-border)]/60 bg-[var(--ui-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--ui-primary)]/20 focus:border-[var(--ui-primary)]"
-                            >
+                            <select wire:model.live="selectedMinute" class="w-28 px-3 py-2 text-sm rounded-lg border border-[var(--ui-border)]/60 bg-[var(--ui-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--ui-primary)]/20 focus:border-[var(--ui-primary)]">
                                 @foreach([0, 15, 30, 45] as $minute)
                                     <option value="{{ $minute }}">{{ str_pad($minute, 2, '0', STR_PAD_LEFT) }}</option>
                                 @endforeach
                             </select>
                         </div>
                     </div>
-
                     <div class="sm:text-right">
                         <span class="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold text-[var(--planner-status-active)] bg-[var(--planner-status-active)]/10 rounded-lg border border-[var(--planner-status-active)]/20">
                             @svg('heroicon-o-clock', 'w-4 h-4')
@@ -661,7 +625,6 @@
                 </div>
             </div>
 
-            <!-- Aktuelles Datum Anzeige -->
             @if($selectedDate)
                 <div class="pt-4 border-t border-[var(--ui-border)]/60">
                     <div class="flex items-center gap-2 text-sm text-[var(--ui-muted)]">
@@ -670,24 +633,16 @@
                             Ausgewählt:
                             <span class="font-medium text-[var(--ui-secondary)]">
                                 {{ \Carbon\Carbon::parse($selectedDate)->locale('de')->isoFormat('dddd, D. MMMM YYYY') }}
-                                @if($selectedTime)
-                                    um {{ $selectedTime }} Uhr
-                                @endif
+                                @if($selectedTime) um {{ $selectedTime }} Uhr @endif
                             </span>
                         </span>
                     </div>
                 </div>
             @endif
 
-            <!-- Entfernen Button -->
             @if($task->due_date)
                 <div class="pt-4 border-t border-[var(--ui-border)]/60">
-                    <x-ui-button
-                        variant="danger-outline"
-                        size="sm"
-                        wire:click="clearDueDate"
-                        class="w-full"
-                    >
+                    <x-ui-button variant="danger-outline" size="sm" wire:click="clearDueDate" class="w-full">
                         <span class="inline-flex items-center gap-2">
                             @svg('heroicon-o-trash', 'w-4 h-4')
                             Datum entfernen
@@ -699,16 +654,14 @@
 
         <x-slot name="footer">
             <div class="flex justify-end gap-3">
-                <x-ui-button variant="secondary-outline" size="sm" wire:click="closeDueDateModal">
-                    Abbrechen
-                </x-ui-button>
+                <x-ui-button variant="secondary-outline" size="sm" wire:click="closeDueDateModal">Abbrechen</x-ui-button>
                 <button
                     type="button"
                     wire:click="saveDueDate"
                     wire:loading.attr="disabled"
                     wire:target="saveDueDate"
                     wire:disabled="!selectedDate"
-                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[var(--ui-primary)] text-white hover:bg-[var(--ui-primary-80)] focus:outline-none focus:ring-2 focus:ring-[var(--ui-primary)]/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[var(--ui-primary)] text-white hover:bg-[var(--ui-primary-80)] focus:outline-none focus:ring-2 focus:ring-[var(--ui-primary)]/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                     <span wire:loading.remove wire:target="saveDueDate" class="inline-flex items-center gap-2">
                         @svg('heroicon-o-check', 'w-4 h-4')
