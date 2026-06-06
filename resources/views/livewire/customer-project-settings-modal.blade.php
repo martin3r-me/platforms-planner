@@ -1,4 +1,16 @@
-<x-ui-modal size="lg" model="modalShow" header="Kundenprojekt">
+<x-ui-modal size="lg" model="modalShow">
+    <x-slot name="header">
+        <div class="flex items-center gap-3">
+            <div class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-[var(--planner-status-active)]/10 flex-shrink-0">
+                @svg('heroicon-o-briefcase', 'w-5 h-5 text-[var(--planner-status-active)]')
+            </div>
+            <div class="min-w-0">
+                <h3 class="text-base font-semibold text-[var(--ui-secondary)] m-0 leading-tight">Kundenprojekt</h3>
+                <p class="text-[12px] text-[var(--ui-muted)] m-0 mt-0.5">Firma und Kontakte aus dem CRM verknüpfen</p>
+            </div>
+        </div>
+    </x-slot>
+
 
     @if($project)
         <div class="space-y-6">
