@@ -4,6 +4,7 @@ namespace Platform\Planner\Livewire;
 
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Livewire\Concerns\QuickTogglesDone;
@@ -42,24 +43,17 @@ class Dashboard extends Component
         $startOfMonth = now()->startOfMonth();
         $endOfMonth = now()->endOfMonth();
 
-        // === ZEIT-AGGREGATE (Team) ===
-        $monthlyLoggedMinutes = (int) OrganizationTimeEntry::query()
+        // === MEINE ZEIT-AGGREGATE ===
+        $myMonthlyMinutes = (int) OrganizationTimeEntry::query()
             ->where('team_id', $team->id)
+            ->where('user_id', $user->id)
             ->whereBetween('work_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
             ->sum('minutes');
 
-        // === PROJEKTE (Team, policy-gefiltert) ===
-        $projects = PlannerProject::withStale()->where('team_id', $team->id)->visibleTo($user)->orderBy('name')->get();
-        $activeProjectsCollection = $projects->where('done', false)->values();
-
-        $recentlyCompletedProjects = $projects
-            ->filter(fn($p) => $p->done && $p->done_at && $p->done_at->gte(now()->subDays(30)))
-            ->sortByDesc('done_at')
-            ->values();
-
-        // === TEAM-AUFGABEN (policy-gefiltert) ===
-        $teamTasksQuery = fn() => PlannerTask::withStale()
+        // === MEINE AUFGABEN (nur was mir gehört) ===
+        $myTasksQuery = fn() => PlannerTask::withStale()
             ->where('team_id', $team->id)
+            ->where('user_in_charge_id', $user->id)
             ->visibleTo($user)
             ->where(function ($q) {
                 $q->whereNotNull('project_slot_id')
@@ -69,58 +63,50 @@ class Dashboard extends Component
                   });
             });
 
-        $teamTasks = $teamTasksQuery()->get();
+        $myOpenTasksCount = $myTasksQuery()->where('is_done', false)->count();
 
-        $openTasks = $teamTasks->where('is_done', false)->count();
-
-        $overdueTasksCount = $teamTasks->where('is_done', false)
-            ->filter(fn($task) => $task->due_date && $task->due_date->isPast())
-            ->count();
-
-        // Due today count
-        $dueTodayCount = $teamTasks->where('is_done', false)
-            ->filter(fn($task) => $task->due_date && $task->due_date->isToday())
-            ->count();
-
-        // Überfällige Tasks (with details)
-        $overdueTasksList = $teamTasksQuery()
+        $myOverdueCount = $myTasksQuery()
             ->where('is_done', false)
             ->whereNotNull('due_date')
             ->where('due_date', '<', now()->startOfDay())
-            ->with(['project', 'userInCharge'])
+            ->count();
+
+        $myDueTodayCount = $myTasksQuery()
+            ->where('is_done', false)
+            ->whereDate('due_date', now()->toDateString())
+            ->count();
+
+        // Meine überfälligen Aufgaben (mit Details)
+        $overdueTasksList = $myTasksQuery()
+            ->where('is_done', false)
+            ->whereNotNull('due_date')
+            ->where('due_date', '<', now()->startOfDay())
+            ->with(['project'])
             ->orderBy('due_date', 'asc')
             ->limit(10)
             ->get();
 
-        // Anstehende Tasks (nächste 7 Tage)
-        $upcomingTasksList = $teamTasksQuery()
+        // Meine anstehenden Aufgaben (nächste 7 Tage)
+        $upcomingTasksList = $myTasksQuery()
             ->where('is_done', false)
             ->whereNotNull('due_date')
             ->whereBetween('due_date', [now()->startOfDay(), now()->addDays(7)->endOfDay()])
-            ->with(['project', 'userInCharge'])
+            ->with(['project'])
             ->orderBy('due_date', 'asc')
             ->limit(10)
             ->get();
 
-        // Meine Aufgaben (user is in charge, no due date or future due date)
-        $myTasksList = $teamTasksQuery()
+        // Meine Aufgaben — Vorschau (alle offenen, sortiert nach Datum)
+        $myTasksList = $myTasksQuery()
             ->where('is_done', false)
-            ->where('user_in_charge_id', $user->id)
             ->with(['project'])
             ->orderByRaw('due_date IS NULL, due_date ASC')
             ->limit(10)
             ->get();
 
-        // Meine offenen Aufgaben (Gesamtzahl)
-        $myOpenTasksCount = $teamTasksQuery()
+        // Meine Frösche
+        $myFrogsCount = $myTasksQuery()
             ->where('is_done', false)
-            ->where('user_in_charge_id', $user->id)
-            ->count();
-
-        // Frösche (meine)
-        $myFrogsCount = $teamTasksQuery()
-            ->where('is_done', false)
-            ->where('user_in_charge_id', $user->id)
             ->where('is_frog', true)
             ->count();
 
@@ -133,34 +119,64 @@ class Dashboard extends Component
             ->where('user_in_charge_id', '!=', $user->id)
             ->count();
 
-        // === PROJEKTE MIT FORTSCHRITT ===
+        // === MEINE PROJEKTE ===
+        // Projekte in denen ich offene Aufgaben habe ODER Mitglied bin
+        $myProjectIds = collect()
+            ->merge(
+                PlannerTask::where('team_id', $team->id)
+                    ->where('user_in_charge_id', $user->id)
+                    ->where('is_done', false)
+                    ->whereNotNull('project_id')
+                    ->pluck('project_id')
+            )
+            ->merge(
+                DB::table('planner_project_users')
+                    ->where('user_id', $user->id)
+                    ->pluck('project_id')
+            )
+            ->unique()
+            ->values();
+
+        $projects = PlannerProject::withStale()
+            ->where('team_id', $team->id)
+            ->whereIn('id', $myProjectIds)
+            ->visibleTo($user)
+            ->orderBy('name')
+            ->get();
+
+        $activeProjectsCollection = $projects->where('done', false)->values();
+
+        $recentlyCompletedProjects = $projects
+            ->filter(fn($p) => $p->done && $p->done_at && $p->done_at->gte(now()->subDays(30)))
+            ->sortByDesc('done_at')
+            ->values();
+
         $projectsWithProgress = $activeProjectsCollection
-            ->map(fn($p) => $this->buildProjectProgress($p))
-            ->sortByDesc('open_tasks')
+            ->map(fn($p) => $this->buildProjectProgress($p, $user))
+            ->sortByDesc('my_open_tasks')
             ->values();
 
         $recentlyCompletedWithProgress = $recentlyCompletedProjects
-            ->map(fn($p) => $this->buildProjectProgress($p))
+            ->map(fn($p) => $this->buildProjectProgress($p, $user))
             ->values();
 
         return view('planner::livewire.dashboard', [
-            'openTasks' => $openTasks,
-            'overdueTasksCount' => $overdueTasksCount,
-            'dueTodayCount' => $dueTodayCount,
-            'monthlyLoggedMinutes' => $monthlyLoggedMinutes,
-            'overdueTasksList' => $overdueTasksList,
+            'myOverdueCount'    => $myOverdueCount,
+            'myDueTodayCount'   => $myDueTodayCount,
+            'myMonthlyMinutes'  => $myMonthlyMinutes,
+            'overdueTasksList'  => $overdueTasksList,
             'upcomingTasksList' => $upcomingTasksList,
-            'myTasksList' => $myTasksList,
-            'myOpenTasksCount' => $myOpenTasksCount,
-            'myFrogsCount' => $myFrogsCount,
-            'delegatedOpenCount' => $delegatedOpenCount,
+            'myTasksList'       => $myTasksList,
+            'myOpenTasksCount'  => $myOpenTasksCount,
+            'myFrogsCount'      => $myFrogsCount,
+            'delegatedOpenCount'=> $delegatedOpenCount,
             'projectsWithProgress' => $projectsWithProgress,
             'recentlyCompletedWithProgress' => $recentlyCompletedWithProgress,
             'showCompletedProjects' => $this->showCompletedProjects,
         ])->layout('platform::layouts.app');
     }
 
-    private function buildProjectProgress(PlannerProject $project): array
+    private function buildProjectProgress(PlannerProject $project, $user): array
     {
         $projectTasks = PlannerTask::where('project_id', $project->id)
             ->where(function ($q) {
@@ -172,10 +188,14 @@ class Dashboard extends Component
             })
             ->get();
 
-        $openTasks = $projectTasks->filter(fn($t) => !$t->is_done)->count();
+        $openTasks      = $projectTasks->filter(fn($t) => !$t->is_done)->count();
         $completedTasks = $projectTasks->filter(fn($t) => (bool)$t->is_done)->count();
-        $totalTasks = $projectTasks->count();
+        $totalTasks     = $projectTasks->count();
         $progressPercent = $totalTasks > 0 ? (int) round(($completedTasks / $totalTasks) * 100) : 0;
+
+        $myOpenTasks = $projectTasks
+            ->filter(fn($t) => !$t->is_done && $t->user_in_charge_id === $user->id)
+            ->count();
 
         return [
             'id' => $project->id,
@@ -187,6 +207,7 @@ class Dashboard extends Component
             'completed_tasks' => $completedTasks,
             'total_tasks' => $totalTasks,
             'progress_percent' => $progressPercent,
+            'my_open_tasks' => $myOpenTasks,
         ];
     }
 }
