@@ -1,5 +1,16 @@
+@php
+    $rangeLabels = [
+        7   => 'letzte 7 Tage',
+        30  => 'letzte 30 Tage',
+        90  => 'letzte 90 Tage',
+        365 => 'letztes Jahr',
+    ];
+    $rangeLabel = $rangeLabels[$daysFilter] ?? "letzte {$daysFilter} Tage";
+@endphp
+
 <x-ui-page>
     @include('planner::partials.planner-tokens')
+
     <x-slot name="navbar">
         <x-ui-page-navbar title="Erledigte Aufgaben" icon="heroicon-o-check-circle" />
     </x-slot>
@@ -12,184 +23,220 @@
     </x-slot>
 
     <x-slot name="sidebar">
-        <x-ui-page-sidebar title="Filter" width="w-80" :defaultOpen="true">
-            <div class="p-4 space-y-4">
-                {{-- Zeitfilter --}}
-                <div>
-                    <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Zeitraum</h3>
-                    <div class="space-y-2">
-                        <button 
-                            type="button"
-                            wire:click="$set('daysFilter', 7)"
-                            class="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors {{ $daysFilter == 7 ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)] border border-[var(--ui-primary)]/20' : 'bg-[var(--ui-muted-5)] text-[var(--ui-secondary)] hover:bg-[var(--ui-muted)]' }}"
-                        >
-                            Letzte 7 Tage
-                        </button>
-                        <button 
-                            type="button"
-                            wire:click="$set('daysFilter', 30)"
-                            class="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors {{ $daysFilter == 30 ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)] border border-[var(--ui-primary)]/20' : 'bg-[var(--ui-muted-5)] text-[var(--ui-secondary)] hover:bg-[var(--ui-muted)]' }}"
-                        >
-                            Letzte 30 Tage
-                        </button>
-                        <button 
-                            type="button"
-                            wire:click="$set('daysFilter', 90)"
-                            class="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors {{ $daysFilter == 90 ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)] border border-[var(--ui-primary)]/20' : 'bg-[var(--ui-muted-5)] text-[var(--ui-secondary)] hover:bg-[var(--ui-muted)]' }}"
-                        >
-                            Letzte 90 Tage
-                        </button>
-                        <button 
-                            type="button"
-                            wire:click="$set('daysFilter', 365)"
-                            class="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors {{ $daysFilter == 365 ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)] border border-[var(--ui-primary)]/20' : 'bg-[var(--ui-muted-5)] text-[var(--ui-secondary)] hover:bg-[var(--ui-muted)]' }}"
-                        >
-                            Letztes Jahr
-                        </button>
-                    </div>
-                </div>
+        <x-ui-page-sidebar title="Filter" icon="heroicon-o-funnel" width="w-72" :defaultOpen="true">
+            <div class="p-4 space-y-4 bg-[var(--ui-muted-5)]">
 
-                {{-- Personenfilter --}}
+                {{-- ÜBER --}}
+                <section class="p-3 rounded-lg bg-white border border-[var(--ui-border)]/40 shadow-sm">
+                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] mb-2">Über</h3>
+                    <p class="text-[11px] text-[var(--ui-secondary)] leading-relaxed m-0">
+                        Was wurde im gewählten Zeitraum abgeschlossen — geordnet nach Datum, optional pro Person.
+                    </p>
+                </section>
+
+                {{-- ZEITRAUM --}}
+                <section class="p-3 rounded-lg bg-white border border-[var(--ui-border)]/40 shadow-sm">
+                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] mb-2">Zeitraum</h3>
+                    <div class="flex flex-wrap gap-1.5">
+                        @foreach([7 => '7 Tage', 30 => '30 Tage', 90 => '90 Tage', 365 => '1 Jahr'] as $val => $label)
+                            <button
+                                type="button"
+                                wire:click="$set('daysFilter', {{ $val }})"
+                                class="px-2.5 py-1 text-[11px] rounded-full font-medium transition-colors {{ $daysFilter == $val
+                                    ? 'bg-[var(--planner-status-done)] text-white'
+                                    : 'bg-[var(--planner-status-done)]/10 text-[var(--planner-status-done)] hover:bg-[var(--planner-status-done)]/20' }}"
+                            >{{ $label }}</button>
+                        @endforeach
+                    </div>
+                </section>
+
+                {{-- PERSON --}}
                 @if($availableUsers->isNotEmpty())
-                    <div>
-                        <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Person</h3>
-                        <div class="space-y-2">
-                            <button 
+                    <section class="p-3 rounded-lg bg-white border border-[var(--ui-border)]/40 shadow-sm">
+                        <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] mb-2">Person</h3>
+                        <div class="space-y-0.5 max-h-56 overflow-y-auto">
+                            <button
                                 type="button"
                                 wire:click="$set('userFilter', null)"
-                                class="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors {{ $userFilter === null ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)] border border-[var(--ui-primary)]/20' : 'bg-[var(--ui-muted-5)] text-[var(--ui-secondary)] hover:bg-[var(--ui-muted)]' }}"
-                            >
-                                Alle Personen
-                            </button>
+                                class="w-full text-left px-2 py-1 rounded text-[11px] transition-colors {{ $userFilter === null ? 'bg-[var(--planner-status-active)]/10 text-[var(--planner-status-active)] font-medium' : 'text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}"
+                            >Alle Personen</button>
                             @foreach($availableUsers as $user)
-                                <button 
+                                @php $initial = mb_strtoupper(mb_substr($user->name ?? $user->email ?? 'U', 0, 1)); @endphp
+                                <button
                                     type="button"
                                     wire:click="$set('userFilter', {{ $user->id }})"
-                                    class="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors {{ $userFilter == $user->id ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)] border border-[var(--ui-primary)]/20' : 'bg-[var(--ui-muted-5)] text-[var(--ui-secondary)] hover:bg-[var(--ui-muted)]' }}"
+                                    class="w-full text-left px-2 py-1 rounded text-[11px] transition-colors flex items-center gap-2 {{ $userFilter == $user->id ? 'bg-[var(--planner-status-active)]/10 text-[var(--planner-status-active)] font-medium' : 'text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}"
                                 >
-                                    <div class="flex items-center gap-2">
-                                        @if($user->avatar)
-                                            <img src="{{ $user->avatar }}" alt="{{ $user->name }}" class="w-5 h-5 rounded-full object-cover">
-                                        @else
-                                            <div class="w-5 h-5 rounded-full bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/60 flex items-center justify-center text-xs text-[var(--ui-secondary)]">
-                                                {{ mb_strtoupper(mb_substr($user->name ?? $user->email ?? 'U', 0, 1)) }}
-                                            </div>
-                                        @endif
-                                        <span class="truncate">{{ $user->fullname ?? $user->name }}</span>
-                                    </div>
+                                    @if($user->avatar)
+                                        <img src="{{ $user->avatar }}" alt="" class="w-4 h-4 rounded-full object-cover flex-shrink-0">
+                                    @else
+                                        <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[var(--ui-secondary)] text-white text-[8px] font-semibold flex-shrink-0">{{ $initial }}</span>
+                                    @endif
+                                    <span class="truncate">{{ $user->fullname ?? $user->name }}</span>
                                 </button>
                             @endforeach
                         </div>
-                    </div>
+                    </section>
                 @endif
 
-                {{-- Statistiken --}}
-                <div>
-                    <h3 class="text-xs font-semibold uppercase tracking-wide text-[var(--ui-muted)] mb-3">Statistiken</h3>
-                    <div class="space-y-2">
-                        <div class="p-3 rounded-lg bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
-                            <div class="text-xs text-[var(--ui-muted)] mb-1">Erledigte Aufgaben</div>
-                            <div class="text-lg font-semibold text-[var(--ui-secondary)]">{{ $totalCount }}</div>
+                {{-- STATS --}}
+                <section class="p-3 rounded-lg bg-white border border-[var(--ui-border)]/40 shadow-sm">
+                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] mb-2">Bilanz</h3>
+                    <dl class="space-y-1.5 text-[11px]">
+                        <div class="flex items-baseline justify-between gap-3">
+                            <dt class="text-[var(--ui-muted)]">Aufgaben</dt>
+                            <dd class="text-[var(--ui-secondary)] font-semibold tabular-nums m-0">{{ $totalCount }}</dd>
                         </div>
-                        <div class="p-3 rounded-lg bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
-                            <div class="text-xs text-[var(--ui-muted)] mb-1">Story Points</div>
-                            <div class="text-lg font-semibold text-[var(--ui-secondary)]">{{ $totalPoints }} SP</div>
+                        <div class="flex items-baseline justify-between gap-3">
+                            <dt class="text-[var(--ui-muted)]">Story Points</dt>
+                            <dd class="text-[var(--ui-secondary)] font-semibold tabular-nums m-0">{{ $totalPoints }}</dd>
                         </div>
-                    </div>
-                </div>
+                        @if($totalCount > 0)
+                            <div class="flex items-baseline justify-between gap-3">
+                                <dt class="text-[var(--ui-muted)]">⌀ pro Tag</dt>
+                                <dd class="text-[var(--ui-secondary)] font-semibold tabular-nums m-0">{{ number_format($totalCount / max(1, $daysFilter), 1, ',', '.') }}</dd>
+                            </div>
+                        @endif
+                    </dl>
+                </section>
             </div>
         </x-ui-page-sidebar>
     </x-slot>
 
-    <x-ui-page-container spacing="space-y-6">
-        @if($groupedTasks->isEmpty())
-            <div class="bg-white rounded-xl border border-[var(--ui-border)]/60 shadow-sm overflow-hidden">
-                <div class="p-12 text-center">
-                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[var(--ui-muted-5)] mb-4">
-                        @svg('heroicon-o-check-circle', 'w-8 h-8 text-[var(--ui-muted)]')
-                    </div>
-                    <h3 class="text-lg font-semibold text-[var(--ui-secondary)] mb-2">Keine erledigten Aufgaben</h3>
-                    <p class="text-sm text-[var(--ui-muted)]">
-                        In den letzten {{ $daysFilter }} Tagen wurden keine Aufgaben erledigt.
+    <div class="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
+
+        {{-- Header --}}
+        <div class="px-4 pt-3 pb-2 border-b border-[var(--ui-border)]/40 bg-white">
+            <div class="flex items-start justify-between gap-6">
+                <div class="min-w-0">
+                    <h1 class="text-base font-semibold text-[var(--ui-secondary)] truncate m-0 leading-tight inline-flex items-center gap-2">
+                        @svg('heroicon-o-check-circle', 'w-4 h-4 text-[var(--planner-status-done)]')
+                        Erledigte Aufgaben
+                    </h1>
+                    <p class="text-[11px] text-[var(--ui-muted)] mt-0.5 m-0">
+                        {{ $rangeLabel }}
+                        @if($userFilter)
+                            · gefiltert nach {{ $availableUsers->firstWhere('id', $userFilter)?->name ?? 'Person' }}
+                        @endif
                     </p>
                 </div>
+                <div class="flex items-center gap-4 flex-shrink-0 text-[11px]">
+                    <span class="inline-flex items-center gap-1.5 text-[var(--planner-status-done)]">
+                        @svg('heroicon-o-check-circle', 'w-3 h-3')
+                        <span class="font-semibold tabular-nums">{{ $totalCount }}</span>
+                        <span class="text-[var(--ui-muted)]">erledigt</span>
+                    </span>
+                    @if($totalPoints > 0)
+                        <span class="inline-flex items-center gap-1.5 text-[var(--ui-secondary)]">
+                            <span class="font-semibold tabular-nums">{{ $totalPoints }}</span>
+                            <span class="text-[var(--ui-muted)]">SP</span>
+                        </span>
+                    @endif
+                    @if($totalCount > 0)
+                        <span class="inline-flex items-center gap-1.5 text-[var(--ui-secondary)]">
+                            <span class="font-semibold tabular-nums">{{ number_format($totalCount / max(1, $daysFilter), 1, ',', '.') }}</span>
+                            <span class="text-[var(--ui-muted)]">⌀/Tag</span>
+                        </span>
+                    @endif
+                </div>
             </div>
-        @else
-            @foreach($groupedTasks as $groupLabel => $tasks)
-                <div class="bg-white rounded-xl border border-[var(--ui-border)]/60 shadow-sm overflow-hidden">
-                    <div class="px-6 py-4 border-b border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
-                        <h2 class="text-lg font-semibold text-[var(--ui-secondary)]">
-                            {{ $groupLabel }}
-                            <span class="text-sm font-normal text-[var(--ui-muted)] ml-2">
-                                ({{ $tasks->count() }} {{ $tasks->count() === 1 ? 'Aufgabe' : 'Aufgaben' }})
-                            </span>
-                        </h2>
+        </div>
+
+        {{-- Content --}}
+        <div class="flex-1 overflow-y-auto bg-[var(--ui-muted-5)]">
+            <div class="max-w-6xl mx-auto p-6 space-y-6">
+
+                @if($groupedTasks->isEmpty())
+                    <div class="bg-white rounded-xl border border-[var(--ui-border)]/40 shadow-sm p-12 text-center">
+                        <div class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[var(--ui-muted-5)] mb-3">
+                            @svg('heroicon-o-check-circle', 'w-7 h-7 text-[var(--ui-muted)]')
+                        </div>
+                        <h3 class="text-base font-semibold text-[var(--ui-secondary)] m-0 mb-1">Keine erledigten Aufgaben</h3>
+                        <p class="text-sm text-[var(--ui-muted)] m-0">In den {{ $rangeLabel }} wurde nichts abgeschlossen.</p>
                     </div>
-                    <div class="divide-y divide-[var(--ui-border)]/40">
-                        @foreach($tasks as $task)
-                            <a 
-                                href="{{ route('planner.tasks.show', $task) }}?from=completed" 
-                                wire:navigate
-                                class="block p-4 hover:bg-[var(--ui-muted-5)] transition-colors"
-                            >
-                                <div class="flex items-start justify-between gap-4">
-                                    <div class="flex-1 min-w-0">
-                                        <div class="flex items-start gap-3 mb-2">
-                                            <div class="flex-shrink-0 mt-0.5">
-                                                <div class="w-5 h-5 rounded-full bg-[var(--ui-success)] flex items-center justify-center">
-                                                    @svg('heroicon-o-check', 'w-3 h-3 text-white')
-                                                </div>
-                                            </div>
-                                            <div class="flex-1 min-w-0">
-                                                <h3 class="text-sm font-medium text-[var(--ui-secondary)] mb-1 line-through">
-                                                    {{ $task->title }}
-                                                </h3>
-                                                @if($task->description)
-                                                    <p class="text-xs text-[var(--ui-muted)] line-clamp-2 mb-2">
-                                                        {{ Str::limit($task->description, 100) }}
-                                                    </p>
+                @else
+                    @foreach($groupedTasks as $groupLabel => $tasks)
+                        @php $groupPoints = $tasks->sum(fn($t) => $t->story_points?->points() ?? 0); @endphp
+                        <section>
+                            <div class="flex items-center gap-2 mb-2 px-1">
+                                <h2 class="text-sm font-semibold text-[var(--ui-secondary)] m-0">{{ $groupLabel }}</h2>
+                                <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 text-[10px] font-semibold rounded-full" style="background-color: color-mix(in srgb, var(--planner-status-done) 18%, transparent); color: var(--planner-status-done)">{{ $tasks->count() }}</span>
+                                @if($groupPoints > 0)
+                                    <span class="text-[10px] text-[var(--ui-muted)] tabular-nums">{{ $groupPoints }} SP</span>
+                                @endif
+                            </div>
+                            <div class="bg-white rounded-xl border border-[var(--ui-border)]/40 shadow-sm overflow-hidden">
+                                @foreach($tasks as $i => $task)
+                                    @php
+                                        $uic = $task->userInCharge;
+                                        $uicInitial = $uic ? mb_strtoupper(mb_substr($uic->name ?? $uic->email ?? 'U', 0, 1)) : null;
+                                        $pColor = $task->project?->color ?? null;
+                                    @endphp
+                                    <a
+                                        href="{{ route('planner.tasks.show', $task) }}?from=completed"
+                                        wire:navigate
+                                        class="relative flex items-center gap-3 pl-5 pr-4 py-2.5 hover:bg-[var(--ui-muted-5)] transition-colors group {{ $i > 0 ? 'border-t border-[var(--ui-border)]/40' : '' }}"
+                                    >
+                                        {{-- Color edge: emerald für erledigt --}}
+                                        <span class="absolute top-2 bottom-2 left-1.5 w-[3px] rounded-full bg-[var(--planner-status-done)]"></span>
+
+                                        {{-- Done circle (visuelles Check-Indicator) --}}
+                                        <span class="flex-shrink-0 inline-flex items-center justify-center w-5 h-5 rounded-full bg-[var(--planner-status-done)] text-white">
+                                            @svg('heroicon-s-check', 'w-3 h-3')
+                                        </span>
+
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-sm text-[var(--ui-secondary)]/80 truncate line-through group-hover:text-[var(--planner-status-active)] group-hover:no-underline">{{ $task->title }}</span>
+                                                @if($task->is_frog)
+                                                    <span class="flex-shrink-0 text-xs" title="Frosch">🐸</span>
                                                 @endif
-                                                <div class="flex flex-wrap items-center gap-3 text-xs text-[var(--ui-muted)]">
-                                                    @if($task->done_at)
-                                                        <span class="inline-flex items-center gap-1">
-                                                            @svg('heroicon-o-clock', 'w-3 h-3')
-                                                            Erledigt: {{ $task->done_at->format('d.m.Y H:i') }}
-                                                        </span>
-                                                    @elseif($task->updated_at)
-                                                        <span class="inline-flex items-center gap-1">
-                                                            @svg('heroicon-o-clock', 'w-3 h-3')
-                                                            {{ $task->updated_at->diffForHumans() }}
-                                                        </span>
-                                                    @endif
-                                                    @if($task->project)
-                                                        <span class="inline-flex items-center gap-1">
-                                                            @svg('heroicon-o-folder', 'w-3 h-3')
-                                                            {{ $task->project->name }}
-                                                        </span>
-                                                    @endif
-                                                    @if($task->userInCharge)
-                                                        <span class="inline-flex items-center gap-1">
-                                                            @svg('heroicon-o-user', 'w-3 h-3')
-                                                            {{ $task->userInCharge->fullname ?? $task->userInCharge->name }}
-                                                        </span>
-                                                    @endif
-                                                    @if($task->story_points)
-                                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40">
-                                                            @svg('heroicon-o-sparkles', 'w-3 h-3')
-                                                            {{ $task->story_points->points() }} SP
-                                                        </span>
-                                                    @endif
-                                                </div>
+                                            </div>
+                                            <div class="flex items-center gap-3 mt-0.5 text-[10px] text-[var(--ui-muted)]">
+                                                @if($task->done_at)
+                                                    <span class="inline-flex items-center gap-1 tabular-nums">
+                                                        @svg('heroicon-o-clock', 'w-3 h-3 opacity-60')
+                                                        {{ $task->done_at->format('d.m. H:i') }}
+                                                    </span>
+                                                @elseif($task->updated_at)
+                                                    <span class="inline-flex items-center gap-1">
+                                                        @svg('heroicon-o-clock', 'w-3 h-3 opacity-60')
+                                                        {{ $task->updated_at->diffForHumans() }}
+                                                    </span>
+                                                @endif
+                                                @if($task->project)
+                                                    <span class="inline-flex items-center gap-1">
+                                                        <span class="w-1.5 h-1.5 rounded-full" style="background-color: {{ $pColor ?? 'var(--ui-muted)' }};"></span>
+                                                        {{ $task->project->name }}
+                                                    </span>
+                                                @endif
+                                                @if($uic)
+                                                    <span>{{ $uic->fullname ?? $uic->name }}</span>
+                                                @endif
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
-                            </a>
-                        @endforeach
-                    </div>
-                </div>
-            @endforeach
-        @endif
-    </x-ui-page-container>
-</x-ui-page>
 
+                                        @if($task->story_points)
+                                            <span class="flex-shrink-0 inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-full bg-[var(--planner-status-done)]/10 text-[var(--planner-status-done)] tabular-nums">
+                                                {{ $task->story_points->points() }} SP
+                                            </span>
+                                        @endif
+
+                                        @if($uic)
+                                            @if($uic->avatar)
+                                                <img src="{{ $uic->avatar }}" alt="" class="w-6 h-6 rounded-full object-cover flex-shrink-0">
+                                            @else
+                                                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[var(--ui-secondary)] text-white text-[10px] font-semibold flex-shrink-0">{{ $uicInitial }}</span>
+                                            @endif
+                                        @endif
+                                    </a>
+                                @endforeach
+                            </div>
+                        </section>
+                    @endforeach
+                @endif
+
+            </div>
+        </div>
+    </div>
+</x-ui-page>
