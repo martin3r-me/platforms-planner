@@ -78,7 +78,7 @@ class PlannerTask extends Model implements HasKeyResultAncestors, HasDisplayName
     protected static function booted(): void
     {
         static::creating(function (self $model) {
-            
+
             do {
                 $uuid = UuidV7::generate();
             } while (self::where('uuid', $uuid)->exists());
@@ -93,6 +93,59 @@ class PlannerTask extends Model implements HasKeyResultAncestors, HasDisplayName
                 $model->team_id = Auth::user()->currentTeam->id;
             }
         });
+
+        // Chain-on-Complete: wenn die letzte offene Instanz einer wiederkehrenden
+        // Aufgabe erledigt wird, sofort die nächste anlegen (statt auf den Cron zu warten).
+        static::updated(function (self $model) {
+            if (! $model->recurring_task_id) return;
+            if (! $model->wasChanged('is_done')) return;
+            if (! $model->is_done) return; // nur done → fired, nicht open ← done
+            self::tryChainRecurring($model);
+        });
+
+        // Analog beim Löschen — der User räumt die letzte Instanz weg.
+        static::deleting(function (self $model) {
+            if (! $model->recurring_task_id) return;
+            self::tryChainRecurring($model);
+        });
+    }
+
+    /**
+     * Versucht, die nächste Instanz einer wiederkehrenden Aufgabe sofort anzulegen.
+     * Bedingungen:
+     *   - Die Task ist mit einer aktiven Recurring-Vorlage verbunden.
+     *   - Die Vorlage hat chain_on_complete = true.
+     *   - End-Bedingungen (recurrence_end_date, max_occurrences) sind noch nicht erreicht.
+     *   - Es gibt keine weitere offene Instanz dieser Vorlage (sonst kommt die nächste
+     *     erst, wenn die letzte aus dem Weg ist).
+     */
+    protected static function tryChainRecurring(self $task): void
+    {
+        try {
+            $recurring = $task->recurringTask()->first();
+            if (! $recurring || ! $recurring->is_active || ! $recurring->chain_on_complete) {
+                return;
+            }
+
+            if ($recurring->recurrence_end_date && now()->greaterThan($recurring->recurrence_end_date)) {
+                return;
+            }
+            if ($recurring->max_occurrences !== null && $recurring->occurrences_count >= $recurring->max_occurrences) {
+                return;
+            }
+
+            // Andere offene Instanzen? Dann nicht ketten — eine reicht.
+            $openSiblings = $recurring->tasks()
+                ->where('id', '!=', $task->id)
+                ->where('is_done', false)
+                ->whereNull('deleted_at')
+                ->count();
+            if ($openSiblings > 0) return;
+
+            $recurring->createTask();
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     /**
