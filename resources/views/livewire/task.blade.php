@@ -578,117 +578,120 @@
     <x-ui-modal size="md" wire:model="dueDateModalShow" :backdropClosable="true" :escClosable="true">
         <x-slot name="header">
             <div class="flex items-center gap-3">
-                <div class="flex-shrink-0">
-                    <div class="w-10 h-10 bg-[var(--ui-primary-10)] rounded-lg flex items-center justify-center">
-                        @svg('heroicon-o-calendar', 'w-5 h-5 text-[var(--ui-primary)]')
-                    </div>
+                <div class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-[var(--planner-status-active)]/10 flex-shrink-0">
+                    @svg('heroicon-o-calendar-days', 'w-5 h-5 text-[var(--planner-status-active)]')
                 </div>
-                <div>
-                    <h3 class="text-lg font-semibold text-[var(--ui-secondary)]">Fälligkeitsdatum</h3>
-                    <p class="text-sm text-[var(--ui-muted)]">Datum und Uhrzeit festlegen</p>
+                <div class="min-w-0">
+                    <h3 class="text-base font-semibold text-[var(--ui-secondary)] m-0 leading-tight">Fälligkeitsdatum</h3>
+                    <p class="text-[12px] text-[var(--ui-muted)] m-0 mt-0.5">Datum und Uhrzeit festlegen</p>
                 </div>
             </div>
         </x-slot>
 
-        <div class="space-y-6">
-            <div class="flex items-center justify-between">
-                <h2 class="flex-auto text-sm font-semibold text-[var(--ui-secondary)]">{{ $this->calendarMonthName }}</h2>
-                <div class="flex items-center gap-2">
-                    <button type="button" wire:click="previousMonth" class="flex flex-none items-center justify-center p-1.5 text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] transition-colors rounded-lg hover:bg-[var(--ui-muted-5)]">
-                        <span class="sr-only">Vorheriger Monat</span>
-                        @svg('heroicon-o-chevron-left', 'w-5 h-5')
+        <div class="space-y-4">
+
+            {{-- Quick-Picks --}}
+            <div class="flex flex-wrap gap-1.5">
+                <button type="button" wire:click="setQuickDueDate('today')" class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium rounded-full border border-[var(--ui-border)] text-[var(--ui-secondary)] hover:border-[var(--planner-status-active)]/60 hover:text-[var(--planner-status-active)] hover:bg-[var(--planner-status-active)]/5 transition-all">
+                    @svg('heroicon-o-bolt', 'w-3 h-3 opacity-60')
+                    Heute
+                </button>
+                <button type="button" wire:click="setQuickDueDate('tomorrow')" class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium rounded-full border border-[var(--ui-border)] text-[var(--ui-secondary)] hover:border-[var(--planner-status-active)]/60 hover:text-[var(--planner-status-active)] hover:bg-[var(--planner-status-active)]/5 transition-all">
+                    @svg('heroicon-o-arrow-right', 'w-3 h-3 opacity-60')
+                    Morgen
+                </button>
+                <button type="button" wire:click="setQuickDueDate('next_week')" class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium rounded-full border border-[var(--ui-border)] text-[var(--ui-secondary)] hover:border-[var(--planner-status-active)]/60 hover:text-[var(--planner-status-active)] hover:bg-[var(--planner-status-active)]/5 transition-all">
+                    @svg('heroicon-o-forward', 'w-3 h-3 opacity-60')
+                    In einer Woche
+                </button>
+            </div>
+
+            {{-- Kalender --}}
+            <div class="rounded-xl border border-[var(--ui-border)]/40 bg-[var(--ui-muted-5)]/40 p-3">
+                {{-- Monatsnavigation --}}
+                <div class="flex items-center justify-between mb-2">
+                    <button type="button" wire:click="previousMonth" class="inline-flex items-center justify-center w-7 h-7 rounded-md text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] hover:bg-white transition-colors" title="Vorheriger Monat">
+                        @svg('heroicon-o-chevron-left', 'w-4 h-4')
                     </button>
-                    <button type="button" wire:click="nextMonth" class="flex flex-none items-center justify-center p-1.5 text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] transition-colors rounded-lg hover:bg-[var(--ui-muted-5)]">
-                        <span class="sr-only">Nächster Monat</span>
-                        @svg('heroicon-o-chevron-right', 'w-5 h-5')
+                    <h2 class="text-sm font-semibold text-[var(--ui-secondary)] m-0 tabular-nums">{{ $this->calendarMonthName }}</h2>
+                    <button type="button" wire:click="nextMonth" class="inline-flex items-center justify-center w-7 h-7 rounded-md text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] hover:bg-white transition-colors" title="Nächster Monat">
+                        @svg('heroicon-o-chevron-right', 'w-4 h-4')
                     </button>
                 </div>
-            </div>
 
-            <div class="grid grid-cols-7 text-center text-xs font-medium text-[var(--ui-muted)]">
-                <div>Mo</div><div>Di</div><div>Mi</div><div>Do</div><div>Fr</div><div>Sa</div><div>So</div>
-            </div>
+                {{-- Wochentage --}}
+                <div class="grid grid-cols-7 text-center text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] mb-1">
+                    <div>Mo</div><div>Di</div><div>Mi</div><div>Do</div><div>Fr</div><div>Sa</div><div>So</div>
+                </div>
 
-            <div class="grid grid-cols-7 gap-1 text-sm">
-                @foreach($this->calendarDays as $day)
-                    <div class="py-2 {{ !$loop->first ? 'border-t border-[var(--ui-border)]/40' : '' }}">
+                {{-- Tage-Grid --}}
+                <div class="grid grid-cols-7 gap-0.5">
+                    @foreach($this->calendarDays as $day)
                         <button
                             type="button"
                             wire:click="selectDate('{{ $day['date'] }}')"
-                            class="mx-auto flex w-8 h-8 items-center justify-center rounded-full transition-all
-                                {{ !$day['isCurrentMonth'] ? 'text-[var(--ui-muted)]/50' : '' }}
-                                {{ $day['isCurrentMonth'] && !$day['isToday'] && !$day['isSelected'] ? 'text-[var(--ui-secondary)] hover:bg-[var(--ui-primary-5)] hover:text-[var(--ui-primary)]' : '' }}
-                                {{ $day['isToday'] && !$day['isSelected'] ? 'font-semibold text-[var(--ui-primary)]' : '' }}
-                                {{ $day['isSelected'] && !$day['isToday'] ? 'font-semibold text-white bg-[var(--ui-secondary)]' : '' }}
-                                {{ $day['isSelected'] && $day['isToday'] ? 'font-semibold text-white bg-[var(--ui-primary)]' : '' }}
-                            "
+                            @class([
+                                'aspect-square inline-flex items-center justify-center text-[12px] rounded-md transition-all tabular-nums',
+                                'text-[var(--ui-muted)]/40' => !$day['isCurrentMonth'],
+                                'text-[var(--ui-secondary)] hover:bg-white hover:shadow-sm' => $day['isCurrentMonth'] && !$day['isToday'] && !$day['isSelected'],
+                                'font-semibold ring-1 ring-[var(--planner-status-active)]/50 text-[var(--planner-status-active)] hover:bg-[var(--planner-status-active)]/5' => $day['isToday'] && !$day['isSelected'],
+                                'font-bold text-white bg-[var(--planner-status-active)] shadow-sm' => $day['isSelected'],
+                            ])
                         >
                             <time datetime="{{ $day['date'] }}">{{ $day['day'] }}</time>
                         </button>
-                    </div>
-                @endforeach
+                    @endforeach
+                </div>
             </div>
 
-            <div class="pt-4 border-t border-[var(--ui-border)]/60">
-                <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-3">Uhrzeit</label>
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <div class="flex items-center gap-3">
-                        <div>
-                            <label class="block text-xs font-medium text-[var(--ui-muted)] mb-1">Stunde</label>
-                            <select wire:model.live="selectedHour" class="w-28 px-3 py-2 text-sm rounded-lg border border-[var(--ui-border)]/60 bg-[var(--ui-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--ui-primary)]/20 focus:border-[var(--ui-primary)]">
-                                @for($h = 0; $h < 24; $h++)
-                                    <option value="{{ $h }}">{{ str_pad($h, 2, '0', STR_PAD_LEFT) }}</option>
-                                @endfor
-                            </select>
-                        </div>
-                        <div class="text-2xl font-bold text-[var(--ui-muted)]">:</div>
-                        <div>
-                            <label class="block text-xs font-medium text-[var(--ui-muted)] mb-1">Minute</label>
-                            <select wire:model.live="selectedMinute" class="w-28 px-3 py-2 text-sm rounded-lg border border-[var(--ui-border)]/60 bg-[var(--ui-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--ui-primary)]/20 focus:border-[var(--ui-primary)]">
-                                @foreach([0, 15, 30, 45] as $minute)
-                                    <option value="{{ $minute }}">{{ str_pad($minute, 2, '0', STR_PAD_LEFT) }}</option>
-                                @endforeach
-                            </select>
-                        </div>
+            {{-- Uhrzeit --}}
+            <div class="rounded-xl border border-[var(--ui-border)]/40 p-3">
+                <div class="flex items-center justify-between gap-3">
+                    <div class="inline-flex items-center gap-2 text-[11px] text-[var(--ui-muted)]">
+                        @svg('heroicon-o-clock', 'w-3.5 h-3.5')
+                        <span class="font-semibold uppercase tracking-wider">Uhrzeit</span>
                     </div>
-                    <div class="sm:text-right">
-                        <span class="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold text-[var(--planner-status-active)] bg-[var(--planner-status-active)]/10 rounded-lg border border-[var(--planner-status-active)]/20">
-                            @svg('heroicon-o-clock', 'w-4 h-4')
-                            {{ sprintf('%02d:%02d', $selectedHour, $selectedMinute) }} Uhr
-                        </span>
+                    <div class="flex items-center gap-1.5">
+                        <select wire:model.live="selectedHour" class="w-16 px-2 py-1 text-sm rounded-md border border-[var(--ui-border)]/60 bg-white focus:outline-none focus:ring-2 focus:ring-[var(--planner-status-active)]/20 focus:border-[var(--planner-status-active)] tabular-nums">
+                            @for($h = 0; $h < 24; $h++)
+                                <option value="{{ $h }}">{{ str_pad($h, 2, '0', STR_PAD_LEFT) }}</option>
+                            @endfor
+                        </select>
+                        <span class="text-sm font-semibold text-[var(--ui-muted)]">:</span>
+                        <select wire:model.live="selectedMinute" class="w-16 px-2 py-1 text-sm rounded-md border border-[var(--ui-border)]/60 bg-white focus:outline-none focus:ring-2 focus:ring-[var(--planner-status-active)]/20 focus:border-[var(--planner-status-active)] tabular-nums">
+                            @foreach([0, 15, 30, 45] as $minute)
+                                <option value="{{ $minute }}">{{ str_pad($minute, 2, '0', STR_PAD_LEFT) }}</option>
+                            @endforeach
+                        </select>
                     </div>
                 </div>
             </div>
 
+            {{-- Ausgewählte Zusammenfassung --}}
             @if($selectedDate)
-                <div class="pt-4 border-t border-[var(--ui-border)]/60">
-                    <div class="flex items-center gap-2 text-sm text-[var(--ui-muted)]">
-                        @svg('heroicon-o-calendar-days', 'w-4 h-4')
-                        <span>
-                            Ausgewählt:
-                            <span class="font-medium text-[var(--ui-secondary)]">
-                                {{ \Carbon\Carbon::parse($selectedDate)->locale('de')->isoFormat('dddd, D. MMMM YYYY') }}
-                                @if($selectedTime) um {{ $selectedTime }} Uhr @endif
-                            </span>
-                        </span>
-                    </div>
+                <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--planner-status-active)]/5 border border-[var(--planner-status-active)]/20 text-[12px]">
+                    @svg('heroicon-o-calendar-days', 'w-3.5 h-3.5 text-[var(--planner-status-active)] flex-shrink-0')
+                    <span class="text-[var(--ui-muted)]">Ausgewählt:</span>
+                    <span class="font-semibold text-[var(--planner-status-active)] flex-1">
+                        {{ \Carbon\Carbon::parse($selectedDate)->locale('de')->isoFormat('dddd, D. MMMM YYYY') }}
+                        @if($selectedTime) · {{ $selectedTime }} Uhr @endif
+                    </span>
                 </div>
             @endif
 
+            {{-- Datum entfernen — quiet inline link --}}
             @if($task->due_date)
-                <div class="pt-4 border-t border-[var(--ui-border)]/60">
-                    <x-ui-button variant="danger-outline" size="sm" wire:click="clearDueDate" class="w-full">
-                        <span class="inline-flex items-center gap-2">
-                            @svg('heroicon-o-trash', 'w-4 h-4')
-                            Datum entfernen
-                        </span>
-                    </x-ui-button>
+                <div class="text-right">
+                    <button type="button" wire:click="clearDueDate" class="inline-flex items-center gap-1 text-[11px] text-[var(--ui-muted)] hover:text-[var(--planner-status-overdue)] transition-colors">
+                        @svg('heroicon-o-x-mark', 'w-3 h-3')
+                        Bestehendes Datum entfernen
+                    </button>
                 </div>
             @endif
         </div>
 
         <x-slot name="footer">
-            <div class="flex justify-end gap-3">
+            <div class="flex justify-end gap-2">
                 <x-ui-button variant="secondary-outline" size="sm" wire:click="closeDueDateModal">Abbrechen</x-ui-button>
                 <button
                     type="button"
@@ -696,7 +699,7 @@
                     wire:loading.attr="disabled"
                     wire:target="saveDueDate"
                     wire:disabled="!selectedDate"
-                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-[var(--ui-primary)] text-white hover:bg-[var(--ui-primary-80)] focus:outline-none focus:ring-2 focus:ring-[var(--ui-primary)]/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md bg-[var(--planner-status-active)] text-white hover:bg-[var(--planner-status-active)]/90 focus:outline-none focus:ring-2 focus:ring-[var(--planner-status-active)]/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                     <span wire:loading.remove wire:target="saveDueDate" class="inline-flex items-center gap-2">
                         @svg('heroicon-o-check', 'w-4 h-4')
