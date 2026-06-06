@@ -34,21 +34,6 @@
             ($referrer !== 'project' && $task->project) ? ['label' => $task->project->name, 'href' => route('planner.projects.show', ['plannerProject' => $task->project->id])] : null,
             ['label' => Str::limit($task->title, 40)],
         ])">
-            <x-slot name="left">
-                @if($printingAvailable)
-                    <x-ui-button variant="ghost" size="sm" wire:click="printTask()">
-                        @svg('heroicon-o-printer', 'w-4 h-4')
-                        <span>Drucken</span>
-                    </x-ui-button>
-                @endif
-                @can('update', $task)
-                    <x-ui-button variant="ghost" size="sm" wire:click="openMoveModal">
-                        @svg('heroicon-o-arrows-right-left', 'w-4 h-4')
-                        <span>Verschieben</span>
-                    </x-ui-button>
-                @endcan
-            </x-slot>
-
             @can('update', $task)
                 @if($this->isDirty())
                     <x-ui-button variant="primary" size="sm" wire:click="save">
@@ -57,6 +42,56 @@
                     </x-ui-button>
                 @endif
             @endcan
+
+            {{-- Overflow-Menü mit selteneren Aktionen --}}
+            @php
+                $canMove = auth()->user()?->can('update', $task) ?? false;
+                $hasOverflow = $printingAvailable || $canMove;
+            @endphp
+            @if($hasOverflow)
+                <div x-data="{ open: false }" class="relative">
+                    <button
+                        type="button"
+                        @click="open = !open"
+                        class="inline-flex items-center justify-center w-8 h-7 rounded-md text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)] transition-colors"
+                        title="Mehr"
+                    >
+                        @svg('heroicon-o-ellipsis-horizontal', 'w-4 h-4')
+                    </button>
+                    <div
+                        x-show="open"
+                        x-cloak
+                        x-transition.opacity.duration.100ms
+                        @click.outside="open = false"
+                        @keydown.escape.window="open = false"
+                        class="absolute top-full right-0 mt-1 w-48 bg-white border border-[var(--ui-border)] rounded-lg shadow-lg z-30 py-1"
+                    >
+                        @if($canMove)
+                            <button
+                                type="button"
+                                wire:click="openMoveModal"
+                                @click="open = false"
+                                class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)] transition-colors"
+                            >
+                                @svg('heroicon-o-arrows-right-left', 'w-4 h-4 text-[var(--ui-muted)]')
+                                <span>Verschieben</span>
+                            </button>
+                        @endif
+                        @if($printingAvailable)
+                            <button
+                                type="button"
+                                wire:click="printTask()"
+                                @click="open = false"
+                                class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)] transition-colors"
+                            >
+                                @svg('heroicon-o-printer', 'w-4 h-4 text-[var(--ui-muted)]')
+                                <span>Drucken</span>
+                            </button>
+                        @endif
+                    </div>
+                </div>
+            @endif
+
             @can('delete', $task)
                 <x-ui-confirm-button
                     action="deleteTask"
