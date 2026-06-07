@@ -270,7 +270,7 @@ class ProjectSettingsModal extends Component
         $links = collect();
 
         $entityLinkResults = \Platform\Organization\Services\EntityDimensionBridge::linksForLinkables(
-            ['project', 'planner_project', get_class($this->project)],
+            ['project'],
             [$this->project->id]
         );
         foreach ($entityLinkResults as $link) {

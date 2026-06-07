@@ -117,7 +117,7 @@ class Project extends Component
         $linkedEntities = collect();
 
         $entityLinks = \Platform\Organization\Services\EntityDimensionBridge::linksForLinkables(
-            ['project', 'planner_project', get_class($this->project)],
+            ['project'],
             [$this->project->id]
         );
         foreach ($entityLinks as $link) {

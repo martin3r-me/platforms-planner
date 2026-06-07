@@ -177,7 +177,7 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
 
                 // Entity-Links (via DimensionLink Bridge)
                 $entityLinks = \Platform\Organization\Services\EntityDimensionBridge::linksForLinkables(
-                    ['planner_project', PlannerProject::class],
+                    ['project'],
                     [$project->id]
                 );
                 $entityLinksData = $entityLinks->map(fn($l) => [

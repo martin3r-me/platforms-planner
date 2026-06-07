@@ -120,7 +120,7 @@ class Sidebar extends Component
         $entityProjectMap = []; // entity_id => [project_ids]
         $linkedProjectIds = [];
 
-        $contextMorphTypes = ['project', 'planner_project', Project::class];
+        $contextMorphTypes = ['project'];
         $entityLinks = EntityDimensionBridge::linksForLinkables($contextMorphTypes, $projectIds);
 
         foreach ($entityLinks as $link) {

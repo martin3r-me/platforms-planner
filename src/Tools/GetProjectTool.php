@@ -120,7 +120,7 @@ class GetProjectTool implements ToolContract, ToolMetadataContract
 
             // Entity-Links laden (via DimensionLink Bridge)
             $entityLinks = \Platform\Organization\Services\EntityDimensionBridge::linksForLinkables(
-                ['planner_project', PlannerProject::class],
+                ['project'],
                 [$project->id]
             );
             $entityLinksData = $entityLinks->map(fn($l) => [
