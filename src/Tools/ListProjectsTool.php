@@ -104,9 +104,11 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
             // Entity-ID Filter
             if (!empty($arguments['entity_id'])) {
                 $entityId = (int) $arguments['entity_id'];
-                $query->whereHas('entityLinks', function ($q) use ($entityId) {
-                    $q->where('entity_id', $entityId);
-                });
+                $linkedProjectIds = \Platform\Organization\Services\EntityDimensionBridge::linksForEntities([$entityId])
+                    ->where('linkable_type', 'project')
+                    ->pluck('linkable_id')
+                    ->all();
+                $query->whereIn('id', $linkedProjectIds);
             }
 
             // Standard-Operationen anwenden
