@@ -42,7 +42,7 @@
         </div>
 
         {{-- Tab strip --}}
-        <nav class="mt-3 flex items-center gap-0 overflow-x-auto border-b border-transparent">
+        <nav class="mt-3 flex items-center gap-0 overflow-x-auto overflow-y-hidden border-b border-transparent" style="scrollbar-width: thin;">
             {{-- Board tab --}}
             <a
                 href="{{ route('planner.public.show', $project->public_token) }}"
