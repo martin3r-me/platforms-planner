@@ -8,72 +8,29 @@
     $statusLabel = \Platform\Planner\Models\PlannerProjectCanvas::STATUS_LABELS[$canvas->status] ?? $canvas->status;
 @endphp
 
-<div class="min-h-screen flex flex-col bg-[var(--ui-bg,#f8fafc)]">
-    {{-- Header --}}
-    <header class="flex-shrink-0 border-b border-[var(--ui-border,#e2e8f0)] bg-white">
-        <div class="px-4 sm:px-6 py-3">
-            <div class="flex items-center justify-between gap-3 flex-wrap">
-                <div class="min-w-0">
-                    <div class="flex items-center gap-2 text-xs text-gray-400">
-                        <a href="{{ route('planner.public.show', $token) }}" class="hover:text-[#1a1a2e] inline-flex items-center gap-1">
-                            @svg('heroicon-o-folder', 'w-3.5 h-3.5')
-                            <span class="truncate max-w-[200px]">{{ $project->name }}</span>
-                        </a>
-                        <span class="text-gray-300">/</span>
-                        <span class="inline-flex items-center gap-1 text-[#1a1a2e] font-medium">
-                            @svg('heroicon-o-squares-2x2', 'w-3.5 h-3.5')
-                            {{ $canvas->name }}
-                        </span>
-                    </div>
-                    <h1 class="mt-0.5 text-lg font-semibold text-[#1a1a2e] truncate">{{ $canvas->name }}</h1>
-                </div>
+<div class="h-screen flex flex-col overflow-hidden bg-[var(--ui-bg,#f8fafc)]">
+    {{-- Shared Nav --}}
+    @include('planner::livewire.partials.public-nav', [
+        'project' => $project,
+        'canvases' => $siblingCanvases,
+        'current' => 'canvas:' . $canvas->id,
+    ])
 
-                <div class="flex items-center gap-2 flex-shrink-0">
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#f2ca52] text-[#1a1a2e]">
-                        Project Canvas
-                    </span>
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium {{ $statusBadge }}">
-                        {{ $statusLabel }}
-                    </span>
-
-                    {{-- View Mode Toggle --}}
-                    <div class="flex items-center bg-gray-100 rounded-full p-0.5">
-                        <button
-                            wire:click="setViewMode('list')"
-                            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[12px] font-medium transition-all {{ $viewMode === 'list' ? 'bg-white text-[#1a1a2e] shadow-sm' : 'text-gray-400 hover:text-[#1a1a2e]' }}"
-                        >
-                            @svg('heroicon-o-list-bullet', 'w-3.5 h-3.5')
-                            <span>Liste</span>
-                        </button>
-                        <button
-                            wire:click="setViewMode('workshop')"
-                            class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[12px] font-medium transition-all {{ $viewMode === 'workshop' ? 'bg-white text-[#1a1a2e] shadow-sm' : 'text-gray-400 hover:text-[#1a1a2e]' }}"
-                        >
-                            @svg('heroicon-o-square-3-stack-3d', 'w-3.5 h-3.5')
-                            <span>Workshop</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Meta strip --}}
-            <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-400">
+    {{-- Sub action bar (canvas-specific) --}}
+    <div class="flex-shrink-0 bg-white border-b border-[var(--ui-border,#e2e8f0)]">
+        <div class="px-4 sm:px-6 py-2 flex items-center justify-between gap-3 flex-wrap">
+            <div class="flex items-center gap-3 flex-wrap text-xs text-[var(--ui-muted,#64748b)]">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium {{ $statusBadge }}">
+                    {{ $statusLabel }}
+                </span>
                 @if(($analysisData['strategy'] ?? null) === 'traffic_light')
-                    <div class="inline-flex items-center gap-1.5">
-                        <span class="inline-block w-3 h-3 rounded-full {{ match($analysisData['color'] ?? 'red') { 'green' => 'bg-green-500', 'yellow' => 'bg-yellow-500', default => 'bg-red-500' } }}"></span>
-                        <span class="font-semibold text-[#1a1a2e]">{{ $analysisData['score'] ?? 0 }}%</span>
+                    <span class="inline-flex items-center gap-1.5">
+                        <span class="inline-block w-2.5 h-2.5 rounded-full {{ match($analysisData['color'] ?? 'red') { 'green' => 'bg-green-500', 'yellow' => 'bg-yellow-500', default => 'bg-red-500' } }}"></span>
+                        <strong class="text-[var(--ui-secondary,#1e293b)]">{{ $analysisData['score'] ?? 0 }}%</strong>
                         <span>{{ match($analysisData['color'] ?? 'red') { 'green' => 'Auf Kurs', 'yellow' => 'Aufmerksamkeit noetig', default => 'Kritisch' } }}</span>
-                    </div>
+                    </span>
                 @endif
-                <div class="inline-flex items-center gap-1">
-                    @svg('heroicon-o-user', 'w-3.5 h-3.5')
-                    {{ $canvas->createdByUser?->name ?? 'Unbekannt' }}
-                </div>
-                <div class="inline-flex items-center gap-1">
-                    @svg('heroicon-o-calendar', 'w-3.5 h-3.5')
-                    {{ $canvas->created_at?->format('d.m.Y') }}
-                </div>
-                <div class="inline-flex items-center gap-2">
+                <span class="inline-flex items-center gap-2">
                     <span>Fortschritt</span>
                     @php
                         $barColor = match($analysisData['strategy'] ?? 'basic') {
@@ -91,22 +48,44 @@
                             default => 'bg-[#f2ca52]',
                         };
                     @endphp
-                    <div class="w-20 h-1.5 rounded-full bg-gray-100">
-                        <div class="h-1.5 rounded-full {{ $barColor }}" style="width: {{ $analysisData['completeness_percent'] ?? 0 }}%"></div>
-                    </div>
-                    <span class="font-semibold text-[#1a1a2e]">{{ $analysisData['completeness_percent'] ?? 0 }}%</span>
-                </div>
-                <div>{{ $analysisData['filled_blocks'] ?? 0 }}/{{ $analysisData['total_blocks'] ?? 0 }} Bloecke &middot; {{ $analysisData['total_entries'] ?? 0 }} Eintraege</div>
+                    <span class="w-16 h-1.5 rounded-full bg-gray-100">
+                        <span class="block h-1.5 rounded-full {{ $barColor }}" style="width: {{ $analysisData['completeness_percent'] ?? 0 }}%"></span>
+                    </span>
+                    <strong class="text-[var(--ui-secondary,#1e293b)]">{{ $analysisData['completeness_percent'] ?? 0 }}%</strong>
+                </span>
+                <span class="text-gray-300">·</span>
+                <span>{{ $analysisData['filled_blocks'] ?? 0 }}/{{ $analysisData['total_blocks'] ?? 0 }} Bloecke</span>
+                <span>{{ $analysisData['total_entries'] ?? 0 }} Eintraege</span>
             </div>
 
-            @if($canvas->description)
-                <p class="mt-2 text-xs text-gray-500 leading-relaxed">{{ $canvas->description }}</p>
-            @endif
+            {{-- View Mode Toggle --}}
+            <div class="flex items-center bg-gray-100 rounded-full p-0.5">
+                <button
+                    wire:click="setViewMode('list')"
+                    class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-medium transition-all {{ $viewMode === 'list' ? 'bg-white text-[#1a1a2e] shadow-sm' : 'text-gray-400 hover:text-[#1a1a2e]' }}"
+                >
+                    @svg('heroicon-o-list-bullet', 'w-3.5 h-3.5')
+                    <span>Liste</span>
+                </button>
+                <button
+                    wire:click="setViewMode('workshop')"
+                    class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-medium transition-all {{ $viewMode === 'workshop' ? 'bg-white text-[#1a1a2e] shadow-sm' : 'text-gray-400 hover:text-[#1a1a2e]' }}"
+                >
+                    @svg('heroicon-o-square-3-stack-3d', 'w-3.5 h-3.5')
+                    <span>Workshop</span>
+                </button>
+            </div>
         </div>
-    </header>
+
+        @if($canvas->description)
+            <div class="px-4 sm:px-6 pb-2 -mt-1">
+                <p class="text-xs text-gray-500 leading-relaxed">{{ $canvas->description }}</p>
+            </div>
+        @endif
+    </div>
 
     {{-- Main --}}
-    <main class="flex-1 min-h-0">
+    <main class="flex-1 min-h-0 {{ $viewMode === 'list' ? 'overflow-y-auto' : 'overflow-hidden' }}">
         @if($viewMode === 'list')
             {{-- ═══ LIST VIEW ═══ --}}
             <div class="p-4 sm:p-6 space-y-6 max-w-6xl mx-auto">
@@ -181,7 +160,7 @@
             <div
                 x-data="publicCanvasViewer({ notes: {{ Js::from($workshopNotes) }} })"
                 x-init="init()"
-                class="relative overflow-hidden h-[calc(100vh-160px)]"
+                class="relative overflow-hidden h-full"
                 style="background:#eef0f4;"
             >
                 {{-- Zoom Controls --}}

@@ -56,6 +56,11 @@ class PublicCanvas extends Component
             ->values()
             ->toArray();
 
+        $siblingCanvases = PlannerProjectCanvas::where('project_id', $this->project->id)
+            ->where('is_public', true)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         $workshopNotes = [];
         if ($this->viewMode === 'workshop') {
             $workshopNotes = $this->canvas->workshopNotes()
@@ -83,6 +88,7 @@ class PublicCanvas extends Component
             'layout' => $layout,
             'blockDefs' => $blockDefs,
             'workshopNotes' => $workshopNotes,
+            'siblingCanvases' => $siblingCanvases,
         ])->layout('platform::layouts.guest');
     }
 }
