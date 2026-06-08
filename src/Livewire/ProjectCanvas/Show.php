@@ -106,7 +106,12 @@ class Show extends Component
 
     public function createPublicLink(): void
     {
+        if (! $this->project->public_token) {
+            $this->project->generatePublicToken();
+        }
+
         $this->canvas->generatePublicToken();
+        $this->project->refresh();
     }
 
     public function togglePublicLink(): void

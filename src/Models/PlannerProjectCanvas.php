@@ -197,12 +197,24 @@ class PlannerProjectCanvas extends Model
 
     public function getPublicUrl(): ?string
     {
-        if (! $this->public_token) {
+        $projectToken = $this->project?->public_token;
+
+        if (! $projectToken || ! $this->is_public) {
             return null;
         }
 
-        // Generic URL — public route can be added later
-        return url("/planner/projects/{$this->project_id}/canvas/{$this->id}/public/{$this->public_token}");
+        return route('planner.public.canvas', ['token' => $projectToken, 'canvas' => $this->id]);
+    }
+
+    public function isPublicAccessible(): bool
+    {
+        if (! $this->is_public) {
+            return false;
+        }
+
+        $project = $this->project;
+
+        return $project !== null && $project->isPublicAccessible();
     }
 
     // Status helpers

@@ -48,6 +48,42 @@
         </div>
     </header>
 
+    {{-- Canvases (Project Canvases shared publicly) --}}
+    @if($canvases->isNotEmpty())
+        <section class="flex-shrink-0 border-b border-[var(--ui-border,#e2e8f0)] bg-white">
+            <div class="px-6 py-3">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#f2ca52] text-[#1a1a2e]">
+                        Project Canvas
+                    </span>
+                    <span class="text-xs text-[var(--ui-muted,#64748b)]">{{ $canvases->count() }} {{ $canvases->count() === 1 ? 'Canvas' : 'Canvases' }}</span>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    @foreach($canvases as $canvas)
+                        <a
+                            href="{{ route('planner.public.canvas', ['token' => $project->public_token, 'canvas' => $canvas->id]) }}"
+                            class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--ui-border,#e2e8f0)] bg-white text-xs text-[var(--ui-secondary,#1e293b)] hover:border-[#f2ca52] hover:bg-yellow-50 transition-colors"
+                        >
+                            @svg('heroicon-o-squares-2x2', 'w-3.5 h-3.5 text-[#f2ca52]')
+                            <span class="font-medium">{{ $canvas->name }}</span>
+                            @php
+                                $statusClass = match($canvas->status) {
+                                    'open' => 'bg-blue-100 text-blue-700',
+                                    'completed' => 'bg-green-100 text-green-700',
+                                    'discarded' => 'bg-gray-100 text-gray-500',
+                                    default => 'bg-gray-100 text-gray-600',
+                                };
+                            @endphp
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium {{ $statusClass }}">
+                                {{ \Platform\Planner\Models\PlannerProjectCanvas::STATUS_LABELS[$canvas->status] ?? $canvas->status }}
+                            </span>
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+        </section>
+    @endif
+
     {{-- Board - fills remaining height --}}
     <div class="flex-1 min-h-0 overflow-x-auto p-4">
         <x-ui-kanban-container>

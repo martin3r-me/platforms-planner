@@ -4,6 +4,7 @@ namespace Platform\Planner\Livewire;
 
 use Livewire\Component;
 use Platform\Planner\Models\PlannerProject;
+use Platform\Planner\Models\PlannerProjectCanvas;
 use Platform\Planner\Models\PlannerProjectSlot;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Enums\StoryPoints;
@@ -102,10 +103,16 @@ class PublicProject extends Component
 
         $openTasks = $groups->filter(fn($g) => !($g->isDoneGroup ?? false))->flatMap(fn($g) => $g->tasks);
 
+        $canvases = PlannerProjectCanvas::where('project_id', $this->project->id)
+            ->where('is_public', true)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         return view('planner::livewire.public-project', [
             'groups' => $groups,
             'openTasks' => $openTasks,
             'doneTasks' => $doneTasks,
+            'canvases' => $canvases,
         ])->layout('platform::layouts.guest');
     }
 }
