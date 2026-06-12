@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use Platform\Planner\Models\PlannerProject as Project;
 use Platform\Planner\Models\PlannerProjectSlot as ProjectSlot;
 use Platform\Planner\Models\PlannerTask;
+use Platform\Organization\Services\EntityAncestorService;
 use Platform\Organization\Services\EntityDimensionBridge;
 use Platform\Organization\Models\OrganizationEntity;
 use Platform\Organization\Models\OrganizationEntityType;
@@ -136,22 +137,22 @@ class Sidebar extends Component
         }
         $linkedProjectIds = array_unique($linkedProjectIds);
 
-        // 2c. Aufwärts-Traversierung: Ancestors ins Entity-Set aufnehmen (für Baum-Darstellung)
+        // 2c. Aufwaerts-Traversierung: Tree-Parents UND Channel-Targets
+        //
+        // Channel-Konvention engagement_with: Customer wird virtual-parent von
+        // Engagement. Damit erscheint jedes Engagement zusaetzlich unter dem
+        // verbundenen Customer als Sub-Tree — eine zweite, parallele Sicht
+        // (Beer-Multi-Perspektive), ohne Daten zu duplizieren.
+        $ancestorService = new EntityAncestorService();
         $directEntityIds = array_keys($entityProjectMap);
-        if (!empty($directEntityIds)) {
-            $directEntities = OrganizationEntity::with(['allParents.type'])
-                ->whereIn('id', $directEntityIds)
-                ->get()
-                ->keyBy('id');
+        $expandedEntityIds = $ancestorService->expandEntitiesWithAncestors(
+            $directEntityIds,
+            ['engagement_with']
+        );
 
-            foreach ($directEntities as $entityId => $entity) {
-                $ancestor = $entity->allParents;
-                while ($ancestor) {
-                    if (!isset($entityProjectMap[$ancestor->id])) {
-                        $entityProjectMap[$ancestor->id] = [];
-                    }
-                    $ancestor = $ancestor->allParents;
-                }
+        foreach ($expandedEntityIds as $entityId) {
+            if (!isset($entityProjectMap[$entityId])) {
+                $entityProjectMap[$entityId] = [];
             }
         }
 
@@ -165,18 +166,12 @@ class Sidebar extends Component
                 ->get()
                 ->keyBy('id');
 
-            // Eltern-Kind-Beziehungen innerhalb unseres Entity-Sets aufbauen
-            $entityChildrenMap = [];
-            $rootEntityIds = [];
-
-            foreach ($entities as $entity) {
-                $parentId = $entity->parent_entity_id;
-                if ($parentId && $entities->has($parentId)) {
-                    $entityChildrenMap[$parentId][] = $entity->id;
-                } else {
-                    $rootEntityIds[] = $entity->id;
-                }
-            }
+            // Eltern-Kind-Beziehungen: Tree-Edges + Channel-Edges via Service.
+            // Channel engagement_with: Customer wird virtual-parent von Engagement,
+            // damit Engagement auch unter Customer-Root erscheint.
+            $hierarchy = $ancestorService->buildParentChildrenMap($entities, ['engagement_with']);
+            $entityChildrenMap = $hierarchy['parent_to_children'];
+            $rootEntityIds = $hierarchy['roots'];
 
             // Rekursiver Baum-Builder
             $buildTree = function (int $entityId) use (&$buildTree, $entities, $entityChildrenMap, $entityProjectMap, $projectsToShow): ?array {
