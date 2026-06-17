@@ -151,12 +151,41 @@
     <div
         class="planner-board-canvas flex-1 min-h-0 flex"
         @if($project->color) style="--planner-project-color: {{ $project->color }};" @endif
-        x-data
+        x-data="{
+            scrollKey: 'planner-project-{{ $project->id }}-scroll-x',
+            scroller: null,
+            saveTimer: null,
+            saveScroll() {
+                if (!this.scroller) return;
+                try { sessionStorage.setItem(this.scrollKey, String(this.scroller.scrollLeft)); } catch (e) {}
+            },
+            initScrollMemory() {
+                this.$nextTick(() => {
+                    this.scroller = this.$el.querySelector('.overflow-x-auto');
+                    if (!this.scroller) return;
+                    let saved = null;
+                    try { saved = sessionStorage.getItem(this.scrollKey); } catch (e) {}
+                    if (saved !== null) {
+                        const x = parseInt(saved, 10) || 0;
+                        this.scroller.scrollLeft = x;
+                        // Layout setzt sich manchmal erst spaeter — zweite Korrektur
+                        requestAnimationFrame(() => { if (this.scroller) this.scroller.scrollLeft = x; });
+                    }
+                    this.scroller.addEventListener('scroll', () => {
+                        clearTimeout(this.saveTimer);
+                        this.saveTimer = setTimeout(() => this.saveScroll(), 200);
+                    }, { passive: true });
+                });
+            }
+        }"
+        x-init="initScrollMemory()"
+        @livewire:navigating.window="saveScroll()"
+        @beforeunload.window="saveScroll()"
         @done-column-expanded.window="
             $nextTick(() => {
-                const scroller = $el.querySelector('.overflow-x-auto');
-                if (scroller) {
-                    scroller.scrollTo({ left: scroller.scrollWidth, behavior: 'smooth' });
+                const s = $el.querySelector('.overflow-x-auto');
+                if (s) {
+                    s.scrollTo({ left: s.scrollWidth, behavior: 'smooth' });
                 }
             });
         "
