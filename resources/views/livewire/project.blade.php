@@ -179,8 +179,8 @@
             }
         }"
         x-init="initScrollMemory()"
-        @livewire:navigating.window="saveScroll()"
-        @beforeunload.window="saveScroll()"
+        x-on:livewire:navigating.window="saveScroll()"
+        x-on:beforeunload.window="saveScroll()"
         @done-column-expanded.window="
             $nextTick(() => {
                 const s = $el.querySelector('.overflow-x-auto');
