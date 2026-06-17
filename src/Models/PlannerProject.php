@@ -3,6 +3,7 @@
 namespace Platform\Planner\Models;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -46,6 +47,8 @@ class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayN
         'user_id',
         'team_id',
         'project_type',
+        'kind',
+        'status',
         'billing_method',
         'hourly_rate',
         'budget_amount',
@@ -60,6 +63,8 @@ class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayN
     protected $casts = [
         'uuid' => 'string',
         'project_type' => \Platform\Planner\Enums\ProjectType::class,
+        'kind' => \Platform\Planner\Enums\ProjectKind::class,
+        'status' => \Platform\Planner\Enums\ProjectStatus::class,
         'billing_method' => CustomerBillingMethod::class,
         'hourly_rate' => 'decimal:2',
         'budget_amount' => 'decimal:2',
@@ -68,6 +73,8 @@ class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayN
         'is_public' => 'boolean',
         'public_token_expires_at' => 'datetime',
     ];
+
+    protected $appends = ['title'];
 
     protected static function booted(): void
     {
@@ -201,11 +208,21 @@ class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayN
     }
 
     /**
+     * Berechneter Anzeigename: "<KIND-PREFIX> · <name>", z.B. "RUN · Bestellwesen".
+     */
+    protected function title(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => trim(($this->kind?->prefix() ?? '') . ' · ' . ($this->name ?? '')),
+        );
+    }
+
+    /**
      * Gibt den anzeigbaren Namen des Projects zurück.
      */
     public function getDisplayName(): ?string
     {
-        return $this->name;
+        return $this->title;
     }
 
     // ── AgendaRenderable ──────────────────────────────────────
@@ -254,14 +271,18 @@ class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayN
     public function toAgendaItem(): array
     {
         return [
-            'title' => $this->name,
+            'title' => $this->title,
             'description' => $this->description ? \Illuminate\Support\Str::limit($this->description, 120) : null,
             'icon' => '📁',
             'color' => $this->color,
             'status' => $this->done ? 'Erledigt' : 'Offen',
             'status_color' => $this->done ? 'green' : 'blue',
             'url' => route('planner.projects.show', $this),
-            'meta' => ['project_type' => $this->project_type?->value],
+            'meta' => [
+                'project_type' => $this->project_type?->value,
+                'kind' => $this->kind?->value,
+                'status' => $this->status?->value,
+            ],
         ];
     }
 

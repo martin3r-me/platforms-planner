@@ -143,6 +143,61 @@
                     @endif
                 </section>
 
+                {{-- Wesensart (kind) --}}
+                @php $kindVal = ($project->kind?->value ?? $project->kind); @endphp
+                <section class="space-y-2">
+                    <h4 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] m-0">Wesensart</h4>
+                    <div class="inline-flex rounded-md border border-[var(--ui-border)] overflow-hidden w-full">
+                        <button
+                            type="button"
+                            wire:click="setKind('project')"
+                            class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 h-8 text-xs font-medium transition-colors {{ $kindVal === 'project' ? 'bg-[var(--planner-status-active)] text-white' : 'bg-transparent text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}"
+                            title="Abgegrenzt, hat Ziel und Ende"
+                        >
+                            @svg('heroicon-o-flag', 'w-3.5 h-3.5')
+                            Project
+                        </button>
+                        <button
+                            type="button"
+                            wire:click="setKind('run')"
+                            class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 h-8 text-xs font-medium border-l border-[var(--ui-border)] transition-colors {{ $kindVal === 'run' ? 'bg-[var(--planner-status-active)] text-white' : 'bg-transparent text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}"
+                            title="Laeuft fortlaufend, wird nie fertig"
+                        >
+                            @svg('heroicon-o-arrow-path', 'w-3.5 h-3.5')
+                            Run
+                        </button>
+                    </div>
+                </section>
+
+                {{-- Status (aktiv/passiv/inaktiv) --}}
+                @php $statusVal = ($project->status?->value ?? $project->status); @endphp
+                <section class="space-y-2">
+                    <h4 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] m-0">Status</h4>
+                    <div class="inline-flex rounded-md border border-[var(--ui-border)] overflow-hidden w-full">
+                        <button
+                            type="button"
+                            wire:click="setStatus('aktiv')"
+                            class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 h-8 text-xs font-medium transition-colors {{ $statusVal === 'aktiv' ? 'bg-[var(--planner-status-active)] text-white' : 'bg-transparent text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}"
+                        >
+                            Aktiv
+                        </button>
+                        <button
+                            type="button"
+                            wire:click="setStatus('passiv')"
+                            class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 h-8 text-xs font-medium border-l border-[var(--ui-border)] transition-colors {{ $statusVal === 'passiv' ? 'bg-[var(--planner-status-active)] text-white' : 'bg-transparent text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}"
+                        >
+                            Passiv
+                        </button>
+                        <button
+                            type="button"
+                            wire:click="setStatus('inaktiv')"
+                            class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 h-8 text-xs font-medium border-l border-[var(--ui-border)] transition-colors {{ $statusVal === 'inaktiv' ? 'bg-[var(--planner-status-active)] text-white' : 'bg-transparent text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}"
+                        >
+                            Inaktiv
+                        </button>
+                    </div>
+                </section>
+
                 {{-- Verknüpfte Entities --}}
                 @if(!empty($entityLinks))
                     <section class="space-y-2">

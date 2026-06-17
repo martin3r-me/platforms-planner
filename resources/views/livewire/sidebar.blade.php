@@ -101,10 +101,10 @@
                         <a wire:key="unlinked-project-{{ $project->id }}"
                            href="{{ route('planner.projects.show', ['plannerProject' => $project]) }}"
                            wire:navigate
-                           title="{{ $project->name }}"
+                           title="{{ $project->title }}"
                            class="flex items-center gap-1.5 py-0.5 pl-3 pr-2 text-[var(--ui-secondary)] hover:text-[var(--ui-primary)] transition truncate">
                             <span class="w-1 h-1 rounded-full flex-shrink-0 bg-[var(--ui-muted)] opacity-40"></span>
-                            <span class="truncate text-[11px]">{{ $project->name }}</span>
+                            <span class="truncate text-[11px]">{{ $project->title }}</span>
                             @if($project->color)
                                 <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 ml-auto" style="background-color: {{ $project->color }}"></span>
                             @endif

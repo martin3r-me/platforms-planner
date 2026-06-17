@@ -24,13 +24,13 @@
 >
     @include('planner::partials.planner-tokens')
     <x-slot name="navbar">
-        <x-ui-page-navbar :title="$project->name" icon="heroicon-o-clipboard-document-list" />
+        <x-ui-page-navbar :title="$project->title" icon="heroicon-o-clipboard-document-list" />
     </x-slot>
 
     <x-slot name="actionbar">
         <x-ui-page-actionbar :breadcrumbs="[
             ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
-            ['label' => $project->name],
+            ['label' => $project->title],
         ]">
             {{-- Primary action --}}
             @can('update', $project)

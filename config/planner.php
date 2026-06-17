@@ -7,6 +7,11 @@ return [
     ],
     'guard' => 'web',
 
+    'kind_prefix' => [
+        'run' => 'RUN',
+        'project' => 'PROJECT',
+    ],
+
     'navigation' => [
         'route' => 'planner.dashboard',
         'icon'  => 'heroicon-o-clipboard-document-check',

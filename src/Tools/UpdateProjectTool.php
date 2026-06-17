@@ -53,6 +53,16 @@ class UpdateProjectTool implements ToolContract
                     'description' => 'Optional: Neuer Projekttyp. Mögliche Werte: "internal", "customer", "event", "cooking". Frage nach, wenn der Nutzer den Typ ändern möchte.',
                     'enum' => ['internal', 'customer', 'event', 'cooking']
                 ],
+                'kind' => [
+                    'type' => 'string',
+                    'description' => 'Optional: Wesensart. "project" (abgegrenzt, hat Ende) oder "run" (laeuft fortlaufend).',
+                    'enum' => ['project', 'run'],
+                ],
+                'status' => [
+                    'type' => 'string',
+                    'description' => 'Optional: Fluechtiger Status. "aktiv", "passiv" oder "inaktiv".',
+                    'enum' => ['aktiv', 'passiv', 'inaktiv'],
+                ],
                 'owner_user_id' => [
                     'type' => 'integer',
                     'description' => 'Optional: Neue Owner-User-ID. Frage nach, wenn der Nutzer den Owner ändern möchte.'
@@ -144,6 +154,20 @@ class UpdateProjectTool implements ToolContract
                 $projectType = ProjectType::tryFrom($arguments['project_type']);
                 if ($projectType) {
                     $updateData['project_type'] = $projectType;
+                }
+            }
+
+            if (isset($arguments['kind'])) {
+                $kindEnum = \Platform\Planner\Enums\ProjectKind::tryFrom($arguments['kind']);
+                if ($kindEnum) {
+                    $updateData['kind'] = $kindEnum;
+                }
+            }
+
+            if (isset($arguments['status'])) {
+                $statusEnum = \Platform\Planner\Enums\ProjectStatus::tryFrom($arguments['status']);
+                if ($statusEnum) {
+                    $updateData['status'] = $statusEnum;
                 }
             }
 
@@ -300,8 +324,11 @@ class UpdateProjectTool implements ToolContract
                 'id' => $project->id,
                 'uuid' => $project->uuid,
                 'name' => $project->name,
+                'title' => $project->title,
                 'description' => $project->description,
                 'project_type' => $project->project_type?->value,
+                'kind' => $project->kind?->value,
+                'status' => $project->status?->value,
                 'team_id' => $project->team_id,
                 'owner_user_id' => $project->user_id,
                 'owner_name' => $project->user->name ?? 'Unbekannt',

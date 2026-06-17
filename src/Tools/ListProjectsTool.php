@@ -113,7 +113,7 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
 
             // Standard-Operationen anwenden
             $this->applyStandardFilters($query, $arguments, [
-                'project_type', 'name', 'description', 'done', 'created_at', 'updated_at', 'last_viewed_at'
+                'project_type', 'kind', 'status', 'name', 'description', 'done', 'created_at', 'updated_at', 'last_viewed_at'
             ]);
             
             // Legacy: project_type (für Backwards-Kompatibilität)
@@ -131,7 +131,7 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
             
             // Standard-Sortierung anwenden
             $this->applyStandardSort($query, $arguments, [
-                'name', 'created_at', 'updated_at', 'project_type', 'done', 'last_viewed_at'
+                'name', 'created_at', 'updated_at', 'project_type', 'kind', 'status', 'done', 'last_viewed_at'
             ], 'name', 'asc');
             
             // Standard-Pagination anwenden
@@ -189,8 +189,11 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
                     'id' => $project->id,
                     'uuid' => $project->uuid,
                     'name' => $project->name,
+                    'title' => $project->title,
                     'description' => $project->description,
                     'project_type' => $project->project_type?->value,
+                    'kind' => $project->kind?->value,
+                    'status' => $project->status?->value,
                     'team_id' => $project->team_id,
                     'owner_user_id' => $project->user_id,
                     'owner_name' => $project->user->name ?? 'Unbekannt',

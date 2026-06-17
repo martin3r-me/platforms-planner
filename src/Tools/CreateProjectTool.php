@@ -62,6 +62,16 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract, ToolMet
                     'type' => 'string',
                     'description' => 'Typ des Projekts. Mögliche Werte: "internal" (internes Projekt), "customer" (Kundenprojekt), "event" (Event-Projekt), "cooking" (Kochprojekt). Standard: "internal". Frage nach, wenn unklar ist.'
                 ],
+                'kind' => [
+                    'type' => 'string',
+                    'description' => 'Wesensart (stabil): "project" (abgegrenzt, hat Ziel und Ende) oder "run" (laeuft fortlaufend, Betrieb/Support). Standard: "project".',
+                    'enum' => ['project', 'run'],
+                ],
+                'status' => [
+                    'type' => 'string',
+                    'description' => 'Fluechtiger Zustand: "aktiv" (Standard), "passiv" (ruht voruebergehend) oder "inaktiv" (laeuft aus).',
+                    'enum' => ['aktiv', 'passiv', 'inaktiv'],
+                ],
                 'owner_user_id' => [
                     'type' => 'integer',
                     'description' => 'Optional: ID des Projekt-Owners. WICHTIG: Wenn der Nutzer sagt "nimm mich selbst" oder "nimm nur mich", LASS DIESEN PARAMETER WEG oder setze ihn auf null. Das Tool verwendet dann automatisch die User-ID des aktuellen Nutzers aus dem Kontext. Verwende NIEMALS hardcoded IDs wie 1 oder 0. Wenn nicht angegeben, wird automatisch der aktuelle Nutzer als Owner gesetzt. Frage nur nach, wenn der Nutzer explizit einen anderen Owner wünscht.'
@@ -188,6 +198,16 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract, ToolMet
                 $projectType = ProjectType::tryFrom($arguments['project_type']) ?? ProjectType::INTERNAL;
             }
 
+            $kind = \Platform\Planner\Enums\ProjectKind::PROJECT;
+            if (!empty($arguments['kind'])) {
+                $kind = \Platform\Planner\Enums\ProjectKind::tryFrom($arguments['kind']) ?? $kind;
+            }
+
+            $status = \Platform\Planner\Enums\ProjectStatus::AKTIV;
+            if (!empty($arguments['status'])) {
+                $status = \Platform\Planner\Enums\ProjectStatus::tryFrom($arguments['status']) ?? $status;
+            }
+
             // Order berechnen (neues Projekt kommt ans Ende)
             $maxOrder = PlannerProject::where('team_id', $team->id)->max('order') ?? 0;
 
@@ -204,6 +224,8 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract, ToolMet
                 'user_id' => $ownerUserId, // Projekt-Ersteller
                 'team_id' => $team->id,
                 'project_type' => $projectType,
+                'kind' => $kind,
+                'status' => $status,
                 'order' => $maxOrder + 1,
                 'customer_cost_center' => $arguments['customer_cost_center'] ?? null,
                 'billing_method' => $arguments['billing_method'] ?? null,
@@ -318,8 +340,11 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract, ToolMet
                 'id' => $project->id,
                 'uuid' => $project->uuid,
                 'name' => $project->name,
+                'title' => $project->title,
                 'description' => $project->description,
                 'project_type' => $project->project_type?->value,
+                'kind' => $project->kind?->value,
+                'status' => $project->status?->value,
                 'team_id' => $project->team_id,
                 'owner_user_id' => $ownerUserId,
                 'members' => $projectUsers,

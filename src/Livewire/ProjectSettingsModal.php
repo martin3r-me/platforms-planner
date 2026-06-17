@@ -9,6 +9,8 @@ use Platform\Planner\Enums\ProjectRole;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
 use Platform\Planner\Enums\ProjectType;
+use Platform\Planner\Enums\ProjectKind;
+use Platform\Planner\Enums\ProjectStatus;
 
 use Platform\Organization\Models\OrganizationTimePlanned;
 use Platform\Organization\Services\StorePlannedTime;
@@ -107,6 +109,8 @@ class ProjectSettingsModal extends Component
             'project.description' => 'nullable|string',
             'plannedMinutes' => 'nullable|integer|min:0',
             'project.project_type' => 'nullable|in:internal,customer,event,cooking',
+            'project.kind' => 'nullable|in:run,project',
+            'project.status' => 'nullable|in:aktiv,passiv,inaktiv',
             'roles' => 'array',
             'roles.*' => 'nullable|string|in:' . implode(',', array_column(ProjectRole::cases(), 'value')),
             // Billing-Felder direkt am Projekt
@@ -215,6 +219,34 @@ class ProjectSettingsModal extends Component
 
         $this->reset('project', 'roles', 'teamUsers');
         $this->closeModal();
+    }
+
+    public function setKind(string $kind): void
+    {
+        $this->authorize('update', $this->project);
+        $enum = ProjectKind::tryFrom($kind);
+        if (! $enum) {
+            return;
+        }
+        $this->project->kind = $enum;
+        $this->project->save();
+
+        $this->dispatch('updateSidebar');
+        $this->dispatch('updateProject');
+    }
+
+    public function setStatus(string $status): void
+    {
+        $this->authorize('update', $this->project);
+        $enum = ProjectStatus::tryFrom($status);
+        if (! $enum) {
+            return;
+        }
+        $this->project->status = $enum;
+        $this->project->save();
+
+        $this->dispatch('updateSidebar');
+        $this->dispatch('updateProject');
     }
 
     public function setProjectType(string $type): void
