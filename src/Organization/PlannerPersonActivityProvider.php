@@ -137,7 +137,7 @@ class PlannerPersonActivityProvider implements PersonActivityProvider
                 'total_count' => $totalProjects,
                 'items' => $projects->map(fn($p) => [
                     'id' => $p->id,
-                    'name' => $p->name,
+                    'name' => $p->title,
                     'url' => route('planner.projects.show', $p),
                     'meta' => null,
                 ])->toArray(),
