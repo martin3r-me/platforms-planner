@@ -32,20 +32,20 @@
             ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
             ['label' => $project->title],
         ]">
-            {{-- Health-Ampel aus juengstem Snapshot --}}
+            {{-- Health-Pille aus juengstem Snapshot — plakativer Einstieg in die Health-Sicht --}}
             @if($latestSnapshot)
                 @php
                     $hc = $latestSnapshot->health_color ?? 'gray';
                     $hs = $latestSnapshot->health_score;
-                    $dot = match($hc) {
-                        'green' => 'bg-emerald-500',
-                        'yellow' => 'bg-amber-500',
-                        'red' => 'bg-rose-500',
-                        default => 'bg-zinc-300',
-                    };
+                    $healthTones = [
+                        'green'  => ['ring' => 'ring-emerald-300', 'bg' => 'bg-emerald-50', 'hover' => 'hover:bg-emerald-100', 'fg' => 'text-emerald-700', 'dot' => 'bg-emerald-500', 'border' => 'border-emerald-300', 'label' => 'Stabil'],
+                        'yellow' => ['ring' => 'ring-amber-300',   'bg' => 'bg-amber-50',   'hover' => 'hover:bg-amber-100',   'fg' => 'text-amber-700',   'dot' => 'bg-amber-500',   'border' => 'border-amber-300',   'label' => 'Achtung'],
+                        'red'    => ['ring' => 'ring-rose-300',    'bg' => 'bg-rose-50',    'hover' => 'hover:bg-rose-100',    'fg' => 'text-rose-700',    'dot' => 'bg-rose-500',    'border' => 'border-rose-300',    'label' => 'Brennt'],
+                        'gray'   => ['ring' => 'ring-zinc-200',    'bg' => 'bg-zinc-50',    'hover' => 'hover:bg-zinc-100',    'fg' => 'text-zinc-600',    'dot' => 'bg-zinc-400',    'border' => 'border-zinc-300',    'label' => 'Keine Daten'],
+                    ];
+                    $t = $healthTones[$hc] ?? $healthTones['gray'];
                     $delta = $latestSnapshot->delta_health_score;
-                    $trend = $delta === null ? null : ($delta > 0 ? '↑' : ($delta < 0 ? '↓' : '·'));
-                    $trendColor = $delta === null ? 'text-zinc-400' : ($delta > 0 ? 'text-emerald-600' : ($delta < 0 ? 'text-rose-600' : 'text-zinc-500'));
+                    $trendArrow = $delta === null || $delta === 0 ? null : ($delta > 0 ? '↑' : '↓');
                     $worstAxisLabel = match($latestSnapshot->worst_axis) {
                         'strategy' => 'Strategie',
                         'progress' => 'Fortschritt',
@@ -57,36 +57,40 @@
                         'Health ' . ($hs ?? '–') . ' (' . $hc . ')',
                         'Confidence ' . $latestSnapshot->confidence_score . '%',
                     ];
-                    if($worstAxisLabel) {
-                        $tooltipParts[] = 'Schwaechste Achse: ' . $worstAxisLabel;
-                    }
-                    if($delta !== null) {
-                        $tooltipParts[] = 'Veraenderung zum Vortag: ' . ($delta > 0 ? '+' : '') . $delta;
-                    }
-                    if($latestSnapshot->confidence_reason) {
-                        $tooltipParts[] = $latestSnapshot->confidence_reason;
-                    }
+                    if($worstAxisLabel) $tooltipParts[] = 'Schwaechste Achse: ' . $worstAxisLabel;
+                    if($delta !== null) $tooltipParts[] = 'Veraenderung zum Vortag: ' . ($delta > 0 ? '+' : '') . $delta;
+                    if($latestSnapshot->confidence_reason) $tooltipParts[] = $latestSnapshot->confidence_reason;
                 @endphp
                 <a href="{{ route('planner.projects.health', $project) }}"
                    wire:navigate
-                   class="inline-flex items-center gap-1.5 px-2 h-7 rounded-md border border-[var(--ui-border)] bg-white text-[11px] text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)] transition-colors"
-                   title="{{ implode(' · ', $tooltipParts) }}">
-                    <span class="w-2 h-2 rounded-full {{ $dot }}"></span>
-                    <span class="font-medium tabular-nums">{{ $hs ?? '–' }}</span>
-                    @if($worstAxisLabel)
-                        <span class="text-[10px] text-[var(--ui-muted)]">· {{ $worstAxisLabel }}</span>
-                    @endif
-                    @if($trend)
-                        <span class="{{ $trendColor }} text-[10px] tabular-nums">{{ $trend }}{{ $delta !== null && $delta !== 0 ? abs($delta) : '' }}</span>
-                    @endif
+                   title="{{ implode(' · ', $tooltipParts) }}"
+                   class="group inline-flex items-stretch h-9 rounded-lg border {{ $t['border'] }} {{ $t['bg'] }} {{ $t['hover'] }} text-[12px] {{ $t['fg'] }} font-medium overflow-hidden shadow-sm transition-all hover:shadow-md">
+                    {{-- Score block --}}
+                    <span class="flex items-center gap-2 px-3 border-r {{ $t['border'] }}/70">
+                        <span class="w-2 h-2 rounded-full {{ $t['dot'] }} animate-pulse"></span>
+                        <span class="text-base font-bold tabular-nums leading-none">{{ $hs ?? '–' }}</span>
+                    </span>
+                    {{-- Context block --}}
+                    <span class="flex items-center gap-1.5 px-3">
+                        @if($worstAxisLabel)
+                            <span class="text-[10px] uppercase tracking-wider opacity-70">{{ $worstAxisLabel }}</span>
+                        @else
+                            <span class="text-[10px] uppercase tracking-wider opacity-70">{{ $t['label'] }}</span>
+                        @endif
+                        @if($trendArrow)
+                            <span class="text-[11px] tabular-nums opacity-80">{{ $trendArrow }}{{ abs($delta) }}</span>
+                        @endif
+                        @svg('heroicon-o-arrow-top-right-on-square', 'w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity')
+                    </span>
                 </a>
             @else
                 <a href="{{ route('planner.projects.health', $project) }}"
                    wire:navigate
-                   class="inline-flex items-center gap-1.5 px-2 h-7 rounded-md border border-[var(--ui-border)] bg-white text-[11px] text-[var(--ui-muted)] hover:bg-[var(--ui-muted-5)] transition-colors"
-                   title="Noch kein Snapshot vorhanden">
-                    @svg('heroicon-o-heart', 'w-3.5 h-3.5')
-                    <span>Health</span>
+                   title="Noch kein Snapshot vorhanden — jetzt einen anlegen"
+                   class="inline-flex items-center gap-1.5 px-3 h-9 rounded-lg border border-dashed border-[var(--ui-border)] bg-white hover:bg-[var(--ui-muted-5)] text-[12px] text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] transition-colors">
+                    @svg('heroicon-o-heart', 'w-4 h-4')
+                    <span class="font-medium">Health</span>
+                    @svg('heroicon-o-arrow-right', 'w-3 h-3 opacity-50')
                 </a>
             @endif
 
