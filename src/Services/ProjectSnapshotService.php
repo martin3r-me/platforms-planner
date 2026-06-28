@@ -5,6 +5,8 @@ namespace Platform\Planner\Services;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Platform\Core\Health\Services\ConfidenceCalculator;
+use Platform\Core\Health\Services\HealthCompositor;
 use Platform\Core\Models\User;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectSnapshot;
@@ -14,13 +16,21 @@ use Platform\Planner\Services\Analysis\TrafficLightAnalyzer;
 /**
  * Erstellt einen Projekt-Snapshot mit allen Skalaren + Sub-Tabellen (slots/frogs/people).
  *
+ * Nutzt die core Health-Library (HealthCompositor + ConfidenceCalculator) — gleiches
+ * Pattern wie Helpdesk und Dev. Planner-spezifisch bleibt: Achsen-Definitionen
+ * (strategy/progress/burn), Sub-Tabellen, last_movement_at-Berechnung.
+ *
  * Idempotent: max 1 Snapshot pro Projekt pro Tag — existiert er, wird er ueberschrieben.
- * Composite-Health: Worst-of-Four-Ampel + gewichteter Score.
  * Top-5 Frogs: overdue zuerst, dann due_date asc, dann postpone_count desc.
  * People: nur User mit >=1 offener Aufgabe.
  */
 class ProjectSnapshotService
 {
+    public function __construct(
+        protected HealthCompositor $compositor,
+        protected ConfidenceCalculator $confidence,
+    ) {}
+
     public function snapshot(PlannerProject $project, string $trigger = 'cron'): PlannerProjectSnapshot
     {
         return DB::transaction(function () use ($project, $trigger) {
@@ -153,25 +163,20 @@ class ProjectSnapshotService
             $project->budget_amount ? (float) $project->budget_amount : null,
         );
 
-        [$healthScore, $healthColor] = $this->compositeHealth($axes);
-        $worstAxis = $this->resolveWorstAxis($axes);
-
-        [$confScore, $confReason] = $this->computeConfidence([
+        // Confidence-Berechnung (core)
+        ['score' => $confScore, 'reason' => $confReason] = $this->confidence->compute([
             'canvas' => $canvasScore !== null,
             'planned_period' => $plannedStart || $plannedEnd,
             'planned_minutes' => $minutesPlanned > 0,
             'tasks' => $tasks->count() > 0,
         ]);
 
-        // Confidence-Gate: bei zu duenner Datenbasis ist die Ampel "gray" und der Score null —
-        // ein 100er-Score ohne Datenbasis (z.B. "keine Tasks → keine Frogs → burn=100") ist
-        // irrefuehrend. Lieber ehrlich "wissen wir nicht" als faelschlich "alles top".
-        if ($confScore < 50) {
-            if ($healthColor !== null) {
-                $healthColor = 'gray';
-            }
-            $healthScore = null;
-        }
+        // Composite (core) — Worst-of-Color + gewichteter Score + Confidence-Gate in einem Schritt
+        $weights = ['strategy' => 30, 'progress' => 40, 'burn' => 30];
+        $composed = $this->compositor->compose($axes, $weights, $confScore);
+        $healthScore = $composed['score'];
+        $healthColor = $composed['color'];
+        $worstAxis = $composed['worst_axis'];
 
         return [
             'team_id' => $project->team_id,
@@ -246,88 +251,9 @@ class ProjectSnapshotService
         return max(0, $score);
     }
 
-    private function compositeHealth(array $axes): array
-    {
-        if (empty($axes)) {
-            return [null, null];
-        }
-
-        // Gewichte addieren auf 100. Plan-Achse ist entfernt — Pflege-Status sitzt in Confidence.
-        $weights = [
-            'strategy' => 30,
-            'progress' => 40,
-            'burn' => 30,
-        ];
-
-        $totalWeight = 0;
-        $weightedSum = 0;
-        foreach ($axes as $key => $val) {
-            $w = $weights[$key] ?? 25;
-            $totalWeight += $w;
-            $weightedSum += $w * $val;
-        }
-        $score = $totalWeight > 0 ? (int) round($weightedSum / $totalWeight) : null;
-
-        $colors = array_map(fn ($v) => $this->valueToColor((int) $v), $axes);
-        $color = 'green';
-        if (in_array('red', $colors, true)) {
-            $color = 'red';
-        } elseif (in_array('yellow', $colors, true)) {
-            $color = 'yellow';
-        }
-
-        return [$score, $color];
-    }
-
-    /**
-     * Die "schwaechste" Achse: zuerst rote, dann gelbe; bei Gleichstand die mit dem niedrigsten Score.
-     * Null, wenn keine Achsen vorhanden oder alle gruen sind.
-     */
-    private function resolveWorstAxis(array $axes): ?string
-    {
-        if (empty($axes)) {
-            return null;
-        }
-        $colorRank = ['red' => 0, 'yellow' => 1, 'green' => 2];
-        $bestColorRank = 9;
-        $bestScore = PHP_INT_MAX;
-        $bestKey = null;
-        foreach ($axes as $key => $val) {
-            $color = $this->valueToColor((int) $val);
-            $rank = $colorRank[$color] ?? 9;
-            if ($rank < $bestColorRank || ($rank === $bestColorRank && $val < $bestScore)) {
-                $bestColorRank = $rank;
-                $bestScore = (int) $val;
-                $bestKey = $key;
-            }
-        }
-        // Nur wenn schwaechste Achse rot oder gelb ist, melden wir sie — alles gruen ist kein "worst".
-        if ($bestColorRank > 1) {
-            return null;
-        }
-        return $bestKey;
-    }
-
-    private function valueToColor(int $value): string
-    {
-        if ($value >= 70) {
-            return 'green';
-        }
-        if ($value >= 40) {
-            return 'yellow';
-        }
-        return 'red';
-    }
-
-    private function computeConfidence(array $hasData): array
-    {
-        // 25 Punkte pro Datenebene — 4 Ebenen, max 100
-        $present = array_filter($hasData);
-        $score = count($present) * 25;
-        $missing = array_keys(array_filter($hasData, fn ($v) => ! $v));
-        $reason = empty($missing) ? null : 'missing:' . implode(',', $missing);
-        return [$score, $reason];
-    }
+    // compositeHealth / resolveWorstAxis / valueToColor / computeConfidence
+    // wurden in die core Health-Library verschoben (HealthCompositor +
+    // ConfidenceCalculator + HealthColor-Enum). Planner ruft die ueber DI.
 
     private function computeLastMovement(PlannerProject $project): ?Carbon
     {

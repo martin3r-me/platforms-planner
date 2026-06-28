@@ -5,19 +5,21 @@ namespace Platform\Planner\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Platform\Core\Health\Traits\HasHealthSnapshotData;
 use Symfony\Component\Uid\UuidV7;
 
 class PlannerProjectSnapshot extends Model
 {
+    use HasHealthSnapshotData;
+
     protected $table = 'planner_project_snapshots';
 
+    // Standard-Snapshot-Felder (uuid, taken_at/taken_on/trigger, team_id, health_*,
+    // worst_axis, axis_scores, confidence_*, frozen_context, prev_snapshot_id,
+    // delta_health_score, last_movement_at) kommen ueber HasHealthSnapshotData.
     protected $fillable = [
-        'uuid',
-        'taken_at',
-        'taken_on',
-        'trigger',
         'project_id',
-        'team_id',
+        // Frozen Container-Context (Planner-spezifisch, NICHT im generischen frozen_context-JSON)
         'kind',
         'status',
         'color',
@@ -54,33 +56,20 @@ class PlannerProjectSnapshot extends Model
         'canvas_total_blocks',
         'canvas_risk_count',
         'canvas_overdue_milestones',
-        // Composite
-        'health_score',
-        'health_color',
-        'worst_axis',
-        'axis_scores',
-        // Confidence
-        'confidence_score',
-        'confidence_reason',
-        // Delta
-        'prev_snapshot_id',
-        'delta_health_score',
+        // Planner-spezifische Deltas (delta_health_score kommt aus dem Trait)
         'delta_canvas_score',
         'delta_tasks_done',
-        'last_movement_at',
     ];
 
+    // Standard-Casts (taken_at, taken_on, last_movement_at, axis_scores, frozen_context)
+    // kommen ueber HasHealthSnapshotData. Hier nur Planner-spezifische.
     protected $casts = [
-        'taken_at' => 'datetime',
-        'taken_on' => 'date',
         'planned_start' => 'date',
         'planned_end' => 'date',
-        'last_movement_at' => 'datetime',
         'budget_amount' => 'decimal:2',
         'hourly_rate' => 'decimal:2',
         'budget_used_euro' => 'decimal:2',
         'canvas_completeness_percent' => 'decimal:2',
-        'axis_scores' => 'array',
     ];
 
     protected static function booted(): void
