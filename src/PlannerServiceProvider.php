@@ -252,6 +252,7 @@ class PlannerServiceProvider extends ServiceProvider
             // Project-Snapshots (Tages-Health-Snapshot pro Projekt)
             $registry->register(new \Platform\Planner\Tools\GetProjectSnapshotTool());
             $registry->register(new \Platform\Planner\Tools\GetProjectSnapshotTrendTool());
+            $registry->register(new \Platform\Planner\Tools\ListProjectSnapshotsSummaryTool());
         } catch (\Throwable $e) {
             // Silent fail - ToolRegistry möglicherweise nicht verfügbar
             \Log::warning('Planner: Tool-Registrierung fehlgeschlagen', ['error' => $e->getMessage()]);
