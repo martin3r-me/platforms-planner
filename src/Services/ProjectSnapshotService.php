@@ -134,12 +134,13 @@ class ProjectSnapshotService
             }
         }
 
-        // Vier Health-Achsen (0..100, null wenn nicht berechenbar)
+        // Drei Health-Achsen (0..100, null wenn nicht berechenbar).
+        // Plan-Achse bewusst NICHT mehr drin — misst nur Datenpflege, nicht Projektzustand.
+        // Datenpflege-Status liegt in Confidence.
         $axes = [];
         if ($canvasScore !== null) {
             $axes['strategy'] = $canvasScore;
         }
-        $axes['plan'] = $this->planScore($plannedStart, $plannedEnd, $minutesPlanned, $tasks->count());
         if ($tasks->count() > 0) {
             $axes['progress'] = $this->progressScore($doneTasks->count(), $tasks->count());
         }
@@ -160,6 +161,12 @@ class ProjectSnapshotService
             'planned_minutes' => $minutesPlanned > 0,
             'tasks' => $tasks->count() > 0,
         ]);
+
+        // Confidence-Gate: bei zu duenner Datenbasis ist die Ampel "gray" — wir wissen es schlicht nicht.
+        // Score bleibt erhalten (fuer Trends), Farbe wird ehrlich.
+        if ($healthColor !== null && $confScore < 50) {
+            $healthColor = 'gray';
+        }
 
         return [
             'team_id' => $project->team_id,
@@ -210,24 +217,6 @@ class ProjectSnapshotService
         ];
     }
 
-    private function planScore(?Carbon $plannedStart, ?Carbon $plannedEnd, int $minutesPlanned, int $taskCount): int
-    {
-        $score = 0;
-        if ($plannedStart || $plannedEnd) {
-            $score += 30;
-        }
-        if ($plannedStart && $plannedEnd) {
-            $score += 20;
-        }
-        if ($minutesPlanned > 0) {
-            $score += 25;
-        }
-        if ($taskCount > 0) {
-            $score += 25;
-        }
-        return min(100, $score);
-    }
-
     private function progressScore(int $done, int $total): int
     {
         if ($total <= 0) {
@@ -256,11 +245,11 @@ class ProjectSnapshotService
             return [null, null];
         }
 
+        // Gewichte addieren auf 100. Plan-Achse ist entfernt — Pflege-Status sitzt in Confidence.
         $weights = [
-            'strategy' => 25,
-            'plan' => 20,
-            'progress' => 30,
-            'burn' => 25,
+            'strategy' => 30,
+            'progress' => 40,
+            'burn' => 30,
         ];
 
         $totalWeight = 0;
