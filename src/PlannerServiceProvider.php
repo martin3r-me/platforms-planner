@@ -45,6 +45,7 @@ class PlannerServiceProvider extends ServiceProvider
                 \Platform\Planner\Console\Commands\AutoAssignFrogs::class,
                 \Platform\Planner\Console\Commands\EncryptTaskDescriptions::class,
                 \Platform\Planner\Console\Commands\ProcessAiAssignedTasks::class,
+                \Platform\Planner\Console\Commands\BuildProjectSnapshotsCommand::class,
             ]);
         }
     }
@@ -172,6 +173,13 @@ class PlannerServiceProvider extends ServiceProvider
                     ->withoutOverlapping()
                     ->runInBackground()
                     ->appendOutputTo(storage_path('logs/planner-ai-tasks.log'));
+
+                // Nightly Project-Snapshots — alle nicht-soft-deleted Projekte
+                $schedule->command('planner:build-project-snapshots --trigger=cron')
+                    ->dailyAt('03:00')
+                    ->withoutOverlapping()
+                    ->runInBackground()
+                    ->appendOutputTo(storage_path('logs/planner-snapshots.log'));
             });
         }
     }
@@ -240,6 +248,10 @@ class PlannerServiceProvider extends ServiceProvider
             $registry->register(new \Platform\Planner\Tools\Canvas\CompareSnapshotsTool());
             $registry->register(new \Platform\Planner\Tools\Canvas\ExportCanvasTool());
             $registry->register(new \Platform\Planner\Tools\Canvas\CanvasStatusTool());
+
+            // Project-Snapshots (Tages-Health-Snapshot pro Projekt)
+            $registry->register(new \Platform\Planner\Tools\GetProjectSnapshotTool());
+            $registry->register(new \Platform\Planner\Tools\GetProjectSnapshotTrendTool());
         } catch (\Throwable $e) {
             // Silent fail - ToolRegistry möglicherweise nicht verfügbar
             \Log::warning('Planner: Tool-Registrierung fehlgeschlagen', ['error' => $e->getMessage()]);

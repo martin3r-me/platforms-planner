@@ -431,6 +431,9 @@ class Project extends Component
             'availableFilterColors' => $availableFilterColors,
             'canvasInfo' => $canvasInfo,
             'dashboardData' => $dashboardData,
+            'latestSnapshot' => \Platform\Planner\Models\PlannerProjectSnapshot::where('project_id', $this->project->id)
+                ->orderByDesc('taken_on')
+                ->first(),
         ])->layout('platform::layouts.app');
     }
 

@@ -32,6 +32,42 @@
             ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
             ['label' => $project->title],
         ]">
+            {{-- Health-Ampel aus juengstem Snapshot --}}
+            @if($latestSnapshot)
+                @php
+                    $hc = $latestSnapshot->health_color ?? 'gray';
+                    $hs = $latestSnapshot->health_score;
+                    $dot = match($hc) {
+                        'green' => 'bg-emerald-500',
+                        'yellow' => 'bg-amber-500',
+                        'red' => 'bg-rose-500',
+                        default => 'bg-zinc-300',
+                    };
+                    $delta = $latestSnapshot->delta_health_score;
+                    $trend = $delta === null ? null : ($delta > 0 ? '↑' : ($delta < 0 ? '↓' : '·'));
+                    $trendColor = $delta === null ? 'text-zinc-400' : ($delta > 0 ? 'text-emerald-600' : ($delta < 0 ? 'text-rose-600' : 'text-zinc-500'));
+                    $tooltipParts = [
+                        'Snapshot ' . optional($latestSnapshot->taken_on)->format('d.m.Y'),
+                        'Health ' . ($hs ?? '–') . ' (' . $hc . ')',
+                        'Confidence ' . $latestSnapshot->confidence_score . '%',
+                    ];
+                    if($delta !== null) {
+                        $tooltipParts[] = 'Veraenderung zum Vortag: ' . ($delta > 0 ? '+' : '') . $delta;
+                    }
+                    if($latestSnapshot->confidence_reason) {
+                        $tooltipParts[] = $latestSnapshot->confidence_reason;
+                    }
+                @endphp
+                <span class="inline-flex items-center gap-1.5 px-2 h-7 rounded-md border border-[var(--ui-border)] bg-white text-[11px] text-[var(--ui-secondary)]"
+                      title="{{ implode(' · ', $tooltipParts) }}">
+                    <span class="w-2 h-2 rounded-full {{ $dot }}"></span>
+                    <span class="font-medium tabular-nums">{{ $hs ?? '–' }}</span>
+                    @if($trend)
+                        <span class="{{ $trendColor }} text-[10px] tabular-nums">{{ $trend }}{{ $delta !== null && $delta !== 0 ? abs($delta) : '' }}</span>
+                    @endif
+                </span>
+            @endif
+
             {{-- Primary action --}}
             @can('update', $project)
                 <x-ui-button variant="primary" size="sm" wire:click="createTask()" title="Neue Aufgabe (N)">
