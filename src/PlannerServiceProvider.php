@@ -76,6 +76,14 @@ class PlannerServiceProvider extends ServiceProvider
             // Organization-Modul nicht geladen
         }
 
+        // Verbalization-Template registrieren (loose Kopplung mit Core-Verbalizer)
+        try {
+            resolve(\Platform\Core\Verbalization\Template\TemplateRegistry::class)
+                ->register(new \Platform\Planner\Verbalization\PlannerProjectTemplate());
+        } catch (\Throwable $e) {
+            // Verbalizer-Stack nicht vorhanden
+        }
+
         // Modul-Registrierung nur, wenn Config & Tabelle vorhanden
         if (
             config()->has('planner.routing') &&
@@ -204,6 +212,7 @@ class PlannerServiceProvider extends ServiceProvider
             $registry->register(new \Platform\Planner\Tools\GetProjectTool());
             $registry->register(new \Platform\Planner\Tools\ListProjectMetricsTool());
             $registry->register(new \Platform\Planner\Tools\UpdateProjectTool());
+            $registry->register(new \Platform\Planner\Tools\ProjectVerbalizeTool());
             $registry->register(new \Platform\Planner\Tools\DeleteProjectTool());
             $registry->register(new \Platform\Planner\Tools\TransferProjectTool());
 
