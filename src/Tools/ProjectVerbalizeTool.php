@@ -10,6 +10,7 @@ use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Verbalization\GuardRails;
 use Platform\Core\Verbalization\StyleProfile;
+use Platform\Core\Verbalization\Template\TemplateRegistry;
 use Platform\Core\Verbalization\Verbalizer;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Verbalization\PlannerProjectSubjectCollector;
@@ -59,6 +60,10 @@ class ProjectVerbalizeTool implements ToolContract, ToolMetadataContract
                     'type' => 'boolean',
                     'description' => 'Wenn true: gibt die deterministische Faktenbasis mit zurueck. Hilfreich zum Debuggen.',
                 ],
+                'dry_run' => [
+                    'type' => 'boolean',
+                    'description' => 'Wenn true: kein LLM-Call. Gibt nur Subject + Faktenbasis zurueck. Nuetzlich ohne API-Key oder zum Debuggen der Sammler-Pipeline.',
+                ],
             ],
             'required' => ['project_id'],
         ];
@@ -94,11 +99,41 @@ class ProjectVerbalizeTool implements ToolContract, ToolMetadataContract
         $providerKey = $arguments['provider'] ?? null;
         $model = $arguments['model'] ?? null;
         $includeFactSheet = (bool) ($arguments['include_fact_sheet'] ?? false);
+        $dryRun = (bool) ($arguments['dry_run'] ?? false);
 
         try {
             /** @var PlannerProjectSubjectCollector $collector */
             $collector = app(PlannerProjectSubjectCollector::class);
             $subject = $collector->collectState($project);
+
+            if ($dryRun) {
+                // Nur Faktenbasis bauen, kein LLM-Call.
+                $templates = app(TemplateRegistry::class);
+                $template = $templates->resolve($subject->type);
+                $factSheet = $template
+                    ? $template->renderFactSheet($subject)
+                    : '(kein Template registriert — generisches Fallback aktiv)';
+
+                return ToolResult::ok([
+                    'project_id' => $projectId,
+                    'project_name' => $subject->identity->primaryName,
+                    'dry_run' => true,
+                    'fact_sheet' => $factSheet,
+                    'meta' => [
+                        'subject_type' => $subject->type,
+                        'template_used' => $template ? get_class($template) : 'generic',
+                        'freshness' => [
+                            'source' => $subject->freshness->source->value,
+                            'as_of' => $subject->freshness->asOf->format('c'),
+                            'staleness_seconds' => $subject->freshness->stalenessSeconds,
+                        ],
+                        'subject' => [
+                            'facts_count' => count($subject->facts),
+                            'edges_count' => count($subject->edges),
+                        ],
+                    ],
+                ]);
+            }
 
             /** @var Verbalizer $verbalizer */
             $verbalizer = app(Verbalizer::class);
