@@ -10,11 +10,12 @@ use Platform\Core\Verbalization\Template\NarrativeTemplate;
 /**
  * Erzaehlvorlage fuer Planner-Projects.
  *
- * Dramaturgie (Baustein 4):
- *  1. Identitaet: Was ist es (Name, Verantwortlich)
- *  2. Lage: Health, Tasks, Termine
- *  3. Kontext: Canvas, Story Points
- *  4. Daten-Grundlage: Frische, Konfidenz
+ * Dramaturgie:
+ *  1. Identitaet: Name + Owner + Zugehoerigkeit (Venture, Engagement)
+ *  2. Aktuelle Lage: Status, Health, Tasks, Frösche, Termine
+ *  3. Beteiligte: Team-Members + ihre Workload
+ *  4. Kontext: Slots, Canvas-Highlights, Story Points, Budget
+ *  5. Daten-Grundlage: Frische, Konfidenz, Kostenstelle
  */
 class PlannerProjectTemplate implements NarrativeTemplate
 {
@@ -30,24 +31,28 @@ class PlannerProjectTemplate implements NarrativeTemplate
         // 1. Identitaet
         $lines[] = '## ' . $subject->identity->primaryName;
 
-        // Wer ist verantwortlich? (CORE-Edge zuerst)
-        $owner = collect($subject->edges)
-            ->first(fn ($e) => $e->relation === 'verantwortet_von');
+        $owner = $this->firstEdge($subject, 'verantwortet_von');
         if ($owner) {
             $lines[] = 'Verantwortlich: ' . $owner->targetLabel;
         }
 
-        $costCenter = collect($subject->edges)
-            ->first(fn ($e) => $e->relation === 'abgerechnet_auf');
+        $orgAnchors = $this->edgesByRelation($subject, 'gehört_zu');
+        if (! empty($orgAnchors)) {
+            $names = array_map(fn ($e) => $e->targetLabel, $orgAnchors);
+            $lines[] = 'Eingehängt unter: ' . implode(', ', $names);
+        }
+
+        $costCenter = $this->firstEdge($subject, 'abgerechnet_auf');
         if ($costCenter) {
             $lines[] = 'Kostenstelle: ' . $costCenter->targetLabel;
         }
 
         $lines[] = '';
 
-        // 2. Lage — CORE-Facts (Status, Health, Task-Lage, kritische Termine)
-        $coreFacts = collect($subject->facts)->filter(fn ($f) => $f->priority === FactPriority::CORE);
-        if ($coreFacts->isNotEmpty()) {
+        // 2. Aktuelle Lage — CORE-Facts (Status, Health, Tasks, Frösche, kritische Termine,
+        //    Description als Zweck)
+        $coreFacts = $this->factsByPriority($subject, FactPriority::CORE);
+        if (! empty($coreFacts)) {
             $lines[] = '### Aktuelle Lage';
             foreach ($coreFacts as $f) {
                 $lines[] = '- ' . $f->text;
@@ -55,21 +60,30 @@ class PlannerProjectTemplate implements NarrativeTemplate
             $lines[] = '';
         }
 
-        // 3. Kontext — QUALIFYING (Canvas, Story Points, weniger kritische Termine)
-        $qualifyingFacts = collect($subject->facts)->filter(fn ($f) => $f->priority === FactPriority::QUALIFYING);
-        if ($qualifyingFacts->isNotEmpty()) {
-            $lines[] = '### Weitere Kennzahlen';
+        // 3. Beteiligte (Team-Edges)
+        $teamEdges = $this->edgesByRelation($subject, 'arbeitet_mit');
+        if (! empty($teamEdges)) {
+            $names = array_map(fn ($e) => $e->targetLabel, $teamEdges);
+            $lines[] = '### Beteiligte';
+            $lines[] = '- Im Team neben dem Verantwortlichen: ' . implode(', ', $names) . '.';
+            $lines[] = '';
+        }
+
+        // 4. Kontext — QUALIFYING (Slots, SP, Workload-Verteilung, Canvas-Completeness,
+        //    Budget, mittelfristige Termine)
+        $qualifyingFacts = $this->factsByPriority($subject, FactPriority::QUALIFYING);
+        if (! empty($qualifyingFacts)) {
+            $lines[] = '### Weitere Kennzahlen und Kontext';
             foreach ($qualifyingFacts as $f) {
                 $lines[] = '- ' . $f->text;
             }
             $lines[] = '';
         }
 
-        // 4. Daten-Grundlage (Frische + Konfidenz-Hinweise aus CONTEXT)
+        // 5. Daten-Grundlage
         $lines[] = '### Daten-Grundlage';
         $lines[] = '- ' . $this->describeFreshness($subject);
-        $contextFacts = collect($subject->facts)->filter(fn ($f) => $f->priority === FactPriority::CONTEXT);
-        foreach ($contextFacts as $f) {
+        foreach ($this->factsByPriority($subject, FactPriority::CONTEXT) as $f) {
             $lines[] = '- ' . $f->text;
         }
 
@@ -85,5 +99,27 @@ class PlannerProjectTemplate implements NarrativeTemplate
             DataSource::SNAPSHOT => "Daten aus Snapshot vom {$when}.",
             DataSource::SNAPSHOT_WITH_LIVE_TOPUP => "Basis: Snapshot vom {$when}, ergaenzt um Live-Bewegungen seitdem.",
         };
+    }
+
+    /** @return \Platform\Core\Verbalization\Fact[] */
+    protected function factsByPriority(Subject $subject, FactPriority $priority): array
+    {
+        return array_values(array_filter($subject->facts, fn ($f) => $f->priority === $priority));
+    }
+
+    /** @return \Platform\Core\Verbalization\Edge[] */
+    protected function edgesByRelation(Subject $subject, string $relation): array
+    {
+        return array_values(array_filter($subject->edges, fn ($e) => $e->relation === $relation));
+    }
+
+    protected function firstEdge(Subject $subject, string $relation): ?\Platform\Core\Verbalization\Edge
+    {
+        foreach ($subject->edges as $e) {
+            if ($e->relation === $relation) {
+                return $e;
+            }
+        }
+        return null;
     }
 }
