@@ -99,18 +99,21 @@ class ProjectVerbalizeTool implements ToolContract, ToolMetadataContract
 
         // Semantic Layer aus dem aktuellen Team-Kontext injizieren (BHG-Konstitution etc.).
         // Caller-Disziplin: Verbalizer bleibt domain-blind, das Tool kennt den Kontext.
+        $semanticLayerInjected = false;
+        $semanticLayerTokens = null;
+        $semanticLayerError = null;
         try {
             $team = $context->team ?? $context->user->currentTeam ?? null;
-            if ($team) {
-                /** @var SemanticLayerResolver $resolver */
-                $resolver = app(SemanticLayerResolver::class);
-                $resolved = $resolver->resolveFor($team, 'planner');
-                if ($resolved->rendered_block) {
-                    $style = $style->withSemanticLayer($resolved->rendered_block);
-                }
+            /** @var SemanticLayerResolver $resolver */
+            $resolver = app(SemanticLayerResolver::class);
+            $resolved = $resolver->resolveFor($team, 'planner');
+            if ($resolved->rendered_block) {
+                $style = $style->withSemanticLayer($resolved->rendered_block);
+                $semanticLayerInjected = true;
+                $semanticLayerTokens = $resolved->token_count ?? null;
             }
         } catch (\Throwable $e) {
-            // Semantic Layer ist optional — bei Fehler ohne weitermachen.
+            $semanticLayerError = $e->getMessage();
         }
 
         $providerKey = $arguments['provider'] ?? null;
@@ -148,6 +151,11 @@ class ProjectVerbalizeTool implements ToolContract, ToolMetadataContract
                             'facts_count' => count($subject->facts),
                             'edges_count' => count($subject->edges),
                         ],
+                        'semantic_layer' => [
+                            'injected' => $semanticLayerInjected,
+                            'token_count' => $semanticLayerTokens,
+                            'error' => $semanticLayerError,
+                        ],
                     ],
                 ]);
             }
@@ -180,6 +188,11 @@ class ProjectVerbalizeTool implements ToolContract, ToolMetadataContract
                 'subject' => [
                     'facts_count' => count($subject->facts),
                     'edges_count' => count($subject->edges),
+                ],
+                'semantic_layer' => [
+                    'injected' => $semanticLayerInjected,
+                    'token_count' => $semanticLayerTokens,
+                    'error' => $semanticLayerError,
                 ],
             ]),
         ];
