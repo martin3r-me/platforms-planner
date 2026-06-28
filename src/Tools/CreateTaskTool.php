@@ -227,33 +227,9 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
                 $projectSlotId = $slot->id;
             }
 
-            // Aufgabe erstellen
-            // WICHTIG: description und dod werden automatisch durch EncryptedString Cast verschlüsselt
-            // Beim create() werden die Casts angewendet, aber wir setzen die verschlüsselten Felder
-            // explizit danach, um sicherzustellen, dass die Verschlüsselung funktioniert
-            $task = PlannerTask::create([
-                'title' => $arguments['title'],
-                'due_date' => $dueDate,
-                'project_id' => $project?->id,
-                'project_slot_id' => $projectSlotId, // null für Backlog, Slot-ID für Slot-Aufgaben
-                'user_id' => $context->user->id,
-                'user_in_charge_id' => $userInChargeId,
-                'team_id' => $teamId,
-                'story_points' => $storyPointsValue,
-                'order' => $order,
-                'project_slot_order' => $projectSlotOrder, // 0 für Backlog, >0 für Slot-Aufgaben
-            ]);
-            
-            // Verschlüsselte Felder explizit setzen (Cast verschlüsselt automatisch beim setAttribute)
-            // Dies stellt sicher, dass die Verschlüsselung auch beim create() funktioniert
-            $needsUpdate = false;
-            if (isset($arguments['description'])) {
-                $task->description = $arguments['description'];
-                $needsUpdate = true;
-            }
-            // DoD verarbeiten: dod_items hat Vorrang vor dod (String)
+            // DoD vor dem Create normalisieren — dod_items hat Vorrang vor dod (String)
+            $dodValue = null;
             if (isset($arguments['dod_items']) && is_array($arguments['dod_items'])) {
-                // dod_items Array in JSON-String konvertieren
                 $dodItems = array_values(array_filter(array_map(function ($item) {
                     if (!is_array($item) || empty(trim($item['text'] ?? ''))) {
                         return null;
@@ -265,18 +241,28 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
                 }, $arguments['dod_items'])));
 
                 if (!empty($dodItems)) {
-                    $task->dod = json_encode($dodItems, JSON_UNESCAPED_UNICODE);
-                    $needsUpdate = true;
+                    $dodValue = json_encode($dodItems, JSON_UNESCAPED_UNICODE);
                 }
             } elseif (isset($arguments['dod'])) {
-                $task->dod = $arguments['dod'];
-                $needsUpdate = true;
+                $dodValue = $arguments['dod'];
             }
-            
-            // Nur speichern, wenn verschlüsselte Felder gesetzt wurden
-            if ($needsUpdate) {
-                $task->save();
-            }
+
+            // Aufgabe erstellen — description und dod laufen ueber den EncryptedString-Cast
+            // direkt beim setAttribute waehrend mass-assignment.
+            $task = PlannerTask::create([
+                'title' => $arguments['title'],
+                'description' => $arguments['description'] ?? null,
+                'dod' => $dodValue,
+                'due_date' => $dueDate,
+                'project_id' => $project?->id,
+                'project_slot_id' => $projectSlotId, // null für Backlog, Slot-ID für Slot-Aufgaben
+                'user_id' => $context->user->id,
+                'user_in_charge_id' => $userInChargeId,
+                'team_id' => $teamId,
+                'story_points' => $storyPointsValue,
+                'order' => $order,
+                'project_slot_order' => $projectSlotOrder, // 0 für Backlog, >0 für Slot-Aufgaben
+            ]);
 
             // Soll-Zeit über zentrales System speichern
             if (!empty($arguments['planned_minutes']) && (int) $arguments['planned_minutes'] > 0) {
