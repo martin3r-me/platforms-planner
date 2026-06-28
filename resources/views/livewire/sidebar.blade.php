@@ -44,6 +44,10 @@
             @svg('heroicon-o-heart', 'w-4 h-4 text-[var(--ui-secondary)]')
             <span class="ml-2 text-sm">Health-Index</span>
         </x-ui-sidebar-item>
+        <x-ui-sidebar-item :href="route('planner.ops')" :active="request()->routeIs('planner.ops')">
+            @svg('heroicon-o-command-line', 'w-4 h-4 text-[var(--ui-secondary)]')
+            <span class="ml-2 text-sm">Ops-Room</span>
+        </x-ui-sidebar-item>
     </x-ui-sidebar-list>
 
     {{-- Neues Projekt --}}
@@ -74,6 +78,9 @@
             </a>
             <a href="{{ route('planner.health-index') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.health-index') ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)]' : 'text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}">
                 @svg('heroicon-o-heart', 'w-5 h-5')
+            </a>
+            <a href="{{ route('planner.ops') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.ops') ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)]' : 'text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}">
+                @svg('heroicon-o-command-line', 'w-5 h-5')
             </a>
             <a href="{{ route('planner.hygiene') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.hygiene') ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)]' : 'text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}">
                 @svg('heroicon-o-shield-check', 'w-5 h-5')

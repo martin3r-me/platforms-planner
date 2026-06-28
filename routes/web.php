@@ -36,6 +36,10 @@ Route::get('/projects/{plannerProject}/health', \Platform\Planner\Livewire\Proje
 Route::get('/health-index', \Platform\Planner\Livewire\HealthIndex::class)
     ->name('planner.health-index');
 
+// Ops-Room (Wand-Display, Vollbild, dunkles Theme)
+Route::get('/ops', \Platform\Planner\Livewire\OpsRoom::class)
+    ->name('planner.ops');
+
 // Project Canvas Routes
 Route::get('/projects/{plannerProject}/canvas', \Platform\Planner\Livewire\ProjectCanvas\Index::class)
     ->name('planner.projects.canvas.index');
