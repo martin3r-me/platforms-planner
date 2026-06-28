@@ -158,7 +158,7 @@ class OpsRoom extends Component
             });
         }
 
-        // ── Älteste überfällige Frögge teamweit ──
+        // ── Älteste überfällige Frösche teamweit ──
         $aelteste = PlannerTask::query()
             ->tap($taskScope)
             ->where('is_done', false)

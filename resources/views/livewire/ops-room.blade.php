@@ -177,7 +177,7 @@
                     @endif
                 </div>
                 <div class="rounded-lg bg-amber-500/5 border border-amber-500/20 p-3">
-                    <div class="text-[9px] uppercase tracking-[0.25em] text-amber-300">neue Frögge</div>
+                    <div class="text-[9px] uppercase tracking-[0.25em] text-amber-300">neue Frösche</div>
                     <div class="text-3xl font-bold tabular-nums text-amber-200 leading-none mt-1">{{ $newFrogsToday }}</div>
                 </div>
                 <div class="rounded-lg bg-zinc-800/40 border border-zinc-700/40 p-3">
@@ -252,12 +252,12 @@
             @endif
         </div>
 
-        {{-- ── (2,1) ÄLTESTE FRÖGGE ── --}}
+        {{-- ── (2,1) ÄLTESTE FRÖSCHE ── --}}
         <div class="bg-black/40 p-5 flex flex-col min-h-0">
             <div class="flex items-baseline justify-between mb-3 flex-shrink-0">
                 <h2 class="text-xs uppercase tracking-[0.3em] text-amber-300 m-0 inline-flex items-center gap-2">
                     @svg('heroicon-o-bug-ant', 'w-4 h-4')
-                    <span>Älteste Frögge</span>
+                    <span>Älteste Frösche</span>
                 </h2>
                 <span class="text-[10px] uppercase tracking-wider text-zinc-600">teamweit</span>
             </div>
