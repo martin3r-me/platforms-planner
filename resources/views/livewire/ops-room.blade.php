@@ -443,28 +443,36 @@
         </div>
     </section>
 
-    {{-- ═══════════ BEWEGUNGS-TICKER (unten) ═══════════ --}}
+    {{-- ═══════════ LAUFBAND (Marquee, unten) ═══════════ --}}
     @if($recentDone->isNotEmpty())
-        <footer class="border-t border-zinc-800/60 bg-black/60 px-8 py-3 flex items-center gap-6 overflow-hidden flex-shrink-0">
-            <span class="text-[10px] uppercase tracking-[0.3em] text-emerald-400 flex-shrink-0 inline-flex items-center gap-1.5">
+        <footer class="border-t border-zinc-800/60 bg-black/60 flex items-center flex-shrink-0">
+            {{-- Label fixed left --}}
+            <span class="px-8 py-3 text-[10px] uppercase tracking-[0.3em] text-emerald-400 flex-shrink-0 inline-flex items-center gap-1.5 border-r border-zinc-800/60 bg-black/80 z-10">
                 @svg('heroicon-o-check-circle', 'w-3 h-3')
                 Erledigt zuletzt
             </span>
-            <ul class="flex items-center gap-6 text-xs text-zinc-400 overflow-hidden flex-nowrap">
-                @foreach($recentDone as $task)
-                    <li class="inline-flex items-center gap-2 flex-shrink-0">
-                        <span class="w-1 h-1 rounded-full bg-emerald-500"></span>
-                        <span class="text-zinc-200 truncate max-w-xs">{{ $task->title }}</span>
-                        @if($task->project)
-                            <span class="text-zinc-600 truncate max-w-[10rem]">· {{ $task->project->name }}</span>
-                        @endif
-                        @if($task->userInCharge)
-                            <span class="text-zinc-600">· {{ $task->userInCharge->name }}</span>
-                        @endif
-                        <span class="text-zinc-600 tabular-nums">· {{ $task->done_at?->format('H:i') }}</span>
-                    </li>
-                @endforeach
-            </ul>
+
+            {{-- Scrollender Track — Items doppelt rendern für nahtlosen Loop --}}
+            <div class="flex-1 min-w-0 overflow-hidden py-3">
+                <div class="ops-marquee-track text-xs text-zinc-400">
+                    @for($pass = 0; $pass < 2; $pass++)
+                        @foreach($recentDone as $task)
+                            <span class="inline-flex items-center gap-2 flex-shrink-0" @if($pass === 1) aria-hidden="true" @endif>
+                                <span class="w-1 h-1 rounded-full bg-emerald-500"></span>
+                                <span class="text-zinc-200">{{ $task->title }}</span>
+                                @if($task->project)
+                                    <span class="text-zinc-600">· {{ $task->project->name }}</span>
+                                @endif
+                                @if($task->userInCharge)
+                                    <span class="text-zinc-600">· {{ $task->userInCharge->name }}</span>
+                                @endif
+                                <span class="text-zinc-600 tabular-nums">· {{ $task->done_at?->format('H:i') }}</span>
+                                <span class="text-zinc-800 mx-2">•</span>
+                            </span>
+                        @endforeach
+                    @endfor
+                </div>
+            </div>
         </footer>
     @endif
 </div>

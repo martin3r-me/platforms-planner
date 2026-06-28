@@ -31,6 +31,20 @@
             0%, 100% { opacity: 1; transform: scale(1); }
             50%      { opacity: 0.5; transform: scale(1.3); }
         }
+
+        /* Marquee — Laufband-Animation für den Activity-Ticker */
+        .ops-marquee-track {
+            display: inline-flex;
+            gap: 2.5rem;
+            white-space: nowrap;
+            animation: opsMarquee 60s linear infinite;
+            will-change: transform;
+        }
+        .ops-marquee-track:hover { animation-play-state: paused; }
+        @keyframes opsMarquee {
+            from { transform: translateX(0); }
+            to   { transform: translateX(-50%); }
+        }
     </style>
 </head>
 
