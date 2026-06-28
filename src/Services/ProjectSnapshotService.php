@@ -163,10 +163,14 @@ class ProjectSnapshotService
             'tasks' => $tasks->count() > 0,
         ]);
 
-        // Confidence-Gate: bei zu duenner Datenbasis ist die Ampel "gray" — wir wissen es schlicht nicht.
-        // Score bleibt erhalten (fuer Trends), Farbe wird ehrlich.
-        if ($healthColor !== null && $confScore < 50) {
-            $healthColor = 'gray';
+        // Confidence-Gate: bei zu duenner Datenbasis ist die Ampel "gray" und der Score null —
+        // ein 100er-Score ohne Datenbasis (z.B. "keine Tasks → keine Frogs → burn=100") ist
+        // irrefuehrend. Lieber ehrlich "wissen wir nicht" als faelschlich "alles top".
+        if ($confScore < 50) {
+            if ($healthColor !== null) {
+                $healthColor = 'gray';
+            }
+            $healthScore = null;
         }
 
         return [
