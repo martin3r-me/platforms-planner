@@ -55,18 +55,33 @@ class OpsRoom extends Component
             $byColor[$key] = ($byColor[$key] ?? 0) + 1;
         }
 
-        $colorRank = ['red' => 0, 'yellow' => 1, 'gray' => 2, 'green' => 3];
         $brennt = $snapshots
             ->filter(fn ($s) => $s->health_color === 'red')
             ->sortBy(fn ($s) => (int) ($s->health_score ?? 999))
-            ->take(5)
+            ->values();
+
+        $achtung = $snapshots
+            ->filter(fn ($s) => $s->health_color === 'yellow')
+            ->sortBy(fn ($s) => (int) ($s->health_score ?? 999))
             ->values();
 
         $karteileichen = $snapshots
             ->filter(fn ($s) => (int) $s->confidence_score <= 25)
             ->sortBy('confidence_score')
-            ->take(5)
             ->values();
+
+        // Bewegung: Top-Gewinner + Top-Verlierer vs Vortag
+        $withDelta = $snapshots->filter(fn ($s) => $s->delta_health_score !== null && $s->delta_health_score !== 0);
+        $gewinner = $withDelta->filter(fn ($s) => $s->delta_health_score > 0)->sortByDesc('delta_health_score')->take(3)->values();
+        $verlierer = $withDelta->filter(fn ($s) => $s->delta_health_score < 0)->sortBy('delta_health_score')->take(3)->values();
+
+        // Achsen-Verteilung unter roten + gelben Projekten — wo brennt's am meisten?
+        $axesBreakdown = ['strategy' => 0, 'progress' => 0, 'burn' => 0];
+        foreach ($snapshots->whereIn('health_color', ['red', 'yellow']) as $s) {
+            if ($s->worst_axis && isset($axesBreakdown[$s->worst_axis])) {
+                $axesBreakdown[$s->worst_axis]++;
+            }
+        }
 
         $snapshotStand = $snapshots->max('taken_at');
 
@@ -117,7 +132,7 @@ class OpsRoom extends Component
             ->whereDate('work_date', $todayStart->toDateString())
             ->sum('minutes');
 
-        // ── Workload Top-3 ──
+        // ── Workload Top-5 ──
         $workload = PlannerTask::query()
             ->tap($taskScope)
             ->where('is_done', false)
@@ -127,7 +142,7 @@ class OpsRoom extends Component
                 DB::raw('SUM(CASE WHEN is_frog = 1 THEN 1 ELSE 0 END) as frog_count'))
             ->groupBy('user_in_charge_id')
             ->orderByDesc('open_count')
-            ->limit(3)
+            ->limit(5)
             ->get();
 
         if ($workload->isNotEmpty()) {
@@ -143,23 +158,54 @@ class OpsRoom extends Component
             });
         }
 
-        // ── Letzte 5 Bewegungen (Activity-Ticker) ──
+        // ── Älteste überfällige Frögge teamweit ──
+        $aelteste = PlannerTask::query()
+            ->tap($taskScope)
+            ->where('is_done', false)
+            ->where('is_frog', true)
+            ->whereNotNull('due_date')
+            ->where('due_date', '<', $nowTs)
+            ->with(['project:id,name', 'userInCharge:id,name'])
+            ->orderBy('due_date')
+            ->limit(6)
+            ->get(['id', 'title', 'project_id', 'user_in_charge_id', 'due_date', 'postpone_count']);
+
+        // ── Letzte Bewegungen (Activity-Ticker) ──
         $recentDone = PlannerTask::query()
             ->tap($taskScope)
             ->where('is_done', true)
             ->whereNotNull('done_at')
-            ->where('done_at', '>=', $nowTs->copy()->subHours(12))
-            ->with('project:id,name')
+            ->where('done_at', '>=', $nowTs->copy()->subHours(24))
+            ->with(['project:id,name', 'userInCharge:id,name'])
             ->orderByDesc('done_at')
-            ->limit(5)
+            ->limit(8)
             ->get(['id', 'title', 'project_id', 'user_in_charge_id', 'done_at']);
+
+        // 30-Tage-Health-Trend (Avg health_score pro Tag, ueber alle Projekte)
+        $trendRaw = DB::table('planner_project_snapshots')
+            ->where('team_id', $team->id)
+            ->where('taken_on', '>=', $todayStart->copy()->subDays(29)->toDateString())
+            ->groupBy('taken_on')
+            ->orderBy('taken_on')
+            ->selectRaw('taken_on, AVG(health_score) as avg_score, SUM(CASE WHEN health_color = "red" THEN 1 ELSE 0 END) as red_count')
+            ->get();
+
+        $trend = $trendRaw->map(fn ($row) => [
+            'date' => $row->taken_on,
+            'avg' => $row->avg_score !== null ? (int) round($row->avg_score) : null,
+            'red' => (int) $row->red_count,
+        ]);
 
         return view('planner::livewire.ops-room', [
             'team' => $team,
             'totalProjects' => $total,
             'byColor' => $byColor,
             'brennt' => $brennt,
+            'achtung' => $achtung,
             'karteileichen' => $karteileichen,
+            'gewinner' => $gewinner,
+            'verlierer' => $verlierer,
+            'axesBreakdown' => $axesBreakdown,
             'snapshotStand' => $snapshotStand,
             // live
             'tasksDoneToday' => $tasksDoneToday,
@@ -168,7 +214,9 @@ class OpsRoom extends Component
             'newFrogsToday' => $newFrogsToday,
             'minutesLoggedToday' => $minutesLoggedToday,
             'workload' => $workload,
+            'aelteste' => $aelteste,
             'recentDone' => $recentDone,
+            'trend' => $trend,
             'nowIso' => $nowTs->toIso8601String(),
         ]);
     }
