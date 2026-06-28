@@ -12,6 +12,7 @@ use Platform\Core\Verbalization\Fact;
 use Platform\Core\Verbalization\Freshness;
 use Platform\Core\Verbalization\Identity;
 use Platform\Core\Verbalization\Subject;
+use Platform\Planner\Enums\ProjectKind;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectSnapshot;
 use Platform\Planner\Models\PlannerTask;
@@ -47,7 +48,7 @@ class PlannerProjectSubjectCollector
             type: 'planner_project',
             id: (string) $project->id,
             identity: new Identity(
-                primaryName: trim(($project->kind?->prefix() ?? '') . ' ' . $project->name),
+                primaryName: $project->name,
                 shortLabel: $project->name,
                 slug: $project->uuid,
             ),
@@ -85,7 +86,11 @@ class PlannerProjectSubjectCollector
         $facts = [];
 
         // CORE: was den Knoten ueberhaupt charakterisiert
-        $kindLabel = $project->kind?->prefix() === 'P' ? 'Projekt' : ($project->kind?->prefix() === 'R' ? 'Run' : 'Vorhaben');
+        $kindLabel = match ($project->kind) {
+            ProjectKind::PROJECT => 'Projekt',
+            ProjectKind::RUN => 'Run',
+            default => 'Vorhaben',
+        };
         $statusLabel = $project->done ? 'erledigt' : ($project->status?->value ?? 'aktiv');
         $facts[] = new Fact(FactPriority::CORE, "{$kindLabel} im Status: {$statusLabel}.", 'project.kind+status');
 
