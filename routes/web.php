@@ -32,6 +32,10 @@ Route::get('/tasks/{plannerTask}', Task::class)
 Route::get('/projects/{plannerProject}/health', \Platform\Planner\Livewire\ProjectHealth::class)
     ->name('planner.projects.health');
 
+// Health-Index (teamweite Snapshot-Aggregat-Sicht)
+Route::get('/health-index', \Platform\Planner\Livewire\HealthIndex::class)
+    ->name('planner.health-index');
+
 // Project Canvas Routes
 Route::get('/projects/{plannerProject}/canvas', \Platform\Planner\Livewire\ProjectCanvas\Index::class)
     ->name('planner.projects.canvas.index');
