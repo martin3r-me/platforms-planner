@@ -8,6 +8,7 @@ use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolContract;
 use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolResult;
+use Platform\Core\SemanticLayer\Services\SemanticLayerResolver;
 use Platform\Core\Verbalization\GuardRails;
 use Platform\Core\Verbalization\StyleProfile;
 use Platform\Core\Verbalization\Template\TemplateRegistry;
@@ -95,6 +96,22 @@ class ProjectVerbalizeTool implements ToolContract, ToolMetadataContract
             'collegial' => StyleProfile::collegial(),
             default => StyleProfile::formal(),
         };
+
+        // Semantic Layer aus dem aktuellen Team-Kontext injizieren (BHG-Konstitution etc.).
+        // Caller-Disziplin: Verbalizer bleibt domain-blind, das Tool kennt den Kontext.
+        try {
+            $team = $context->team ?? $context->user->currentTeam ?? null;
+            if ($team) {
+                /** @var SemanticLayerResolver $resolver */
+                $resolver = app(SemanticLayerResolver::class);
+                $resolved = $resolver->resolveFor($team, 'planner');
+                if ($resolved->rendered_block) {
+                    $style = $style->withSemanticLayer($resolved->rendered_block);
+                }
+            }
+        } catch (\Throwable $e) {
+            // Semantic Layer ist optional — bei Fehler ohne weitermachen.
+        }
 
         $providerKey = $arguments['provider'] ?? null;
         $model = $arguments['model'] ?? null;
