@@ -11,6 +11,7 @@ use Platform\Core\Verbalization\Enums\SubjectKind;
 use Platform\Core\Verbalization\Fact;
 use Platform\Core\Verbalization\Freshness;
 use Platform\Core\Verbalization\Identity;
+use Platform\Core\Verbalization\Recipe\CollectionRecipe;
 use Platform\Core\Verbalization\Subject;
 use Platform\Planner\Enums\ProjectKind;
 use Platform\Planner\Models\PlannerProject;
@@ -31,7 +32,27 @@ use Platform\Planner\Models\PlannerTask;
  */
 class PlannerProjectSubjectCollector
 {
-    public function collectState(int|PlannerProject $project): Subject
+    /**
+     * Default-Recipe: alles an, max-Limits — Verhalten wie vor der Recipe-Aera.
+     * Kommt zum Einsatz wenn keine Recipe uebergeben wird.
+     */
+    public const DEFAULT_SOURCES = [
+        'description' => true,
+        'core_health' => true,
+        'slots' => ['enabled' => true, 'top_n' => 3],
+        'frogs' => ['enabled' => true, 'top_n' => 3],
+        'people' => ['enabled' => true, 'top_n' => 3],
+        'canvas' => ['enabled' => true, 'max_highlights' => 6, 'max_entry_chars' => 140],
+        'budget' => true,
+        'termine' => true,
+        'confidence' => true,
+        'edges_owner' => true,
+        'edges_team' => true,
+        'edges_org_anchors' => true,
+        'edges_cost_center' => true,
+    ];
+
+    public function collectState(int|PlannerProject $project, ?CollectionRecipe $recipe = null): Subject
     {
         $project = $project instanceof PlannerProject
             ? $project
@@ -45,23 +66,39 @@ class PlannerProjectSubjectCollector
 
         [$source, $asOf] = $this->resolveFreshness($snapshot);
 
+        // Recipe-Helper — fallback auf Default-Sources wenn keine Recipe gesetzt ist.
+        $isOn = $recipe
+            ? fn (string $key) => $recipe->hasSource($key)
+            : fn (string $key) => $this->defaultSourceOn($key);
+        $limit = function (string $key, string $limitKey, ?int $default) use ($recipe) {
+            if ($recipe) {
+                return $recipe->sourceLimit($key, $limitKey, $default);
+            }
+            $cfg = self::DEFAULT_SOURCES[$key] ?? null;
+            return is_array($cfg) && isset($cfg[$limitKey]) ? (int) $cfg[$limitKey] : $default;
+        };
+
         $facts = array_merge(
-            $this->factsDescription($project),
-            $this->factsCore($project, $snapshot),
-            $this->factsSlots($snapshot),
-            $this->factsFrogs($snapshot),
-            $this->factsPeople($snapshot),
-            $this->factsCanvas($project),
-            $this->factsBudget($project, $snapshot),
-            $this->factsTermine($snapshot),
-            $this->factsConfidence($snapshot),
+            $isOn('description') ? $this->factsDescription($project) : [],
+            $isOn('core_health') ? $this->factsCore($project, $snapshot) : [],
+            $isOn('slots') ? $this->factsSlots($snapshot, $limit('slots', 'top_n', 3)) : [],
+            $isOn('frogs') ? $this->factsFrogs($snapshot, $limit('frogs', 'top_n', 3)) : [],
+            $isOn('people') ? $this->factsPeople($snapshot, $limit('people', 'top_n', 3)) : [],
+            $isOn('canvas') ? $this->factsCanvas(
+                $project,
+                $limit('canvas', 'max_highlights', 6),
+                $limit('canvas', 'max_entry_chars', 140),
+            ) : [],
+            $isOn('budget') ? $this->factsBudget($project, $snapshot) : [],
+            $isOn('termine') ? $this->factsTermine($snapshot) : [],
+            $isOn('confidence') ? $this->factsConfidence($snapshot) : [],
         );
 
         $edges = array_merge(
-            $this->edgesOwner($project),
-            $this->edgesOrgAnchors($project),
-            $this->edgesTeam($project),
-            $this->edgesCostCenter($project),
+            $isOn('edges_owner') ? $this->edgesOwner($project) : [],
+            $isOn('edges_org_anchors') ? $this->edgesOrgAnchors($project) : [],
+            $isOn('edges_team') ? $this->edgesTeam($project) : [],
+            $isOn('edges_cost_center') ? $this->edgesCostCenter($project) : [],
         );
 
         return new Subject(
@@ -83,8 +120,18 @@ class PlannerProjectSubjectCollector
             meta: [
                 'snapshot_id' => $snapshot?->id,
                 'has_snapshot' => $snapshot !== null,
+                'recipe_key' => $recipe?->key,
             ],
         );
+    }
+
+    protected function defaultSourceOn(string $key): bool
+    {
+        $cfg = self::DEFAULT_SOURCES[$key] ?? false;
+        if (is_bool($cfg)) {
+            return $cfg;
+        }
+        return (bool) ($cfg['enabled'] ?? false);
     }
 
     /** @return array{0: DataSource, 1: \DateTimeInterface} */
@@ -178,15 +225,15 @@ class PlannerProjectSubjectCollector
     }
 
     /** @return Fact[] */
-    protected function factsSlots(?PlannerProjectSnapshot $snapshot): array
+    protected function factsSlots(?PlannerProjectSnapshot $snapshot, ?int $topN = 3): array
     {
-        if (! $snapshot || $snapshot->slots->isEmpty()) {
+        if (! $snapshot || $snapshot->slots->isEmpty() || ($topN ?? 0) <= 0) {
             return [];
         }
         $topSlots = $snapshot->slots
             ->filter(fn ($s) => (int) $s->open_tasks > 0)
             ->sortByDesc('open_tasks')
-            ->take(3);
+            ->take($topN);
 
         if ($topSlots->isEmpty()) {
             return [];
@@ -196,18 +243,18 @@ class PlannerProjectSubjectCollector
             return "{$s->slot_name} ({$s->open_tasks} offen / {$s->done_tasks} erledigt)";
         })->implode('; ');
 
-        return [new Fact(FactPriority::QUALIFYING, "Aktive Slots: {$parts}.", 'snapshot.slots.top3')];
+        return [new Fact(FactPriority::QUALIFYING, "Aktive Slots: {$parts}.", 'snapshot.slots.top' . $topN)];
     }
 
     /** @return Fact[] */
-    protected function factsFrogs(?PlannerProjectSnapshot $snapshot): array
+    protected function factsFrogs(?PlannerProjectSnapshot $snapshot, ?int $topN = 3): array
     {
-        if (! $snapshot || $snapshot->frogs->isEmpty()) {
+        if (! $snapshot || $snapshot->frogs->isEmpty() || ($topN ?? 0) <= 0) {
             return [];
         }
         $topFrogs = $snapshot->frogs
             ->sortByDesc(fn ($f) => ($f->is_overdue ? 100 : 0) + (int) $f->postpone_count)
-            ->take(3);
+            ->take($topN);
 
         if ($topFrogs->isEmpty()) {
             return [];
@@ -225,19 +272,19 @@ class PlannerProjectSubjectCollector
             return $f->task_title . $tailTxt;
         })->implode('; ');
 
-        return [new Fact(FactPriority::CORE, "Frösche, die liegen bleiben: {$parts}.", 'snapshot.frogs.top3')];
+        return [new Fact(FactPriority::CORE, "Frösche, die liegen bleiben: {$parts}.", 'snapshot.frogs.top' . $topN)];
     }
 
     /** @return Fact[] */
-    protected function factsPeople(?PlannerProjectSnapshot $snapshot): array
+    protected function factsPeople(?PlannerProjectSnapshot $snapshot, ?int $topN = 3): array
     {
-        if (! $snapshot || $snapshot->people->isEmpty()) {
+        if (! $snapshot || $snapshot->people->isEmpty() || ($topN ?? 0) <= 0) {
             return [];
         }
         $topPeople = $snapshot->people
             ->filter(fn ($p) => (int) $p->open_tasks > 0)
             ->sortByDesc('open_tasks')
-            ->take(3);
+            ->take($topN);
 
         if ($topPeople->isEmpty()) {
             return [];
@@ -249,11 +296,11 @@ class PlannerProjectSubjectCollector
             return "{$p->user_name}: {$p->open_tasks} offen{$sp}{$od}";
         })->implode('; ');
 
-        return [new Fact(FactPriority::QUALIFYING, "Aktuelle Workload-Verteilung: {$parts}.", 'snapshot.people.top3')];
+        return [new Fact(FactPriority::QUALIFYING, "Aktuelle Workload-Verteilung: {$parts}.", 'snapshot.people.top' . $topN)];
     }
 
     /** @return Fact[] */
-    protected function factsCanvas(PlannerProject $project): array
+    protected function factsCanvas(PlannerProject $project, ?int $maxHighlights = 6, ?int $maxEntryChars = 140): array
     {
         $canvas = PlannerProjectCanvas::with(['blocks.entries'])
             ->where('project_id', $project->id)
@@ -278,8 +325,13 @@ class PlannerProjectSubjectCollector
             );
         }
 
-        // Highlights: pro befuelltem Block die ersten 1-2 Entries (max 6 insgesamt)
+        // Highlights: pro befuelltem Block die ersten 1-2 Entries, max insgesamt durch Recipe begrenzt
         $highlights = [];
+        $maxHi = max(0, (int) ($maxHighlights ?? 6));
+        $maxChars = max(20, (int) ($maxEntryChars ?? 140));
+        if ($maxHi === 0) {
+            return $facts;
+        }
         foreach ($blocks->filter(fn ($b) => $b->entries->isNotEmpty())->sortBy('position') as $block) {
             $topEntries = $block->entries->sortBy('position')->take(2);
             foreach ($topEntries as $entry) {
@@ -292,12 +344,11 @@ class PlannerProjectSubjectCollector
                 if ($combined === '') {
                     continue;
                 }
-                // truncate long content
-                if (mb_strlen($combined) > 140) {
-                    $combined = mb_substr($combined, 0, 137) . '...';
+                if (mb_strlen($combined) > $maxChars) {
+                    $combined = mb_substr($combined, 0, $maxChars - 3) . '...';
                 }
                 $highlights[] = "[{$block->label}] {$combined}";
-                if (count($highlights) >= 6) {
+                if (count($highlights) >= $maxHi) {
                     break 2;
                 }
             }

@@ -10,6 +10,7 @@ use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Core\SemanticLayer\Services\SemanticLayerResolver;
 use Platform\Core\Verbalization\GuardRails;
+use Platform\Core\Verbalization\Recipe\RecipeResolver;
 use Platform\Core\Verbalization\StyleProfile;
 use Platform\Core\Verbalization\Template\TemplateRegistry;
 use Platform\Core\Verbalization\Verbalizer;
@@ -64,6 +65,10 @@ class ProjectVerbalizeTool implements ToolContract, ToolMetadataContract
                 'dry_run' => [
                     'type' => 'boolean',
                     'description' => 'Wenn true: kein LLM-Call. Gibt nur Subject + Faktenbasis zurueck. Nuetzlich ohne API-Key oder zum Debuggen der Sammler-Pipeline.',
+                ],
+                'recipe_key' => [
+                    'type' => 'string',
+                    'description' => 'Optional: key einer Verbalization-Recipe (z.B. "customer_brief", "weekly_status", "wall_display"). Steuert Sammel-Tiefe + Style. Ohne Recipe wird die Default-Sammlung verwendet.',
                 ],
             ],
             'required' => ['project_id'],
@@ -120,11 +125,32 @@ class ProjectVerbalizeTool implements ToolContract, ToolMetadataContract
         $model = $arguments['model'] ?? null;
         $includeFactSheet = (bool) ($arguments['include_fact_sheet'] ?? false);
         $dryRun = (bool) ($arguments['dry_run'] ?? false);
+        $recipeKey = $arguments['recipe_key'] ?? null;
+
+        // Recipe aufloesen, wenn Key angegeben.
+        $recipe = null;
+        $recipeError = null;
+        if ($recipeKey) {
+            try {
+                $teamForRecipe = $context->team ?? $context->user->currentTeam ?? null;
+                /** @var RecipeResolver $recipeResolver */
+                $recipeResolver = app(RecipeResolver::class);
+                $recipe = $recipeResolver->resolve($recipeKey, $teamForRecipe?->id, 'planner_project');
+                if (! $recipe) {
+                    return ToolResult::error(
+                        'RECIPE_NOT_FOUND',
+                        "Recipe '{$recipeKey}' fuer subject_type 'planner_project' nicht gefunden."
+                    );
+                }
+            } catch (\Throwable $e) {
+                $recipeError = $e->getMessage();
+            }
+        }
 
         try {
             /** @var PlannerProjectSubjectCollector $collector */
             $collector = app(PlannerProjectSubjectCollector::class);
-            $subject = $collector->collectState($project);
+            $subject = $collector->collectState($project, $recipe);
 
             if ($dryRun) {
                 // Nur Faktenbasis bauen, kein LLM-Call.
@@ -156,6 +182,10 @@ class ProjectVerbalizeTool implements ToolContract, ToolMetadataContract
                             'token_count' => $semanticLayerTokens,
                             'error' => $semanticLayerError,
                         ],
+                        'recipe' => $recipe ? [
+                            'key' => $recipe->key,
+                            'name' => $recipe->name,
+                        ] : null,
                     ],
                 ]);
             }
@@ -168,6 +198,7 @@ class ProjectVerbalizeTool implements ToolContract, ToolMetadataContract
                 rails: new GuardRails(),
                 providerKey: $providerKey,
                 modelOverride: $model,
+                recipe: $recipe,
             );
         } catch (\Throwable $e) {
             return ToolResult::error('VERBALIZATION_FAILED', $e->getMessage());
@@ -194,6 +225,10 @@ class ProjectVerbalizeTool implements ToolContract, ToolMetadataContract
                     'token_count' => $semanticLayerTokens,
                     'error' => $semanticLayerError,
                 ],
+                'recipe' => $recipe ? [
+                    'key' => $recipe->key,
+                    'name' => $recipe->name,
+                ] : null,
             ]),
         ];
 
