@@ -173,6 +173,7 @@ class ListProjectSnapshotsSummaryTool implements ToolContract, ToolMetadataContr
             'status' => $s->status,
             'health_score' => $s->health_score,
             'health_color' => $s->health_color,
+            'worst_axis' => $s->worst_axis,
             'confidence_score' => $s->confidence_score,
             'confidence_reason' => $s->confidence_reason,
             'tasks_open' => $s->tasks_open,

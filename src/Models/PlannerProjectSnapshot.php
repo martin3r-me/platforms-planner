@@ -57,6 +57,8 @@ class PlannerProjectSnapshot extends Model
         // Composite
         'health_score',
         'health_color',
+        'worst_axis',
+        'axis_scores',
         // Confidence
         'confidence_score',
         'confidence_reason',
@@ -78,6 +80,7 @@ class PlannerProjectSnapshot extends Model
         'hourly_rate' => 'decimal:2',
         'budget_used_euro' => 'decimal:2',
         'canvas_completeness_percent' => 'decimal:2',
+        'axis_scores' => 'array',
     ];
 
     protected static function booted(): void

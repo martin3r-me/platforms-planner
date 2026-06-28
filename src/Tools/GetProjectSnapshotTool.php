@@ -158,6 +158,8 @@ class GetProjectSnapshotTool implements ToolContract, ToolMetadataContract
             'health' => [
                 'score' => $s->health_score,
                 'color' => $s->health_color,
+                'worst_axis' => $s->worst_axis,
+                'axis_scores' => $s->axis_scores,
             ],
             'confidence' => [
                 'score' => $s->confidence_score,

@@ -154,6 +154,7 @@ class ProjectSnapshotService
         );
 
         [$healthScore, $healthColor] = $this->compositeHealth($axes);
+        $worstAxis = $this->resolveWorstAxis($axes);
 
         [$confScore, $confReason] = $this->computeConfidence([
             'canvas' => $canvasScore !== null,
@@ -209,6 +210,8 @@ class ProjectSnapshotService
 
             'health_score' => $healthScore,
             'health_color' => $healthColor,
+            'worst_axis' => $worstAxis,
+            'axis_scores' => empty($axes) ? null : $axes,
 
             'confidence_score' => $confScore,
             'confidence_reason' => $confReason,
@@ -270,6 +273,35 @@ class ProjectSnapshotService
         }
 
         return [$score, $color];
+    }
+
+    /**
+     * Die "schwaechste" Achse: zuerst rote, dann gelbe; bei Gleichstand die mit dem niedrigsten Score.
+     * Null, wenn keine Achsen vorhanden oder alle gruen sind.
+     */
+    private function resolveWorstAxis(array $axes): ?string
+    {
+        if (empty($axes)) {
+            return null;
+        }
+        $colorRank = ['red' => 0, 'yellow' => 1, 'green' => 2];
+        $bestColorRank = 9;
+        $bestScore = PHP_INT_MAX;
+        $bestKey = null;
+        foreach ($axes as $key => $val) {
+            $color = $this->valueToColor((int) $val);
+            $rank = $colorRank[$color] ?? 9;
+            if ($rank < $bestColorRank || ($rank === $bestColorRank && $val < $bestScore)) {
+                $bestColorRank = $rank;
+                $bestScore = (int) $val;
+                $bestKey = $key;
+            }
+        }
+        // Nur wenn schwaechste Achse rot oder gelb ist, melden wir sie — alles gruen ist kein "worst".
+        if ($bestColorRank > 1) {
+            return null;
+        }
+        return $bestKey;
     }
 
     private function valueToColor(int $value): string

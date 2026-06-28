@@ -46,11 +46,20 @@
                     $delta = $latestSnapshot->delta_health_score;
                     $trend = $delta === null ? null : ($delta > 0 ? '↑' : ($delta < 0 ? '↓' : '·'));
                     $trendColor = $delta === null ? 'text-zinc-400' : ($delta > 0 ? 'text-emerald-600' : ($delta < 0 ? 'text-rose-600' : 'text-zinc-500'));
+                    $worstAxisLabel = match($latestSnapshot->worst_axis) {
+                        'strategy' => 'Strategie',
+                        'progress' => 'Fortschritt',
+                        'burn' => 'Druck',
+                        default => null,
+                    };
                     $tooltipParts = [
                         'Snapshot ' . optional($latestSnapshot->taken_on)->format('d.m.Y'),
                         'Health ' . ($hs ?? '–') . ' (' . $hc . ')',
                         'Confidence ' . $latestSnapshot->confidence_score . '%',
                     ];
+                    if($worstAxisLabel) {
+                        $tooltipParts[] = 'Schwaechste Achse: ' . $worstAxisLabel;
+                    }
                     if($delta !== null) {
                         $tooltipParts[] = 'Veraenderung zum Vortag: ' . ($delta > 0 ? '+' : '') . $delta;
                     }
@@ -58,14 +67,27 @@
                         $tooltipParts[] = $latestSnapshot->confidence_reason;
                     }
                 @endphp
-                <span class="inline-flex items-center gap-1.5 px-2 h-7 rounded-md border border-[var(--ui-border)] bg-white text-[11px] text-[var(--ui-secondary)]"
-                      title="{{ implode(' · ', $tooltipParts) }}">
+                <a href="{{ route('planner.projects.health', $project) }}"
+                   wire:navigate
+                   class="inline-flex items-center gap-1.5 px-2 h-7 rounded-md border border-[var(--ui-border)] bg-white text-[11px] text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)] transition-colors"
+                   title="{{ implode(' · ', $tooltipParts) }}">
                     <span class="w-2 h-2 rounded-full {{ $dot }}"></span>
                     <span class="font-medium tabular-nums">{{ $hs ?? '–' }}</span>
+                    @if($worstAxisLabel)
+                        <span class="text-[10px] text-[var(--ui-muted)]">· {{ $worstAxisLabel }}</span>
+                    @endif
                     @if($trend)
                         <span class="{{ $trendColor }} text-[10px] tabular-nums">{{ $trend }}{{ $delta !== null && $delta !== 0 ? abs($delta) : '' }}</span>
                     @endif
-                </span>
+                </a>
+            @else
+                <a href="{{ route('planner.projects.health', $project) }}"
+                   wire:navigate
+                   class="inline-flex items-center gap-1.5 px-2 h-7 rounded-md border border-[var(--ui-border)] bg-white text-[11px] text-[var(--ui-muted)] hover:bg-[var(--ui-muted-5)] transition-colors"
+                   title="Noch kein Snapshot vorhanden">
+                    @svg('heroicon-o-heart', 'w-3.5 h-3.5')
+                    <span>Health</span>
+                </a>
             @endif
 
             {{-- Primary action --}}
@@ -114,6 +136,15 @@
                         @svg('heroicon-o-squares-2x2', 'w-4 h-4 text-[var(--ui-muted)]')
                         <span>Project Canvas</span>
                     </button>
+                    <a
+                        href="{{ route('planner.projects.health', $project) }}"
+                        wire:navigate
+                        @click="open = false"
+                        class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)] transition-colors"
+                    >
+                        @svg('heroicon-o-heart', 'w-4 h-4 text-[var(--ui-muted)]')
+                        <span>Health-Sicht</span>
+                    </a>
                     @can('settings', $project)
                         <div class="border-t border-[var(--ui-border)]/60 my-1"></div>
                         <button

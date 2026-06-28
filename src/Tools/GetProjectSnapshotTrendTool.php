@@ -80,6 +80,8 @@ class GetProjectSnapshotTrendTool implements ToolContract, ToolMetadataContract
                 'taken_on' => $s->taken_on?->toDateString(),
                 'health_score' => $s->health_score,
                 'health_color' => $s->health_color,
+                'worst_axis' => $s->worst_axis,
+                'axis_scores' => $s->axis_scores,
                 'canvas_score' => $s->canvas_score,
                 'canvas_color' => $s->canvas_color,
                 'confidence_score' => $s->confidence_score,

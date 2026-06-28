@@ -28,6 +28,10 @@ Route::get('/projects/{plannerProject}', Project::class)
 Route::get('/tasks/{plannerTask}', Task::class)
     ->name('planner.tasks.show');
 
+// Project Health (Snapshot-Detail-Sicht pro Projekt)
+Route::get('/projects/{plannerProject}/health', \Platform\Planner\Livewire\ProjectHealth::class)
+    ->name('planner.projects.health');
+
 // Project Canvas Routes
 Route::get('/projects/{plannerProject}/canvas', \Platform\Planner\Livewire\ProjectCanvas\Index::class)
     ->name('planner.projects.canvas.index');
