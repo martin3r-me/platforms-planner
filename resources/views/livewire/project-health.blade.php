@@ -73,7 +73,7 @@
 
     {{-- ════════ LEFT SIDEBAR: Uebersicht ════════ --}}
     <x-slot name="sidebar">
-        <x-ui-page-sidebar title="Uebersicht" icon="heroicon-o-information-circle" width="w-72" :minWidth="240" :maxWidth="380" :defaultOpen="true" storeKey="sidebarOpen" side="left">
+        <x-ui-page-sidebar title="Übersicht" icon="heroicon-o-information-circle" width="w-72" :minWidth="240" :maxWidth="380" :defaultOpen="true" storeKey="sidebarOpen" side="left">
             <div class="p-4 space-y-5">
 
                 {{-- Snapshot-Meta --}}
