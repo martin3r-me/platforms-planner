@@ -56,7 +56,13 @@ class HealthIndex extends Component
             )')
             ->pluck('a.id');
 
-        $all = PlannerProjectSnapshot::with('project:id,name,kind,status,done,color')
+        // color ist keine echte Spalte (HasColors-Trait via Lookup-Tabelle),
+        // darf nicht im Select stehen — wir laden contextColors eager mit, damit
+        // der color-Accessor ohne N+1 funktioniert.
+        $all = PlannerProjectSnapshot::with([
+                'project:id,name,kind,status,done',
+                'project.contextColors',
+            ])
             ->whereIn('id', $latestIds)
             ->get();
 
