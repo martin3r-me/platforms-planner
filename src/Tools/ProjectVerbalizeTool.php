@@ -114,7 +114,7 @@ class ProjectVerbalizeTool implements ToolContract, ToolMetadataContract
                     ? $template->renderFactSheet($subject)
                     : '(kein Template registriert — generisches Fallback aktiv)';
 
-                return ToolResult::ok([
+                return ToolResult::success([
                     'project_id' => $projectId,
                     'project_name' => $subject->identity->primaryName,
                     'dry_run' => true,
@@ -171,7 +171,7 @@ class ProjectVerbalizeTool implements ToolContract, ToolMetadataContract
             $payload['fact_sheet'] = $result->factSheet;
         }
 
-        return ToolResult::ok($payload);
+        return ToolResult::success($payload);
     }
 
     public function getMetadata(): array
