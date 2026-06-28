@@ -128,6 +128,21 @@ class HealthIndex extends Component
             })->values(),
         };
 
+        // ── Bewegung: Top-Gewinner + Top-Verlierer ueber alle Snapshots mit Delta ──
+        $withDelta = $all->filter(fn ($s) => $s->delta_health_score !== null && $s->delta_health_score !== 0);
+        $topGainers = $withDelta
+            ->filter(fn ($s) => $s->delta_health_score > 0)
+            ->sortByDesc('delta_health_score')
+            ->take(5)
+            ->values();
+        $topLosers = $withDelta
+            ->filter(fn ($s) => $s->delta_health_score < 0)
+            ->sortBy('delta_health_score')
+            ->take(5)
+            ->values();
+
+        $totalMovement = $withDelta->sum(fn ($s) => abs($s->delta_health_score));
+
         return view('planner::livewire.health-index', [
             'team' => $team,
             'totalAll' => $totalAll,
@@ -137,6 +152,10 @@ class HealthIndex extends Component
             'missingLayers' => $missingLayers,
             'snapshots' => $filtered,
             'lastTakenOn' => $all->max('taken_on'),
+            'topGainers' => $topGainers,
+            'topLosers' => $topLosers,
+            'movedProjectsCount' => $withDelta->count(),
+            'totalMovement' => $totalMovement,
         ]);
     }
 }

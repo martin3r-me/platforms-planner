@@ -80,6 +80,105 @@
         </x-ui-page-sidebar>
     </x-slot>
 
+    {{-- ════════ RIGHT SIDEBAR: Aktivität ════════ --}}
+    <x-slot name="activity">
+        <x-ui-page-sidebar title="Aktivität" icon="heroicon-o-bolt" width="w-80" :defaultOpen="true" storeKey="activityOpen" side="right">
+            <div class="p-4 space-y-4 bg-[var(--ui-muted-5)]">
+
+                {{-- TAGES-STATS --}}
+                <section class="p-3 rounded-lg bg-white border border-[var(--ui-border)]/40 shadow-sm">
+                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] mb-2">Heute</h3>
+                    <div class="grid grid-cols-2 gap-2 text-center">
+                        <div>
+                            <div class="text-xl font-bold tabular-nums text-emerald-600">{{ $tasksDoneToday }}</div>
+                            <div class="text-[10px] uppercase tracking-wider text-[var(--ui-muted)]">erledigt</div>
+                        </div>
+                        <div>
+                            <div class="text-xl font-bold tabular-nums text-[var(--ui-secondary)]">{{ $projectsViewedToday->count() }}</div>
+                            <div class="text-[10px] uppercase tracking-wider text-[var(--ui-muted)]">Projekte besucht</div>
+                        </div>
+                    </div>
+                </section>
+
+                {{-- HEUTE BESUCHTE PROJEKTE --}}
+                @if($projectsViewedToday->isNotEmpty())
+                    <section class="p-3 rounded-lg bg-white border border-[var(--ui-border)]/40 shadow-sm">
+                        <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] mb-2 inline-flex items-center gap-1.5">
+                            @svg('heroicon-o-folder-open', 'w-3 h-3')
+                            <span>Heute besucht — Projekte</span>
+                        </h3>
+                        <ul class="space-y-1">
+                            @foreach($projectsViewedToday as $proj)
+                                <li>
+                                    <a href="{{ route('planner.projects.show', $proj) }}"
+                                       wire:navigate
+                                       class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[var(--ui-muted-5)] transition-colors group">
+                                        <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {{ $proj->color ?? 'var(--ui-muted)' }};"></span>
+                                        <span class="flex-1 min-w-0 text-[12px] text-[var(--ui-secondary)] truncate group-hover:text-[var(--planner-status-active)]">{{ $proj->name }}</span>
+                                        <span class="text-[10px] text-[var(--ui-muted)] flex-shrink-0">{{ $proj->last_viewed_at?->format('H:i') }}</span>
+                                    </a>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </section>
+                @endif
+
+                {{-- HEUTE BESUCHTE TASKS --}}
+                @if($tasksViewedToday->isNotEmpty())
+                    <section class="p-3 rounded-lg bg-white border border-[var(--ui-border)]/40 shadow-sm">
+                        <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] mb-2 inline-flex items-center gap-1.5">
+                            @svg('heroicon-o-clipboard-document-check', 'w-3 h-3')
+                            <span>Heute besucht — Aufgaben</span>
+                        </h3>
+                        <ul class="space-y-1">
+                            @foreach($tasksViewedToday as $task)
+                                <li>
+                                    <a href="{{ route('planner.tasks.show', ['plannerTask' => $task->id]) }}?from=hygiene"
+                                       wire:navigate
+                                       class="flex items-start gap-2 px-2 py-1.5 rounded hover:bg-[var(--ui-muted-5)] transition-colors group">
+                                        <span class="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 {{ $task->is_done ? 'bg-emerald-500' : 'bg-amber-500' }}"></span>
+                                        <span class="flex-1 min-w-0">
+                                            <span class="block text-[12px] text-[var(--ui-secondary)] truncate group-hover:text-[var(--planner-status-active)]">{{ $task->title }}</span>
+                                            @if($task->project)
+                                                <span class="block text-[10px] text-[var(--ui-muted)] truncate">{{ $task->project->name }}</span>
+                                            @endif
+                                        </span>
+                                        <span class="text-[10px] text-[var(--ui-muted)] flex-shrink-0 mt-0.5">{{ $task->last_viewed_at?->format('H:i') }}</span>
+                                    </a>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </section>
+                @endif
+
+                {{-- EMPTY STATE wenn nichts heute passiert --}}
+                @if($projectsViewedToday->isEmpty() && $tasksViewedToday->isEmpty() && $tasksDoneToday === 0)
+                    <section class="p-4 rounded-lg bg-white border border-[var(--ui-border)]/40 shadow-sm text-center">
+                        @svg('heroicon-o-moon', 'w-6 h-6 mx-auto mb-1 text-[var(--ui-muted)] opacity-50')
+                        <p class="text-[11px] text-[var(--ui-muted)] m-0">Heute noch nichts angesehen oder erledigt.</p>
+                    </section>
+                @endif
+
+                {{-- PFLEGE-TIPP --}}
+                <section class="p-3 rounded-lg bg-[var(--planner-status-active)]/5 border border-[var(--planner-status-active)]/20">
+                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--planner-status-active)] mb-1.5 inline-flex items-center gap-1.5">
+                        @svg('heroicon-o-light-bulb', 'w-3 h-3')
+                        <span>Tipp</span>
+                    </h3>
+                    <p class="text-[11px] text-[var(--ui-secondary)] leading-relaxed m-0">
+                        @if($staleProjectsCount > 5)
+                            {{ $staleProjectsCount }} vergessene Projekte — vielleicht ein paar auf <strong>inaktiv</strong> setzen statt sie weiter mitzuschleifen.
+                        @elseif($staleTasksCount > 10)
+                            Viele alte Aufgaben — kurze Aufräum-Session: erledigt markieren oder löschen.
+                        @else
+                            Wenig Staub. Weiter so — kurze Tages-Sichtung hält die Hygiene niedrig.
+                        @endif
+                    </p>
+                </section>
+            </div>
+        </x-ui-page-sidebar>
+    </x-slot>
+
     <div class="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
 
         {{-- Header: Live-KPIs --}}

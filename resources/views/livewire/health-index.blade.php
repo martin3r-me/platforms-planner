@@ -129,6 +129,89 @@
         </x-ui-page-sidebar>
     </x-slot>
 
+    {{-- ════════ RIGHT SIDEBAR: Bewegung ════════ --}}
+    <x-slot name="activity">
+        <x-ui-page-sidebar title="Bewegung" icon="heroicon-o-bolt" width="w-80" :defaultOpen="true" storeKey="activityOpen" side="right">
+            <div class="p-4 space-y-4 bg-[var(--ui-muted-5)]">
+
+                {{-- SCOPE-INFO --}}
+                <section class="p-3 rounded-lg bg-white border border-[var(--ui-border)]/40 shadow-sm">
+                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] mb-2">Scope</h3>
+                    <div class="grid grid-cols-2 gap-2 text-center">
+                        <div>
+                            <div class="text-xl font-bold tabular-nums text-[var(--ui-secondary)]">{{ $totalAll }}</div>
+                            <div class="text-[10px] uppercase tracking-wider text-[var(--ui-muted)]">Projekte</div>
+                        </div>
+                        <div>
+                            <div class="text-xl font-bold tabular-nums text-[var(--ui-secondary)]">{{ $movedProjectsCount }}</div>
+                            <div class="text-[10px] uppercase tracking-wider text-[var(--ui-muted)]">bewegt vs Vortag</div>
+                        </div>
+                    </div>
+                    @if($lastTakenOn)
+                        <div class="mt-3 pt-3 border-t border-[var(--ui-border)]/40 text-[10px] text-[var(--ui-muted)] text-center">
+                            Snapshot {{ $lastTakenOn->format('d.m.Y') }} · Cron nächtlich 03:00
+                        </div>
+                    @endif
+                </section>
+
+                {{-- TOP GEWINNER --}}
+                @if($topGainers->isNotEmpty())
+                    <section class="p-3 rounded-lg bg-white border border-[var(--ui-border)]/40 shadow-sm">
+                        <h3 class="text-[10px] font-semibold uppercase tracking-wider text-emerald-700 mb-2 inline-flex items-center gap-1.5">
+                            @svg('heroicon-o-arrow-trending-up', 'w-3 h-3')
+                            <span>Größte Gewinner</span>
+                        </h3>
+                        <ul class="space-y-1.5">
+                            @foreach($topGainers as $s)
+                                @php $t = $tone($s->health_color); @endphp
+                                <li>
+                                    <a href="{{ route('planner.projects.health', $s->project_id) }}"
+                                       wire:navigate
+                                       class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[var(--ui-muted-5)] transition-colors group">
+                                        <span class="w-2 h-2 rounded-full {{ $t['dot'] }} flex-shrink-0"></span>
+                                        <span class="flex-1 min-w-0 text-[12px] text-[var(--ui-secondary)] truncate group-hover:text-[var(--planner-status-active)]">{{ $s->project?->name }}</span>
+                                        <span class="text-[11px] tabular-nums font-semibold text-emerald-600 flex-shrink-0">↑{{ $s->delta_health_score }}</span>
+                                    </a>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </section>
+                @endif
+
+                {{-- TOP VERLIERER --}}
+                @if($topLosers->isNotEmpty())
+                    <section class="p-3 rounded-lg bg-white border border-[var(--ui-border)]/40 shadow-sm">
+                        <h3 class="text-[10px] font-semibold uppercase tracking-wider text-rose-700 mb-2 inline-flex items-center gap-1.5">
+                            @svg('heroicon-o-arrow-trending-down', 'w-3 h-3')
+                            <span>Größte Verlierer</span>
+                        </h3>
+                        <ul class="space-y-1.5">
+                            @foreach($topLosers as $s)
+                                @php $t = $tone($s->health_color); @endphp
+                                <li>
+                                    <a href="{{ route('planner.projects.health', $s->project_id) }}"
+                                       wire:navigate
+                                       class="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-[var(--ui-muted-5)] transition-colors group">
+                                        <span class="w-2 h-2 rounded-full {{ $t['dot'] }} flex-shrink-0"></span>
+                                        <span class="flex-1 min-w-0 text-[12px] text-[var(--ui-secondary)] truncate group-hover:text-[var(--planner-status-active)]">{{ $s->project?->name }}</span>
+                                        <span class="text-[11px] tabular-nums font-semibold text-rose-600 flex-shrink-0">↓{{ abs($s->delta_health_score) }}</span>
+                                    </a>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </section>
+                @endif
+
+                @if($topGainers->isEmpty() && $topLosers->isEmpty())
+                    <section class="p-4 rounded-lg bg-white border border-[var(--ui-border)]/40 shadow-sm text-center">
+                        @svg('heroicon-o-pause-circle', 'w-6 h-6 mx-auto mb-1 text-[var(--ui-muted)] opacity-50')
+                        <p class="text-[11px] text-[var(--ui-muted)] m-0">Keine Bewegung gegenüber dem Vortag.</p>
+                    </section>
+                @endif
+            </div>
+        </x-ui-page-sidebar>
+    </x-slot>
+
     {{-- ════════ MAIN BODY ════════ --}}
     <div class="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
 

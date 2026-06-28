@@ -163,6 +163,35 @@ class Hygiene extends Component
             ->orderBy('name')
             ->get();
 
+        // ── Tages-Aktivitaeten fuer die rechte Sidebar ──
+        $todayStart = now()->startOfDay();
+
+        $tasksDoneToday = PlannerTask::withStale()
+            ->where('team_id', $team->id)
+            ->where('user_in_charge_id', $user->id)
+            ->where('is_done', true)
+            ->where('done_at', '>=', $todayStart)
+            ->count();
+
+        $projectsViewedToday = PlannerProject::withStale()
+            ->where('team_id', $team->id)
+            ->visibleTo($user)
+            ->whereNotNull('last_viewed_at')
+            ->where('last_viewed_at', '>=', $todayStart)
+            ->orderByDesc('last_viewed_at')
+            ->limit(5)
+            ->get();
+
+        $tasksViewedToday = PlannerTask::withStale()
+            ->where('team_id', $team->id)
+            ->where('user_in_charge_id', $user->id)
+            ->whereNotNull('last_viewed_at')
+            ->where('last_viewed_at', '>=', $todayStart)
+            ->with('project')
+            ->orderByDesc('last_viewed_at')
+            ->limit(5)
+            ->get();
+
         return view('planner::livewire.hygiene', [
             'staleProjects' => $staleProjects,
             'staleTasks' => $staleTasks,
@@ -180,6 +209,9 @@ class Hygiene extends Component
             'availableProjects' => $availableProjects,
             'projectHygieneDays' => $projectHygieneDays,
             'taskHygieneDays' => $taskHygieneDays,
+            'tasksDoneToday' => $tasksDoneToday,
+            'projectsViewedToday' => $projectsViewedToday,
+            'tasksViewedToday' => $tasksViewedToday,
         ])->layout('platform::layouts.app');
     }
 }
