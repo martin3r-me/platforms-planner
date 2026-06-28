@@ -199,4 +199,17 @@ class GetProjectSnapshotTool implements ToolContract, ToolMetadataContract
             ])->all(),
         ];
     }
+
+    public function getMetadata(): array
+    {
+        return [
+            'category' => 'query',
+            'tags' => ['planner', 'project', 'snapshot', 'health', 'get'],
+            'read_only' => false, // fresh=true erstellt einen neuen Snapshot
+            'requires_auth' => true,
+            'requires_team' => false,
+            'risk_level' => 'safe',
+            'idempotent' => true, // max 1 Snapshot/Tag/Projekt — fresh=true ueberschreibt deterministisch
+        ];
+    }
 }

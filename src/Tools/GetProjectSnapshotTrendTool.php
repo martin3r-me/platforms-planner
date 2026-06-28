@@ -108,4 +108,17 @@ class GetProjectSnapshotTrendTool implements ToolContract, ToolMetadataContract
             return ToolResult::error('EXECUTION_ERROR', 'Fehler: ' . $e->getMessage());
         }
     }
+
+    public function getMetadata(): array
+    {
+        return [
+            'category' => 'query',
+            'tags' => ['planner', 'project', 'snapshot', 'trend', 'timeseries'],
+            'read_only' => true,
+            'requires_auth' => true,
+            'requires_team' => false,
+            'risk_level' => 'safe',
+            'idempotent' => true,
+        ];
+    }
 }
