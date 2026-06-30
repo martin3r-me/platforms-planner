@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Platform\ActivityLog\Traits\LogsActivity;
 use Platform\Core\Models\User;
@@ -143,7 +144,7 @@ class PlannerProjectCanvas extends Model
     /**
      * All entries across all blocks (for soft-delete cascade).
      */
-    public function entries(): HasMany
+    public function entries(): HasManyThrough
     {
         return $this->hasManyThrough(
             PlannerProjectCanvasEntry::class,
