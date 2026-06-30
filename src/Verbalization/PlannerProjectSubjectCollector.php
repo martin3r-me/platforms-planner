@@ -13,6 +13,7 @@ use Platform\Core\Verbalization\Freshness;
 use Platform\Core\Verbalization\Identity;
 use Platform\Core\Verbalization\Recipe\CollectionRecipe;
 use Platform\Core\Verbalization\Subject;
+use Platform\Core\Verbalization\SubjectCollector\SubjectCollectorInterface;
 use Platform\Planner\Enums\ProjectKind;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectCanvas;
@@ -30,8 +31,13 @@ use Platform\Planner\Models\PlannerTask;
  *  - Canvas: live aus PlannerProjectCanvas + Blocks + Entries
  *  - Organisation: via entityLinks → Verknuepfung zu Organization-Entities
  */
-class PlannerProjectSubjectCollector
+class PlannerProjectSubjectCollector implements SubjectCollectorInterface
 {
+    public function handles(): string
+    {
+        return 'planner_project';
+    }
+
     /**
      * Default-Recipe: alles an, max-Limits — Verhalten wie vor der Recipe-Aera.
      * Kommt zum Einsatz wenn keine Recipe uebergeben wird.

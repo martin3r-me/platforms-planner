@@ -84,6 +84,14 @@ class PlannerServiceProvider extends ServiceProvider
             // Verbalizer-Stack nicht vorhanden
         }
 
+        // Subject-Collector registrieren (fuer Feed-Pipeline)
+        try {
+            resolve(\Platform\Core\Verbalization\SubjectCollector\SubjectCollectorRegistry::class)
+                ->register(new \Platform\Planner\Verbalization\PlannerProjectSubjectCollector());
+        } catch (\Throwable $e) {
+            // Collector-Registry nicht vorhanden
+        }
+
         // Modul-Registrierung nur, wenn Config & Tabelle vorhanden
         if (
             config()->has('planner.routing') &&
