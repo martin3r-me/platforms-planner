@@ -58,12 +58,12 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
         'edges_cost_center' => true,
     ];
 
-    public function collectState(int|PlannerProject $project, ?CollectionRecipe $recipe = null): Subject
+    public function collectState(mixed $project, ?CollectionRecipe $recipe = null): Subject
     {
-        $project = $project instanceof PlannerProject
-            ? $project
-            : PlannerProject::with(['user:id,name', 'projectUsers.user:id,name', 'entityLinks.entity:id,name'])
+        if (! $project instanceof PlannerProject) {
+            $project = PlannerProject::with(['user:id,name', 'projectUsers.user:id,name', 'entityLinks.entity:id,name'])
                 ->findOrFail($project);
+        }
 
         $snapshot = PlannerProjectSnapshot::with(['slots', 'frogs', 'people'])
             ->where('project_id', $project->id)
