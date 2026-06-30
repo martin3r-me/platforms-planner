@@ -44,6 +44,7 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
      */
     public const DEFAULT_SOURCES = [
         'description' => true,
+        'lifetime' => true,
         'core_health' => true,
         'slots' => ['enabled' => true, 'top_n' => 3],
         'frogs' => ['enabled' => true, 'top_n' => 3],
@@ -86,6 +87,7 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
 
         $facts = array_merge(
             $isOn('description') ? $this->factsDescription($project) : [],
+            $isOn('lifetime') ? $this->factsLifetime($project) : [],
             $isOn('core_health') ? $this->factsCore($project, $snapshot) : [],
             $isOn('slots') ? $this->factsSlots($snapshot, $limit('slots', 'top_n', 3)) : [],
             $isOn('frogs') ? $this->factsFrogs($snapshot, $limit('frogs', 'top_n', 3)) : [],
@@ -160,6 +162,52 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
             return [];
         }
         return [new Fact(FactPriority::CORE, 'Zweck: ' . $desc, 'project.description')];
+    }
+
+    /**
+     * Wie lange laeuft das Projekt schon? Verschiebt Lesart komplett:
+     * "heute angelegt" vs. "seit 6 Monaten laeuft" sind verschiedene Stories,
+     * auch bei gleichem Health-Score.
+     *
+     * Priorisierung: ganz frische (< 7 Tage) oder ueberfaellige (> 12 Monate)
+     * Projekte → QUALIFYING. Dazwischen → CONTEXT.
+     *
+     * @return Fact[]
+     */
+    protected function factsLifetime(PlannerProject $project): array
+    {
+        if (! $project->created_at) {
+            return [];
+        }
+        $created = $project->created_at;
+        $diffDays = (int) $created->diffInDays(now());
+
+        $human = $this->humanizeProjectAge($diffDays, $created);
+        $priority = ($diffDays < 7 || $diffDays > 365)
+            ? FactPriority::QUALIFYING
+            : FactPriority::CONTEXT;
+
+        $datePart = $created->format('d.m.Y');
+        return [new Fact($priority, "Angelegt am {$datePart} — {$human}.", 'project.created_at')];
+    }
+
+    protected function humanizeProjectAge(int $diffDays, \Illuminate\Support\Carbon $created): string
+    {
+        if ($diffDays === 0) return 'heute angelegt';
+        if ($diffDays === 1) return 'gestern angelegt';
+        if ($diffDays < 7) return "vor {$diffDays} Tagen angelegt";
+        if ($diffDays < 14) return 'vor etwas mehr als einer Woche angelegt';
+        if ($diffDays < 30) {
+            $weeks = (int) round($diffDays / 7);
+            return "vor {$weeks} Wochen angelegt";
+        }
+        if ($diffDays < 365) {
+            $months = (int) round($diffDays / 30);
+            return "laeuft seit {$months} Monaten";
+        }
+        $years = (int) floor($diffDays / 365);
+        if ($years === 1) return 'laeuft seit ueber einem Jahr';
+        return "laeuft seit ueber {$years} Jahren";
     }
 
     /** @return Fact[] */
