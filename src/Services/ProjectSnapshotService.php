@@ -163,17 +163,37 @@ class ProjectSnapshotService
             $project->budget_amount ? (float) $project->budget_amount : null,
         );
 
-        // Confidence-Berechnung (core)
+        // Lifetime-Signal: junge Projekte (< 24h alt) sind noch nicht "ausgereift"
+        // genug fuer eine Health-Aussage — fliesst als A) Subject-Level Confidence-Punkt
+        // und C) als progress-Achsen-Aussagekraft ein.
+        $hoursOld = $project->created_at ? (int) $project->created_at->diffInHours(now()) : 24 * 365;
+        $isMature = $hoursOld >= 24;
+
+        // Confidence-Berechnung (core) — A: lifetime_mature als zusaetzlicher Datenpunkt
         ['score' => $confScore, 'reason' => $confReason] = $this->confidence->compute([
             'canvas' => $canvasScore !== null,
             'planned_period' => $plannedStart || $plannedEnd,
             'planned_minutes' => $minutesPlanned > 0,
             'tasks' => $tasks->count() > 0,
+            'lifetime_mature' => $isMature,
         ]);
 
-        // Composite (core) — Worst-of-Color + gewichteter Score + Confidence-Gate in einem Schritt
+        // C) Axis-Confidence: progress-Achse ist bei jungen Projekten nicht aussagekraeftig.
+        // Linear ramp ueber 7 Tage: 0h → 0.0, 24h → ~0.14, 7d → 1.0.
+        $progressConfidence = max(0.0, min(1.0, $hoursOld / (24 * 7)));
+        $axisConfidence = [
+            'progress' => $progressConfidence,
+            // strategy + burn bleiben default 1.0 (volle Aussagekraft)
+        ];
+
+        // Composite (core) — Worst-of-Color + gewichteter Score + Confidence-Gate + Axis-Confidence
         $weights = ['strategy' => 30, 'progress' => 40, 'burn' => 30];
-        $composed = $this->compositor->compose($axes, $weights, $confScore);
+        $composed = $this->compositor->compose(
+            $axes,
+            $weights,
+            $confScore,
+            axisConfidence: $axisConfidence,
+        );
         $healthScore = $composed['score'];
         $healthColor = $composed['color'];
         $worstAxis = $composed['worst_axis'];
