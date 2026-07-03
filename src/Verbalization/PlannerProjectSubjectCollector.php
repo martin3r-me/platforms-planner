@@ -43,6 +43,7 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
      * Kommt zum Einsatz wenn keine Recipe uebergeben wird.
      */
     public const DEFAULT_SOURCES = [
+        // State-Facts
         'description' => true,
         'lifetime' => true,
         'core_health' => true,
@@ -53,14 +54,22 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
         'budget' => true,
         'termine' => true,
         'confidence' => true,
+        // Movement/Ableitungs-Facts (Weg A: Bewegung im Kontext)
+        'movement_summary' => true,
+        'scope_fulfillment' => true,
+        'ball_position' => true,
+        // Edges
         'edges_owner' => true,
         'edges_team' => true,
         'edges_org_anchors' => true,
         'edges_cost_center' => true,
     ];
 
-    public function collectState(mixed $project, ?CollectionRecipe $recipe = null): Subject
-    {
+    public function collectState(
+        mixed $project,
+        ?CollectionRecipe $recipe = null,
+        ?\DateTimeInterface $since = null,
+    ): Subject {
         if (! $project instanceof PlannerProject) {
             $project = PlannerProject::with(['user:id,name', 'projectUsers.user:id,name', 'entityLinks.entity:id,name'])
                 ->findOrFail($project);
@@ -86,6 +95,12 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
         };
 
         $facts = array_merge(
+            // Bewegungs- + Ableitungs-Facts kommen als ERSTES (bei CORE-Priority), damit die
+            // Prosa mit "was hat sich getan / wo stehen wir" beginnt statt mit "Zweck".
+            $isOn('movement_summary') && $since ? $this->factsMovementSummary($project, $since) : [],
+            $isOn('scope_fulfillment') ? $this->factsScopeFulfillment($project, $snapshot) : [],
+            $isOn('ball_position') ? $this->factsBallPosition($project, $snapshot) : [],
+            // State-Facts
             $isOn('description') ? $this->factsDescription($project) : [],
             $isOn('lifetime') ? $this->factsLifetime($project) : [],
             $isOn('core_health') ? $this->factsCore($project, $snapshot) : [],
@@ -264,10 +279,18 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
         $facts[] = new Fact(FactPriority::CORE, $taskTxt . '.', 'snapshot.tasks+live.done');
 
         if ($snapshot->story_points_total !== null && $snapshot->story_points_total > 0) {
-            $spDone = (int) $snapshot->story_points_done;
+            // Live-Topup: SP der seit Snapshot erledigten Tasks aufaddieren (analog Tasks-Count).
+            // Sonst Widerspruch: "3 seit Snapshot done" vs "0 SP erledigt".
+            $spSinceSnapshot = PlannerTask::where('project_id', $project->id)
+                ->where('is_done', true)
+                ->where('done_at', '>=', $sinceSnapshot)
+                ->get()
+                ->sum(fn ($t) => $t->story_points?->points() ?? 0);
+            $spDone = (int) $snapshot->story_points_done + (int) $spSinceSnapshot;
             $spTotal = (int) $snapshot->story_points_total;
+            $spDone = min($spDone, $spTotal); // safety
             $pct = $spTotal > 0 ? round($spDone / $spTotal * 100) : 0;
-            $facts[] = new Fact(FactPriority::QUALIFYING, "{$spDone} von {$spTotal} Story Points erledigt ({$pct}%).", 'snapshot.story_points');
+            $facts[] = new Fact(FactPriority::QUALIFYING, "{$spDone} von {$spTotal} Story Points erledigt ({$pct}%).", 'snapshot.story_points+live.done_sp');
         }
 
         if ((int) $snapshot->minutes_logged > 0) {
@@ -276,6 +299,197 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
         }
 
         return $facts;
+    }
+
+    /**
+     * Bewegungs-Zusammenfassung seit $since (typisch: created_at des letzten Feed-Outputs).
+     * Diese Fact-Klasse macht den Report von einem Zustand-Report zu einer
+     * "was hat sich getan" — Grundlage der Kunden-Kommunikation.
+     *
+     * Leer wenn nichts passiert ist — dann triggert der Feed-Refresh No-Delta-Skip
+     * und es entsteht kein neuer Output.
+     *
+     * @return Fact[]
+     */
+    protected function factsMovementSummary(PlannerProject $project, \DateTimeInterface $since): array
+    {
+        $doneSince = PlannerTask::where('project_id', $project->id)
+            ->where('is_done', true)
+            ->where('done_at', '>=', $since)
+            ->orderBy('done_at')
+            ->get(['id', 'title', 'story_points', 'project_slot_id', 'done_at']);
+
+        if ($doneSince->isEmpty()) {
+            return [];
+        }
+
+        $count = $doneSince->count();
+        $spTotal = $doneSince->sum(fn ($t) => $t->story_points?->points() ?? 0);
+        $sinceLabel = $this->humanizeSince($since);
+
+        $parts = ["{$sinceLabel} erledigt: **{$count} " . ($count === 1 ? 'Aufgabe' : 'Aufgaben') . "**"];
+        if ($spTotal > 0) {
+            $parts[] = "gesamt {$spTotal} Story Points";
+        }
+
+        // Welche Slots sind KOMPLETT durch diese Erledigungen jetzt geschlossen?
+        $slotIdsTouched = $doneSince->pluck('project_slot_id')->filter()->unique();
+        $closedSlots = [];
+        foreach ($slotIdsTouched as $slotId) {
+            $openInSlot = PlannerTask::where('project_id', $project->id)
+                ->where('project_slot_id', $slotId)
+                ->where('is_done', false)
+                ->count();
+            if ($openInSlot === 0) {
+                $slotName = \Platform\Planner\Models\PlannerProjectSlot::where('id', $slotId)->value('name');
+                if ($slotName) {
+                    $closedSlots[] = $slotName;
+                }
+            }
+        }
+
+        $summary = implode(', ', $parts) . '.';
+        if (! empty($closedSlots)) {
+            $slotList = '"' . implode('", "', $closedSlots) . '"';
+            $summary .= ' Damit ' . (count($closedSlots) === 1 ? 'ist Slot ' : 'sind die Slots ') . $slotList . ' vollstaendig abgeschlossen.';
+        }
+
+        return [new Fact(FactPriority::CORE, $summary, 'movement.since=' . $since->format('c'))];
+    }
+
+    protected function humanizeSince(\DateTimeInterface $since): string
+    {
+        $sinceCarbon = \Illuminate\Support\Carbon::parse($since->format('c'));
+        $days = (int) $sinceCarbon->diffInDays(now());
+        if ($days <= 1) return 'Seit gestern';
+        if ($days <= 3) return 'In den letzten Tagen';
+        if ($days <= 7) return 'In dieser Woche';
+        if ($days <= 14) return 'In den letzten zwei Wochen';
+        return 'Seit dem ' . $sinceCarbon->format('d.m.');
+    }
+
+    /**
+     * Scope-Erfuellung: welche Slots sind komplett abgearbeitet? Das ist eine
+     * konservative Ableitung (Slot-Vollstaendigkeit statt Canvas-Text-Match) —
+     * ehrlich, aber ohne komplizierte NLP-Ableitung.
+     *
+     * @return Fact[]
+     */
+    protected function factsScopeFulfillment(PlannerProject $project, ?PlannerProjectSnapshot $snapshot): array
+    {
+        $slots = \Platform\Planner\Models\PlannerProjectSlot::where('project_id', $project->id)
+            ->withCount([
+                'tasks as tasks_total' => fn ($q) => $q,
+                'tasks as tasks_open' => fn ($q) => $q->where('is_done', false),
+            ])
+            ->get();
+
+        if ($slots->isEmpty()) {
+            return [];
+        }
+
+        $fullyDone = $slots->filter(fn ($s) => (int) $s->tasks_total > 0 && (int) $s->tasks_open === 0);
+        $partiallyOpen = $slots->filter(fn ($s) => (int) $s->tasks_open > 0);
+
+        if ($fullyDone->isEmpty() && $partiallyOpen->isEmpty()) {
+            return [];
+        }
+
+        $facts = [];
+        if ($fullyDone->isNotEmpty()) {
+            $names = $fullyDone->pluck('name')->map(fn ($n) => "\"{$n}\"")->implode(', ');
+            $verb = $fullyDone->count() === 1 ? 'ist komplett abgeschlossen' : 'sind komplett abgeschlossen';
+            $facts[] = new Fact(FactPriority::CORE, "Slot {$names} {$verb}.", 'scope.fulfillment.done_slots');
+        }
+        if ($partiallyOpen->isNotEmpty()) {
+            $summary = $partiallyOpen->map(fn ($s) => "\"{$s->name}\" ({$s->tasks_open} offen)")->implode(', ');
+            $facts[] = new Fact(FactPriority::QUALIFYING, "In Arbeit: {$summary}.", 'scope.fulfillment.open_slots');
+        }
+        return $facts;
+    }
+
+    /**
+     * Ball-Position: wer ist gerade am Zug?
+     *
+     * Heuristik (bewusst konservativ):
+     *  - Keine offenen Tasks in BHG-Slots + Projekt hat weitere Rollen im Canvas
+     *    (Stakeholder mit 'Test' / 'Kunde' / 'Feedback' im Namen) → Ball beim Kunden
+     *  - Sonst → Ball bei Owner
+     *
+     * @return Fact[]
+     */
+    protected function factsBallPosition(PlannerProject $project, ?PlannerProjectSnapshot $snapshot): array
+    {
+        $openTotal = (int) ($snapshot?->tasks_open ?? PlannerTask::where('project_id', $project->id)
+            ->where('is_done', false)->count());
+        // Live-Topup: alles was seit Snapshot done ging, war offen — jetzt nicht mehr
+        if ($snapshot) {
+            $doneSinceSnapshot = PlannerTask::where('project_id', $project->id)
+                ->where('is_done', true)
+                ->where('done_at', '>=', $snapshot->taken_at ?? now()->startOfDay())
+                ->count();
+            $openTotal = max(0, $openTotal - $doneSinceSnapshot);
+        }
+
+        if ($project->done) {
+            return [new Fact(FactPriority::CORE, 'Projekt ist abgeschlossen.', 'ball.done')];
+        }
+
+        if ($openTotal === 0) {
+            // Alle Tasks BHG-seitig fertig — Ball vermutlich beim Externen.
+            // Prueft ob Stakeholder-Rollen im Canvas Kunden/Test-Rolle nahelegen.
+            $externalRole = $this->findExternalWaitingRole($project);
+            if ($externalRole) {
+                return [new Fact(
+                    FactPriority::CORE,
+                    "Alle geplanten BHG-Aufgaben sind erledigt. Ball liegt jetzt bei: {$externalRole}.",
+                    'ball.at_external',
+                )];
+            }
+            return [new Fact(
+                FactPriority::CORE,
+                'Alle geplanten Aufgaben sind erledigt. Naechster Schritt: Klaerung was folgt.',
+                'ball.no_open_tasks',
+            )];
+        }
+
+        $ownerName = $project->user?->name ?? 'Owner';
+        return [new Fact(
+            FactPriority::QUALIFYING,
+            "In Umsetzung durch {$ownerName} ({$openTotal} offen).",
+            'ball.at_owner',
+        )];
+    }
+
+    /**
+     * Sucht im Canvas-Stakeholder-Block nach Personen mit externen Rollen
+     * (Kunde/Test/Auftraggeber) — die Rolle wird als Ball-Empfaenger genannt.
+     */
+    protected function findExternalWaitingRole(PlannerProject $project): ?string
+    {
+        $canvas = PlannerProjectCanvas::with(['blocks.entries'])
+            ->where('project_id', $project->id)
+            ->where('status', '!=', 'closed')
+            ->latest('id')
+            ->first();
+        if (! $canvas) {
+            return null;
+        }
+        $stakeholderBlock = $canvas->blocks->first(fn ($b) => $b->block_type === 'stakeholders');
+        if (! $stakeholderBlock) {
+            return null;
+        }
+        // Suche einen Entry mit externem Rollen-Hinweis
+        $keywords = ['test', 'kunde', 'auftrag', 'feedback', 'endnutz', 'anwender', 'extern'];
+        foreach ($stakeholderBlock->entries as $entry) {
+            $haystack = mb_strtolower(($entry->title ?? '') . ' ' . ($entry->content ?? ''));
+            foreach ($keywords as $kw) {
+                if (str_contains($haystack, $kw)) {
+                    return trim($entry->title ?? 'Externem Stakeholder');
+                }
+            }
+        }
+        return null;
     }
 
     /** @return Fact[] */
