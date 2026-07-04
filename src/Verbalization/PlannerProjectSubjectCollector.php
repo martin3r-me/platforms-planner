@@ -6,6 +6,7 @@ use DateTimeImmutable;
 use Platform\Core\Verbalization\Claim;
 use Platform\Core\Verbalization\Edge;
 use Platform\Core\Verbalization\Enums\DataSource;
+use Platform\Core\Verbalization\Enums\FactNature;
 use Platform\Core\Verbalization\Enums\FactPriority;
 use Platform\Core\Verbalization\Enums\SubjectKind;
 use Platform\Core\Verbalization\Fact;
@@ -356,7 +357,7 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
             $summary .= ' Damit ' . (count($closedSlots) === 1 ? 'ist Slot ' : 'sind die Slots ') . $slotList . ' vollstaendig abgeschlossen.';
         }
 
-        return [new Fact(FactPriority::CORE, $summary, 'movement.since=' . $since->format('c'))];
+        return [new Fact(FactPriority::CORE, $summary, 'movement.since=' . $since->format('c'), FactNature::MOVEMENT)];
     }
 
     protected function humanizeSince(\DateTimeInterface $since): string
@@ -401,11 +402,11 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
         if ($fullyDone->isNotEmpty()) {
             $names = $fullyDone->pluck('name')->map(fn ($n) => "\"{$n}\"")->implode(', ');
             $verb = $fullyDone->count() === 1 ? 'ist komplett abgeschlossen' : 'sind komplett abgeschlossen';
-            $facts[] = new Fact(FactPriority::CORE, "Slot {$names} {$verb}.", 'scope.fulfillment.done_slots');
+            $facts[] = new Fact(FactPriority::CORE, "Slot {$names} {$verb}.", 'scope.fulfillment.done_slots', FactNature::DERIVATION);
         }
         if ($partiallyOpen->isNotEmpty()) {
             $summary = $partiallyOpen->map(fn ($s) => "\"{$s->name}\" ({$s->tasks_open} offen)")->implode(', ');
-            $facts[] = new Fact(FactPriority::QUALIFYING, "In Arbeit: {$summary}.", 'scope.fulfillment.open_slots');
+            $facts[] = new Fact(FactPriority::QUALIFYING, "In Arbeit: {$summary}.", 'scope.fulfillment.open_slots', FactNature::DERIVATION);
         }
         return $facts;
     }
@@ -434,7 +435,7 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
         }
 
         if ($project->done) {
-            return [new Fact(FactPriority::CORE, 'Projekt ist abgeschlossen.', 'ball.done')];
+            return [new Fact(FactPriority::CORE, 'Projekt ist abgeschlossen.', 'ball.done', FactNature::DERIVATION)];
         }
 
         if ($openTotal === 0) {
@@ -446,12 +447,14 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
                     FactPriority::CORE,
                     "Alle geplanten BHG-Aufgaben sind erledigt. Ball liegt jetzt bei: {$externalRole}.",
                     'ball.at_external',
+                    FactNature::DERIVATION,
                 )];
             }
             return [new Fact(
                 FactPriority::CORE,
                 'Alle geplanten Aufgaben sind erledigt. Naechster Schritt: Klaerung was folgt.',
                 'ball.no_open_tasks',
+                FactNature::DERIVATION,
             )];
         }
 
@@ -460,6 +463,7 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
             FactPriority::QUALIFYING,
             "In Umsetzung durch {$ownerName} ({$openTotal} offen).",
             'ball.at_owner',
+            FactNature::DERIVATION,
         )];
     }
 
