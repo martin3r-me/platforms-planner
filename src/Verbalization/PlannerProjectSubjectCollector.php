@@ -692,17 +692,52 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
     /** @return Edge[] */
     protected function edgesOwner(PlannerProject $project): array
     {
-        if (! $project->user_id) {
-            return [];
+        $edges = [];
+
+        if ($project->user_id) {
+            $edges[] = new Edge(
+                relation: 'verantwortet_von',
+                targetType: 'person',
+                targetId: (string) $project->user_id,
+                targetLabel: $project->user?->name ?? ('User #' . $project->user_id),
+                claim: Claim::systemVerified(),
+                weight: FactPriority::CORE,
+            );
         }
-        return [new Edge(
-            relation: 'verantwortet_von',
-            targetType: 'person',
-            targetId: (string) $project->user_id,
-            targetLabel: $project->user?->name ?? ('User #' . $project->user_id),
-            claim: Claim::systemVerified(),
-            weight: FactPriority::CORE,
-        )];
+
+        // Sekundaere Owner: distinct user_in_charge_id aus offenen Tasks, gruppiert
+        // pro Person mit den Slot-Namen die sie verantwortet. Damit sind AP-Owner
+        // sichtbar, wenn ein Projekt dezentral gefahren wird (typischer Fall:
+        // Projekt-Owner koordiniert, aber einzelne Arbeitspakete haben eigene
+        // Verantwortliche). Der Projekt-Owner wird uebersprungen, da er schon oben steht.
+        $projectOwnerId = (int) ($project->user_id ?? 0);
+        $tasks = PlannerTask::where('project_id', $project->id)
+            ->where('is_done', false)
+            ->whereNotNull('user_in_charge_id')
+            ->with(['userInCharge:id,name', 'projectSlot:id,name'])
+            ->get()
+            ->filter(fn ($t) => (int) $t->user_in_charge_id !== $projectOwnerId)
+            ->groupBy('user_in_charge_id');
+
+        foreach ($tasks as $userId => $tasksOfUser) {
+            /** @var \Illuminate\Support\Collection<int, PlannerTask> $tasksOfUser */
+            $first = $tasksOfUser->first();
+            $name = $first->userInCharge?->name ?? ('User #' . $userId);
+            $slotNames = $tasksOfUser->pluck('projectSlot.name')->filter()->unique()->values();
+            $label = $slotNames->isNotEmpty()
+                ? $name . ' — verantwortet AP: ' . $slotNames->implode(', ')
+                : $name;
+            $edges[] = new Edge(
+                relation: 'verantwortet_arbeitspaket',
+                targetType: 'person',
+                targetId: (string) $userId,
+                targetLabel: $label,
+                claim: Claim::systemVerified(),
+                weight: FactPriority::QUALIFYING,
+            );
+        }
+
+        return $edges;
     }
 
     /** @return Edge[] */
