@@ -36,6 +36,15 @@ class PlannerProjectTemplate implements NarrativeTemplate
             $lines[] = 'Verantwortlich: ' . $owner->targetLabel;
         }
 
+        // AP-Owner explizit ausweisen — sonst zieht das LLM aus "n offene Tasks" +
+        // Projekt-Owner das Fazit "alles vom Owner", was bei dezentraler
+        // Verantwortung falsch ist.
+        $apOwners = $this->edgesByRelation($subject, 'verantwortet_arbeitspaket');
+        if (! empty($apOwners)) {
+            $labels = array_map(fn ($e) => $e->targetLabel, $apOwners);
+            $lines[] = 'Arbeitspaket-Verantwortliche: ' . implode('; ', $labels);
+        }
+
         $orgAnchors = $this->edgesByRelation($subject, 'gehört_zu');
         if (! empty($orgAnchors)) {
             $names = array_map(fn ($e) => $e->targetLabel, $orgAnchors);
