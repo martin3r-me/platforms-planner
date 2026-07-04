@@ -58,6 +58,7 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
         'movement_summary' => true,
         'scope_fulfillment' => true,
         'ball_position' => true,
+        'open_by_owner' => true,
         // Edges
         'edges_owner' => true,
         'edges_team' => true,
@@ -104,6 +105,7 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
             $isOn('description') ? $this->factsDescription($project) : [],
             $isOn('lifetime') ? $this->factsLifetime($project) : [],
             $isOn('core_health') ? $this->factsCore($project, $snapshot) : [],
+            $isOn('open_by_owner') ? $this->factsOpenByOwner($project) : [],
             $isOn('slots') ? $this->factsSlots($snapshot, $limit('slots', 'top_n', 3)) : [],
             $isOn('frogs') ? $this->factsFrogs($snapshot, $limit('frogs', 'top_n', 3)) : [],
             $isOn('people') ? $this->factsPeople($snapshot, $limit('people', 'top_n', 3)) : [],
@@ -490,6 +492,46 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
             }
         }
         return null;
+    }
+
+    /**
+     * Offene Aufgaben pro AP-Verantwortlichem — als CORE-Fact.
+     *
+     * Zaehlt live und teilt nach user_in_charge_id auf. Fuer jede Person werden
+     * die Slot-Namen mitgegeben, in denen sie zustaendig ist. Damit ist die
+     * Task-Zahl im Prosa-Prompt eindeutig owner-attribuiert und das LLM kann
+     * nicht mehr naiv "n offene Tasks" dem Projekt-Owner zuschlagen.
+     *
+     * @return Fact[]
+     */
+    protected function factsOpenByOwner(PlannerProject $project): array
+    {
+        $tasks = PlannerTask::where('project_id', $project->id)
+            ->where('is_done', false)
+            ->whereNotNull('user_in_charge_id')
+            ->with(['userInCharge:id,name', 'projectSlot:id,name'])
+            ->get();
+
+        if ($tasks->isEmpty()) {
+            return [];
+        }
+
+        $grouped = $tasks->groupBy('user_in_charge_id');
+        $parts = $grouped->map(function ($tasksOfUser, $userId) {
+            /** @var \Illuminate\Support\Collection<int, PlannerTask> $tasksOfUser */
+            $first = $tasksOfUser->first();
+            $name = $first->userInCharge?->name ?? ('User #' . $userId);
+            $count = $tasksOfUser->count();
+            $slotNames = $tasksOfUser->pluck('projectSlot.name')->filter()->unique()->values();
+            $slots = $slotNames->isNotEmpty() ? ' (' . $slotNames->implode(', ') . ')' : '';
+            return "{$count} bei {$name}{$slots}";
+        })->values()->implode('; ');
+
+        return [new Fact(
+            FactPriority::CORE,
+            "Offene Aufgaben nach Verantwortung: {$parts}.",
+            'live.open_by_owner',
+        )];
     }
 
     /** @return Fact[] */
