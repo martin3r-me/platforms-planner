@@ -163,6 +163,9 @@ class PlannerKeyResultMetricProvider implements KeyResultMetricProvider
     {
         $ids = $this->collectSelectorIds($requests, 'project_id');
         $rows = empty($ids) ? collect() : $this->scoped($requests)
+            // Overdue misst bewusst AUCH vergessene Tasks: Staleness-Scope hier raus
+            // (anders als bei der Done-Quote, die nur lebende Arbeit zählt).
+            ->withoutGlobalScope(\Platform\Core\Scopes\StalenessScope::class)
             ->whereIn('project_id', $ids)
             ->where('is_done', false)
             ->whereNotNull('due_date')
