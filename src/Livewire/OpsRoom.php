@@ -33,6 +33,7 @@ class OpsRoom extends Component
             ->pluck('a.id');
 
         return PlannerProjectSnapshot::with(['project:id,name,kind,status,done'])
+            ->whereHas('project') // schliesst soft-deletete Projekte aus (Karteileichen-Geister)
             ->whereIn('id', $latestIds)
             ->get()
             ->filter(fn ($s) => ! ($s->project?->done ?? false))
@@ -185,6 +186,13 @@ class OpsRoom extends Component
         $trendRaw = DB::table('planner_project_snapshots')
             ->where('team_id', $team->id)
             ->where('taken_on', '>=', $todayStart->copy()->subDays(29)->toDateString())
+            ->whereExists(function ($q) {
+                // nur Snapshots von noch existierenden (nicht soft-deleteten) Projekten
+                $q->select(DB::raw(1))
+                    ->from('planner_projects')
+                    ->whereColumn('planner_projects.id', 'planner_project_snapshots.project_id')
+                    ->whereNull('planner_projects.deleted_at');
+            })
             ->groupBy('taken_on')
             ->orderBy('taken_on')
             ->selectRaw('taken_on, AVG(health_score) as avg_score, SUM(CASE WHEN health_color = "red" THEN 1 ELSE 0 END) as red_count')
