@@ -46,6 +46,7 @@ class PlannerServiceProvider extends ServiceProvider
                 \Platform\Planner\Console\Commands\EncryptTaskDescriptions::class,
                 \Platform\Planner\Console\Commands\ProcessAiAssignedTasks::class,
                 \Platform\Planner\Console\Commands\BuildProjectSnapshotsCommand::class,
+                \Platform\Planner\Console\Commands\PruneProjectSnapshotsCommand::class,
             ]);
         }
     }
@@ -66,6 +67,14 @@ class PlannerServiceProvider extends ServiceProvider
                 ->register(new \Platform\Planner\Organization\PlannerEntityLinkProvider());
         } catch (\Throwable $e) {
             // Organization-Modul nicht geladen
+        }
+
+        // KeyResultMetricProvider registrieren (KR-Metriken aus dem Planner)
+        try {
+            resolve(\Platform\Core\Services\KeyResultMetricRegistry::class)
+                ->register(new \Platform\Planner\Organization\PlannerKeyResultMetricProvider());
+        } catch (\Throwable $e) {
+            // Registry nicht verfügbar
         }
 
         // PersonActivityProvider registrieren (loose Kopplung mit Organization-Modul)
@@ -193,6 +202,13 @@ class PlannerServiceProvider extends ServiceProvider
                 // Nightly Project-Snapshots — alle nicht-soft-deleted Projekte
                 $schedule->command('planner:build-project-snapshots --trigger=cron')
                     ->dailyAt('03:00')
+                    ->withoutOverlapping()
+                    ->runInBackground()
+                    ->appendOutputTo(storage_path('logs/planner-snapshots.log'));
+
+                // Retention: Snapshots von > 90 Tage soft-deleteten Projekten aufraeumen
+                $schedule->command('planner:prune-project-snapshots --days=90')
+                    ->weeklyOn(1, '04:00')
                     ->withoutOverlapping()
                     ->runInBackground()
                     ->appendOutputTo(storage_path('logs/planner-snapshots.log'));
