@@ -131,7 +131,7 @@ class PlannerKeyResultMetricProvider implements KeyResultMetricProvider
         $ids = $this->collectSelectorIds($requests, 'project_id');
         $tasks = empty($ids) ? collect() : $this->scoped($requests)
             ->whereIn('project_id', $ids)
-            ->get(['id', 'project_id', 'dod_items']);
+            ->get(['id', 'project_id', 'dod']); // dod_items ist ein Accessor auf die Spalte `dod`
 
         $agg = []; // project_id => [checked, total]
         foreach ($tasks as $task) {
