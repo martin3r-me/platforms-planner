@@ -286,6 +286,9 @@ class PlannerServiceProvider extends ServiceProvider
             $registry->register(new \Platform\Planner\Tools\GetProjectSnapshotTool());
             $registry->register(new \Platform\Planner\Tools\GetProjectSnapshotTrendTool());
             $registry->register(new \Platform\Planner\Tools\ListProjectSnapshotsSummaryTool());
+
+            // Cross-System-Diagnose: laufen die naechtlichen Snapshot-Crons? (planner/helpdesk/dev)
+            $registry->register(new \Platform\Planner\Tools\SnapshotSystemsDiagnoseTool());
         } catch (\Throwable $e) {
             // Silent fail - ToolRegistry möglicherweise nicht verfügbar
             \Log::warning('Planner: Tool-Registrierung fehlgeschlagen', ['error' => $e->getMessage()]);
