@@ -48,6 +48,32 @@ class PlannerServiceProvider extends ServiceProvider
                 \Platform\Planner\Console\Commands\BuildProjectSnapshotsCommand::class,
                 \Platform\Planner\Console\Commands\PruneProjectSnapshotsCommand::class,
             ]);
+
+            // Scheduler-Registrierung MUSS in register() liegen (wie dev/helpdesk):
+            // in boot() feuerte die afterResolving-Closure nie, weil sie zu spaet /
+            // hinter fehleranfaelliger Boot-Logik registriert wurde -> Cron lief nie.
+            $this->app->afterResolving(Schedule::class, function (Schedule $schedule) {
+                // alle 30 Minuten AI-Tasks abarbeiten (Command schuetzt sich selbst via Cache-Lock)
+                $schedule->command('planner:process-ai-tasks')
+                    ->everyThirtyMinutes()
+                    ->withoutOverlapping()
+                    ->runInBackground()
+                    ->appendOutputTo(storage_path('logs/planner-ai-tasks.log'));
+
+                // Nightly Project-Snapshots — alle nicht-soft-deleted Projekte
+                $schedule->command('planner:build-project-snapshots --trigger=cron')
+                    ->dailyAt('03:00')
+                    ->withoutOverlapping()
+                    ->runInBackground()
+                    ->appendOutputTo(storage_path('logs/planner-snapshots.log'));
+
+                // Retention: Snapshots von > 90 Tage soft-deleteten Projekten aufraeumen
+                $schedule->command('planner:prune-project-snapshots --days=90')
+                    ->weeklyOn(1, '04:00')
+                    ->withoutOverlapping()
+                    ->runInBackground()
+                    ->appendOutputTo(storage_path('logs/planner-snapshots.log'));
+            });
         }
     }
 
@@ -189,31 +215,8 @@ class PlannerServiceProvider extends ServiceProvider
                 ->register('planner', 'Platform\\Planner');
         } catch (\Throwable $e) {}
 
-        // Scheduler Hook (falls die consuming App Scheduling nutzt):
-        // alle 30 Minuten AI-Tasks abarbeiten (zusätzlich schützt der Command selbst via Cache-Lock).
-        if ($this->app->runningInConsole()) {
-            $this->app->afterResolving(Schedule::class, function (Schedule $schedule) {
-                $schedule->command('planner:process-ai-tasks')
-                    ->everyThirtyMinutes()
-                    ->withoutOverlapping()
-                    ->runInBackground()
-                    ->appendOutputTo(storage_path('logs/planner-ai-tasks.log'));
-
-                // Nightly Project-Snapshots — alle nicht-soft-deleted Projekte
-                $schedule->command('planner:build-project-snapshots --trigger=cron')
-                    ->dailyAt('03:00')
-                    ->withoutOverlapping()
-                    ->runInBackground()
-                    ->appendOutputTo(storage_path('logs/planner-snapshots.log'));
-
-                // Retention: Snapshots von > 90 Tage soft-deleteten Projekten aufraeumen
-                $schedule->command('planner:prune-project-snapshots --days=90')
-                    ->weeklyOn(1, '04:00')
-                    ->withoutOverlapping()
-                    ->runInBackground()
-                    ->appendOutputTo(storage_path('logs/planner-snapshots.log'));
-            });
-        }
+        // Scheduler-Registrierung erfolgt in register() (siehe dort) — nicht hier in boot(),
+        // damit die afterResolving-Closure garantiert vor der Schedule-Aufloesung greift.
     }
     
     /**
