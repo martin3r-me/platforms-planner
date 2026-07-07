@@ -206,7 +206,12 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
             : FactPriority::CONTEXT;
 
         $datePart = $created->format('d.m.Y');
-        return [new Fact($priority, "Angelegt am {$datePart} — {$human}.", 'project.created_at')];
+        return [new Fact(
+            $priority,
+            "Angelegt am {$datePart} — {$human}.",
+            'project.created_at',
+            hashKey: 'lifetime:' . $created->format('Y-m-d'),
+        )];
     }
 
     protected function humanizeProjectAge(int $diffDays, \Illuminate\Support\Carbon $created): string
@@ -357,7 +362,19 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
             $summary .= ' Damit ' . (count($closedSlots) === 1 ? 'ist Slot ' : 'sind die Slots ') . $slotList . ' vollstaendig abgeschlossen.';
         }
 
-        return [new Fact(FactPriority::CORE, $summary, 'movement.since=' . $since->format('c'), FactNature::MOVEMENT)];
+        // Stabile Signatur — Zeitfenster-Text ("Seit gestern"/"In dieser Woche")
+        // gehoert NICHT in den Hash, sonst driftet der Dedup mit der Uhr.
+        // Content-Signatur: erledigte-count + SP + geschlossene Slot-Namen.
+        $slotSig = ! empty($closedSlots) ? implode(',', $closedSlots) : '_';
+        $hashKey = "movement:done={$count}:sp={$spTotal}:slots={$slotSig}";
+
+        return [new Fact(
+            FactPriority::CORE,
+            $summary,
+            'movement.since=' . $since->format('c'),
+            FactNature::MOVEMENT,
+            hashKey: $hashKey,
+        )];
     }
 
     protected function humanizeSince(\DateTimeInterface $since): string
@@ -706,13 +723,18 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
             return [];
         }
         $days = (int) $snapshot->days_to_planned_end;
+        // Stabile Signatur: nicht die konkreten Tage (driftet taeglich), sondern
+        // ein Bucket. Wechselt nur bei semantisch bedeutsamem Uebergang (Termin
+        // rueckt in kritischen Bereich / geht in Overdue ueber).
+        $bucket = $days < 0 ? 'overdue' : ($days <= 14 ? 'near' : 'far');
+        $hashKey = "days_to_end:bucket={$bucket}";
         if ($days < 0) {
-            return [new Fact(FactPriority::CORE, "Geplanter Endtermin liegt " . abs($days) . " Tage zurück.", 'snapshot.days_to_end')];
+            return [new Fact(FactPriority::CORE, "Geplanter Endtermin liegt " . abs($days) . " Tage zurück.", 'snapshot.days_to_end', hashKey: $hashKey)];
         }
         if ($days <= 14) {
-            return [new Fact(FactPriority::QUALIFYING, "Geplanter Endtermin in {$days} Tagen.", 'snapshot.days_to_end')];
+            return [new Fact(FactPriority::QUALIFYING, "Geplanter Endtermin in {$days} Tagen.", 'snapshot.days_to_end', hashKey: $hashKey)];
         }
-        return [new Fact(FactPriority::CONTEXT, "Geplanter Endtermin in {$days} Tagen.", 'snapshot.days_to_end')];
+        return [new Fact(FactPriority::CONTEXT, "Geplanter Endtermin in {$days} Tagen.", 'snapshot.days_to_end', hashKey: $hashKey)];
     }
 
     /** @return Fact[] */
