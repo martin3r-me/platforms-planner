@@ -31,6 +31,8 @@ class SnapshotSystemsDiagnoseTool implements ToolContract, ToolMetadataContract
             'entity_table' => 'planner_projects',
             'command' => 'planner:build-project-snapshots',
             'scheduled_at' => '03:00 taeglich',
+            // Modell nutzt SoftDeletes -> deleted_at ist als "geloescht" zu werten
+            'soft_deletes' => true,
         ],
         [
             'key' => 'helpdesk_boards',
@@ -38,6 +40,9 @@ class SnapshotSystemsDiagnoseTool implements ToolContract, ToolMetadataContract
             'entity_table' => 'helpdesk_boards',
             'command' => 'helpdesk:build-board-snapshots',
             'scheduled_at' => '03:15 taeglich',
+            // HelpdeskBoard nutzt KEIN SoftDeletes-Trait, obwohl die Tabelle eine
+            // deleted_at-Spalte hat -> die App ignoriert deleted_at, also NICHT filtern.
+            'soft_deletes' => false,
         ],
         [
             'key' => 'dev_packages',
@@ -45,6 +50,7 @@ class SnapshotSystemsDiagnoseTool implements ToolContract, ToolMetadataContract
             'entity_table' => 'dev_packages',
             'command' => 'dev:build-package-snapshots',
             'scheduled_at' => '03:30 taeglich',
+            'soft_deletes' => true,
         ],
     ];
 
@@ -136,7 +142,9 @@ class SnapshotSystemsDiagnoseTool implements ToolContract, ToolMetadataContract
                 $expected = null;
                 if (Schema::hasTable($sys['entity_table'])) {
                     $eq = DB::table($sys['entity_table']);
-                    if (Schema::hasColumn($sys['entity_table'], 'deleted_at')) {
+                    // deleted_at nur beruecksichtigen, wenn das Modell wirklich SoftDeletes nutzt.
+                    // (helpdesk_boards hat die Spalte, das Modell ignoriert sie aber.)
+                    if (($sys['soft_deletes'] ?? false) && Schema::hasColumn($sys['entity_table'], 'deleted_at')) {
                         $eq->whereNull('deleted_at');
                     }
                     if ($teamId !== null && Schema::hasColumn($sys['entity_table'], 'team_id')) {
