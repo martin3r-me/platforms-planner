@@ -480,6 +480,58 @@ class ProjectsCleanup extends Component
         session()->flash('cleanup_message', 'Status auf Passiv gesetzt.');
     }
 
+    public function bulkSetInaktiv(): void
+    {
+        if (empty($this->selectedIds)) return;
+        $team = Auth::user()->currentTeam;
+        PlannerProject::query()
+            ->where('team_id', $team->id)
+            ->whereIn('id', $this->selectedIds)
+            ->update(['status' => \Platform\Planner\Enums\ProjectStatus::INAKTIV->value]);
+        $this->selectedIds = [];
+        unset($this->rows);
+        session()->flash('cleanup_message', 'Status auf Inaktiv gesetzt.');
+    }
+
+    public function bulkMarkDone(): void
+    {
+        if (empty($this->selectedIds)) return;
+        $team = Auth::user()->currentTeam;
+        PlannerProject::query()
+            ->where('team_id', $team->id)
+            ->whereIn('id', $this->selectedIds)
+            ->update(['done' => true, 'done_at' => now()]);
+        $this->selectedIds = [];
+        unset($this->rows);
+        session()->flash('cleanup_message', 'Ausgewählte Projekte als erledigt markiert.');
+    }
+
+    // ── Einzel-Status/Done-Aktionen ─────────────────────────────
+
+    public function setStatus(int $projectId, string $status): void
+    {
+        // Whitelist
+        if (! in_array($status, ['aktiv', 'passiv', 'inaktiv'], true)) return;
+        $team = Auth::user()->currentTeam;
+        PlannerProject::query()
+            ->where('team_id', $team->id)
+            ->where('id', $projectId)
+            ->update(['status' => $status]);
+        unset($this->rows);
+        session()->flash('cleanup_message', "Status auf '{$status}' gesetzt.");
+    }
+
+    public function markDone(int $projectId): void
+    {
+        $team = Auth::user()->currentTeam;
+        PlannerProject::query()
+            ->where('team_id', $team->id)
+            ->where('id', $projectId)
+            ->update(['done' => true, 'done_at' => now()]);
+        unset($this->rows);
+        session()->flash('cleanup_message', 'Projekt als erledigt markiert.');
+    }
+
     // ── Entity-Zuweisung ────────────────────────────────────────
 
     public function openEntityModal(int $projectId): void

@@ -107,11 +107,25 @@
             <button wire:click="clearSelection" class="text-xs text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] underline">zurücksetzen</button>
             <div class="ml-auto flex items-center gap-2">
                 <button
+                    wire:click="bulkMarkDone"
+                    class="inline-flex items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 px-3 py-1.5 text-xs font-medium hover:bg-emerald-100"
+                >
+                    @svg('heroicon-o-check-circle', 'w-4 h-4')
+                    Als erledigt markieren
+                </button>
+                <button
                     wire:click="bulkSetPassiv"
                     class="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 text-amber-800 px-3 py-1.5 text-xs font-medium hover:bg-amber-100"
                 >
                     @svg('heroicon-o-pause', 'w-4 h-4')
-                    Auf Passiv setzen
+                    Auf Passiv
+                </button>
+                <button
+                    wire:click="bulkSetInaktiv"
+                    class="inline-flex items-center gap-1 rounded-lg border border-zinc-300 bg-zinc-50 text-zinc-700 px-3 py-1.5 text-xs font-medium hover:bg-zinc-100"
+                >
+                    @svg('heroicon-o-archive-box', 'w-4 h-4')
+                    Auf Inaktiv
                 </button>
                 <button
                     wire:click="askBulkDelete"
@@ -126,7 +140,7 @@
 
     {{-- Tabelle --}}
     <div class="rounded-xl border border-[var(--ui-border)] bg-white overflow-hidden">
-        <div class="grid grid-cols-[36px_1fr_140px_60px_180px_110px_60px_80px_120px_160px_110px] gap-2 items-center px-3 py-2 border-b border-[var(--ui-border)] bg-[var(--ui-muted-5)] text-[10px] uppercase tracking-wider text-[var(--ui-muted)] font-semibold">
+        <div class="grid grid-cols-[36px_1fr_140px_60px_180px_110px_60px_80px_120px_160px_180px] gap-2 items-center px-3 py-2 border-b border-[var(--ui-border)] bg-[var(--ui-muted-5)] text-[10px] uppercase tracking-wider text-[var(--ui-muted)] font-semibold">
             <div>
                 <input
                     type="checkbox"
@@ -149,7 +163,7 @@
 
         @forelse($this->rows as $row)
             @php $t = $tone($row['health_color']); @endphp
-            <div class="grid grid-cols-[36px_1fr_140px_60px_180px_110px_60px_80px_120px_160px_110px] gap-2 items-center px-3 py-2 border-b border-[var(--ui-border)]/60 hover:bg-[var(--ui-muted-5)] text-sm">
+            <div class="grid grid-cols-[36px_1fr_140px_60px_180px_110px_60px_80px_120px_160px_180px] gap-2 items-center px-3 py-2 border-b border-[var(--ui-border)]/60 hover:bg-[var(--ui-muted-5)] text-sm">
                 <div>
                     <input
                         type="checkbox"
@@ -269,6 +283,38 @@
                     >
                         @svg('heroicon-o-tag', 'w-4 h-4')
                     </button>
+
+                    {{-- Status-Toggle: kontextabhängig --}}
+                    @if($row['status'] === 'aktiv')
+                        <button
+                            type="button"
+                            wire:click="setStatus({{ $row['id'] }}, 'passiv')"
+                            class="p-1.5 rounded hover:bg-amber-50 text-amber-600"
+                            title="Auf Passiv setzen"
+                        >
+                            @svg('heroicon-o-pause-circle', 'w-4 h-4')
+                        </button>
+                    @else
+                        <button
+                            type="button"
+                            wire:click="setStatus({{ $row['id'] }}, 'aktiv')"
+                            class="p-1.5 rounded hover:bg-emerald-50 text-emerald-600"
+                            title="Aktivieren"
+                        >
+                            @svg('heroicon-o-play-circle', 'w-4 h-4')
+                        </button>
+                    @endif
+
+                    {{-- Abschließen --}}
+                    <button
+                        type="button"
+                        wire:click="markDone({{ $row['id'] }})"
+                        class="p-1.5 rounded hover:bg-emerald-50 text-emerald-700"
+                        title="Als erledigt markieren"
+                    >
+                        @svg('heroicon-o-check-circle', 'w-4 h-4')
+                    </button>
+
                     <a href="{{ route('planner.projects.show', $row['id']) }}" target="_blank"
                        class="p-1.5 rounded hover:bg-zinc-100 text-zinc-500"
                        title="Detail öffnen">
