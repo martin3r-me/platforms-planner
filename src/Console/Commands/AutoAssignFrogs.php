@@ -2,6 +2,8 @@
 
 namespace Platform\Planner\Console\Commands;
 
+use Platform\Planner\Enums\TaskLifecycleState;
+
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Platform\Planner\Models\PlannerTask;
@@ -24,7 +26,7 @@ class AutoAssignFrogs extends Command
         $dryRun = $this->option('dry-run');
 
         $query = PlannerTask::withStale()
-            ->where('is_done', false);
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value);
 
         $total = (clone $query)->count();
 

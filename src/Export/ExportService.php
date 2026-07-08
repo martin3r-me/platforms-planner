@@ -2,6 +2,8 @@
 
 namespace Platform\Planner\Export;
 
+use Platform\Planner\Enums\TaskLifecycleState;
+
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Export\Contracts\ExportFormatter;
@@ -104,9 +106,9 @@ class ExportService
             'story_points' => $task->story_points?->value,
             'story_points_label' => $task->story_points?->label(),
             'story_points_numeric' => $task->story_points?->points(),
-            'status' => $task->is_done ? 'erledigt' : 'offen',
-            'is_done' => $task->is_done,
-            'done_at' => $task->done_at?->toIso8601String(),
+            'lifecycle_state' => $task->lifecycle_state?->value,
+            'is_done' => $task->lifecycle_state === TaskLifecycleState::COMPLETED,
+            'lifecycle_state_changed_at' => $task->lifecycle_state_changed_at?->toIso8601String(),
             'is_frog' => $task->is_frog,
             'due_date' => $task->due_date?->format('Y-m-d'),
             'original_due_date' => $task->original_due_date?->format('Y-m-d'),
@@ -175,8 +177,9 @@ class ExportService
             'description' => $project->description,
             'project_type' => $project->project_type?->value,
             'project_type_label' => $project->project_type?->label(),
-            'done' => $project->done,
-            'done_at' => $project->done_at?->toIso8601String(),
+            'lifecycle_state' => $project->lifecycle_state?->value,
+            'done' => $project->lifecycle_state === \Platform\Planner\Enums\ProjectLifecycleState::COMPLETED,
+            'lifecycle_state_changed_at' => $project->lifecycle_state_changed_at?->toIso8601String(),
             'planned_minutes' => $project->totalPlannedMinutes(),
             'created_at' => $project->created_at?->toIso8601String(),
             'updated_at' => $project->updated_at?->toIso8601String(),
@@ -248,8 +251,8 @@ class ExportService
     {
         $allTasks = $project->tasks;
 
-        $openTasks = $allTasks->where('is_done', false);
-        $doneTasks = $allTasks->where('is_done', true);
+        $openTasks = $allTasks->where('lifecycle_state', TaskLifecycleState::ACTIVE);
+        $doneTasks = $allTasks->where('lifecycle_state', TaskLifecycleState::COMPLETED);
 
         return [
             'total_tasks' => $allTasks->count(),

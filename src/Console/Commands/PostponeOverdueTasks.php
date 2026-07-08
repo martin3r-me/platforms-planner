@@ -2,6 +2,8 @@
 
 namespace Platform\Planner\Console\Commands;
 
+use Platform\Planner\Enums\TaskLifecycleState;
+
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Platform\Planner\Models\PlannerTask;
@@ -28,7 +30,7 @@ class PostponeOverdueTasks extends Command
         $nextNoon = $now->copy()->addDay()->setTime(12, 0, 0);
 
         $query = PlannerTask::withStale()
-            ->where('is_done', false)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->whereNotNull('due_date')
             ->where('due_date', '<', $now);
 

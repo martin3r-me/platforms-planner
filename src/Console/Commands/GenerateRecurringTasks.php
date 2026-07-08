@@ -2,6 +2,8 @@
 
 namespace Platform\Planner\Console\Commands;
 
+use Platform\Planner\Enums\TaskLifecycleState;
+
 use Illuminate\Console\Command;
 use Platform\Planner\Models\PlannerRecurringTask;
 use Platform\Planner\Models\PlannerTask;
@@ -99,7 +101,7 @@ class GenerateRecurringTasks extends Command
             if (!$isDryRun) {
                 try {
                     $task = $recurringTask->createTask();
-                    $status = $task->is_done ? ' (erledigt)' : '';
+                    $status = $task->lifecycle_state === TaskLifecycleState::COMPLETED ? ' (erledigt)' : '';
                     $this->info("     ✅ Task erstellt (ID: {$task->id}){$status}");
                     $createdCount++;
                 } catch (\Exception $e) {

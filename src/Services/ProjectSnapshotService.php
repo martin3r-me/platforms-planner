@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Platform\Core\Health\Services\ConfidenceCalculator;
 use Platform\Core\Health\Services\HealthCompositor;
 use Platform\Core\Models\User;
+use Platform\Planner\Enums\TaskLifecycleState;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectSnapshot;
 use Platform\Planner\Models\PlannerTask;
@@ -98,8 +99,8 @@ class ProjectSnapshotService
     private function computeScalars(PlannerProject $project, Carbon $now): array
     {
         $tasks = $project->tasks;
-        $openTasks = $tasks->where('is_done', false);
-        $doneTasks = $tasks->where('is_done', true);
+        $openTasks = $tasks->where('lifecycle_state', TaskLifecycleState::ACTIVE);
+        $doneTasks = $tasks->where('lifecycle_state', TaskLifecycleState::COMPLETED);
         $overdueTasks = $openTasks->filter(fn ($t) => $t->due_date && $t->due_date->isPast());
         $frogTasks = $openTasks->where('is_frog', true);
         $postponedTasks = $tasks->filter(fn ($t) => ((int) ($t->postpone_count ?? 0)) > 0);
@@ -198,10 +199,13 @@ class ProjectSnapshotService
         $healthColor = $composed['color'];
         $worstAxis = $composed['worst_axis'];
 
+        // Snapshot.status column continues to exist for historical audit but
+        // now stores the lifecycle_state string (aktiv/ruhend/abgeschlossen/verworfen).
+        // Later Schritt: rename column to lifecycle_state or drop it entirely.
         return [
             'team_id' => $project->team_id,
             'kind' => $project->kind?->value,
-            'status' => $project->status?->value,
+            'status' => $project->lifecycle_state?->value ?? 'aktiv',
             'color' => $project->color,
 
             'tasks_total' => $tasks->count(),
@@ -321,8 +325,8 @@ class ProjectSnapshotService
     {
         foreach ($project->projectSlots as $slot) {
             $slotTasks = $project->tasks->where('project_slot_id', $slot->id);
-            $open = $slotTasks->where('is_done', false)->count();
-            $done = $slotTasks->where('is_done', true)->count();
+            $open = $slotTasks->where('lifecycle_state', TaskLifecycleState::ACTIVE)->count();
+            $done = $slotTasks->where('lifecycle_state', TaskLifecycleState::COMPLETED)->count();
 
             $snapshot->slots()->create([
                 'slot_id' => $slot->id,
@@ -338,7 +342,7 @@ class ProjectSnapshotService
     private function writeFrogs(PlannerProjectSnapshot $snapshot, PlannerProject $project): void
     {
         $frogs = $project->tasks
-            ->where('is_done', false)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->where('is_frog', true)
             ->sort(function ($a, $b) {
                 $aOverdue = ($a->due_date && $a->due_date->isPast()) ? 0 : 1;
@@ -384,11 +388,11 @@ class ProjectSnapshotService
         $userNames = User::whereIn('id', $userIds)->pluck('name', 'id');
 
         foreach ($byUser as $userId => $userTasks) {
-            $openTasks = $userTasks->where('is_done', false);
+            $openTasks = $userTasks->where('lifecycle_state', TaskLifecycleState::ACTIVE);
             if ($openTasks->isEmpty()) {
                 continue;
             }
-            $doneTasks = $userTasks->where('is_done', true);
+            $doneTasks = $userTasks->where('lifecycle_state', TaskLifecycleState::COMPLETED);
 
             $snapshot->people()->create([
                 'user_id' => $userId,

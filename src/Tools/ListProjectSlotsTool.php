@@ -111,7 +111,7 @@ class ListProjectSlotsTool implements ToolContract
             
             // Standard-Operationen für Backlog anwenden
             $this->applyStandardFilters($backlogQuery, $arguments, [
-                'title', 'description', 'is_done', 'due_date', 'created_at', 'updated_at'
+                'title', 'description', 'lifecycle_state', 'due_date', 'created_at', 'updated_at'
             ]);
             
             $this->applyStandardSearch($backlogQuery, $arguments, ['title', 'description']);

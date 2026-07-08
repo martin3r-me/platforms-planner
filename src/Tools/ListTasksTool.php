@@ -198,7 +198,8 @@ class ListTasksTool implements ToolContract
             // Standard-Sortierung anwenden (Default: due_date asc, dann created_at desc)
             $this->applyStandardSort($query, $arguments, [
                 'title', 'description', 'due_date', 'created_at', 'updated_at',
-                'is_done', 'done_at', 'user_in_charge_id', 'planned_minutes', 'last_viewed_at'
+                'lifecycle_state', 'lifecycle_state_changed_at',
+                'user_in_charge_id', 'planned_minutes', 'last_viewed_at'
             ], 'due_date', 'asc');
             
             // Wenn keine explizite Sortierung, füge created_at desc hinzu
@@ -233,7 +234,8 @@ class ListTasksTool implements ToolContract
                     'due_date' => $task->due_date?->toIso8601String(),
                     'is_done' => $task->lifecycle_state === TaskLifecycleState::COMPLETED,
                     'lifecycle_state' => $task->lifecycle_state?->value,
-                    'done_at' => $task->done_at?->toIso8601String(),
+                    'done_at' => $task->lifecycle_state === TaskLifecycleState::COMPLETED
+                        ? $task->lifecycle_state_changed_at?->toIso8601String() : null,
                     'project_id' => $task->project_id,
                     'project_name' => $task->project?->name,
                     'project_slot_id' => $task->project_slot_id,

@@ -2,6 +2,8 @@
 
 namespace Platform\Planner\Console\Commands;
 
+use Platform\Planner\Enums\TaskLifecycleState;
+
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
@@ -168,8 +170,8 @@ class AiBuildManifests extends Command
     private function suggestFilters(array $columns): array
     {
         $filters = [];
-        if (in_array('is_done', $columns, true)) {
-            $filters[] = ['field' => 'is_done', 'op' => 'eq', 'value' => false];
+        if (in_array('lifecycle_state', $columns, true)) {
+            $filters[] = ['field' => 'lifecycle_state', 'op' => 'eq', 'value' => 'aktiv'];
         }
         return $filters;
     }

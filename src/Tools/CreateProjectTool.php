@@ -203,10 +203,9 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract, ToolMet
                 $kind = \Platform\Planner\Enums\ProjectKind::tryFrom($arguments['kind']) ?? $kind;
             }
 
-            $status = \Platform\Planner\Enums\ProjectStatus::AKTIV;
-            if (!empty($arguments['status'])) {
-                $status = \Platform\Planner\Enums\ProjectStatus::tryFrom($arguments['status']) ?? $status;
-            }
+            // New projects always start in lifecycle 'aktiv'. The legacy
+            // `status` argument is accepted but ignored — lifecycle_state is
+            // the single source of truth now.
 
             // Order berechnen (neues Projekt kommt ans Ende)
             $maxOrder = PlannerProject::where('team_id', $team->id)->max('order') ?? 0;
@@ -225,7 +224,7 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract, ToolMet
                 'team_id' => $team->id,
                 'project_type' => $projectType,
                 'kind' => $kind,
-                'status' => $status,
+                'lifecycle_state' => \Platform\Planner\Enums\ProjectLifecycleState::ACTIVE,
                 'order' => $maxOrder + 1,
                 'customer_cost_center' => $arguments['customer_cost_center'] ?? null,
                 'billing_method' => $arguments['billing_method'] ?? null,
@@ -344,7 +343,6 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract, ToolMet
                 'description' => $project->description,
                 'project_type' => $project->project_type?->value,
                 'kind' => $project->kind?->value,
-                'status' => $project->status?->value, // legacy
                 'lifecycle_state' => $project->lifecycle_state?->value,
                 'team_id' => $project->team_id,
                 'owner_user_id' => $ownerUserId,

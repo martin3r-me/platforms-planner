@@ -2,6 +2,8 @@
 
 namespace Platform\Planner\Console\Commands;
 
+use Platform\Planner\Enums\TaskLifecycleState;
+
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Platform\Planner\Models\PlannerTask;
@@ -30,7 +32,7 @@ class AssignDueDatesForUndatedTasks extends Command
 
         $query = PlannerTask::withStale()
             ->whereNull('due_date')
-            ->where('is_done', false)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->where(function ($q) {
                 // Projekt-Tasks nur, wenn sie einen Slot haben (kein Backlog)
                 $q->whereNull('project_id')

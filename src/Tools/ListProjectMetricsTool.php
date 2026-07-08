@@ -210,7 +210,8 @@ class ListProjectMetricsTool implements ToolContract, ToolMetadataContract
                 $out[] = [
                     'project_id' => $pid,
                     'project_name' => $p->name,
-                    'done' => (bool)$p->done,
+                    'done' => $p->lifecycle_state === \Platform\Planner\Enums\ProjectLifecycleState::COMPLETED,
+                    'lifecycle_state' => $p->lifecycle_state?->value,
                     'created_at' => $p->created_at?->toIso8601String(),
                     'metrics' => $m,
                     'score' => $score,

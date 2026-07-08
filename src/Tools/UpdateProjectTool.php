@@ -164,12 +164,8 @@ class UpdateProjectTool implements ToolContract
                 }
             }
 
-            if (isset($arguments['status'])) {
-                $statusEnum = \Platform\Planner\Enums\ProjectStatus::tryFrom($arguments['status']);
-                if ($statusEnum) {
-                    $updateData['status'] = $statusEnum;
-                }
-            }
+            // Legacy: `status` argument is no longer accepted. Lifecycle
+            // transitions must go through the dedicated tool actions.
 
             // planned_minutes und estimated_hours → zentrales System
             $newPlannedMinutes = null;
@@ -264,13 +260,12 @@ class UpdateProjectTool implements ToolContract
                 $updateData['currency'] = $arguments['currency'];
             }
 
+            // Legacy: `done=true` argument routes through the lifecycle
+            // service, so an existing MCP client can still complete a project
+            // via update. `done=false` re-opens if currently completed.
+            $lifecycleFlip = null;
             if (isset($arguments['done'])) {
-                $updateData['done'] = $arguments['done'];
-                if ($arguments['done']) {
-                    $updateData['done_at'] = now();
-                } else {
-                    $updateData['done_at'] = null;
-                }
+                $lifecycleFlip = (bool) $arguments['done'];
             }
 
             if (isset($arguments['owner_user_id'])) {
@@ -296,6 +291,20 @@ class UpdateProjectTool implements ToolContract
             // Projekt aktualisieren
             if (!empty($updateData)) {
                 $project->update($updateData);
+            }
+
+            // Lifecycle flip via done argument (legacy).
+            if ($lifecycleFlip !== null) {
+                try {
+                    $lifecycle = app(\Platform\Planner\Services\LifecycleService::class);
+                    if ($lifecycleFlip) {
+                        $lifecycle->complete($project);
+                    } elseif ($project->lifecycle_state === \Platform\Planner\Enums\ProjectLifecycleState::COMPLETED) {
+                        $lifecycle->reopen($project);
+                    }
+                } catch (\Platform\Planner\Exceptions\InvalidLifecycleTransitionException) {
+                    // Discarded / already active — silent no-op.
+                }
             }
 
             // Aktualisiertes Projekt laden
@@ -328,7 +337,6 @@ class UpdateProjectTool implements ToolContract
                 'description' => $project->description,
                 'project_type' => $project->project_type?->value,
                 'kind' => $project->kind?->value,
-                'status' => $project->status?->value, // legacy, until Schritt 2b
                 'lifecycle_state' => $project->lifecycle_state?->value,
                 'lifecycle_state_changed_at' => $project->lifecycle_state_changed_at?->toIso8601String(),
                 'team_id' => $project->team_id,
@@ -345,7 +353,8 @@ class UpdateProjectTool implements ToolContract
                 'planned_minutes' => $project->totalPlannedMinutes(),
                 'estimated_hours' => $project->totalPlannedHours(),
                 'done' => $project->lifecycle_state === \Platform\Planner\Enums\ProjectLifecycleState::COMPLETED,
-                'done_at' => $project->done_at?->toIso8601String(), // legacy
+                'done_at' => $project->lifecycle_state === \Platform\Planner\Enums\ProjectLifecycleState::COMPLETED
+                    ? $project->lifecycle_state_changed_at?->toIso8601String() : null,
                 'updated_at' => $project->updated_at->toIso8601String(),
                 'message' => "Projekt '{$project->name}' erfolgreich aktualisiert."
             ]);

@@ -586,7 +586,8 @@ class UpdateTaskTool implements ToolContract
                 'is_done' => $task->lifecycle_state === \Platform\Planner\Enums\TaskLifecycleState::COMPLETED,
                 'lifecycle_state' => $task->lifecycle_state?->value,
                 'lifecycle_state_changed_at' => $task->lifecycle_state_changed_at?->toIso8601String(),
-                'done_at' => $task->done_at?->toIso8601String(), // legacy, until Schritt 2b
+                'done_at' => $task->lifecycle_state === \Platform\Planner\Enums\TaskLifecycleState::COMPLETED
+                    ? $task->lifecycle_state_changed_at?->toIso8601String() : null,
                 'is_personal' => $task->project_id === null,
                 'updated_at' => $task->updated_at->toIso8601String(),
             ];

@@ -2,50 +2,43 @@
 
 namespace Platform\Planner\Observers;
 
-use Platform\Planner\Models\PlannerTask;
 use Platform\Notifications\NotificationDispatcher;
-use Illuminate\Support\Carbon;
+use Platform\Planner\Enums\TaskLifecycleState;
+use Platform\Planner\Models\PlannerTask;
 
 class PlannerTaskObserver
 {
     /**
-     * Wird aufgerufen, wenn das Model aktualisiert wird.
-     * Setzt done_at automatisch, wenn is_done auf true gesetzt wird.
+     * Fired before save. Handles:
+     *   - Postpone-Tracking: manual due_date shifts count as a postpone.
+     *
+     * Done-state bookkeeping (setting done_at, is_done etc.) is now the
+     * job of LifecycleService — no observer magic on that path anymore.
      */
     public function updating(PlannerTask $task): void
     {
-        // Wenn is_done von false auf true gesetzt wurde, done_at automatisch setzen
-        if ($task->isDirty('is_done') && $task->is_done && !$task->done_at) {
-            $task->done_at = Carbon::now();
-        }
-
-        // Wenn is_done auf false gesetzt wird, done_at zurücksetzen
-        if ($task->isDirty('is_done') && !$task->is_done) {
-            $task->done_at = null;
-        }
-
-        // Manuelles Verschieben der Fälligkeit wie automatisches Postpone behandeln
-        if ($task->isDirty('due_date') && !$task->is_done) {
+        // Manual due-date shift on an active task counts as a postpone.
+        if ($task->isDirty('due_date')
+            && $task->lifecycle_state === TaskLifecycleState::ACTIVE
+        ) {
             $previousDue = $task->getOriginal('due_date');
 
             if ($previousDue) {
-                if (!$task->original_due_date) {
+                if (! $task->original_due_date) {
                     $task->original_due_date = $previousDue;
                 }
-
-                $task->postpone_count = (int)($task->postpone_count ?? 0) + 1;
+                $task->postpone_count = (int) ($task->postpone_count ?? 0) + 1;
             }
         }
     }
 
     /**
-     * Wird nach dem Speichern aufgerufen — für Notification-Dispatch.
+     * Fired after save. Dispatches assignment / completion notifications.
      */
     public function updated(PlannerTask $task): void
     {
-        // Aufgabe wurde jemandem zugewiesen
+        // Task assignment
         if ($task->wasChanged('user_in_charge_id') && $task->user_in_charge_id) {
-            // Nicht benachrichtigen, wenn der User sich selbst zuweist
             if ($task->user_in_charge_id !== auth()->id()) {
                 $recipient = $task->userInCharge;
 
@@ -66,9 +59,11 @@ class PlannerTaskObserver
             }
         }
 
-        // Aufgabe als erledigt markiert — Ersteller/Zuweiser benachrichtigen
-        if ($task->wasChanged('is_done') && $task->is_done && $task->user_in_charge_id) {
-            // Benachrichtige den Ersteller, falls verschieden vom Erlediger
+        // Task completed — notify the creator if someone else did it.
+        $justCompleted = $task->wasChanged('lifecycle_state')
+            && $task->lifecycle_state === TaskLifecycleState::COMPLETED;
+
+        if ($justCompleted && $task->user_in_charge_id) {
             $creatorId = $task->created_by ?? $task->user_id ?? null;
 
             if ($creatorId && $creatorId !== auth()->id() && $creatorId !== $task->user_in_charge_id) {
@@ -92,4 +87,3 @@ class PlannerTaskObserver
         }
     }
 }
-

@@ -2,6 +2,8 @@
 
 namespace Platform\Planner\Console\Commands;
 
+use Platform\Planner\Enums\TaskLifecycleState;
+
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -146,8 +148,8 @@ class ProcessAiAssignedTasks extends Command
                 $task->refresh();
                 $task->loadMissing(['userInCharge']);
 
-                if ($task->is_done) {
-                    $this->info("✅ Task #{$task->id}: erledigt (is_done=true).");
+                if ($task->lifecycle_state === TaskLifecycleState::COMPLETED) {
+                    $this->info("✅ Task #{$task->id}: erledigt.");
                     continue;
                 }
 
@@ -201,7 +203,7 @@ class ProcessAiAssignedTasks extends Command
     {
         $query = PlannerTask::withStale()
             ->with(['user', 'userInCharge', 'team', 'project'])
-            ->where('is_done', false)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->whereNotNull('user_in_charge_id')
             ->whereHas('userInCharge', fn ($q) => $q->where('type', 'ai_user'));
 
