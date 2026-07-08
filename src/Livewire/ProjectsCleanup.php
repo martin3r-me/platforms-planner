@@ -58,10 +58,12 @@ class ProjectsCleanup extends Component
     protected function projectsQuery()
     {
         $user = Auth::user();
-        $team = $user->currentTeam;
 
+        // Team-Scope wie bei den Engagement-Optionen: Root + alle Child-Teams.
+        // Aufräumer sitzen ggf. in einem Sub-Team, die Projekte hängen aber am
+        // Root-Team — sonst waeren sie hier unsichtbar.
         return PlannerProject::query()
-            ->where('team_id', $team->id)
+            ->whereIn('team_id', $this->relevantTeamIds())
             ->visibleTo($user)
             ->with(['user:id,name', 'projectUsers:project_id,user_id']);
     }
@@ -419,9 +421,8 @@ class ProjectsCleanup extends Component
      */
     protected function performDelete(int $projectId): bool
     {
-        $team = Auth::user()->currentTeam;
         $project = PlannerProject::query()
-            ->where('team_id', $team->id)
+            ->whereIn('team_id', $this->relevantTeamIds())
             ->find($projectId);
         if (! $project) {
             return false;
@@ -470,9 +471,8 @@ class ProjectsCleanup extends Component
     public function bulkSetPassiv(): void
     {
         if (empty($this->selectedIds)) return;
-        $team = Auth::user()->currentTeam;
         PlannerProject::query()
-            ->where('team_id', $team->id)
+            ->whereIn('team_id', $this->relevantTeamIds())
             ->whereIn('id', $this->selectedIds)
             ->update(['status' => \Platform\Planner\Enums\ProjectStatus::PASSIV->value]);
         $this->selectedIds = [];
@@ -483,9 +483,8 @@ class ProjectsCleanup extends Component
     public function bulkSetInaktiv(): void
     {
         if (empty($this->selectedIds)) return;
-        $team = Auth::user()->currentTeam;
         PlannerProject::query()
-            ->where('team_id', $team->id)
+            ->whereIn('team_id', $this->relevantTeamIds())
             ->whereIn('id', $this->selectedIds)
             ->update(['status' => \Platform\Planner\Enums\ProjectStatus::INAKTIV->value]);
         $this->selectedIds = [];
@@ -496,9 +495,8 @@ class ProjectsCleanup extends Component
     public function bulkMarkDone(): void
     {
         if (empty($this->selectedIds)) return;
-        $team = Auth::user()->currentTeam;
         PlannerProject::query()
-            ->where('team_id', $team->id)
+            ->whereIn('team_id', $this->relevantTeamIds())
             ->whereIn('id', $this->selectedIds)
             ->update(['done' => true, 'done_at' => now()]);
         $this->selectedIds = [];
@@ -512,9 +510,8 @@ class ProjectsCleanup extends Component
     {
         // Whitelist
         if (! in_array($status, ['aktiv', 'passiv', 'inaktiv'], true)) return;
-        $team = Auth::user()->currentTeam;
         PlannerProject::query()
-            ->where('team_id', $team->id)
+            ->whereIn('team_id', $this->relevantTeamIds())
             ->where('id', $projectId)
             ->update(['status' => $status]);
         unset($this->rows);
@@ -523,9 +520,8 @@ class ProjectsCleanup extends Component
 
     public function markDone(int $projectId): void
     {
-        $team = Auth::user()->currentTeam;
         PlannerProject::query()
-            ->where('team_id', $team->id)
+            ->whereIn('team_id', $this->relevantTeamIds())
             ->where('id', $projectId)
             ->update(['done' => true, 'done_at' => now()]);
         unset($this->rows);
