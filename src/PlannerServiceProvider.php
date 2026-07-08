@@ -37,6 +37,9 @@ class PlannerServiceProvider extends ServiceProvider
         // fuer Lifecycle-Automatik, Hygiene, Cleanup, Health.
         $this->app->singleton(\Platform\Planner\Services\ActivityClock::class);
 
+        // LifecycleService — one place for state transitions on projects/tasks.
+        $this->app->singleton(\Platform\Planner\Services\LifecycleService::class);
+
         // Commands registrieren
         if ($this->app->runningInConsole()) {
             $this->commands([

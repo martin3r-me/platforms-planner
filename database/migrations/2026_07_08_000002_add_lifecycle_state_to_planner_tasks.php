@@ -23,6 +23,7 @@ return new class extends Migration {
         Schema::table('planner_tasks', function (Blueprint $table) {
             $table->string('lifecycle_state', 20)->default('aktiv')->after('is_done');
             $table->timestamp('lifecycle_state_changed_at')->nullable()->after('lifecycle_state');
+            $table->string('lifecycle_state_reason', 60)->nullable()->after('lifecycle_state_changed_at');
 
             $table->index('lifecycle_state');
         });
@@ -44,6 +45,7 @@ return new class extends Migration {
             $table->dropColumn([
                 'lifecycle_state',
                 'lifecycle_state_changed_at',
+                'lifecycle_state_reason',
             ]);
         });
     }
