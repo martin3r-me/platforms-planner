@@ -126,7 +126,7 @@
 
     {{-- Tabelle --}}
     <div class="rounded-xl border border-[var(--ui-border)] bg-white overflow-hidden">
-        <div class="grid grid-cols-[36px_1fr_140px_60px_180px_60px_120px_160px_100px] gap-2 items-center px-3 py-2 border-b border-[var(--ui-border)] bg-[var(--ui-muted-5)] text-[10px] uppercase tracking-wider text-[var(--ui-muted)] font-semibold">
+        <div class="grid grid-cols-[36px_1fr_140px_60px_180px_110px_60px_120px_160px_100px] gap-2 items-center px-3 py-2 border-b border-[var(--ui-border)] bg-[var(--ui-muted-5)] text-[10px] uppercase tracking-wider text-[var(--ui-muted)] font-semibold">
             <div>
                 <input
                     type="checkbox"
@@ -139,6 +139,7 @@
             <div>Owner</div>
             <div class="text-center">Members</div>
             <div>Entity</div>
+            <div class="text-center" title="Canvas / Period / Minutes / Tasks — Bausteine für Health-Score">Layer</div>
             <div class="text-center">Score</div>
             <div>Zuletzt</div>
             <div class="text-center">Tasks (of / over / frog)</div>
@@ -147,7 +148,7 @@
 
         @forelse($this->rows as $row)
             @php $t = $tone($row['health_color']); @endphp
-            <div class="grid grid-cols-[36px_1fr_140px_60px_180px_60px_120px_160px_100px] gap-2 items-center px-3 py-2 border-b border-[var(--ui-border)]/60 hover:bg-[var(--ui-muted-5)] text-sm">
+            <div class="grid grid-cols-[36px_1fr_140px_60px_180px_110px_60px_120px_160px_100px] gap-2 items-center px-3 py-2 border-b border-[var(--ui-border)]/60 hover:bg-[var(--ui-muted-5)] text-sm">
                 <div>
                     <input
                         type="checkbox"
@@ -200,6 +201,31 @@
                             keine Entity
                         </button>
                     @endif
+                </div>
+
+                {{-- Layer-Chips: Canvas / Period / Minutes / Tasks --}}
+                <div class="flex items-center gap-0.5 justify-center">
+                    @php
+                        $layerDefs = [
+                            'canvas' => 'C',
+                            'period' => 'P',
+                            'minutes' => 'M',
+                            'tasks' => 'T',
+                        ];
+                        $layerLabels = [
+                            'canvas' => 'Canvas',
+                            'period' => 'Planned Period',
+                            'minutes' => 'Planned Minutes',
+                            'tasks' => 'Tasks',
+                        ];
+                    @endphp
+                    @foreach($layerDefs as $key => $letter)
+                        @php $on = (bool) ($row['layers'][$key] ?? false); @endphp
+                        <span
+                            class="inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold {{ $on ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-zinc-100 text-zinc-400 border border-zinc-200' }}"
+                            title="{{ $layerLabels[$key] }}: {{ $on ? 'vorhanden' : 'fehlt' }}"
+                        >{{ $letter }}</span>
+                    @endforeach
                 </div>
 
                 <div class="text-center">

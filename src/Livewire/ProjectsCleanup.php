@@ -189,6 +189,20 @@ class ProjectsCleanup extends Component
             $link = $entityLinks[$p->id] ?? null;
             $membersCount = max(0, $p->projectUsers->count());
 
+            // Layer-Status aus confidence_reason (Form "missing:canvas,planned_period,...")
+            $missing = [];
+            if ($snap && $snap->confidence_reason && str_starts_with($snap->confidence_reason, 'missing:')) {
+                foreach (explode(',', substr($snap->confidence_reason, 8)) as $m) {
+                    $missing[] = trim($m);
+                }
+            }
+            $layerStatus = [
+                'canvas' => $snap ? ! in_array('canvas', $missing, true) : false,
+                'period' => $snap ? ! in_array('planned_period', $missing, true) : false,
+                'minutes' => $snap ? ! in_array('planned_minutes', $missing, true) : false,
+                'tasks' => $snap ? ! in_array('tasks', $missing, true) : false,
+            ];
+
             return [
                 'id' => $p->id,
                 'name' => $p->name ?: '—',
@@ -205,6 +219,7 @@ class ProjectsCleanup extends Component
                 'tasks_overdue' => (int) ($snap?->tasks_overdue ?? 0),
                 'tasks_frog' => (int) ($snap?->tasks_frog ?? 0),
                 'last_viewed_at' => $p->last_viewed_at,
+                'layers' => $layerStatus,
             ];
         })->all();
 
