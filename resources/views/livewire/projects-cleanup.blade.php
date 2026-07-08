@@ -16,7 +16,7 @@
     ];
 @endphp
 
-<div class="max-w-[1400px] mx-auto p-4 space-y-4">
+<div class="max-w-[1600px] mx-auto p-4 space-y-4">
     {{-- Header --}}
     <div class="flex items-baseline justify-between gap-4">
         <div>
@@ -126,7 +126,7 @@
 
     {{-- Tabelle --}}
     <div class="rounded-xl border border-[var(--ui-border)] bg-white overflow-hidden">
-        <div class="grid grid-cols-[36px_1fr_140px_60px_180px_110px_60px_120px_160px_100px] gap-2 items-center px-3 py-2 border-b border-[var(--ui-border)] bg-[var(--ui-muted-5)] text-[10px] uppercase tracking-wider text-[var(--ui-muted)] font-semibold">
+        <div class="grid grid-cols-[36px_1fr_140px_60px_180px_110px_60px_80px_120px_160px_110px] gap-2 items-center px-3 py-2 border-b border-[var(--ui-border)] bg-[var(--ui-muted-5)] text-[10px] uppercase tracking-wider text-[var(--ui-muted)] font-semibold">
             <div>
                 <input
                     type="checkbox"
@@ -141,6 +141,7 @@
             <div>Entity</div>
             <div class="text-center" title="Canvas / Period / Minutes / Tasks — Bausteine für Health-Score">Layer</div>
             <div class="text-center">Score</div>
+            <div class="text-right">Zeit</div>
             <div>Zuletzt</div>
             <div class="text-center">Tasks (of / over / frog)</div>
             <div class="text-right">Aktionen</div>
@@ -148,7 +149,7 @@
 
         @forelse($this->rows as $row)
             @php $t = $tone($row['health_color']); @endphp
-            <div class="grid grid-cols-[36px_1fr_140px_60px_180px_110px_60px_120px_160px_100px] gap-2 items-center px-3 py-2 border-b border-[var(--ui-border)]/60 hover:bg-[var(--ui-muted-5)] text-sm">
+            <div class="grid grid-cols-[36px_1fr_140px_60px_180px_110px_60px_80px_120px_160px_110px] gap-2 items-center px-3 py-2 border-b border-[var(--ui-border)]/60 hover:bg-[var(--ui-muted-5)] text-sm">
                 <div>
                     <input
                         type="checkbox"
@@ -238,6 +239,15 @@
                     @endif
                 </div>
 
+                {{-- Zeit getrackt --}}
+                <div class="text-right text-xs tabular-nums" title="{{ $row['tracked_minutes'] }} min = {{ number_format($row['tracked_minutes'] / 60, 1, ',', '.') }} h">
+                    @if($row['tracked_minutes'] > 0)
+                        <span class="font-medium text-[var(--ui-secondary)]">{{ number_format($row['tracked_minutes'] / 60, 1, ',', '.') }} h</span>
+                    @else
+                        <span class="text-zinc-400">–</span>
+                    @endif
+                </div>
+
                 <div class="text-xs text-[var(--ui-muted)]" title="{{ $row['last_viewed_at']?->format('d.m.Y H:i') ?? '' }}">
                     {{ $row['last_viewed_at']?->diffForHumans(short: true) ?? '–' }}
                 </div>
@@ -264,6 +274,14 @@
                        title="Detail öffnen">
                         @svg('heroicon-o-arrow-top-right-on-square', 'w-4 h-4')
                     </a>
+                    <button
+                        type="button"
+                        wire:click="askDeleteSingle({{ $row['id'] }})"
+                        class="p-1.5 rounded hover:bg-rose-50 text-rose-600"
+                        title="Projekt komplett löschen (inkl. Aufgaben, Canvas, Entity-Links, Zeit-Einträge)"
+                    >
+                        @svg('heroicon-o-trash', 'w-4 h-4')
+                    </button>
                 </div>
             </div>
         @empty
@@ -312,16 +330,41 @@
         </div>
     @endif
 
+    {{-- Single-Delete-Confirm-Modal --}}
+    @if($deletingProjectId)
+        <div class="fixed inset-0 z-50 bg-zinc-900/40 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl border border-rose-200 w-full max-w-md p-4 space-y-3">
+                <h3 class="text-sm font-semibold text-rose-700 m-0 flex items-center gap-2">
+                    @svg('heroicon-o-trash', 'w-4 h-4')
+                    Projekt löschen?
+                </h3>
+                <p class="text-xs text-[var(--ui-secondary)] m-0">
+                    <span class="font-semibold">{{ $deletingProjectName }}</span>
+                </p>
+                <p class="text-xs text-[var(--ui-muted)] m-0">
+                    Entfernt komplett: Entity-/Dimension-Links, Planner-Canvas, Slots, Aufgaben und alle darauf gebuchten Zeit-Einträge. Das Projekt selbst wird soft-gelöscht.
+                </p>
+                <div class="flex justify-end gap-2 pt-2 border-t border-[var(--ui-border)]">
+                    <button wire:click="cancelDeleteSingle" class="text-xs text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] px-3 py-1.5">Abbrechen</button>
+                    <button wire:click="confirmDeleteSingle"
+                            class="rounded-lg bg-rose-600 text-white px-3 py-1.5 text-xs font-medium hover:bg-rose-700">
+                        Ja, löschen
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
     {{-- Bulk-Delete-Confirm-Modal --}}
     @if($confirmingBulkDelete)
         <div class="fixed inset-0 z-50 bg-zinc-900/40 flex items-center justify-center p-4">
             <div class="bg-white rounded-xl border border-rose-200 w-full max-w-md p-4 space-y-3">
                 <h3 class="text-sm font-semibold text-rose-700 m-0 flex items-center gap-2">
                     @svg('heroicon-o-trash', 'w-4 h-4')
-                    {{ count($selectedIds) }} Projekte löschen?
+                    {{ count($selectedIds) }} Projekte komplett löschen?
                 </h3>
                 <p class="text-xs text-[var(--ui-muted)] m-0">
-                    Soft-Delete — Projekte werden entfernt aus Listen, sind aber in der DB wiederherstellbar. Ihre Tasks und Slots werden mit deaktiviert.
+                    Entfernt bei jedem Projekt: Entity-/Dimension-Links, Planner-Canvas, Slots, Aufgaben und alle darauf gebuchten Zeit-Einträge. Das Projekt selbst wird soft-gelöscht (in DB wiederherstellbar).
                 </p>
                 <div class="flex justify-end gap-2 pt-2 border-t border-[var(--ui-border)]">
                     <button wire:click="cancelBulkDelete" class="text-xs text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] px-3 py-1.5">Abbrechen</button>

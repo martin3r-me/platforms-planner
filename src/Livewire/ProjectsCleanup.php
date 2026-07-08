@@ -9,10 +9,13 @@ use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Platform\Core\Models\Team;
 use Platform\Organization\Models\OrganizationEntity;
+use Platform\Organization\Models\OrganizationTimeEntry;
 use Platform\Organization\Services\DimensionLinkService;
 use Platform\Organization\Services\EntityDimensionBridge;
 use Platform\Planner\Models\PlannerProject;
+use Platform\Planner\Models\PlannerProjectCanvas;
 use Platform\Planner\Models\PlannerProjectSnapshot;
+use Platform\Planner\Models\PlannerTask;
 
 /**
  * Aufraeum-Cockpit fuer Projekte.
@@ -48,6 +51,10 @@ class ProjectsCleanup extends Component
     // ── Modal: Bulk-Delete-Bestaetigung ─────────────────────────
     public bool $confirmingBulkDelete = false;
 
+    // ── Modal: Single-Delete-Bestaetigung ───────────────────────
+    public ?int $deletingProjectId = null;
+    public ?string $deletingProjectName = null;
+
     protected function projectsQuery()
     {
         $user = Auth::user();
@@ -82,6 +89,66 @@ class ProjectsCleanup extends Component
             ->get()
             ->keyBy('project_id')
             ->all();
+    }
+
+    /**
+     * Summiert getrackte Minuten pro Projekt — direkte Buchungen am Projekt
+     * plus Buchungen an dessen Tasks. Beruecksichtigt Morph-Aliase
+     * (context_type kann sowohl "project"/"task" als auch der volle
+     * Klassenname sein, je nachdem wer die Eintraege erstellt hat).
+     *
+     * @return array<int, int>  keyed by project_id → total minutes
+     */
+    protected function trackedMinutesByProjectId(array $projectIds): array
+    {
+        if (empty($projectIds)) {
+            return [];
+        }
+
+        $projectAlias = DimensionLinkService::resolveContextType(PlannerProject::class);
+        $taskAlias = DimensionLinkService::resolveContextType(PlannerTask::class);
+
+        // Task-ID → project_id Mapping fuer alle relevanten Projekte
+        $taskProjectMap = DB::table('planner_tasks')
+            ->whereIn('project_id', $projectIds)
+            ->whereNull('deleted_at')
+            ->pluck('project_id', 'id')
+            ->all();
+        $taskIds = array_keys($taskProjectMap);
+
+        // Direkt am Projekt
+        $projectTimes = OrganizationTimeEntry::query()
+            ->whereIn('context_type', [$projectAlias, PlannerProject::class])
+            ->whereIn('context_id', $projectIds)
+            ->selectRaw('context_id, SUM(minutes) as total')
+            ->groupBy('context_id')
+            ->pluck('total', 'context_id')
+            ->all();
+
+        // An Tasks
+        $taskTimes = [];
+        if (! empty($taskIds)) {
+            $taskTimes = OrganizationTimeEntry::query()
+                ->whereIn('context_type', [$taskAlias, PlannerTask::class])
+                ->whereIn('context_id', $taskIds)
+                ->selectRaw('context_id, SUM(minutes) as total')
+                ->groupBy('context_id')
+                ->pluck('total', 'context_id')
+                ->all();
+        }
+
+        $byProject = [];
+        foreach ($projectIds as $pid) {
+            $byProject[$pid] = (int) ($projectTimes[$pid] ?? 0);
+        }
+        foreach ($taskTimes as $taskId => $mins) {
+            $pid = $taskProjectMap[$taskId] ?? null;
+            if ($pid) {
+                $byProject[$pid] = ($byProject[$pid] ?? 0) + (int) $mins;
+            }
+        }
+
+        return $byProject;
     }
 
     /**
@@ -183,8 +250,9 @@ class ProjectsCleanup extends Component
         $projectIds = $projects->pluck('id')->all();
         $snapshots = $this->latestSnapshotsByProjectId($projectIds);
         $entityLinks = $this->primaryEntityLinkByProjectId($projectIds);
+        $trackedMinutes = $this->trackedMinutesByProjectId($projectIds);
 
-        $rows = $projects->map(function ($p) use ($snapshots, $entityLinks) {
+        $rows = $projects->map(function ($p) use ($snapshots, $entityLinks, $trackedMinutes) {
             $snap = $snapshots[$p->id] ?? null;
             $link = $entityLinks[$p->id] ?? null;
             $membersCount = max(0, $p->projectUsers->count());
@@ -220,6 +288,7 @@ class ProjectsCleanup extends Component
                 'tasks_frog' => (int) ($snap?->tasks_frog ?? 0),
                 'last_viewed_at' => $p->last_viewed_at,
                 'layers' => $layerStatus,
+                'tracked_minutes' => (int) ($trackedMinutes[$p->id] ?? 0),
             ];
         })->all();
 
@@ -300,16 +369,102 @@ class ProjectsCleanup extends Component
 
     public function confirmBulkDelete(): void
     {
-        $team = Auth::user()->currentTeam;
-        PlannerProject::query()
-            ->where('team_id', $team->id)
-            ->whereIn('id', $this->selectedIds)
-            ->get()
-            ->each(fn ($p) => $p->delete()); // soft delete via Model-Event
+        $count = 0;
+        foreach ($this->selectedIds as $id) {
+            if ($this->performDelete((int) $id)) {
+                $count++;
+            }
+        }
         $this->selectedIds = [];
         $this->confirmingBulkDelete = false;
         unset($this->rows);
-        session()->flash('cleanup_message', 'Ausgewaehlte Projekte gelöscht.');
+        session()->flash('cleanup_message', "{$count} Projekt(e) inkl. Aufgaben, Slots, Canvases, Entity-Links und Zeiteintraegen gelöscht.");
+    }
+
+    // ── Einzel-Loeschen ─────────────────────────────────────────
+
+    public function askDeleteSingle(int $projectId): void
+    {
+        $project = PlannerProject::query()
+            ->where('team_id', Auth::user()->currentTeam->id)
+            ->find($projectId);
+        if (! $project) return;
+        $this->deletingProjectId = $projectId;
+        $this->deletingProjectName = $project->name;
+    }
+
+    public function cancelDeleteSingle(): void
+    {
+        $this->deletingProjectId = null;
+        $this->deletingProjectName = null;
+    }
+
+    public function confirmDeleteSingle(): void
+    {
+        if (! $this->deletingProjectId) return;
+        $ok = $this->performDelete((int) $this->deletingProjectId);
+        $name = $this->deletingProjectName;
+        $this->deletingProjectId = null;
+        $this->deletingProjectName = null;
+        unset($this->rows);
+        session()->flash('cleanup_message', $ok
+            ? "Projekt '{$name}' inkl. Aufgaben, Slots, Canvases, Entity-Links und Zeiteintraegen gelöscht."
+            : "Projekt konnte nicht gelöscht werden.");
+    }
+
+    /**
+     * Raeumt ein Projekt komplett auf: Dimension-Links, Canvas + Blocks +
+     * Entries, Time-Entries (an Projekt und an dessen Tasks), Slots + Tasks
+     * (per Cascade des Projekt-Deletes). Rueckgabe: true bei Erfolg.
+     */
+    protected function performDelete(int $projectId): bool
+    {
+        $team = Auth::user()->currentTeam;
+        $project = PlannerProject::query()
+            ->where('team_id', $team->id)
+            ->find($projectId);
+        if (! $project) {
+            return false;
+        }
+
+        $linkableType = DimensionLinkService::resolveContextType(PlannerProject::class);
+        $taskAlias = DimensionLinkService::resolveContextType(PlannerTask::class);
+
+        // 1) Dimension-Links entfernen (per Bridge, damit Cache konsistent bleibt)
+        $links = EntityDimensionBridge::linksForLinkables([$linkableType], [$projectId], false);
+        foreach ($links as $link) {
+            if ($link->entity_id) {
+                EntityDimensionBridge::deleteLink((int) $link->entity_id, $linkableType, $projectId);
+            }
+        }
+        EntityDimensionBridge::flush();
+
+        // 2) Task-IDs zur weiteren Aufraeumarbeit einsammeln
+        $taskIds = DB::table('planner_tasks')
+            ->where('project_id', $projectId)
+            ->whereNull('deleted_at')
+            ->pluck('id')
+            ->all();
+
+        // 3) Time-Entries loeschen — sowohl direkt am Projekt als auch an den Tasks
+        OrganizationTimeEntry::query()
+            ->whereIn('context_type', [$linkableType, PlannerProject::class])
+            ->where('context_id', $projectId)
+            ->delete();
+        if (! empty($taskIds)) {
+            OrganizationTimeEntry::query()
+                ->whereIn('context_type', [$taskAlias, PlannerTask::class])
+                ->whereIn('context_id', $taskIds)
+                ->delete();
+        }
+
+        // 4) Planner-Canvas loeschen (Cascade auf Blocks/Entries erwartet)
+        PlannerProjectCanvas::where('project_id', $projectId)->delete();
+
+        // 5) Projekt loeschen — Slots + Tasks folgen per Cascade
+        $project->delete();
+
+        return true;
     }
 
     public function bulkSetPassiv(): void
