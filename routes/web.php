@@ -36,6 +36,10 @@ Route::get('/projects/{plannerProject}/health', \Platform\Planner\Livewire\Proje
 Route::get('/health-index', \Platform\Planner\Livewire\HealthIndex::class)
     ->name('planner.health-index');
 
+// Projects-Cleanup (Batch-Aufraeum-Cockpit fuer Strategie/Steuerung)
+Route::get('/projects-cleanup', \Platform\Planner\Livewire\ProjectsCleanup::class)
+    ->name('planner.projects.cleanup');
+
 // Ops-Room (Wand-Display, Vollbild, dunkles Theme)
 Route::get('/ops', \Platform\Planner\Livewire\OpsRoom::class)
     ->name('planner.ops');
