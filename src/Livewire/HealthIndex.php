@@ -59,11 +59,13 @@ class HealthIndex extends Component
         // color ist keine echte Spalte (HasColors-Trait via Lookup-Tabelle),
         // darf nicht im Select stehen — wir laden contextColors eager mit, damit
         // der color-Accessor ohne N+1 funktioniert.
+        // whereHas('project') filtert Snapshots von soft-deleted Projekten raus.
         $all = PlannerProjectSnapshot::with([
                 'project:id,name,kind,status,done',
                 'project.contextColors',
             ])
             ->whereIn('id', $latestIds)
+            ->whereHas('project')
             ->get();
 
         // Done-Filter: per default raus
