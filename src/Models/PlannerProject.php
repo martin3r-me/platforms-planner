@@ -48,13 +48,13 @@ class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayN
         'team_id',
         'project_type',
         'kind',
-        'status',
+        'lifecycle_state',
+        'lifecycle_state_changed_at',
+        'lifecycle_state_reason',
         'billing_method',
         'hourly_rate',
         'budget_amount',
         'currency',
-        'done',
-        'done_at',
         'public_token',
         'is_public',
         'public_token_expires_at',
@@ -64,14 +64,11 @@ class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayN
         'uuid' => 'string',
         'project_type' => \Platform\Planner\Enums\ProjectType::class,
         'kind' => \Platform\Planner\Enums\ProjectKind::class,
-        'status' => \Platform\Planner\Enums\ProjectStatus::class,
         'lifecycle_state' => \Platform\Planner\Enums\ProjectLifecycleState::class,
         'lifecycle_state_changed_at' => 'datetime',
         'billing_method' => CustomerBillingMethod::class,
         'hourly_rate' => 'decimal:2',
         'budget_amount' => 'decimal:2',
-        'done' => 'boolean',
-        'done_at' => 'datetime',
         'is_public' => 'boolean',
         'public_token_expires_at' => 'datetime',
     ];
@@ -272,18 +269,19 @@ class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayN
 
     public function toAgendaItem(): array
     {
+        $isCompleted = $this->lifecycle_state === \Platform\Planner\Enums\ProjectLifecycleState::COMPLETED;
         return [
             'title' => $this->title,
             'description' => $this->description ? \Illuminate\Support\Str::limit($this->description, 120) : null,
             'icon' => '📁',
             'color' => $this->color,
-            'status' => $this->done ? 'Erledigt' : 'Offen',
-            'status_color' => $this->done ? 'green' : 'blue',
+            'status' => $isCompleted ? 'Erledigt' : 'Offen',
+            'status_color' => $isCompleted ? 'green' : 'blue',
             'url' => route('planner.projects.show', $this),
             'meta' => [
                 'project_type' => $this->project_type?->value,
                 'kind' => $this->kind?->value,
-                'status' => $this->status?->value,
+                'lifecycle_state' => $this->lifecycle_state?->value,
             ],
         ];
     }

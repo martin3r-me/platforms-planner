@@ -11,7 +11,6 @@ use Livewire\Attributes\On;
 use Platform\Planner\Enums\ProjectType;
 use Platform\Planner\Enums\ProjectKind;
 use Platform\Planner\Enums\ProjectLifecycleState;
-use Platform\Planner\Enums\ProjectStatus;
 use Platform\Planner\Exceptions\InvalidLifecycleTransitionException;
 use Platform\Planner\Services\LifecycleService;
 
@@ -232,25 +231,6 @@ class ProjectSettingsModal extends Component
             return;
         }
         $this->project->kind = $enum;
-        $this->project->save();
-
-        $this->dispatch('updateSidebar');
-        $this->dispatch('updateProject');
-    }
-
-    /**
-     * @deprecated Legacy status setter. Writes to `status` (aktiv/passiv/inaktiv)
-     * for backward compatibility until Schritt 2b. Prefer the lifecycle methods
-     * `complete/discard/reopen/revive` below — they hit the real state machine.
-     */
-    public function setStatus(string $status): void
-    {
-        $this->authorize('update', $this->project);
-        $enum = ProjectStatus::tryFrom($status);
-        if (! $enum) {
-            return;
-        }
-        $this->project->status = $enum;
         $this->project->save();
 
         $this->dispatch('updateSidebar');

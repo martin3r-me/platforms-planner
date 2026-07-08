@@ -43,9 +43,9 @@ class PlannerTask extends Model implements HasKeyResultAncestors, HasDisplayName
         'due_date',
         'original_due_date',
         'postpone_count',
-        'status',
-        'is_done',
-        'done_at',
+        'lifecycle_state',
+        'lifecycle_state_changed_at',
+        'lifecycle_state_reason',
         'is_frog',
         'is_forced_frog',
         'story_points',
@@ -64,7 +64,6 @@ class PlannerTask extends Model implements HasKeyResultAncestors, HasDisplayName
         'story_points' => TaskStoryPoints::class,
         'due_date' => 'datetime',
         'original_due_date' => 'datetime',
-        'done_at' => 'datetime',
         'is_forced_frog' => 'boolean',
         'lifecycle_state' => \Platform\Planner\Enums\TaskLifecycleState::class,
         'lifecycle_state_changed_at' => 'datetime',
@@ -101,8 +100,8 @@ class PlannerTask extends Model implements HasKeyResultAncestors, HasDisplayName
         // Aufgabe erledigt wird, sofort die nächste anlegen (statt auf den Cron zu warten).
         static::updated(function (self $model) {
             if (! $model->recurring_task_id) return;
-            if (! $model->wasChanged('is_done')) return;
-            if (! $model->is_done) return; // nur done → fired, nicht open ← done
+            if (! $model->wasChanged('lifecycle_state')) return;
+            if ($model->lifecycle_state !== \Platform\Planner\Enums\TaskLifecycleState::COMPLETED) return;
             self::tryChainRecurring($model);
         });
 
@@ -140,7 +139,7 @@ class PlannerTask extends Model implements HasKeyResultAncestors, HasDisplayName
             // Andere offene Instanzen? Dann nicht ketten — eine reicht.
             $openSiblings = $recurring->tasks()
                 ->where('id', '!=', $task->id)
-                ->where('is_done', false)
+                ->where('lifecycle_state', \Platform\Planner\Enums\TaskLifecycleState::ACTIVE->value)
                 ->whereNull('deleted_at')
                 ->count();
             if ($openSiblings > 0) return;
@@ -390,13 +389,14 @@ class PlannerTask extends Model implements HasKeyResultAncestors, HasDisplayName
 
     public function toAgendaItem(): array
     {
+        $isCompleted = $this->lifecycle_state === \Platform\Planner\Enums\TaskLifecycleState::COMPLETED;
         return [
             'title' => $this->title,
             'description' => $this->description ? \Illuminate\Support\Str::limit($this->description, 120) : null,
             'icon' => '✅',
             'color' => $this->color,
-            'status' => $this->is_done ? 'Erledigt' : ($this->status ?? 'Offen'),
-            'status_color' => $this->is_done ? 'green' : 'blue',
+            'status' => $isCompleted ? 'Erledigt' : ($this->lifecycle_state?->label() ?? 'Offen'),
+            'status_color' => $isCompleted ? 'green' : 'blue',
             'url' => route('planner.tasks.show', $this),
             'meta' => [
                 'due_date' => $this->due_date?->toDateString(),

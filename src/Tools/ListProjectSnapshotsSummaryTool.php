@@ -67,12 +67,14 @@ class ListProjectSnapshotsSummaryTool implements ToolContract, ToolMetadataContr
                 )')
                 ->pluck('a.id');
 
-            $latest = PlannerProjectSnapshot::with('project:id,name,kind,status,done')
+            $latest = PlannerProjectSnapshot::with('project:id,name,kind,lifecycle_state')
                 ->whereIn('id', $latestIds)
                 ->get();
 
             if (! $includeDone) {
-                $latest = $latest->filter(fn ($s) => ! ($s->project?->done ?? false))->values();
+                $latest = $latest->filter(
+                    fn ($s) => $s->project?->lifecycle_state !== \Platform\Planner\Enums\ProjectLifecycleState::COMPLETED
+                )->values();
             }
 
             $total = $latest->count();

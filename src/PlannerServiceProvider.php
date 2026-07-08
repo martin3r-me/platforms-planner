@@ -452,7 +452,7 @@ class PlannerServiceProvider extends ServiceProvider
         $writable = $model->getFillable();
         
         $sortable = array_values(array_intersect($fields, ['id','name','title','created_at','updated_at']));
-        $filterable = array_values(array_intersect($fields, ['id','uuid','name','title','team_id','user_id','status','is_done']));
+        $filterable = array_values(array_intersect($fields, ['id','uuid','name','title','team_id','user_id','lifecycle_state']));
 
         // Required-Felder per Doctrine DBAL
         $required = [];
