@@ -8,7 +8,7 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Platform\Organization\Models\OrganizationEntity;
-use Platform\Organization\Models\OrganizationEntityLink;
+use Platform\Organization\Services\EntityDimensionBridge;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectSnapshot;
 
@@ -84,6 +84,9 @@ class ProjectsCleanup extends Component
 
     /**
      * Fuer jedes Projekt: erster (primary or first) EntityLink samt Entity-Name.
+     * Nutzt EntityDimensionBridge — die aktuelle Quelle der Wahrheit fuer
+     * Entity-Verknuepfungen (organization_dimension_links). Die alte
+     * PlannerProject::entityLinks() Relation ist deprecated.
      *
      * @return array<int, array{entity_id: int, entity_name: string}>  keyed by project_id
      */
@@ -92,14 +95,16 @@ class ProjectsCleanup extends Component
         if (empty($projectIds)) {
             return [];
         }
-        return OrganizationEntityLink::query()
-            ->where('linkable_type', PlannerProject::class)
-            ->whereIn('linkable_id', $projectIds)
-            ->with('entity:id,name')
-            ->get()
+
+        return EntityDimensionBridge::linksForLinkables(
+                [PlannerProject::class],
+                $projectIds,
+                true // with entity
+            )
             ->groupBy('linkable_id')
-            ->map(function ($links) {
-                $primary = $links->first(fn ($l) => $l->is_primary) ?? $links->first();
+            ->map(function ($linkGroup) {
+                $primary = $linkGroup->first(fn ($l) => (bool) ($l->is_primary ?? false))
+                    ?? $linkGroup->first();
                 return [
                     'entity_id' => $primary->entity_id,
                     'entity_name' => $primary->entity?->name ?? '—',
@@ -299,20 +304,14 @@ class ProjectsCleanup extends Component
             return;
         }
 
-        // Alle bestehenden EntityLinks des Projekts entfernen
-        OrganizationEntityLink::query()
-            ->where('linkable_type', PlannerProject::class)
-            ->where('linkable_id', $this->editingProjectId)
-            ->delete();
-
-        // Neuen Link setzen
-        OrganizationEntityLink::create([
-            'linkable_type' => PlannerProject::class,
-            'linkable_id' => $this->editingProjectId,
-            'entity_id' => $this->newEntityId,
-            'team_id' => Auth::user()->currentTeam->id,
-            'is_primary' => true,
-        ]);
+        // Bridge kuemmert sich um das richtige Loeschen der alten dimension_links
+        // und um das Anlegen des neuen.
+        EntityDimensionBridge::replaceLinks(
+            PlannerProject::class,
+            (int) $this->editingProjectId,
+            (int) $this->newEntityId,
+        );
+        EntityDimensionBridge::flush();
 
         $this->closeEntityModal();
         unset($this->rows);
