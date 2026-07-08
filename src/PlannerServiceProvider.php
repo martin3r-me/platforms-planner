@@ -40,6 +40,9 @@ class PlannerServiceProvider extends ServiceProvider
         // LifecycleService — one place for state transitions on projects/tasks.
         $this->app->singleton(\Platform\Planner\Services\LifecycleService::class);
 
+        // LifecycleReactivator — auto wake-up on activity signals.
+        $this->app->singleton(\Platform\Planner\Services\LifecycleReactivator::class);
+
         // Commands registrieren
         if ($this->app->runningInConsole()) {
             $this->commands([
@@ -54,6 +57,7 @@ class PlannerServiceProvider extends ServiceProvider
                 \Platform\Planner\Console\Commands\ProcessAiAssignedTasks::class,
                 \Platform\Planner\Console\Commands\BuildProjectSnapshotsCommand::class,
                 \Platform\Planner\Console\Commands\PruneProjectSnapshotsCommand::class,
+                \Platform\Planner\Console\Commands\LifecycleTickCommand::class,
             ]);
 
             // Scheduler-Registrierung MUSS in register() liegen (wie dev/helpdesk):
@@ -80,6 +84,13 @@ class PlannerServiceProvider extends ServiceProvider
                     ->withoutOverlapping()
                     ->runInBackground()
                     ->appendOutputTo(storage_path('logs/planner-snapshots.log'));
+
+                // Lifecycle-Tick: aktive Projekte ohne Aktivitaet > 45d auf ruhend
+                $schedule->command('planner:lifecycle:tick')
+                    ->dailyAt('02:30')
+                    ->withoutOverlapping()
+                    ->runInBackground()
+                    ->appendOutputTo(storage_path('logs/planner-lifecycle.log'));
             });
         }
     }
@@ -100,6 +111,28 @@ class PlannerServiceProvider extends ServiceProvider
                 ->register(new \Platform\Planner\Organization\PlannerEntityLinkProvider());
         } catch (\Throwable $e) {
             // Organization-Modul nicht geladen
+        }
+
+        // Lifecycle auto-reactivation: dormant projects wake up on any
+        // activity signal. Reactivator itself guards against self-loops
+        // and no-ops when the project is not dormant.
+        \Platform\Planner\Models\PlannerProject::updated(function ($project) {
+            resolve(\Platform\Planner\Services\LifecycleReactivator::class)
+                ->onProjectUpdated($project);
+        });
+        \Platform\Planner\Models\PlannerTask::saved(function ($task) {
+            resolve(\Platform\Planner\Services\LifecycleReactivator::class)
+                ->onTaskSaved($task);
+        });
+        \Platform\Planner\Models\PlannerProjectCanvasBlock::saved(function ($block) {
+            resolve(\Platform\Planner\Services\LifecycleReactivator::class)
+                ->onCanvasBlockSaved($block);
+        });
+        if (class_exists(\Platform\Organization\Models\OrganizationTimeEntry::class)) {
+            \Platform\Organization\Models\OrganizationTimeEntry::created(function ($entry) {
+                resolve(\Platform\Planner\Services\LifecycleReactivator::class)
+                    ->onTimeEntryCreated($entry);
+            });
         }
 
         // KeyResultMetricProvider registrieren (KR-Metriken aus dem Planner)
