@@ -6,7 +6,7 @@
 
     $headerOpenCount = $openTasks->count();
     $headerDoneCount = $doneTasks->count();
-    $headerOverdueCount = $openTasks->filter(fn($t) => $t->due_date && $t->due_date->isPast() && !$t->is_done)->count();
+    $headerOverdueCount = $openTasks->filter(fn($t) => $t->due_date && $t->due_date->isPast() && $t->lifecycle_state === \Platform\Planner\Enums\TaskLifecycleState::ACTIVE)->count();
     $frogCount = $openTasks->filter(fn($t) => $t->is_frog)->count();
     $totalCount = $headerOpenCount + $headerDoneCount;
     $donePct = $totalCount > 0 ? round(($headerDoneCount / $totalCount) * 100) : 0;

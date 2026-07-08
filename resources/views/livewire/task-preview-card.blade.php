@@ -1,7 +1,7 @@
 @props(['task'])
 
 @php
-    $isDone = $task->is_done ?? false;
+    $isDone = $task->lifecycle_state === \Platform\Planner\Enums\TaskLifecycleState::COMPLETED;
     $isFrog = $task->is_frog ?? false;
     $userInCharge = $task->userInCharge ?? null;
     $initials = $userInCharge ? mb_strtoupper(mb_substr($userInCharge->name ?? $userInCharge->email ?? 'U', 0, 1)) : null;

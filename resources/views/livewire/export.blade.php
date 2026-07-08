@@ -65,7 +65,7 @@
                         @foreach($projects as $project)
                             <option value="{{ $project->id }}">
                                 {{ $project->name }}
-                                @if($project->done) (Abgeschlossen) @endif
+                                @if($project->lifecycle_state === \Platform\Planner\Enums\ProjectLifecycleState::COMPLETED) (Abgeschlossen) @endif
                             </option>
                         @endforeach
                     </select>
@@ -137,7 +137,7 @@
                         </div>
                         <div class="text-xs text-[var(--ui-secondary)] mb-3">
                             {{ $project->tasks()->count() }} Aufgaben
-                            @if($project->done)
+                            @if($project->lifecycle_state === \Platform\Planner\Enums\ProjectLifecycleState::COMPLETED)
                                 &middot; Abgeschlossen
                             @endif
                         </div>

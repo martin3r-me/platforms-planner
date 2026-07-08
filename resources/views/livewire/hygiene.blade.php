@@ -136,7 +136,7 @@
                                     <a href="{{ route('planner.tasks.show', ['plannerTask' => $task->id]) }}?from=hygiene"
                                        wire:navigate
                                        class="flex items-start gap-2 px-2 py-1.5 rounded hover:bg-[var(--ui-muted-5)] transition-colors group">
-                                        <span class="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 {{ $task->is_done ? 'bg-emerald-500' : 'bg-amber-500' }}"></span>
+                                        <span class="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 {{ $task->lifecycle_state === \Platform\Planner\Enums\TaskLifecycleState::COMPLETED ? 'bg-emerald-500' : 'bg-amber-500' }}"></span>
                                         <span class="flex-1 min-w-0">
                                             <span class="block text-[12px] text-[var(--ui-secondary)] truncate group-hover:text-[var(--planner-status-active)]">{{ $task->title }}</span>
                                             @if($task->project)

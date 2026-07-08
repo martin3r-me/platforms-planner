@@ -675,6 +675,17 @@ class Task extends Component
         }
     }
 
+    public function discardTask(): void
+    {
+        $this->authorize('update', $this->task);
+        try {
+            app(\Platform\Planner\Services\LifecycleService::class)->discardTask($this->task);
+            $this->task->refresh();
+        } catch (\Platform\Planner\Exceptions\InvalidLifecycleTransitionException) {
+            // Already terminal — no-op.
+        }
+    }
+
     public function toggleFrog(): void
     {
         $this->authorize('update', $this->task);

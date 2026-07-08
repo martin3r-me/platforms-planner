@@ -5,7 +5,7 @@
 
     $headerOpenCount = $openTasks->count();
     $headerDoneCount = $doneTasks->count();
-    $headerOverdueCount = $openTasks->filter(fn($t) => $t->due_date && $t->due_date->isPast() && !$t->is_done)->count();
+    $headerOverdueCount = $openTasks->filter(fn($t) => $t->due_date && $t->due_date->isPast() && $t->lifecycle_state === \Platform\Planner\Enums\TaskLifecycleState::ACTIVE)->count();
     $frogCount = $openTasks->filter(fn($t) => $t->is_frog)->count();
     $openPoints = $openTasks->sum(fn($t) => $t->story_points?->points() ?? 0);
     $withoutDueDate = $openTasks->filter(fn($t) => !$t->due_date)->count();
@@ -23,7 +23,7 @@
                 'email' => $u?->email,
                 'avatar'=> $u?->avatar,
                 'count' => $tasks->count(),
-                'overdue' => $tasks->filter(fn($t) => $t->due_date && $t->due_date->isPast() && !$t->is_done)->count(),
+                'overdue' => $tasks->filter(fn($t) => $t->due_date && $t->due_date->isPast() && $t->lifecycle_state === \Platform\Planner\Enums\TaskLifecycleState::ACTIVE)->count(),
             ];
         })
         ->sortByDesc('count')

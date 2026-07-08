@@ -1,13 +1,20 @@
 @php
-    $isOverdue = $task->due_date && $task->due_date->isPast() && !$task->is_done;
+    use Platform\Planner\Enums\TaskLifecycleState;
+    $isDone      = $task->lifecycle_state === TaskLifecycleState::COMPLETED;
+    $isDiscarded = $task->lifecycle_state === TaskLifecycleState::DISCARDED;
+    $isOverdue = $task->due_date && $task->due_date->isPast() && !$isDone && !$isDiscarded;
     $isToday = $task->due_date?->isToday() ?? false;
     $isTomorrow = $task->due_date?->isTomorrow() ?? false;
     $dueDateColor = $isOverdue ? 'var(--planner-status-overdue)' : ($isToday || $isTomorrow ? '#f59e0b' : 'var(--ui-muted)');
     $spValue = is_object($task->story_points) ? $task->story_points->points() : $task->story_points;
     $priorityColor = $task->priority?->color() ?? null;
-    $edgeColor = $task->is_done
-        ? 'var(--planner-status-done)'
-        : ($isOverdue ? 'var(--planner-status-overdue)' : ($task->is_frog ? 'var(--planner-frog)' : ($priorityColor ?? 'var(--planner-status-active)')));
+    $edgeColor = match (true) {
+        $isDone      => 'var(--planner-status-done)',
+        $isDiscarded => 'var(--ui-muted)',
+        $isOverdue   => 'var(--planner-status-overdue)',
+        $task->is_frog => 'var(--planner-frog)',
+        default => $priorityColor ?? 'var(--planner-status-active)',
+    };
 @endphp
 
 <x-ui-page>
@@ -113,13 +120,32 @@
                 <section class="rounded-lg bg-white border border-[var(--ui-border)]/40 shadow-sm overflow-hidden">
                     <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] px-3 pt-3 pb-1.5">Status & Priorität</h3>
 
-                    <button type="button" wire:click="toggleDone" class="w-full flex items-center justify-between py-2 px-3 hover:bg-[var(--ui-muted-5)] transition-colors text-[11px]">
+                    @php
+                        $lcMeta = match(true) {
+                            $isDone      => ['dot' => 'bg-[var(--planner-status-done)]', 'label' => 'Erledigt'],
+                            $isDiscarded => ['dot' => 'bg-zinc-400',                     'label' => 'Verworfen'],
+                            default      => ['dot' => 'bg-[var(--planner-status-active)]', 'label' => 'Aktiv'],
+                        };
+                    @endphp
+                    <button type="button" wire:click="toggleDone" @if($isDiscarded) disabled @endif class="w-full flex items-center justify-between py-2 px-3 hover:bg-[var(--ui-muted-5)] transition-colors text-[11px] {{ $isDiscarded ? 'opacity-60 cursor-not-allowed' : '' }}">
                         <span class="text-[var(--ui-muted)]">Status</span>
                         <span class="inline-flex items-center gap-1.5 font-medium">
-                            <span class="w-2 h-2 rounded-full {{ $task->is_done ? 'bg-[var(--planner-status-done)]' : 'bg-[var(--planner-status-active)]' }}"></span>
-                            <span class="text-[var(--ui-secondary)]">{{ $task->is_done ? 'Erledigt' : 'Offen' }}</span>
+                            <span class="w-2 h-2 rounded-full {{ $lcMeta['dot'] }}"></span>
+                            <span class="text-[var(--ui-secondary)]">{{ $lcMeta['label'] }}</span>
                         </span>
                     </button>
+                    @if(!$isDone && !$isDiscarded)
+                        <button
+                            type="button"
+                            wire:click="discardTask"
+                            wire:confirm="Aufgabe wirklich verwerfen? Sie wird nicht mehr bearbeitet und kann nicht zurückgeholt werden."
+                            class="w-full flex items-center justify-between py-1.5 px-3 border-t border-[var(--ui-border)]/30 hover:bg-zinc-50 transition-colors text-[10px] text-[var(--ui-muted)]"
+                            title="Aufgabe verwerfen — Terminal-Zustand"
+                        >
+                            <span>Verwerfen</span>
+                            @svg('heroicon-o-archive-box-x-mark', 'w-3 h-3')
+                        </button>
+                    @endif
 
                     <div class="py-2 px-3 border-t border-[var(--ui-border)]/30 text-[11px]">
                         <div class="flex items-center justify-between mb-1.5">
@@ -284,13 +310,16 @@
                         <button
                             type="button"
                             wire:click="toggleDone"
+                            @if($isDiscarded) disabled @endif
                             class="flex-shrink-0 mt-1 w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all duration-200 cursor-pointer
-                                {{ $task->is_done
+                                {{ $isDone
                                     ? 'bg-[var(--planner-status-done)] border-[var(--planner-status-done)] text-white'
-                                    : 'border-[var(--ui-border)] text-transparent hover:border-[var(--planner-status-done)] hover:text-[var(--planner-status-done)]' }}"
-                            title="{{ $task->is_done ? 'Als offen markieren' : 'Als erledigt markieren' }}"
+                                    : ($isDiscarded
+                                        ? 'bg-zinc-100 border-zinc-300 text-zinc-400 cursor-not-allowed'
+                                        : 'border-[var(--ui-border)] text-transparent hover:border-[var(--planner-status-done)] hover:text-[var(--planner-status-done)]') }}"
+                            title="{{ $isDiscarded ? 'Verworfen — kann nicht umgeschaltet werden' : ($isDone ? 'Als offen markieren' : 'Als erledigt markieren') }}"
                         >
-                            @svg('heroicon-s-check', 'w-4 h-4')
+                            @svg($isDiscarded ? 'heroicon-o-x-mark' : 'heroicon-s-check', 'w-4 h-4')
                         </button>
 
                         <div class="flex-1 min-w-0">
@@ -328,12 +357,17 @@
                             </div>
 
                             {{-- Status pills --}}
-                            @if($task->is_frog || $isOverdue || $task->is_done || $task->due_date)
+                            @if($task->is_frog || $isOverdue || $isDone || $isDiscarded || $task->due_date)
                                 <div class="flex flex-wrap items-center gap-1.5 mt-3">
-                                    @if($task->is_done)
+                                    @if($isDone)
                                         <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full bg-[var(--planner-status-done)] text-white">
                                             @svg('heroicon-s-check', 'w-3 h-3')
                                             Erledigt
+                                        </span>
+                                    @elseif($isDiscarded)
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full bg-zinc-200 text-zinc-600">
+                                            @svg('heroicon-o-archive-box-x-mark', 'w-3 h-3')
+                                            Verworfen
                                         </span>
                                     @elseif($isOverdue)
                                         <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full bg-[var(--planner-status-overdue)] text-white">

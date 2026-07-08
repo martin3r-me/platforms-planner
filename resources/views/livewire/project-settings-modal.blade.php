@@ -169,33 +169,75 @@
                     </div>
                 </section>
 
-                {{-- Status (aktiv/passiv/inaktiv) --}}
-                @php $statusVal = ($project->status?->value ?? $project->status); @endphp
+                {{-- Lebenszyklus --}}
+                @php
+                    $lc = $project->lifecycle_state?->value ?? 'aktiv';
+                    $lcTones = [
+                        'aktiv'         => ['label' => 'Aktiv',         'chip' => 'bg-emerald-50 text-emerald-700 border-emerald-200', 'dot' => 'bg-emerald-500'],
+                        'ruhend'        => ['label' => 'Ruhend',        'chip' => 'bg-amber-50 text-amber-700 border-amber-200',       'dot' => 'bg-amber-500'],
+                        'abgeschlossen' => ['label' => 'Abgeschlossen', 'chip' => 'bg-blue-50 text-blue-700 border-blue-200',          'dot' => 'bg-blue-500'],
+                        'verworfen'     => ['label' => 'Verworfen',     'chip' => 'bg-zinc-100 text-zinc-500 border-zinc-200',         'dot' => 'bg-zinc-400'],
+                    ];
+                    $lcMeta = $lcTones[$lc] ?? $lcTones['aktiv'];
+                    $lcChangedAt = $project->lifecycle_state_changed_at;
+                @endphp
                 <section class="space-y-2">
-                    <h4 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] m-0">Status</h4>
-                    <div class="inline-flex rounded-md border border-[var(--ui-border)] overflow-hidden w-full">
-                        <button
-                            type="button"
-                            wire:click="setStatus('aktiv')"
-                            class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 h-8 text-xs font-medium transition-colors {{ $statusVal === 'aktiv' ? 'bg-[var(--planner-status-active)] text-white' : 'bg-transparent text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}"
-                        >
-                            Aktiv
-                        </button>
-                        <button
-                            type="button"
-                            wire:click="setStatus('passiv')"
-                            class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 h-8 text-xs font-medium border-l border-[var(--ui-border)] transition-colors {{ $statusVal === 'passiv' ? 'bg-[var(--planner-status-active)] text-white' : 'bg-transparent text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}"
-                        >
-                            Passiv
-                        </button>
-                        <button
-                            type="button"
-                            wire:click="setStatus('inaktiv')"
-                            class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 h-8 text-xs font-medium border-l border-[var(--ui-border)] transition-colors {{ $statusVal === 'inaktiv' ? 'bg-[var(--planner-status-active)] text-white' : 'bg-transparent text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}"
-                        >
-                            Inaktiv
-                        </button>
+                    <h4 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] m-0">Lebenszyklus</h4>
+
+                    {{-- Aktueller Zustand --}}
+                    <div class="flex items-center gap-2 px-3 py-2 rounded-md border {{ $lcMeta['chip'] }}">
+                        <span class="w-2 h-2 rounded-full {{ $lcMeta['dot'] }} flex-shrink-0"></span>
+                        <span class="text-sm font-medium">{{ $lcMeta['label'] }}</span>
+                        @if($lcChangedAt)
+                            <span class="ml-auto text-[10px] opacity-70">seit {{ $lcChangedAt->diffForHumans() }}</span>
+                        @endif
                     </div>
+
+                    {{-- Transitions je nach Zustand --}}
+                    <div class="flex flex-wrap gap-1.5">
+                        @if(in_array($lc, ['aktiv', 'ruhend'], true))
+                            <button
+                                type="button"
+                                wire:click="completeProject"
+                                class="inline-flex items-center gap-1 rounded-md border border-blue-300 bg-blue-50 text-blue-800 px-2.5 py-1 text-[11px] font-medium hover:bg-blue-100"
+                                title="Ziel erreicht, Projekt read-only"
+                            >
+                                @svg('heroicon-o-check-circle', 'w-3.5 h-3.5')
+                                Abschließen
+                            </button>
+                            <button
+                                type="button"
+                                wire:click="discardProject"
+                                wire:confirm="Wirklich verwerfen? Offene Aufgaben werden kaskadiert."
+                                class="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 text-zinc-700 px-2.5 py-1 text-[11px] font-medium hover:bg-zinc-100"
+                                title="Ohne Ergebnis beenden (Kaskade: offene Tasks)"
+                            >
+                                @svg('heroicon-o-archive-box-x-mark', 'w-3.5 h-3.5')
+                                Verwerfen
+                            </button>
+                        @elseif($lc === 'abgeschlossen')
+                            <button
+                                type="button"
+                                wire:click="reopenProject"
+                                class="inline-flex items-center gap-1 rounded-md border border-emerald-300 bg-emerald-50 text-emerald-800 px-2.5 py-1 text-[11px] font-medium hover:bg-emerald-100"
+                            >
+                                @svg('heroicon-o-arrow-uturn-left', 'w-3.5 h-3.5')
+                                Wieder öffnen
+                            </button>
+                        @elseif($lc === 'verworfen')
+                            <button
+                                type="button"
+                                wire:click="reviveProject"
+                                class="inline-flex items-center gap-1 rounded-md border border-emerald-300 bg-emerald-50 text-emerald-800 px-2.5 py-1 text-[11px] font-medium hover:bg-emerald-100"
+                            >
+                                @svg('heroicon-o-arrow-path', 'w-3.5 h-3.5')
+                                Zurückholen
+                            </button>
+                        @endif
+                    </div>
+                    <p class="text-[10px] text-[var(--ui-muted)] leading-tight">
+                        Aktiv ↔ Ruhend läuft automatisch (45d Inaktivität). Abschließen / Verwerfen sind manuelle Entscheidungen.
+                    </p>
                 </section>
 
                 {{-- Verknüpfte Entities --}}
@@ -344,32 +386,7 @@
                     @endcan
                 </section>
 
-                {{-- Status / Lifecycle --}}
-                @can('update', $project)
-                    <section class="space-y-2 pt-3 border-t border-[var(--ui-border)]/40">
-                        <h4 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] m-0">Projekt-Status</h4>
-                        @if(!$project->done)
-                            <button
-                                type="button"
-                                wire:click="markAsDone"
-                                class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border border-[var(--planner-status-done)]/40 bg-[var(--planner-status-done)]/5 text-[var(--planner-status-done)] hover:bg-[var(--planner-status-done)]/10 transition-colors"
-                            >
-                                @svg('heroicon-o-check-circle', 'w-4 h-4')
-                                Projekt abschließen
-                            </button>
-                        @else
-                            <div class="px-3 py-2.5 rounded-lg border border-[var(--planner-status-done)]/30 bg-[var(--planner-status-done)]/5">
-                                <div class="flex items-center gap-2 text-[var(--planner-status-done)]">
-                                    @svg('heroicon-o-check-circle', 'w-4 h-4')
-                                    <span class="text-[12px] font-semibold">Projekt abgeschlossen</span>
-                                </div>
-                                @if($project->done_at)
-                                    <p class="text-[11px] text-[var(--planner-status-done)]/80 mt-1 m-0">am {{ $project->done_at->format('d.m.Y H:i') }}</p>
-                                @endif
-                            </div>
-                        @endif
-                    </section>
-                @endcan
+                {{-- Alter Abschluss-Block ist in die "Lebenszyklus"-Sektion oben gewandert. --}}
 
                 {{-- Danger zone --}}
                 @can('delete', $project)

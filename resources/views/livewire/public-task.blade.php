@@ -1,5 +1,5 @@
 @php
-    $isDone = $task->is_done ?? false;
+    $isDone = $task->lifecycle_state === \Platform\Planner\Enums\TaskLifecycleState::COMPLETED;
     $contextTags = $task->contextTags ?? collect();
     $contextColor = $task->color ?? null;
 @endphp
