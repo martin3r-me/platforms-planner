@@ -40,6 +40,10 @@
             @svg('heroicon-o-shield-check', 'w-4 h-4 text-[var(--ui-secondary)]')
             <span class="ml-2 text-sm">Hygiene</span>
         </x-ui-sidebar-item>
+        <x-ui-sidebar-item :href="route('planner.projects.cleanup')" :active="request()->routeIs('planner.projects.cleanup')">
+            @svg('heroicon-o-adjustments-horizontal', 'w-4 h-4 text-[var(--ui-secondary)]')
+            <span class="ml-2 text-sm">Projects Cleanup</span>
+        </x-ui-sidebar-item>
         <x-ui-sidebar-item :href="route('planner.health-index')" :active="request()->routeIs('planner.health-index')">
             @svg('heroicon-o-heart', 'w-4 h-4 text-[var(--ui-secondary)]')
             <span class="ml-2 text-sm">Health-Index</span>
@@ -84,6 +88,9 @@
             </a>
             <a href="{{ route('planner.hygiene') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.hygiene') ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)]' : 'text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}">
                 @svg('heroicon-o-shield-check', 'w-5 h-5')
+            </a>
+            <a href="{{ route('planner.projects.cleanup') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.projects.cleanup') ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)]' : 'text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}">
+                @svg('heroicon-o-adjustments-horizontal', 'w-5 h-5')
             </a>
         </div>
     </div>
