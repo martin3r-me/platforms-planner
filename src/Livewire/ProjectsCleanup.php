@@ -7,7 +7,9 @@ use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
+use Platform\Core\Models\Team;
 use Platform\Organization\Models\OrganizationEntity;
+use Platform\Organization\Services\DimensionLinkService;
 use Platform\Organization\Services\EntityDimensionBridge;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectSnapshot;
@@ -96,8 +98,12 @@ class ProjectsCleanup extends Component
             return [];
         }
 
+        // Bridge speichert linkable_type als morph alias (z.B. "project"),
+        // nicht als voller Klassenname → vorher aufloesen.
+        $linkableType = DimensionLinkService::resolveContextType(PlannerProject::class);
+
         return EntityDimensionBridge::linksForLinkables(
-                [PlannerProject::class],
+                [$linkableType],
                 $projectIds,
                 true // with entity
             )
@@ -127,15 +133,38 @@ class ProjectsCleanup extends Component
             ->all();
     }
 
+    /**
+     * Liefert alle Team-IDs im Baum unterhalb des Root-Teams des aktuellen
+     * Nutzers — damit die Engagement-Auswahl nicht am Sub-Team hängen bleibt.
+     */
+    protected function relevantTeamIds(): array
+    {
+        $current = Auth::user()->currentTeamRelation;
+        if (! $current) {
+            return [];
+        }
+        $root = $current->getRootTeam();
+        $ids = [$root->id];
+        $walker = function (Team $team) use (&$walker, &$ids) {
+            foreach ($team->childTeams()->get() as $child) {
+                $ids[] = $child->id;
+                $walker($child);
+            }
+        };
+        $walker($root);
+        return $ids;
+    }
+
     #[Computed]
     public function engagementOptions(): array
     {
         return OrganizationEntity::query()
-            ->where('team_id', Auth::user()->currentTeam->id)
+            ->whereIn('team_id', $this->relevantTeamIds())
             ->where('entity_type_id', 37) // Engagement
+            ->where('is_active', true)
             ->when($this->entitySearch !== '', fn ($q) => $q->where('name', 'like', '%' . $this->entitySearch . '%'))
             ->orderBy('name')
-            ->limit(50)
+            ->limit(200)
             ->pluck('name', 'id')
             ->all();
     }
