@@ -208,8 +208,7 @@ class PlannerRecurringTask extends Model
         }
 
         if ($this->auto_mark_as_done) {
-            $task->done_at = now();
-            $task->save();
+            app(\Platform\Planner\Services\LifecycleService::class)->completeTask($task);
         }
 
         // Zähler hochsetzen und next_due_date weiter rollen,

@@ -181,7 +181,7 @@ class Project extends BaseProject
         // === 3. ERLEDIGTE AUFGABEN ===
         $doneTasks = \Platform\Planner\Models\PlannerTask::where('project_id', $this->project->id)
             ->where('lifecycle_state', TaskLifecycleState::COMPLETED->value)
-            ->orderByDesc('done_at') // Neueste zuerst (zuletzt erledigt)
+            ->orderByDesc('lifecycle_state_changed_at') // Neueste zuerst (zuletzt erledigt)
             ->orderByDesc('updated_at') // Fallback für Tasks ohne done_at
             ->get();
 

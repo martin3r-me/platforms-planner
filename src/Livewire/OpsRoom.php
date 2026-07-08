@@ -106,7 +106,7 @@ class OpsRoom extends Component
         $tasksDoneToday = PlannerTask::query()
             ->tap($taskScope)
             ->where('lifecycle_state', TaskLifecycleState::COMPLETED->value)
-            ->where('done_at', '>=', $todayStart)
+            ->where('lifecycle_state_changed_at', '>=', $todayStart)
             ->count();
 
         $tasksOverdueAll = PlannerTask::query()
@@ -177,12 +177,12 @@ class OpsRoom extends Component
         $recentDone = PlannerTask::query()
             ->tap($taskScope)
             ->where('lifecycle_state', TaskLifecycleState::COMPLETED->value)
-            ->whereNotNull('done_at')
-            ->where('done_at', '>=', $nowTs->copy()->subHours(24))
+            ->whereNotNull('lifecycle_state_changed_at')
+            ->where('lifecycle_state_changed_at', '>=', $nowTs->copy()->subHours(24))
             ->with(['project:id,name', 'userInCharge:id,name'])
-            ->orderByDesc('done_at')
+            ->orderByDesc('lifecycle_state_changed_at')
             ->limit(8)
-            ->get(['id', 'title', 'project_id', 'user_in_charge_id', 'done_at']);
+            ->get(['id', 'title', 'project_id', 'user_in_charge_id', 'lifecycle_state_changed_at']);
 
         // 30-Tage-Health-Trend (Avg health_score pro Tag, ueber alle Projekte)
         $trendRaw = DB::table('planner_project_snapshots')

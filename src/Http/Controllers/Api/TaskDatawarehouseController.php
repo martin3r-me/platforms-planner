@@ -41,7 +41,7 @@ class TaskDatawarehouseController extends ApiController
         $sortDir = $request->get('sort_dir', 'desc');
         
         // Validierung der Sort-Spalte (Security)
-        $allowedSortColumns = ['id', 'created_at', 'updated_at', 'done_at', 'due_date', 'original_due_date', 'title', 'postpone_count'];
+        $allowedSortColumns = ['id', 'created_at', 'updated_at', 'lifecycle_state_changed_at', 'due_date', 'original_due_date', 'title', 'postpone_count'];
         if (in_array($sortBy, $allowedSortColumns)) {
             $query->orderBy($sortBy, $sortDir === 'asc' ? 'asc' : 'desc');
         } else {
@@ -96,7 +96,7 @@ class TaskDatawarehouseController extends ApiController
                 'project_slot_id' => $task->project_slot_id, // Für Backlog-Berechnung
                 'task_group_id' => $task->task_group_id,
                 'is_done' => $task->is_done,
-                'done_at' => $task->done_at?->toIso8601String(),
+                'done_at' => $task->lifecycle_state_changed_at?->toIso8601String(),
                 'created_at' => $task->created_at->toIso8601String(),
                 'updated_at' => $task->updated_at->toIso8601String(),
                 'due_date' => $task->due_date?->toIso8601String(),
@@ -159,23 +159,23 @@ class TaskDatawarehouseController extends ApiController
         // Erledigte Aufgaben (done_at)
         if ($request->has('is_done')) {
             if ($request->is_done === 'true' || $request->is_done === '1') {
-                $query->whereNotNull('done_at');
+                $query->whereNotNull('lifecycle_state_changed_at');
             } elseif ($request->is_done === 'false' || $request->is_done === '0') {
-                $query->whereNull('done_at');
+                $query->whereNull('lifecycle_state_changed_at');
             }
         }
 
         // Datums-Filter für done_at (heute erledigt)
         if ($request->boolean('done_today')) {
-            $query->whereDate('done_at', Carbon::today());
+            $query->whereDate('lifecycle_state_changed_at', Carbon::today());
         }
 
         // Datums-Range für done_at
         if ($request->has('done_from')) {
-            $query->whereDate('done_at', '>=', $request->done_from);
+            $query->whereDate('lifecycle_state_changed_at', '>=', $request->done_from);
         }
         if ($request->has('done_to')) {
-            $query->whereDate('done_at', '<=', $request->done_to);
+            $query->whereDate('lifecycle_state_changed_at', '<=', $request->done_to);
         }
 
         // Erstellt heute
@@ -280,7 +280,7 @@ class TaskDatawarehouseController extends ApiController
         if ($groupBy === 'date') {
             // Gruppiert nach Datum (done_at)
             $result = $tasks->groupBy(function ($task) {
-                return $task->done_at?->format('Y-m-d') ?? 'no_date';
+                return $task->lifecycle_state_changed_at?->format('Y-m-d') ?? 'no_date';
             })->map(function ($dateTasks, $date) {
                 return [
                     'date' => $date === 'no_date' ? null : $date,
@@ -378,8 +378,8 @@ class TaskDatawarehouseController extends ApiController
         }
 
         if ($groupBy === 'date') {
-            $result = $query->selectRaw('DATE(done_at) as date, COUNT(*) as count')
-                ->whereNotNull('done_at')
+            $result = $query->selectRaw('DATE(lifecycle_state_changed_at) as date, COUNT(*) as count')
+                ->whereNotNull('lifecycle_state_changed_at')
                 ->groupBy('date')
                 ->orderBy('date')
                 ->get()
@@ -465,7 +465,7 @@ class TaskDatawarehouseController extends ApiController
                 'project_name' => $example->project?->name,
                 'title' => $example->title,
                 'is_done' => $example->is_done,
-                'done_at' => $example->done_at?->toIso8601String(),
+                'done_at' => $example->lifecycle_state_changed_at?->toIso8601String(),
                 'due_date' => $example->due_date?->format('Y-m-d'),
                 'is_frog' => $example->is_frog,
                 'is_backlog' => $example->is_backlog,

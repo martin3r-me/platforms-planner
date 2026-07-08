@@ -133,7 +133,7 @@ class DelegatedTasks extends Component
             ->where('user_id', $userId) // Vom aktuellen User erstellt
             ->whereNotNull('user_in_charge_id') // Hat einen Verantwortlichen
             ->where('user_in_charge_id', '!=', $userId) // Aber nicht der aktuelle User
-            ->orderByDesc('done_at') // Neueste zuerst (zuletzt erledigt)
+            ->orderByDesc('lifecycle_state_changed_at') // Neueste zuerst (zuletzt erledigt)
             ->orderByDesc('updated_at') // Fallback für Tasks ohne done_at
             ->get();
 
@@ -161,7 +161,7 @@ class DelegatedTasks extends Component
 
         $donePoints = PlannerTask::query()
             ->withTrashed()
-            ->whereDate('done_at', '>=', $startOfMonth)
+            ->whereDate('lifecycle_state_changed_at', '>=', $startOfMonth)
             ->where('user_id', $userId) // Vom aktuellen User erstellt
             ->whereNotNull('user_in_charge_id') // Hat einen Verantwortlichen
             ->where('user_in_charge_id', '!=', $userId) // Aber nicht der aktuelle User

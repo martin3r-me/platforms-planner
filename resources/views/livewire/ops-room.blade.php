@@ -466,7 +466,7 @@
                                 @if($task->userInCharge)
                                     <span class="text-zinc-600">· {{ $task->userInCharge->name }}</span>
                                 @endif
-                                <span class="text-zinc-600 tabular-nums">· {{ $task->done_at?->format('H:i') }}</span>
+                                <span class="text-zinc-600 tabular-nums">· {{ $task->lifecycle_state_changed_at?->format('H:i') }}</span>
                                 <span class="text-zinc-800 mx-2">•</span>
                             </span>
                         @endforeach

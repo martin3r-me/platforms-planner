@@ -33,7 +33,7 @@ class ProjectDatawarehouseController extends ApiController
         $sortDir = $request->get('sort_dir', 'desc');
         
         // Validierung der Sort-Spalte (Security)
-        $allowedSortColumns = ['id', 'created_at', 'updated_at', 'done_at', 'name'];
+        $allowedSortColumns = ['id', 'created_at', 'updated_at', 'lifecycle_state_changed_at', 'name'];
         if (in_array($sortBy, $allowedSortColumns)) {
             $query->orderBy($sortBy, $sortDir === 'asc' ? 'asc' : 'desc');
         } else {
@@ -59,7 +59,7 @@ class ProjectDatawarehouseController extends ApiController
                 'user_id' => $project->user_id,
                 'project_type' => $project->project_type?->value,
                 'done' => $project->done,
-                'done_at' => $project->done_at?->toIso8601String(),
+                'done_at' => $project->lifecycle_state_changed_at?->toIso8601String(),
                 'planned_minutes' => $project->totalPlannedMinutes(),
                 'planned_start' => $project->plannedStart()?->toDateString(),
                 'planned_end' => $project->plannedEnd()?->toDateString(),
@@ -123,15 +123,15 @@ class ProjectDatawarehouseController extends ApiController
 
         // Datums-Filter für done_at (heute erledigt)
         if ($request->boolean('done_today')) {
-            $query->whereDate('done_at', Carbon::today());
+            $query->whereDate('lifecycle_state_changed_at', Carbon::today());
         }
 
         // Datums-Range für done_at
         if ($request->has('done_from')) {
-            $query->whereDate('done_at', '>=', $request->done_from);
+            $query->whereDate('lifecycle_state_changed_at', '>=', $request->done_from);
         }
         if ($request->has('done_to')) {
-            $query->whereDate('done_at', '<=', $request->done_to);
+            $query->whereDate('lifecycle_state_changed_at', '<=', $request->done_to);
         }
 
         // Erstellt heute
@@ -188,7 +188,7 @@ class ProjectDatawarehouseController extends ApiController
                 'user_id' => $example->user_id,
                 'project_type' => $example->project_type?->value,
                 'done' => $example->done,
-                'done_at' => $example->done_at?->toIso8601String(),
+                'done_at' => $example->lifecycle_state_changed_at?->toIso8601String(),
                 'planned_minutes' => $example->totalPlannedMinutes(),
                 'planned_start' => $example->plannedStart()?->toDateString(),
                 'planned_end' => $example->plannedEnd()?->toDateString(),

@@ -164,7 +164,7 @@ class MyTasks extends Component
                       ->whereNotNull('project_slot_id'); // nur Projektaufgaben mit Project-Slot (nicht Backlog)
                 });
             })
-            ->orderByDesc('done_at') // Neueste zuerst (zuletzt erledigt)
+            ->orderByDesc('lifecycle_state_changed_at') // Neueste zuerst (zuletzt erledigt)
             ->orderByDesc('updated_at') // Fallback für Tasks ohne done_at
             ->get();
 
@@ -260,7 +260,7 @@ class MyTasks extends Component
 
         $donePoints = PlannerTask::query()
             ->withTrashed()
-            ->whereDate('done_at', '>=', $startOfMonth)
+            ->whereDate('lifecycle_state_changed_at', '>=', $startOfMonth)
             ->where(function ($q) use ($userId) {
                 $q->where(function ($q) use ($userId) {
                     $q->whereNull('project_id')

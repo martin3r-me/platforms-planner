@@ -16,6 +16,8 @@ use Platform\Core\Verbalization\Recipe\CollectionRecipe;
 use Platform\Core\Verbalization\Subject;
 use Platform\Core\Verbalization\SubjectCollector\SubjectCollectorInterface;
 use Platform\Planner\Enums\ProjectKind;
+use Platform\Planner\Enums\ProjectLifecycleState;
+use Platform\Planner\Enums\TaskLifecycleState;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectCanvas;
 use Platform\Planner\Models\PlannerProjectSnapshot;
@@ -243,7 +245,7 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
             ProjectKind::RUN => 'Run',
             default => 'Vorhaben',
         };
-        $statusLabel = $project->done ? 'erledigt' : ($project->status?->value ?? 'aktiv');
+        $statusLabel = $project->lifecycle_state?->value ?? 'aktiv';
         $facts[] = new Fact(FactPriority::CORE, "{$kindLabel} im Status: {$statusLabel}.", 'project.kind+status');
 
         if (! $snapshot) {
@@ -269,8 +271,8 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
         $todayStart = now()->startOfDay();
         $sinceSnapshot = $snapshot->taken_at ?? $todayStart;
         $doneSinceSnapshot = PlannerTask::where('project_id', $project->id)
-            ->where('is_done', true)
-            ->where('done_at', '>=', $sinceSnapshot)
+            ->where('lifecycle_state', TaskLifecycleState::COMPLETED->value)
+            ->where('lifecycle_state_changed_at', '>=', $sinceSnapshot)
             ->count();
         $tasksOpenNow = max(0, (int) $snapshot->tasks_open - $doneSinceSnapshot);
 
@@ -290,8 +292,8 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
             // Live-Topup: SP der seit Snapshot erledigten Tasks aufaddieren (analog Tasks-Count).
             // Sonst Widerspruch: "3 seit Snapshot done" vs "0 SP erledigt".
             $spSinceSnapshot = PlannerTask::where('project_id', $project->id)
-                ->where('is_done', true)
-                ->where('done_at', '>=', $sinceSnapshot)
+                ->where('lifecycle_state', TaskLifecycleState::COMPLETED->value)
+                ->where('lifecycle_state_changed_at', '>=', $sinceSnapshot)
                 ->get()
                 ->sum(fn ($t) => $t->story_points?->points() ?? 0);
             $spDone = (int) $snapshot->story_points_done + (int) $spSinceSnapshot;
@@ -322,10 +324,10 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
     protected function factsMovementSummary(PlannerProject $project, \DateTimeInterface $since): array
     {
         $doneSince = PlannerTask::where('project_id', $project->id)
-            ->where('is_done', true)
-            ->where('done_at', '>=', $since)
-            ->orderBy('done_at')
-            ->get(['id', 'title', 'story_points', 'project_slot_id', 'done_at']);
+            ->where('lifecycle_state', TaskLifecycleState::COMPLETED->value)
+            ->where('lifecycle_state_changed_at', '>=', $since)
+            ->orderBy('lifecycle_state_changed_at')
+            ->get(['id', 'title', 'story_points', 'project_slot_id', 'lifecycle_state_changed_at']);
 
         if ($doneSince->isEmpty()) {
             return [];
@@ -346,7 +348,7 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
         foreach ($slotIdsTouched as $slotId) {
             $openInSlot = PlannerTask::where('project_id', $project->id)
                 ->where('project_slot_id', $slotId)
-                ->where('is_done', false)
+                ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
                 ->count();
             if ($openInSlot === 0) {
                 $slotName = \Platform\Planner\Models\PlannerProjectSlot::where('id', $slotId)->value('name');
@@ -400,7 +402,7 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
         $slots = \Platform\Planner\Models\PlannerProjectSlot::where('project_id', $project->id)
             ->withCount([
                 'tasks as tasks_total' => fn ($q) => $q,
-                'tasks as tasks_open' => fn ($q) => $q->where('is_done', false),
+                'tasks as tasks_open' => fn ($q) => $q->where('lifecycle_state', TaskLifecycleState::ACTIVE->value),
             ])
             ->get();
 
@@ -441,17 +443,17 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
     protected function factsBallPosition(PlannerProject $project, ?PlannerProjectSnapshot $snapshot): array
     {
         $openTotal = (int) ($snapshot?->tasks_open ?? PlannerTask::where('project_id', $project->id)
-            ->where('is_done', false)->count());
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)->count());
         // Live-Topup: alles was seit Snapshot done ging, war offen — jetzt nicht mehr
         if ($snapshot) {
             $doneSinceSnapshot = PlannerTask::where('project_id', $project->id)
-                ->where('is_done', true)
-                ->where('done_at', '>=', $snapshot->taken_at ?? now()->startOfDay())
+                ->where('lifecycle_state', TaskLifecycleState::COMPLETED->value)
+                ->where('lifecycle_state_changed_at', '>=', $snapshot->taken_at ?? now()->startOfDay())
                 ->count();
             $openTotal = max(0, $openTotal - $doneSinceSnapshot);
         }
 
-        if ($project->done) {
+        if ($project->lifecycle_state === ProjectLifecycleState::COMPLETED) {
             return [new Fact(FactPriority::CORE, 'Projekt ist abgeschlossen.', 'ball.done', FactNature::DERIVATION)];
         }
 
@@ -528,7 +530,7 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
     protected function factsOpenByOwner(PlannerProject $project): array
     {
         $tasks = PlannerTask::where('project_id', $project->id)
-            ->where('is_done', false)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->whereNotNull('user_in_charge_id')
             ->with(['userInCharge:id,name', 'projectSlot:id,name'])
             ->get();
@@ -780,7 +782,7 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
         // Verantwortliche). Der Projekt-Owner wird uebersprungen, da er schon oben steht.
         $projectOwnerId = (int) ($project->user_id ?? 0);
         $tasks = PlannerTask::where('project_id', $project->id)
-            ->where('is_done', false)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->whereNotNull('user_in_charge_id')
             ->with(['userInCharge:id,name', 'projectSlot:id,name'])
             ->get()

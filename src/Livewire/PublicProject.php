@@ -87,7 +87,7 @@ class PublicProject extends Component
         $doneTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])
             ->where('project_id', $this->project->id)
             ->where('lifecycle_state', TaskLifecycleState::COMPLETED->value)
-            ->orderByDesc('done_at')
+            ->orderByDesc('lifecycle_state_changed_at')
             ->orderByDesc('updated_at')
             ->get();
 

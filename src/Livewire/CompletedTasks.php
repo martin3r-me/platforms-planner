@@ -63,7 +63,7 @@ class CompletedTasks extends Component
         // Basis-Query für alle Aufgaben im Zeitraum (für Personenfilter)
         $baseQuery = PlannerTask::query()
             ->where('lifecycle_state', TaskLifecycleState::COMPLETED->value)
-            ->whereNotNull('done_at') // Nur Aufgaben mit done_at
+            ->whereNotNull('lifecycle_state_changed_at') // Nur Aufgaben mit done_at
             ->where(function ($q) use ($userId, $projectIds) {
                 // Private Aufgaben des Benutzers
                 $q->where(function ($q) use ($userId) {
@@ -76,7 +76,7 @@ class CompletedTasks extends Component
                       ->whereIn('project_id', $projectIds);
                 });
             })
-            ->where('done_at', '>=', $sinceDate); // Nach done_at filtern
+            ->where('lifecycle_state_changed_at', '>=', $sinceDate); // Nach done_at filtern
 
         // Alle verfügbaren Personen für Filter (aus allen Aufgaben im Zeitraum, unabhängig vom Personenfilter)
         $allTasksForUsers = (clone $baseQuery)
@@ -96,13 +96,13 @@ class CompletedTasks extends Component
                 $q->where('user_in_charge_id', $this->userFilter);
             })
             ->with(['user', 'userInCharge', 'project', 'team'])
-            ->orderByDesc('done_at') // Neueste zuerst (zuletzt erledigt)
+            ->orderByDesc('lifecycle_state_changed_at') // Neueste zuerst (zuletzt erledigt)
             ->get();
 
         // Gruppierung nach Datum (heute, gestern, diese Woche, etc.)
         // done_at ist immer vorhanden, da wir nur Tasks mit done_at laden
         $groupedTasks = $completedTasks->groupBy(function ($task) {
-            $date = $task->done_at;
+            $date = $task->lifecycle_state_changed_at;
             
             if ($date->isToday()) {
                 return 'Heute';
