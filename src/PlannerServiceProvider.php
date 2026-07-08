@@ -33,6 +33,10 @@ class PlannerServiceProvider extends ServiceProvider
         // ExportService als Singleton registrieren
         $this->app->singleton(\Platform\Planner\Export\ExportService::class);
 
+        // ActivityClock — zentrale "Wann wurde zuletzt gearbeitet"-Wahrheit
+        // fuer Lifecycle-Automatik, Hygiene, Cleanup, Health.
+        $this->app->singleton(\Platform\Planner\Services\ActivityClock::class);
+
         // Commands registrieren
         if ($this->app->runningInConsole()) {
             $this->commands([

@@ -16,6 +16,7 @@ use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectCanvas;
 use Platform\Planner\Models\PlannerProjectSnapshot;
 use Platform\Planner\Models\PlannerTask;
+use Platform\Planner\Services\ActivityClock;
 
 /**
  * Aufraeum-Cockpit fuer Projekte.
@@ -154,81 +155,6 @@ class ProjectsCleanup extends Component
     }
 
     /**
-     * Ermittelt pro Projekt den juengsten Aktivitaets-Zeitpunkt fuer den
-     * "Vergessen"-Wert. Aktivitaet = MAX aus:
-     *   - Task-Aktivitaet (max updated_at aller aktiven Tasks des Projekts)
-     *   - Time-Entry-Aktivitaet (max created_at von Buchungen an Projekt + Tasks)
-     * Der Projekt-eigene last_viewed_at wird spaeter noch drueberlegt.
-     *
-     * @return array<int, ?\Carbon\Carbon>  keyed by project_id
-     */
-    protected function latestActivityByProjectId(array $projectIds): array
-    {
-        if (empty($projectIds)) {
-            return [];
-        }
-
-        $projectAlias = DimensionLinkService::resolveContextType(PlannerProject::class);
-        $taskAlias = DimensionLinkService::resolveContextType(PlannerTask::class);
-
-        // Task-Aktivitaet
-        $taskActivity = DB::table('planner_tasks')
-            ->whereIn('project_id', $projectIds)
-            ->whereNull('deleted_at')
-            ->selectRaw('project_id, MAX(updated_at) as latest')
-            ->groupBy('project_id')
-            ->pluck('latest', 'project_id')
-            ->all();
-
-        // Task-IDs pro Projekt fuer Time-Entry-Lookup
-        $taskProjectMap = DB::table('planner_tasks')
-            ->whereIn('project_id', $projectIds)
-            ->whereNull('deleted_at')
-            ->pluck('project_id', 'id')
-            ->all();
-        $taskIds = array_keys($taskProjectMap);
-
-        // Time-Entries am Projekt
-        $projectTimeActivity = DB::table('organization_time_entries')
-            ->whereIn('context_type', [$projectAlias, PlannerProject::class])
-            ->whereIn('context_id', $projectIds)
-            ->selectRaw('context_id, MAX(created_at) as latest')
-            ->groupBy('context_id')
-            ->pluck('latest', 'context_id')
-            ->all();
-
-        // Time-Entries an Tasks (mappen zurueck auf Projekt)
-        $taskTimeActivity = [];
-        if (! empty($taskIds)) {
-            $rows = DB::table('organization_time_entries')
-                ->whereIn('context_type', [$taskAlias, PlannerTask::class])
-                ->whereIn('context_id', $taskIds)
-                ->selectRaw('context_id, MAX(created_at) as latest')
-                ->groupBy('context_id')
-                ->get();
-            foreach ($rows as $r) {
-                $pid = $taskProjectMap[$r->context_id] ?? null;
-                if (! $pid) continue;
-                $ts = $r->latest;
-                if (! isset($taskTimeActivity[$pid]) || $ts > $taskTimeActivity[$pid]) {
-                    $taskTimeActivity[$pid] = $ts;
-                }
-            }
-        }
-
-        $result = [];
-        foreach ($projectIds as $pid) {
-            $candidates = array_filter([
-                $taskActivity[$pid] ?? null,
-                $projectTimeActivity[$pid] ?? null,
-                $taskTimeActivity[$pid] ?? null,
-            ]);
-            $result[$pid] = empty($candidates) ? null : \Carbon\Carbon::parse(max($candidates));
-        }
-        return $result;
-    }
-
-    /**
      * Fuer jedes Projekt: erster (primary or first) EntityLink samt Entity-Name.
      * Nutzt EntityDimensionBridge — die aktuelle Quelle der Wahrheit fuer
      * Entity-Verknuepfungen (organization_dimension_links). Die alte
@@ -328,7 +254,7 @@ class ProjectsCleanup extends Component
         $snapshots = $this->latestSnapshotsByProjectId($projectIds);
         $entityLinks = $this->primaryEntityLinkByProjectId($projectIds);
         $trackedMinutes = $this->trackedMinutesByProjectId($projectIds);
-        $activityByProject = $this->latestActivityByProjectId($projectIds);
+        $activityByProject = app(ActivityClock::class)->lastActivityForProjects($projectIds);
         $now = now();
 
         $rows = $projects->map(function ($p) use ($snapshots, $entityLinks, $trackedMinutes, $activityByProject, $now) {
@@ -350,13 +276,10 @@ class ProjectsCleanup extends Component
                 'tasks' => $snap ? ! in_array('tasks', $missing, true) : false,
             ];
 
-            // Vergessens-Wert: MAX aus last_viewed_at, Task-Aktivitaet, Time-Entry
-            $candidates = array_filter([
-                $p->last_viewed_at,
-                $activityByProject[$p->id] ?? null,
-                $p->created_at, // Fallback — ein frisch angelegtes Projekt ist nicht "vergessen"
-            ]);
-            $lastActivity = empty($candidates) ? null : collect($candidates)->max();
+            // ActivityClock liefert die MAX-Aktivitaet aus allen Signalen.
+            // Fallback: created_at — ein frisch angelegtes Projekt ohne
+            // Interaktion soll nicht sofort als "vergessen" erscheinen.
+            $lastActivity = $activityByProject[$p->id] ?? $p->created_at;
             $forgottenDays = $lastActivity ? (int) $now->diffInDays($lastActivity, absolute: true) : null;
             $forgottenBucket = match (true) {
                 $forgottenDays === null => 'unknown',
