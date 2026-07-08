@@ -5,6 +5,7 @@ namespace Platform\Planner\Livewire;
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Platform\Planner\Models\PlannerTask;
+use Platform\Planner\Enums\TaskLifecycleState;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectUser;
 use Platform\Planner\Export\ExportService;
@@ -112,7 +113,7 @@ class Export extends Component
                   ->orWhere('user_in_charge_id', $user->id)
                   ->orWhereIn('project_id', $projectIds);
             })
-            ->where('is_done', false)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->orderBy('title')
             ->limit(100)
             ->get();

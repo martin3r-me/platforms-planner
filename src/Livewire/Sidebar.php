@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use Platform\Planner\Models\PlannerProject as Project;
 use Platform\Planner\Models\PlannerProjectSlot as ProjectSlot;
 use Platform\Planner\Models\PlannerTask;
+use Platform\Planner\Enums\TaskLifecycleState;
 use Platform\Organization\Services\EntityAncestorService;
 use Platform\Organization\Services\EntityDimensionBridge;
 use Platform\Organization\Models\OrganizationEntity;
@@ -89,11 +90,11 @@ class Sidebar extends Component
             ->where(function ($query) use ($user) {
                 $query->whereHas('projectSlots.tasks', function ($q) use ($user) {
                     $q->where('user_in_charge_id', $user->id)
-                      ->where('is_done', false);
+                      ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value);
                 })
                 ->orWhereHas('tasks', function ($q) use ($user) {
                     $q->where('user_in_charge_id', $user->id)
-                      ->where('is_done', false)
+                      ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
                       ->whereNull('project_slot_id');
                 })
                 ->orWhereHas('projectUsers', function ($q) use ($user) {

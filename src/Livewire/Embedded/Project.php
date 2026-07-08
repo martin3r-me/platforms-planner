@@ -4,6 +4,7 @@ namespace Platform\Planner\Livewire\Embedded;
 
 use Platform\Planner\Livewire\Project as BaseProject;
 use Platform\Planner\Models\PlannerTask;
+use Platform\Planner\Enums\TaskLifecycleState;
 use Platform\Core\Helpers\TeamsAuthHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -131,7 +132,7 @@ class Project extends BaseProject
         // === 1. BACKLOG ===
         $backlogTasks = \Platform\Planner\Models\PlannerTask::where('project_id', $this->project->id)
             ->whereNull('project_slot_id')
-            ->where('is_done', false)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->orderBy('project_slot_order')
             ->get();
 
@@ -150,7 +151,7 @@ class Project extends BaseProject
 
         // === 2. PROJECT-SLOTS ===
         $slots = \Platform\Planner\Models\PlannerProjectSlot::with(['tasks' => function ($q) {
-                $q->where('is_done', false)
+                $q->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
                   ->whereNotNull('project_slot_id') // Explizit: Nur Tasks mit project_slot_id (nicht NULL)
                   ->orderBy('project_slot_order');
             }])
@@ -179,7 +180,7 @@ class Project extends BaseProject
 
         // === 3. ERLEDIGTE AUFGABEN ===
         $doneTasks = \Platform\Planner\Models\PlannerTask::where('project_id', $this->project->id)
-            ->where('is_done', true)
+            ->where('lifecycle_state', TaskLifecycleState::COMPLETED->value)
             ->orderByDesc('done_at') // Neueste zuerst (zuletzt erledigt)
             ->orderByDesc('updated_at') // Fallback für Tasks ohne done_at
             ->get();

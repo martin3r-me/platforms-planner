@@ -6,6 +6,7 @@ use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Models\PlannerProjectUser;
+use Platform\Planner\Enums\TaskLifecycleState;
 use Platform\Planner\Enums\TaskStoryPoints;
 use Platform\Planner\Livewire\Concerns\QuickTogglesDone;
 use Livewire\Attributes\On;
@@ -61,7 +62,7 @@ class CompletedTasks extends Component
 
         // Basis-Query für alle Aufgaben im Zeitraum (für Personenfilter)
         $baseQuery = PlannerTask::query()
-            ->where('is_done', true)
+            ->where('lifecycle_state', TaskLifecycleState::COMPLETED->value)
             ->whereNotNull('done_at') // Nur Aufgaben mit done_at
             ->where(function ($q) use ($userId, $projectIds) {
                 // Private Aufgaben des Benutzers

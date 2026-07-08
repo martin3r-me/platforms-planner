@@ -10,6 +10,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Platform\Planner\Models\PlannerProjectSnapshot;
 use Platform\Planner\Models\PlannerTask;
+use Platform\Planner\Enums\TaskLifecycleState;
 
 /**
  * Cybersyn-style wall-display für den Planner.
@@ -32,11 +33,12 @@ class OpsRoom extends Component
             )')
             ->pluck('a.id');
 
-        return PlannerProjectSnapshot::with(['project:id,name,kind,status,done'])
-            ->whereHas('project') // schliesst soft-deletete Projekte aus (Karteileichen-Geister)
+        return PlannerProjectSnapshot::with(['project:id,name,kind,lifecycle_state'])
+            ->whereHas('project', function ($q) {
+                $q->where('lifecycle_state', \Platform\Planner\Enums\ProjectLifecycleState::ACTIVE->value);
+            })
             ->whereIn('id', $latestIds)
             ->get()
-            ->filter(fn ($s) => ! ($s->project?->done ?? false))
             ->values();
     }
 
@@ -103,20 +105,20 @@ class OpsRoom extends Component
 
         $tasksDoneToday = PlannerTask::query()
             ->tap($taskScope)
-            ->where('is_done', true)
+            ->where('lifecycle_state', TaskLifecycleState::COMPLETED->value)
             ->where('done_at', '>=', $todayStart)
             ->count();
 
         $tasksOverdueAll = PlannerTask::query()
             ->tap($taskScope)
-            ->where('is_done', false)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->whereNotNull('due_date')
             ->where('due_date', '<', $nowTs)
             ->count();
 
         $tasksNewOverdueToday = PlannerTask::query()
             ->tap($taskScope)
-            ->where('is_done', false)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->whereNotNull('due_date')
             ->whereBetween('due_date', [$todayStart, $nowTs])
             ->count();
@@ -136,7 +138,7 @@ class OpsRoom extends Component
         // ── Workload Top-5 ──
         $workload = PlannerTask::query()
             ->tap($taskScope)
-            ->where('is_done', false)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->whereNotNull('user_in_charge_id')
             ->select('user_in_charge_id', DB::raw('COUNT(*) as open_count'),
                 DB::raw('SUM(CASE WHEN due_date < NOW() THEN 1 ELSE 0 END) as overdue_count'),
@@ -162,7 +164,7 @@ class OpsRoom extends Component
         // ── Älteste überfällige Frösche teamweit ──
         $aelteste = PlannerTask::query()
             ->tap($taskScope)
-            ->where('is_done', false)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->where('is_frog', true)
             ->whereNotNull('due_date')
             ->where('due_date', '<', $nowTs)
@@ -174,7 +176,7 @@ class OpsRoom extends Component
         // ── Letzte Bewegungen (Activity-Ticker) ──
         $recentDone = PlannerTask::query()
             ->tap($taskScope)
-            ->where('is_done', true)
+            ->where('lifecycle_state', TaskLifecycleState::COMPLETED->value)
             ->whereNotNull('done_at')
             ->where('done_at', '>=', $nowTs->copy()->subHours(24))
             ->with(['project:id,name', 'userInCharge:id,name'])

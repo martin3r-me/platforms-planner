@@ -6,6 +6,7 @@ use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Models\PlannerProjectUser;
+use Platform\Planner\Enums\TaskLifecycleState;
 use Platform\Planner\Enums\TaskStoryPoints;
 use Platform\Planner\Livewire\Concerns\QuickTogglesDone;
 use Livewire\Attributes\On;
@@ -62,7 +63,7 @@ class FrogTasks extends Component
         // Basis-Query: alle Frog-Tasks (nicht erledigt) aus Projekten des Users
         $baseQuery = PlannerTask::query()
             ->where('is_frog', true)
-            ->where('is_done', false)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->where(function ($q) use ($userId, $projectIds) {
                 $q->where(function ($q) use ($userId) {
                     $q->whereNull('project_id')

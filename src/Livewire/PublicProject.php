@@ -7,6 +7,7 @@ use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectCanvas;
 use Platform\Planner\Models\PlannerProjectSlot;
 use Platform\Planner\Models\PlannerTask;
+use Platform\Planner\Enums\TaskLifecycleState;
 use Platform\Planner\Enums\StoryPoints;
 
 class PublicProject extends Component
@@ -36,7 +37,7 @@ class PublicProject extends Component
         $backlogTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])
             ->where('project_id', $this->project->id)
             ->whereNull('project_slot_id')
-            ->where('is_done', false)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->orderBy('project_slot_order')
             ->get();
 
@@ -56,7 +57,7 @@ class PublicProject extends Component
         // === 2. PROJECT-SLOTS ===
         $slots = PlannerProjectSlot::with(['tasks' => function ($q) {
                 $q->with(['tags', 'contextColors', 'userInCharge', 'project'])
-                  ->where('is_done', false)
+                  ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
                   ->whereNotNull('project_slot_id')
                   ->orderBy('project_slot_order');
             }])
@@ -85,7 +86,7 @@ class PublicProject extends Component
         // === 3. ERLEDIGTE AUFGABEN ===
         $doneTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])
             ->where('project_id', $this->project->id)
-            ->where('is_done', true)
+            ->where('lifecycle_state', TaskLifecycleState::COMPLETED->value)
             ->orderByDesc('done_at')
             ->orderByDesc('updated_at')
             ->get();

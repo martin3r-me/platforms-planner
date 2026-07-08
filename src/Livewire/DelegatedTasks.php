@@ -4,6 +4,7 @@ namespace Platform\Planner\Livewire;
 
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
+use Platform\Planner\Enums\TaskLifecycleState;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Models\PlannerDelegatedTaskGroup;
 use Platform\Planner\Livewire\Concerns\QuickTogglesDone;
@@ -60,7 +61,7 @@ class DelegatedTasks extends Component
         $tomorrow = now()->addDay()->endOfDay();
         
         $dueTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])
-            ->where('is_done', false)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->whereNotNull('due_date')
             ->where(function ($q) use ($tomorrow) {
                 // Überfällig (in der Vergangenheit), heute oder morgen fällig
@@ -86,7 +87,7 @@ class DelegatedTasks extends Component
         // === 1. INBOX ===
         $inboxTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])
             ->whereNull('delegated_group_id')
-            ->where('is_done', false)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->where('user_id', $userId) // Vom aktuellen User erstellt
             ->whereNotNull('user_in_charge_id') // Hat einen Verantwortlichen
             ->where('user_in_charge_id', '!=', $userId) // Aber nicht der aktuelle User
@@ -108,7 +109,7 @@ class DelegatedTasks extends Component
         // WICHTIG: Alle Gruppen anzeigen, auch leere, damit User Aufgaben hinzufügen kann
         $grouped = PlannerDelegatedTaskGroup::with(['tasks' => function ($q) use ($userId) {
             $q->with(['tags', 'contextColors', 'userInCharge', 'project'])
-              ->where('is_done', false)
+              ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
               ->where('user_id', $userId) // Vom aktuellen User erstellt
               ->whereNotNull('user_in_charge_id') // Hat einen Verantwortlichen
               ->where('user_in_charge_id', '!=', $userId) // Aber nicht der aktuelle User
@@ -128,7 +129,7 @@ class DelegatedTasks extends Component
 
         // === 3. ERLEDIGT ===
         $doneTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])
-            ->where('is_done', true)
+            ->where('lifecycle_state', TaskLifecycleState::COMPLETED->value)
             ->where('user_id', $userId) // Vom aktuellen User erstellt
             ->whereNotNull('user_in_charge_id') // Hat einen Verantwortlichen
             ->where('user_in_charge_id', '!=', $userId) // Aber nicht der aktuelle User
@@ -239,10 +240,16 @@ class DelegatedTasks extends Component
             abort(403);
         }
 
-        // done_at wird automatisch vom PlannerTaskObserver gesetzt
-        $task->update([
-            'is_done' => ! $task->is_done,
-        ]);
+        $lifecycle = app(\Platform\Planner\Services\LifecycleService::class);
+        try {
+            if ($task->lifecycle_state === TaskLifecycleState::COMPLETED) {
+                $lifecycle->reopenTask($task);
+            } else {
+                $lifecycle->completeTask($task);
+            }
+        } catch (\Platform\Planner\Exceptions\InvalidLifecycleTransitionException) {
+            // Discarded stays discarded — silent no-op.
+        }
     }
 
     public function updateTaskOrder($groups)

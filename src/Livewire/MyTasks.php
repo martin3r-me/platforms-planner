@@ -4,6 +4,7 @@ namespace Platform\Planner\Livewire;
 
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
+use Platform\Planner\Enums\TaskLifecycleState;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Models\PlannerTaskGroup;
 use Platform\Planner\Livewire\Concerns\QuickTogglesDone;
@@ -65,7 +66,7 @@ class MyTasks extends Component
         $tomorrow = now()->addDay()->endOfDay();
         
         $dueTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])
-            ->where('is_done', false)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->whereNotNull('due_date')
             ->where(function ($q) use ($tomorrow) {
                 // Überfällig (in der Vergangenheit), heute oder morgen fällig
@@ -98,7 +99,7 @@ class MyTasks extends Component
         // === 1. INBOX ===
         $inboxTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])
             ->whereNull('task_group_id')
-            ->where('is_done', false)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->where(function ($q) use ($userId) {
                 $q->where(function ($q) use ($userId) {
                     $q->whereNull('project_id')
@@ -125,7 +126,7 @@ class MyTasks extends Component
         // === 2. GRUPPEN ===
         $grouped = PlannerTaskGroup::with(['tasks' => function ($q) use ($userId) {
             $q->with(['tags', 'contextColors', 'userInCharge', 'project'])
-              ->where('is_done', false)
+              ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
               ->where(function ($q) use ($userId) {
                   $q->where(function ($q) use ($userId) {
                       $q->whereNull('project_id')
@@ -152,7 +153,7 @@ class MyTasks extends Component
 
         // === 3. ERLEDIGT ===
         $doneTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])
-            ->where('is_done', true)
+            ->where('lifecycle_state', TaskLifecycleState::COMPLETED->value)
             ->where(function ($q) use ($userId) {
                 $q->where(function ($q) use ($userId) {
                     $q->whereNull('project_id')
@@ -211,7 +212,7 @@ class MyTasks extends Component
 
         // === VERFÜGBARE TAGS & FARBEN FÜR FILTER-UI ===
         $allUserTasks = PlannerTask::with(['tags', 'contextColors'])
-            ->where('is_done', false)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->where(function ($q) use ($userId) {
                 $q->where(function ($q) use ($userId) {
                     $q->whereNull('project_id')
@@ -333,10 +334,16 @@ class MyTasks extends Component
             abort(403);
         }
 
-        // done_at wird automatisch vom PlannerTaskObserver gesetzt
-        $task->update([
-            'is_done' => ! $task->is_done,
-        ]);
+        $lifecycle = app(\Platform\Planner\Services\LifecycleService::class);
+        try {
+            if ($task->lifecycle_state === TaskLifecycleState::COMPLETED) {
+                $lifecycle->reopenTask($task);
+            } else {
+                $lifecycle->completeTask($task);
+            }
+        } catch (\Platform\Planner\Exceptions\InvalidLifecycleTransitionException) {
+            // Discarded stays discarded — silent no-op.
+        }
     }
 
     public function updateTaskOrder($groups)

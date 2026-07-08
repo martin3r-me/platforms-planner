@@ -47,7 +47,7 @@ class Task extends Component
         'dod' => 'nullable|string',
         'task.is_frog' => 'boolean',
         'task.is_forced_frog' => 'boolean',
-        'task.is_done' => 'boolean',
+        'task.lifecycle_state' => 'in:aktiv,erledigt,verworfen',
         'task.due_date' => 'nullable|date',
         'task.user_in_charge_id' => 'nullable|integer',
         'task.priority' => 'required|in:low,normal,high',
@@ -213,7 +213,7 @@ class Task extends Component
                         'title' => 'Titel',
                         'description' => 'Beschreibung',
                         'due_date' => 'Fälligkeitsdatum',
-                        'is_done' => 'Status',
+                        'lifecycle_state' => 'Status',
                         'is_frog' => 'Frosch',
                         'priority' => 'Priorität',
                         'story_points' => 'Story Points',
@@ -304,7 +304,7 @@ class Task extends Component
                 'priority' => $this->task->priority,
                 'due_date' => $this->task->due_date?->toIso8601String(),
                 'story_points' => $this->task->story_points,
-                'is_done' => $this->task->is_done,
+                'lifecycle_state' => $this->task->lifecycle_state?->value,
                 'project' => $this->task->project?->name,
             ],
         ]);
@@ -662,9 +662,17 @@ class Task extends Component
     public function toggleDone(): void
     {
         $this->authorize('complete', $this->task);
-        $this->task->is_done = (bool)!$this->task->is_done;
-        $this->task->done_at = $this->task->is_done ? now() : null;
-        $this->task->save();
+        $lifecycle = app(\Platform\Planner\Services\LifecycleService::class);
+        try {
+            if ($this->task->lifecycle_state === \Platform\Planner\Enums\TaskLifecycleState::COMPLETED) {
+                $lifecycle->reopenTask($this->task);
+            } else {
+                $lifecycle->completeTask($this->task);
+            }
+            $this->task->refresh();
+        } catch (\Platform\Planner\Exceptions\InvalidLifecycleTransitionException) {
+            // Discarded stays discarded — silent no-op.
+        }
     }
 
     public function toggleFrog(): void

@@ -11,7 +11,7 @@ class Task extends BaseTask
         'task.title' => 'required|string|max:255',
         'task.description' => 'nullable|string',
         'task.is_frog' => 'boolean',
-        'task.is_done' => 'boolean',
+        'task.lifecycle_state' => 'in:aktiv,erledigt,verworfen',
         'task.user_in_charge_id' => 'nullable|integer',
         'task.priority' => 'required|in:low,normal,high',
         'task.story_points' => 'nullable|in:xs,s,m,l,xl,xxl',

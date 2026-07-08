@@ -5,6 +5,8 @@ namespace Platform\Planner\Livewire;
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Platform\Planner\Enums\ProjectLifecycleState;
+use Platform\Planner\Enums\TaskLifecycleState;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Livewire\Concerns\QuickTogglesDone;
@@ -63,22 +65,22 @@ class Dashboard extends Component
                   });
             });
 
-        $myOpenTasksCount = $myTasksQuery()->where('is_done', false)->count();
+        $myOpenTasksCount = $myTasksQuery()->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)->count();
 
         $myOverdueCount = $myTasksQuery()
-            ->where('is_done', false)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->whereNotNull('due_date')
             ->where('due_date', '<', now()->startOfDay())
             ->count();
 
         $myDueTodayCount = $myTasksQuery()
-            ->where('is_done', false)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->whereDate('due_date', now()->toDateString())
             ->count();
 
         // Meine überfälligen Aufgaben (mit Details)
         $overdueTasksList = $myTasksQuery()
-            ->where('is_done', false)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->whereNotNull('due_date')
             ->where('due_date', '<', now()->startOfDay())
             ->with(['project'])
@@ -88,7 +90,7 @@ class Dashboard extends Component
 
         // Meine anstehenden Aufgaben (nächste 7 Tage)
         $upcomingTasksList = $myTasksQuery()
-            ->where('is_done', false)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->whereNotNull('due_date')
             ->whereBetween('due_date', [now()->startOfDay(), now()->addDays(7)->endOfDay()])
             ->with(['project'])
@@ -98,7 +100,7 @@ class Dashboard extends Component
 
         // Meine Aufgaben — Vorschau (alle offenen, sortiert nach Datum)
         $myTasksList = $myTasksQuery()
-            ->where('is_done', false)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->with(['project'])
             ->orderByRaw('due_date IS NULL, due_date ASC')
             ->limit(10)
@@ -106,14 +108,14 @@ class Dashboard extends Component
 
         // Meine Frösche
         $myFrogsCount = $myTasksQuery()
-            ->where('is_done', false)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->where('is_frog', true)
             ->count();
 
         // Delegierte Aufgaben (von mir erstellt, jemand anders verantwortlich)
         $delegatedOpenCount = PlannerTask::withStale()
             ->where('team_id', $team->id)
-            ->where('is_done', false)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->where('user_id', $user->id)
             ->whereNotNull('user_in_charge_id')
             ->where('user_in_charge_id', '!=', $user->id)
@@ -125,7 +127,7 @@ class Dashboard extends Component
             ->merge(
                 PlannerTask::where('team_id', $team->id)
                     ->where('user_in_charge_id', $user->id)
-                    ->where('is_done', false)
+                    ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
                     ->whereNotNull('project_id')
                     ->pluck('project_id')
             )
@@ -144,11 +146,18 @@ class Dashboard extends Component
             ->orderBy('name')
             ->get();
 
-        $activeProjectsCollection = $projects->where('done', false)->values();
+        $activeProjectsCollection = $projects
+            ->filter(fn ($p) => $p->lifecycle_state !== ProjectLifecycleState::COMPLETED
+                                && $p->lifecycle_state !== ProjectLifecycleState::DISCARDED)
+            ->values();
 
+        // "Kürzlich abgeschlossen" = seit 30 Tagen abgeschlossen. Wir nutzen
+        // lifecycle_state_changed_at als "wann fertig geworden"-Zeitpunkt.
         $recentlyCompletedProjects = $projects
-            ->filter(fn($p) => $p->done && $p->done_at && $p->done_at->gte(now()->subDays(30)))
-            ->sortByDesc('done_at')
+            ->filter(fn ($p) => $p->lifecycle_state === ProjectLifecycleState::COMPLETED
+                                && $p->lifecycle_state_changed_at
+                                && $p->lifecycle_state_changed_at->gte(now()->subDays(30)))
+            ->sortByDesc('lifecycle_state_changed_at')
             ->values();
 
         $projectsWithProgress = $activeProjectsCollection
@@ -188,21 +197,22 @@ class Dashboard extends Component
             })
             ->get();
 
-        $openTasks      = $projectTasks->filter(fn($t) => !$t->is_done)->count();
-        $completedTasks = $projectTasks->filter(fn($t) => (bool)$t->is_done)->count();
+        $openTasks      = $projectTasks->filter(fn($t) => $t->lifecycle_state === TaskLifecycleState::ACTIVE)->count();
+        $completedTasks = $projectTasks->filter(fn($t) => $t->lifecycle_state === TaskLifecycleState::COMPLETED)->count();
         $totalTasks     = $projectTasks->count();
         $progressPercent = $totalTasks > 0 ? (int) round(($completedTasks / $totalTasks) * 100) : 0;
 
         $myOpenTasks = $projectTasks
-            ->filter(fn($t) => !$t->is_done && $t->user_in_charge_id === $user->id)
+            ->filter(fn($t) => $t->lifecycle_state === TaskLifecycleState::ACTIVE && $t->user_in_charge_id === $user->id)
             ->count();
 
         return [
             'id' => $project->id,
             'name' => $project->name,
             'color' => $project->color ?? null,
-            'done' => (bool) $project->done,
-            'done_at' => $project->done_at,
+            'done' => $project->lifecycle_state === ProjectLifecycleState::COMPLETED,
+            'done_at' => $project->lifecycle_state === ProjectLifecycleState::COMPLETED
+                ? $project->lifecycle_state_changed_at : null,
             'open_tasks' => $openTasks,
             'completed_tasks' => $completedTasks,
             'total_tasks' => $totalTasks,

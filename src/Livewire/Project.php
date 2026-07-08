@@ -6,6 +6,7 @@ use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectSlot;
+use Platform\Planner\Enums\TaskLifecycleState;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Enums\StoryPoints;
 use Platform\Planner\Livewire\Concerns\QuickTogglesDone;
@@ -138,7 +139,7 @@ class Project extends Component
         // Offene Aufgaben dieses Users im Projekt (zählt Tasks mit oder ohne Slot)
         $userOpenTaskCount = PlannerTask::where('project_id', $this->project->id)
             ->where('user_in_charge_id', $user->id)
-            ->where('is_done', false)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->count();
 
         $hasAnyTasks = $userOpenTaskCount > 0 || PlannerTask::where('project_id', $this->project->id)
@@ -184,23 +185,23 @@ class Project extends Component
         // Task-Counts (eine Query)
         $taskCounts = PlannerTask::where('project_id', $this->project->id)
                 ->selectRaw('COUNT(*) as total')
-                ->selectRaw('SUM(CASE WHEN is_done = 0 THEN 1 ELSE 0 END) as open_count')
-                ->selectRaw('SUM(CASE WHEN is_done = 1 THEN 1 ELSE 0 END) as done_count')
+                ->selectRaw("SUM(CASE WHEN lifecycle_state = 'aktiv' THEN 1 ELSE 0 END) as open_count")
+                ->selectRaw("SUM(CASE WHEN lifecycle_state = 'erledigt' THEN 1 ELSE 0 END) as done_count")
                 ->first();
 
         $pointsData = PlannerTask::where('project_id', $this->project->id)
-            ->get(['is_done', 'story_points']);
+            ->get(['lifecycle_state', 'story_points']);
 
-        $openPoints = $pointsData->filter(fn ($t) => !$t->is_done)->sum(
+        $openPoints = $pointsData->filter(fn ($t) => $t->lifecycle_state === TaskLifecycleState::ACTIVE)->sum(
             fn ($t) => $t->story_points instanceof StoryPoints ? $t->story_points->points() : 0
         );
-        $donePoints = $pointsData->filter(fn ($t) => $t->is_done)->sum(
+        $donePoints = $pointsData->filter(fn ($t) => $t->lifecycle_state === TaskLifecycleState::COMPLETED)->sum(
             fn ($t) => $t->story_points instanceof StoryPoints ? $t->story_points->points() : 0
         );
 
         $overdueTasks = PlannerTask::with('userInCharge')
             ->where('project_id', $this->project->id)
-            ->where('is_done', false)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->whereNotNull('due_date')
             ->where('due_date', '<', now())
             ->orderBy('due_date')
@@ -216,8 +217,8 @@ class Project extends Component
 
         $slotsBreakdown = PlannerProjectSlot::where('project_id', $this->project->id)
             ->withCount([
-                'tasks as open_count' => fn ($q) => $q->where('is_done', false),
-                'tasks as done_count' => fn ($q) => $q->where('is_done', true),
+                'tasks as open_count' => fn ($q) => $q->where('lifecycle_state', TaskLifecycleState::ACTIVE->value),
+                'tasks as done_count' => fn ($q) => $q->where('lifecycle_state', TaskLifecycleState::COMPLETED->value),
             ])
             ->orderBy('order')
             ->get();
@@ -258,7 +259,7 @@ class Project extends Component
             'role' => $pu->role,
             'open_tasks' => PlannerTask::where('project_id', $this->project->id)
                 ->where('user_in_charge_id', $pu->user_id)
-                ->where('is_done', false)
+                ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
                 ->count(),
         ]);
 
@@ -298,7 +299,7 @@ class Project extends Component
         $backlogTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])
             ->where('project_id', $this->project->id)
             ->whereNull('project_slot_id')
-            ->where('is_done', false)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->orderBy('project_slot_order')
             ->get();
 
@@ -318,7 +319,7 @@ class Project extends Component
         // === 2. PROJECT-SLOTS ===
         $slots = PlannerProjectSlot::with(['tasks' => function ($q) {
                 $q->with(['tags', 'contextColors', 'userInCharge', 'project'])
-                  ->where('is_done', false)
+                  ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
                   ->whereNotNull('project_slot_id') // Explizit: Nur Tasks mit project_slot_id (nicht NULL)
                   ->orderBy('project_slot_order');
             }])
@@ -349,7 +350,7 @@ class Project extends Component
         // === 3. ERLEDIGTE AUFGABEN ===
         $doneTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])
             ->where('project_id', $this->project->id)
-            ->where('is_done', true)
+            ->where('lifecycle_state', TaskLifecycleState::COMPLETED->value)
             ->orderByDesc('done_at') // Neueste zuerst (zuletzt erledigt)
             ->orderByDesc('updated_at') // Fallback für Tasks ohne done_at
             ->get();

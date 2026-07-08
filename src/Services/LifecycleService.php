@@ -142,6 +142,19 @@ class LifecycleService
         $this->transitionTask($task, TaskLifecycleState::DISCARDED, 'manual:discard');
     }
 
+    /**
+     * Reopen a completed task back to active.
+     * Users flip completion on list views regularly — this is that path.
+     * Allowed from: completed. Discarded stays terminal.
+     */
+    public function reopenTask(PlannerTask $task): void
+    {
+        $this->guardTaskTransition($task, TaskLifecycleState::ACTIVE, [
+            TaskLifecycleState::COMPLETED,
+        ]);
+        $this->transitionTask($task, TaskLifecycleState::ACTIVE, 'manual:reopen');
+    }
+
     // ── Query helpers ────────────────────────────────────────────
 
     public function canProjectTransitionTo(PlannerProject $project, ProjectLifecycleState $target): bool
@@ -186,9 +199,9 @@ class LifecycleService
                 TaskLifecycleState::COMPLETED,
                 TaskLifecycleState::DISCARDED,
             ],
-            // Terminal states are terminal — reopening a task means creating a
-            // new one. If we want to change that later, this is the one place
-            // to widen the allowed set.
+            // Completed is reopenable — users flip done/undone in list views.
+            TaskLifecycleState::COMPLETED => [TaskLifecycleState::ACTIVE],
+            // Discarded is intentionally terminal — the decision was to end it.
             default => [],
         };
     }

@@ -10,7 +10,10 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
 use Platform\Planner\Enums\ProjectType;
 use Platform\Planner\Enums\ProjectKind;
+use Platform\Planner\Enums\ProjectLifecycleState;
 use Platform\Planner\Enums\ProjectStatus;
+use Platform\Planner\Exceptions\InvalidLifecycleTransitionException;
+use Platform\Planner\Services\LifecycleService;
 
 use Platform\Organization\Models\OrganizationTimePlanned;
 use Platform\Organization\Services\StorePlannedTime;
@@ -235,6 +238,11 @@ class ProjectSettingsModal extends Component
         $this->dispatch('updateProject');
     }
 
+    /**
+     * @deprecated Legacy status setter. Writes to `status` (aktiv/passiv/inaktiv)
+     * for backward compatibility until Schritt 2b. Prefer the lifecycle methods
+     * `complete/discard/reopen/revive` below — they hit the real state machine.
+     */
     public function setStatus(string $status): void
     {
         $this->authorize('update', $this->project);
@@ -247,6 +255,49 @@ class ProjectSettingsModal extends Component
 
         $this->dispatch('updateSidebar');
         $this->dispatch('updateProject');
+    }
+
+    // ── Lifecycle actions (project detail modal) ─────────────────
+
+    public function completeProject(): void
+    {
+        $this->runLifecycle('complete', 'Projekt abgeschlossen');
+    }
+
+    public function discardProject(): void
+    {
+        $this->runLifecycle('discard', 'Projekt verworfen (offene Tasks kaskadiert)');
+    }
+
+    public function reopenProject(): void
+    {
+        $this->runLifecycle('reopen', 'Projekt wieder aktiviert');
+    }
+
+    public function reviveProject(): void
+    {
+        $this->runLifecycle('revive', 'Projekt zurückgeholt');
+    }
+
+    protected function runLifecycle(string $verb, string $successMessage): void
+    {
+        $this->authorize('update', $this->project);
+        try {
+            app(LifecycleService::class)->{$verb}($this->project);
+            $this->project->refresh();
+        } catch (InvalidLifecycleTransitionException) {
+            return;
+        }
+        $this->dispatch('updateSidebar');
+        $this->dispatch('updateProject');
+        $this->dispatch('updateDashboard');
+        $this->dispatch('notifications:store', [
+            'title' => $successMessage,
+            'message' => '',
+            'notice_type' => 'success',
+            'noticable_type' => get_class($this->project),
+            'noticable_id'   => $this->project->getKey(),
+        ]);
     }
 
     public function setProjectType(string $type): void
@@ -338,9 +389,12 @@ class ProjectSettingsModal extends Component
     {
         $this->authorize('update', $this->project);
 
-        $this->project->done = true;
-        $this->project->done_at = now();
-        $this->project->save();
+        try {
+            app(LifecycleService::class)->complete($this->project);
+            $this->project->refresh();
+        } catch (InvalidLifecycleTransitionException) {
+            return;
+        }
 
         $this->dispatch('updateSidebar');
         $this->dispatch('updateProject');
