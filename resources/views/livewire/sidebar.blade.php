@@ -14,53 +14,38 @@
         Planner
     </div>
 
-    {{-- Abschnitt: Allgemein (über UI-Komponenten) --}}
-    <x-ui-sidebar-list label="Allgemein">
-        <x-ui-sidebar-item :href="route('planner.dashboard')" :active="request()->routeIs('planner.dashboard')">
-            @svg('heroicon-o-home', 'w-4 h-4 text-[var(--ui-secondary)]')
-            <span class="ml-2 text-sm">Dashboard</span>
-        </x-ui-sidebar-item>
-        <x-ui-sidebar-item :href="route('planner.my-tasks')" :active="request()->routeIs('planner.my-tasks')">
-            @svg('heroicon-o-clipboard-document-check', 'w-4 h-4 text-[var(--ui-secondary)]')
-            <span class="ml-2 text-sm">Meine Aufgaben</span>
-        </x-ui-sidebar-item>
-        <x-ui-sidebar-item :href="route('planner.delegated-tasks')" :active="request()->routeIs('planner.delegated-tasks')">
-            @svg('heroicon-o-user-group', 'w-4 h-4 text-[var(--ui-secondary)]')
-            <span class="ml-2 text-sm">Delegierte Aufgaben</span>
-        </x-ui-sidebar-item>
-        <x-ui-sidebar-item :href="route('planner.completed-tasks')" :active="request()->routeIs('planner.completed-tasks')">
-            @svg('heroicon-o-check-circle', 'w-4 h-4 text-[var(--ui-secondary)]')
-            <span class="ml-2 text-sm">Erledigte Aufgaben</span>
-        </x-ui-sidebar-item>
-        <x-ui-sidebar-item :href="route('planner.frog-tasks')" :active="request()->routeIs('planner.frog-tasks')">
-            @svg('heroicon-o-exclamation-triangle', 'w-4 h-4 text-[var(--ui-secondary)]')
-            <span class="ml-2 text-sm">Frösche</span>
-        </x-ui-sidebar-item>
-        <x-ui-sidebar-item :href="route('planner.hygiene')" :active="request()->routeIs('planner.hygiene')">
-            @svg('heroicon-o-shield-check', 'w-4 h-4 text-[var(--ui-secondary)]')
-            <span class="ml-2 text-sm">Hygiene</span>
-        </x-ui-sidebar-item>
-        <x-ui-sidebar-item :href="route('planner.projects.cleanup')" :active="request()->routeIs('planner.projects.cleanup')">
-            @svg('heroicon-o-adjustments-horizontal', 'w-4 h-4 text-[var(--ui-secondary)]')
-            <span class="ml-2 text-sm">Projects Cleanup</span>
-        </x-ui-sidebar-item>
-        <x-ui-sidebar-item :href="route('planner.health-index')" :active="request()->routeIs('planner.health-index')">
-            @svg('heroicon-o-heart', 'w-4 h-4 text-[var(--ui-secondary)]')
-            <span class="ml-2 text-sm">Health-Index</span>
-        </x-ui-sidebar-item>
-        <x-ui-sidebar-item :href="route('planner.ops')" :active="request()->routeIs('planner.ops')">
-            @svg('heroicon-o-command-line', 'w-4 h-4 text-[var(--ui-secondary)]')
-            <span class="ml-2 text-sm">Ops-Room</span>
-        </x-ui-sidebar-item>
-    </x-ui-sidebar-list>
-
-    {{-- Neues Projekt --}}
-    <x-ui-sidebar-list>
-        <x-ui-sidebar-item wire:click="createProject">
-            @svg('heroicon-o-plus-circle', 'w-4 h-4 text-[var(--ui-secondary)]')
-            <span class="ml-2 text-sm">Neues Projekt</span>
-        </x-ui-sidebar-item>
-    </x-ui-sidebar-list>
+    {{-- Abschnitt: Allgemein (kompakt) --}}
+    @php
+        $navItems = [
+            ['route' => 'planner.dashboard',        'icon' => 'heroicon-o-home',                     'label' => 'Dashboard'],
+            ['route' => 'planner.my-tasks',         'icon' => 'heroicon-o-clipboard-document-check', 'label' => 'Meine Aufgaben'],
+            ['route' => 'planner.delegated-tasks',  'icon' => 'heroicon-o-user-group',               'label' => 'Delegierte Aufgaben'],
+            ['route' => 'planner.completed-tasks',  'icon' => 'heroicon-o-check-circle',             'label' => 'Erledigte Aufgaben'],
+            ['route' => 'planner.frog-tasks',       'icon' => 'heroicon-o-exclamation-triangle',     'label' => 'Frösche'],
+            ['route' => 'planner.hygiene',          'icon' => 'heroicon-o-shield-check',             'label' => 'Hygiene'],
+            ['route' => 'planner.projects.cleanup', 'icon' => 'heroicon-o-adjustments-horizontal',   'label' => 'Projects Cleanup'],
+            ['route' => 'planner.health-index',     'icon' => 'heroicon-o-heart',                    'label' => 'Health-Index'],
+            ['route' => 'planner.ops',              'icon' => 'heroicon-o-command-line',             'label' => 'Ops-Room'],
+        ];
+    @endphp
+    <div x-show="!collapsed" class="px-2 pb-2">
+        <div class="text-[10px] uppercase tracking-wider text-[var(--ui-muted)] px-1 py-1">Allgemein</div>
+        <nav class="flex flex-col">
+            @foreach($navItems as $item)
+                @php $isActive = request()->routeIs($item['route']); @endphp
+                <a href="{{ route($item['route']) }}" wire:navigate
+                   class="flex items-center gap-2 px-2 py-1 rounded text-xs transition {{ $isActive ? 'bg-[rgb(var(--ui-primary-rgb))] text-[var(--ui-on-primary)]' : 'text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}">
+                    @svg($item['icon'], 'w-3.5 h-3.5 opacity-80 flex-shrink-0')
+                    <span class="truncate">{{ $item['label'] }}</span>
+                </a>
+            @endforeach
+            <button type="button" wire:click="createProject"
+                    class="flex items-center gap-2 px-2 py-1 mt-1 rounded text-xs text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)] transition text-left">
+                @svg('heroicon-o-plus-circle', 'w-3.5 h-3.5 opacity-80 flex-shrink-0')
+                <span class="truncate">Neues Projekt</span>
+            </button>
+        </nav>
+    </div>
 
     {{-- Collapsed: Icons-only für Allgemein --}}
     <div x-show="collapsed" class="px-2 py-2 border-b border-[var(--ui-border)]">
