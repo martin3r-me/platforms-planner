@@ -3,58 +3,61 @@
 namespace Platform\Planner\Enums;
 
 /**
- * Lebenszyklus eines Projekts — eine Achse, vier Zustaende.
+ * Project lifecycle — one axis, four states.
  *
- * Automatik:
- *   aktiv  <-> ruhend    (ActivityClock, 45d Schwelle)
+ * Automatic (ActivityClock, 45d threshold):
+ *   active  <-> dormant
  *
- * Manuell (Owner):
- *   aktiv/ruhend -> abgeschlossen  (Ziel erreicht, Read-only)
- *   aktiv/ruhend -> verworfen      (Ohne Ergebnis beendet; kaskadiert offene Tasks)
- *   abgeschlossen -> aktiv         (Re-Open, logged)
- *   verworfen    -> aktiv          (Revive, logged)
+ * Manual (owner):
+ *   active/dormant -> completed  (goal achieved, read-only)
+ *   active/dormant -> discarded  (ended without result; cascades open tasks)
+ *   completed -> active          (reopen, logged)
+ *   discarded -> active          (revive, logged)
  *
- * Technisch (Aufraeumer/Admin):
- *   jeder -> soft-delete           (Bereinigung, kein fachlicher Zustand)
- *   soft-delete -> jeder           (Restore, nur Admin)
+ * Technical (cleanup/admin):
+ *   any -> soft-delete           (housekeeping, not a lifecycle state)
+ *   soft-delete -> any           (restore, admin only)
+ *
+ * String values remain the German product vocabulary because they are
+ * user-facing and stored in DB. Case names are English (dev vocabulary).
  */
 enum ProjectLifecycleState: string
 {
-    case AKTIV = 'aktiv';
-    case RUHEND = 'ruhend';
-    case ABGESCHLOSSEN = 'abgeschlossen';
-    case VERWORFEN = 'verworfen';
+    case ACTIVE = 'aktiv';
+    case DORMANT = 'ruhend';
+    case COMPLETED = 'abgeschlossen';
+    case DISCARDED = 'verworfen';
 
     public function label(): string
     {
         return match ($this) {
-            self::AKTIV => 'Aktiv',
-            self::RUHEND => 'Ruhend',
-            self::ABGESCHLOSSEN => 'Abgeschlossen',
-            self::VERWORFEN => 'Verworfen',
+            self::ACTIVE => 'Aktiv',
+            self::DORMANT => 'Ruhend',
+            self::COMPLETED => 'Abgeschlossen',
+            self::DISCARDED => 'Verworfen',
         };
     }
 
-    /** Ist der Zustand ein Endzustand (Read-only, Owner kann re-open)? */
+    /** Terminal state (read-only, owner may reopen/revive). */
     public function isTerminal(): bool
     {
-        return in_array($this, [self::ABGESCHLOSSEN, self::VERWORFEN], true);
+        return in_array($this, [self::COMPLETED, self::DISCARDED], true);
     }
 
-    /** Ist der Zustand "im Spiel" (zaehlt in Health, Portfolio, Bewegung)? */
+    /** "In play" — counts in health, portfolio, movement views. */
     public function isLive(): bool
     {
-        return $this === self::AKTIV;
+        return $this === self::ACTIVE;
     }
 
-    /** Farb-Hint fuer UI (keine harte Kopplung an CSS, nur Semantik). */
+    /** UI colour hint — semantic only, no CSS coupling. */
     public function tone(): string
     {
         return match ($this) {
-            self::AKTIV => 'green',
-            self::RUHEND => 'amber',
-            self::ABGESCHLOSSEN => 'blue',
-            self::VERWORFEN => 'zinc',
+            self::ACTIVE => 'green',
+            self::DORMANT => 'amber',
+            self::COMPLETED => 'blue',
+            self::DISCARDED => 'zinc',
         };
     }
 }

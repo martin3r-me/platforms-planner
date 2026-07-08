@@ -3,50 +3,52 @@
 namespace Platform\Planner\Enums;
 
 /**
- * Lebenszyklus einer Task — feiner als Projekt, ohne "ruhend".
+ * Task lifecycle — finer than project, no dormant state.
  *
- * Manuell:
- *   aktiv -> erledigt   (Aufgabe erledigt, Read-only)
- *   aktiv -> verworfen  (Aufgabe wird nicht mehr gemacht, Read-only)
+ * Manual:
+ *   active -> completed  (task done, read-only)
+ *   active -> discarded  (task will not be done, read-only)
  *
- * Kaskade:
- *   Wenn das Projekt auf 'verworfen' geht, werden offene Tasks des Projekts
- *   automatisch auf 'verworfen' gesetzt.
+ * Cascade:
+ *   When the parent project transitions to `discarded`, all still-active
+ *   tasks in that project are automatically set to `discarded`.
  *
- * Keine Aktivitaets-Automatik: Tasks sind fein genug, dass der Mensch sie
- * ohnehin manuell schliesst oder verwirft.
+ * No activity-based auto-flip: tasks are granular enough that a human
+ * manually closes or discards them.
+ *
+ * String values stay in German (product vocabulary, DB storage).
  */
 enum TaskLifecycleState: string
 {
-    case AKTIV = 'aktiv';
-    case ERLEDIGT = 'erledigt';
-    case VERWORFEN = 'verworfen';
+    case ACTIVE = 'aktiv';
+    case COMPLETED = 'erledigt';
+    case DISCARDED = 'verworfen';
 
     public function label(): string
     {
         return match ($this) {
-            self::AKTIV => 'Aktiv',
-            self::ERLEDIGT => 'Erledigt',
-            self::VERWORFEN => 'Verworfen',
+            self::ACTIVE => 'Aktiv',
+            self::COMPLETED => 'Erledigt',
+            self::DISCARDED => 'Verworfen',
         };
     }
 
     public function isTerminal(): bool
     {
-        return in_array($this, [self::ERLEDIGT, self::VERWORFEN], true);
+        return in_array($this, [self::COMPLETED, self::DISCARDED], true);
     }
 
     public function isLive(): bool
     {
-        return $this === self::AKTIV;
+        return $this === self::ACTIVE;
     }
 
     public function tone(): string
     {
         return match ($this) {
-            self::AKTIV => 'green',
-            self::ERLEDIGT => 'blue',
-            self::VERWORFEN => 'zinc',
+            self::ACTIVE => 'green',
+            self::COMPLETED => 'blue',
+            self::DISCARDED => 'zinc',
         };
     }
 }
