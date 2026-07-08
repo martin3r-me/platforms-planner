@@ -3,6 +3,7 @@
 namespace Platform\Planner\Organization;
 
 use Platform\Organization\Contracts\PersonActivityProvider;
+use Platform\Planner\Enums\TaskLifecycleState;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectUser;
@@ -37,12 +38,12 @@ class PlannerPersonActivityProvider implements PersonActivityProvider
     {
         $openTasks = PlannerTask::where('user_in_charge_id', $userId)
             ->where('team_id', $teamId)
-            ->where('is_done', false)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->count();
 
         $overdueTasks = PlannerTask::where('user_in_charge_id', $userId)
             ->where('team_id', $teamId)
-            ->where('is_done', false)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->whereNotNull('due_date')
             ->where('due_date', '<', now())
             ->count();
@@ -97,7 +98,7 @@ class PlannerPersonActivityProvider implements PersonActivityProvider
         // Zugewiesene Aufgaben (offen)
         $taskQuery = PlannerTask::where('user_in_charge_id', $userId)
             ->where('team_id', $teamId)
-            ->where('is_done', false)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->orderByRaw('CASE WHEN due_date IS NOT NULL AND due_date < NOW() THEN 0 ELSE 1 END')
             ->orderBy('due_date');
 

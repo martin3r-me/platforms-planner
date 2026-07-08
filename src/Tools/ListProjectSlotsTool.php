@@ -9,6 +9,7 @@ use Platform\Core\Tools\Concerns\HasStandardGetOperations;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectSlot;
 use Platform\Planner\Models\PlannerTask;
+use Platform\Planner\Enums\TaskLifecycleState;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Auth\Access\AuthorizationException;
 
@@ -88,8 +89,8 @@ class ListProjectSlotsTool implements ToolContract
             // Slots formatieren mit Aufgaben-Statistiken
             $slotsList = $slots->map(function($slot) {
                 $tasks = $slot->tasks()->get();
-                $openTasks = $tasks->where('is_done', false)->count();
-                $doneTasks = $tasks->where('is_done', true)->count();
+                $openTasks = $tasks->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)->count();
+                $doneTasks = $tasks->where('lifecycle_state', TaskLifecycleState::COMPLETED->value)->count();
                 
                 return [
                     'id' => $slot->id,
@@ -117,8 +118,8 @@ class ListProjectSlotsTool implements ToolContract
             
             // Backlog-Aufgaben zählen (ohne Pagination für Statistik)
             $backlogTasksCount = $backlogQuery->count();
-            $backlogTasksOpen = (clone $backlogQuery)->where('is_done', false)->count();
-            $backlogTasksDone = (clone $backlogQuery)->where('is_done', true)->count();
+            $backlogTasksOpen = (clone $backlogQuery)->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)->count();
+            $backlogTasksDone = (clone $backlogQuery)->where('lifecycle_state', TaskLifecycleState::COMPLETED->value)->count();
             
             // Backlog-Aufgaben-Liste (mit Pagination)
             $this->applyStandardSort($backlogQuery, $arguments, [
@@ -135,7 +136,8 @@ class ListProjectSlotsTool implements ToolContract
                     'uuid' => $task->uuid,
                     'title' => $task->title,
                     'description' => $task->description,
-                    'is_done' => $task->is_done,
+                    'is_done' => $task->lifecycle_state === TaskLifecycleState::COMPLETED,
+                    'lifecycle_state' => $task->lifecycle_state?->value,
                     'due_date' => $task->due_date?->toIso8601String(),
                     'user_in_charge_id' => $task->user_in_charge_id,
                     'user_in_charge_name' => $task->userInCharge?->name ?? 'Unbekannt',

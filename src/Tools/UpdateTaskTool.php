@@ -510,13 +510,12 @@ class UpdateTaskTool implements ToolContract
                 }
             }
 
+            // is_done bleibt als Legacy-Parameter unterstuetzt, wird aber
+            // durch den LifecycleService in eine echte Zustandstransition
+            // uebersetzt. Verworfene Tasks werden dabei ignoriert.
+            $lifecycleFlip = null;
             if (isset($arguments['is_done'])) {
-                $updateData['is_done'] = $arguments['is_done'];
-                if ($arguments['is_done']) {
-                    $updateData['done_at'] = now();
-                } else {
-                    $updateData['done_at'] = null;
-                }
+                $lifecycleFlip = (bool) $arguments['is_done'];
             }
 
             // Task aktualisieren
@@ -540,6 +539,22 @@ class UpdateTaskTool implements ToolContract
                     $task->{$field} = $value;
                 }
                 $task->save();
+            }
+
+            // Lifecycle flip AFTER other updates so the transition is the
+            // last event on the task (correct changed_at, correct reason).
+            if ($lifecycleFlip !== null) {
+                try {
+                    $lifecycle = app(\Platform\Planner\Services\LifecycleService::class);
+                    if ($lifecycleFlip) {
+                        $lifecycle->completeTask($task);
+                    } elseif ($task->lifecycle_state === \Platform\Planner\Enums\TaskLifecycleState::COMPLETED) {
+                        $lifecycle->reopenTask($task);
+                    }
+                } catch (\Platform\Planner\Exceptions\InvalidLifecycleTransitionException) {
+                    // Discarded task requested to flip: refuse silently, same
+                    // as the UI trait.
+                }
             }
 
             // Aktualisierte Task laden
@@ -568,8 +583,10 @@ class UpdateTaskTool implements ToolContract
                 'story_points' => $task->story_points?->value,
                 'story_points_label' => $task->story_points?->label(),
                 'story_points_points' => $task->story_points?->points(),
-                'is_done' => $task->is_done,
-                'done_at' => $task->done_at?->toIso8601String(),
+                'is_done' => $task->lifecycle_state === \Platform\Planner\Enums\TaskLifecycleState::COMPLETED,
+                'lifecycle_state' => $task->lifecycle_state?->value,
+                'lifecycle_state_changed_at' => $task->lifecycle_state_changed_at?->toIso8601String(),
+                'done_at' => $task->done_at?->toIso8601String(), // legacy, until Schritt 2b
                 'is_personal' => $task->project_id === null,
                 'updated_at' => $task->updated_at->toIso8601String(),
             ];

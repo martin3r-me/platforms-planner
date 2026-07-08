@@ -9,6 +9,7 @@ use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectSlot;
 use Platform\Planner\Models\PlannerTask;
+use Platform\Planner\Enums\TaskLifecycleState;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Auth\Access\AuthorizationException;
 
@@ -93,7 +94,8 @@ class GetProjectSlotTool implements ToolContract, ToolMetadataContract
                     'title' => $task->title,
                     'description' => $task->description,
                     'dod' => $task->dod,
-                    'is_done' => $task->is_done,
+                    'is_done' => $task->lifecycle_state === TaskLifecycleState::COMPLETED,
+                    'lifecycle_state' => $task->lifecycle_state?->value,
                     'due_date' => $task->due_date?->toIso8601String(),
                     'user_in_charge_id' => $task->user_in_charge_id,
                     'user_in_charge_name' => $task->userInCharge?->name ?? 'Unbekannt',
@@ -106,8 +108,8 @@ class GetProjectSlotTool implements ToolContract, ToolMetadataContract
 
             // Statistiken
             $tasksCount = $tasks->count();
-            $tasksOpen = $tasks->where('is_done', false)->count();
-            $tasksDone = $tasks->where('is_done', true)->count();
+            $tasksOpen = $tasks->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)->count();
+            $tasksDone = $tasks->where('lifecycle_state', TaskLifecycleState::COMPLETED->value)->count();
 
             return ToolResult::success([
                 'id' => $slot->id,

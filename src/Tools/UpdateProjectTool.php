@@ -328,7 +328,9 @@ class UpdateProjectTool implements ToolContract
                 'description' => $project->description,
                 'project_type' => $project->project_type?->value,
                 'kind' => $project->kind?->value,
-                'status' => $project->status?->value,
+                'status' => $project->status?->value, // legacy, until Schritt 2b
+                'lifecycle_state' => $project->lifecycle_state?->value,
+                'lifecycle_state_changed_at' => $project->lifecycle_state_changed_at?->toIso8601String(),
                 'team_id' => $project->team_id,
                 'owner_user_id' => $project->user_id,
                 'owner_name' => $project->user->name ?? 'Unbekannt',
@@ -342,8 +344,8 @@ class UpdateProjectTool implements ToolContract
                 'planned_end' => $project->plannedEnd()?->toDateString(),
                 'planned_minutes' => $project->totalPlannedMinutes(),
                 'estimated_hours' => $project->totalPlannedHours(),
-                'done' => $project->done,
-                'done_at' => $project->done_at?->toIso8601String(),
+                'done' => $project->lifecycle_state === \Platform\Planner\Enums\ProjectLifecycleState::COMPLETED,
+                'done_at' => $project->done_at?->toIso8601String(), // legacy
                 'updated_at' => $project->updated_at->toIso8601String(),
                 'message' => "Projekt '{$project->name}' erfolgreich aktualisiert."
             ]);

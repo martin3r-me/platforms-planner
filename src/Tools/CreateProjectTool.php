@@ -344,7 +344,8 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract, ToolMet
                 'description' => $project->description,
                 'project_type' => $project->project_type?->value,
                 'kind' => $project->kind?->value,
-                'status' => $project->status?->value,
+                'status' => $project->status?->value, // legacy
+                'lifecycle_state' => $project->lifecycle_state?->value,
                 'team_id' => $project->team_id,
                 'owner_user_id' => $ownerUserId,
                 'members' => $projectUsers,

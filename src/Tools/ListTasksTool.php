@@ -9,6 +9,7 @@ use Platform\Core\Tools\Concerns\HasStandardGetOperations;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectSlot;
 use Platform\Planner\Models\PlannerTask;
+use Platform\Planner\Enums\TaskLifecycleState;
 use Illuminate\Support\Facades\Gate;
 
 /**
@@ -166,10 +167,14 @@ class ListTasksTool implements ToolContract
                 // Wenn Projekt-Filter vorhanden: Zeige ALLE Aufgaben des Projekts (kein User-Filter)
             }
             
-            // Legacy: is_done (für Backwards-Kompatibilität)
-            // WICHTIG: Nur anwenden, wenn explizit gesetzt (nicht wenn null)
+            // Legacy: is_done (für Backwards-Kompatibilität) — mappt auf lifecycle_state.
+            // true  → erledigt (Terminal-Endzustand)
+            // false → aktiv (verworfene Tasks sind NICHT enthalten)
             if (isset($arguments['is_done']) && $arguments['is_done'] !== null) {
-                $query->where('is_done', (bool)$arguments['is_done']);
+                $target = ((bool) $arguments['is_done'])
+                    ? TaskLifecycleState::COMPLETED->value
+                    : TaskLifecycleState::ACTIVE->value;
+                $query->where('lifecycle_state', $target);
             }
             
             // Legacy: is_personal (für Backwards-Kompatibilität)
@@ -226,7 +231,8 @@ class ListTasksTool implements ToolContract
                     'dod_items' => $task->dod_items, // Geparste DoD-Items als Array [{text, checked}, ...]
                     'dod_progress' => $task->dod_progress, // {total, checked, percentage, isComplete}
                     'due_date' => $task->due_date?->toIso8601String(),
-                    'is_done' => $task->is_done,
+                    'is_done' => $task->lifecycle_state === TaskLifecycleState::COMPLETED,
+                    'lifecycle_state' => $task->lifecycle_state?->value,
                     'done_at' => $task->done_at?->toIso8601String(),
                     'project_id' => $task->project_id,
                     'project_name' => $task->project?->name,

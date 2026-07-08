@@ -8,6 +8,7 @@ use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerTask;
+use Platform\Planner\Enums\TaskLifecycleState;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Auth\Access\AuthorizationException;
 
@@ -92,8 +93,8 @@ class GetProjectTool implements ToolContract, ToolMetadataContract
             
             $slotsStructure = $slots->map(function($slot) {
                 $tasksCount = $slot->tasks()->count();
-                $tasksOpen = $slot->tasks()->where('is_done', false)->count();
-                $tasksDone = $slot->tasks()->where('is_done', true)->count();
+                $tasksOpen = $slot->tasks()->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)->count();
+                $tasksDone = $slot->tasks()->where('lifecycle_state', TaskLifecycleState::COMPLETED->value)->count();
                 
                 return [
                     'id' => $slot->id,
@@ -112,7 +113,7 @@ class GetProjectTool implements ToolContract, ToolMetadataContract
                 ->count();
             $backlogTasksOpen = PlannerTask::where('project_id', $project->id)
                 ->whereNull('project_slot_id')
-                ->where('is_done', false)
+                ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
                 ->count();
             
             // Gesamt-Aufgaben im Projekt
@@ -137,7 +138,9 @@ class GetProjectTool implements ToolContract, ToolMetadataContract
                 'description' => $project->description,
                 'project_type' => $project->project_type?->value,
                 'kind' => $project->kind?->value,
-                'status' => $project->status?->value,
+                'status' => $project->status?->value, // legacy
+                'lifecycle_state' => $project->lifecycle_state?->value,
+                'lifecycle_state_changed_at' => $project->lifecycle_state_changed_at?->toIso8601String(),
                 'team_id' => $project->team_id,
                 'owner_user_id' => $project->user_id,
                 'owner_name' => $project->user->name ?? 'Unbekannt',
@@ -151,7 +154,7 @@ class GetProjectTool implements ToolContract, ToolMetadataContract
                 'planned_end' => $project->plannedEnd()?->toDateString(),
                 'planned_minutes' => $project->totalPlannedMinutes(),
                 'estimated_hours' => $project->totalPlannedHours(),
-                'done' => $project->done,
+                'done' => $project->lifecycle_state === \Platform\Planner\Enums\ProjectLifecycleState::COMPLETED,
                 'created_at' => $project->created_at->toIso8601String(),
                 'last_viewed_at' => $project->last_viewed_at?->toIso8601String(),
                 // Komplette Struktur-Informationen

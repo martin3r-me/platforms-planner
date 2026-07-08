@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\DB;
 use Platform\Organization\Contracts\EntityLinkProvider;
 use Platform\Organization\Contracts\HasMetricDefinitions;
 use Platform\Organization\Contracts\HasPersonMetrics;
+use Platform\Planner\Enums\ProjectLifecycleState;
+use Platform\Planner\Enums\TaskLifecycleState;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerTask;
 
@@ -38,7 +40,7 @@ class PlannerEntityLinkProvider implements EntityLinkProvider, HasMetricDefiniti
                 ])
                 ->withCount([
                     'tasks',
-                    'tasks as done_tasks_count' => fn($q) => $q->where('is_done', true),
+                    'tasks as done_tasks_count' => fn($q) => $q->where('lifecycle_state', TaskLifecycleState::COMPLETED->value),
                 ]),
             'planner_task' => $query
                 ->with('userInCharge:id,name')
@@ -52,7 +54,8 @@ class PlannerEntityLinkProvider implements EntityLinkProvider, HasMetricDefiniti
         return match ($morphAlias) {
             'project' => $this->extractProjectMetadata($model),
             'planner_task' => [
-                'is_done' => $model->is_done ?? false,
+                'is_done' => $model->lifecycle_state === TaskLifecycleState::COMPLETED,
+                'lifecycle_state' => $model->lifecycle_state?->value,
                 'is_frog' => (bool) ($model->is_frog ?? false),
                 'responsible' => $model->userInCharge?->name,
                 'priority' => $model->priority?->value ?? null,
@@ -127,14 +130,17 @@ class PlannerEntityLinkProvider implements EntityLinkProvider, HasMetricDefiniti
         }
 
         $projects = PlannerProject::whereIn('id', $allIds)
-            ->withCount(['tasks', 'tasks as done_tasks_count' => fn($q) => $q->where('is_done', true)])
+            ->withCount([
+                'tasks',
+                'tasks as done_tasks_count' => fn($q) => $q->where('lifecycle_state', TaskLifecycleState::COMPLETED->value),
+            ])
             ->get()
             ->keyBy('id');
 
         // Batch-load story points per project
         $spByProject = PlannerTask::whereIn('project_id', $allIds)
             ->whereNotNull('story_points')
-            ->select('project_id', 'story_points', 'is_done')
+            ->select('project_id', 'story_points', 'lifecycle_state')
             ->get()
             ->groupBy('project_id');
 
@@ -153,7 +159,7 @@ class PlannerEntityLinkProvider implements EntityLinkProvider, HasMetricDefiniti
                 foreach (($spByProject[$id] ?? []) as $task) {
                     $sp = $task->story_points->points();
                     $spTotal += $sp;
-                    if ($task->is_done) {
+                    if ($task->lifecycle_state === TaskLifecycleState::COMPLETED) {
                         $spDone += $sp;
                     }
                 }
@@ -186,7 +192,8 @@ class PlannerEntityLinkProvider implements EntityLinkProvider, HasMetricDefiniti
             $taskItems[] = [
                 'id' => $task->id,
                 'name' => $task->title ?? '—',
-                'is_done' => (bool) $task->is_done,
+                'is_done' => $task->lifecycle_state === TaskLifecycleState::COMPLETED,
+                'lifecycle_state' => $task->lifecycle_state?->value,
                 'is_frog' => (bool) ($task->is_frog ?? false),
                 'responsible' => $task->userInCharge?->name,
                 'priority' => $task->priority?->value ?? null,
@@ -197,7 +204,8 @@ class PlannerEntityLinkProvider implements EntityLinkProvider, HasMetricDefiniti
         }
 
         return [
-            'done' => $project->done ?? false,
+            'done' => $project->lifecycle_state === ProjectLifecycleState::COMPLETED,
+            'lifecycle_state' => $project->lifecycle_state?->value,
             'responsible' => $project->user?->name,
             'task_count' => $project->tasks_count ?? 0,
             'done_task_count' => $project->done_tasks_count ?? 0,
@@ -228,10 +236,10 @@ class PlannerEntityLinkProvider implements EntityLinkProvider, HasMetricDefiniti
             ->where('team_id', $teamId)
             ->select(
                 'user_in_charge_id',
-                DB::raw('SUM(CASE WHEN is_done = 0 THEN 1 ELSE 0 END) as active_items'),
-                DB::raw('SUM(CASE WHEN is_done = 1 THEN 1 ELSE 0 END) as completed_items'),
-                DB::raw('SUM(CASE WHEN is_done = 0 THEN COALESCE(story_points, 0) ELSE 0 END) as story_points_total'),
-                DB::raw('SUM(CASE WHEN is_done = 1 THEN COALESCE(story_points, 0) ELSE 0 END) as story_points_done'),
+                DB::raw("SUM(CASE WHEN lifecycle_state = 'aktiv' THEN 1 ELSE 0 END) as active_items"),
+                DB::raw("SUM(CASE WHEN lifecycle_state = 'erledigt' THEN 1 ELSE 0 END) as completed_items"),
+                DB::raw("SUM(CASE WHEN lifecycle_state = 'aktiv' THEN COALESCE(story_points, 0) ELSE 0 END) as story_points_total"),
+                DB::raw("SUM(CASE WHEN lifecycle_state = 'erledigt' THEN COALESCE(story_points, 0) ELSE 0 END) as story_points_done"),
             )
             ->groupBy('user_in_charge_id')
             ->get();

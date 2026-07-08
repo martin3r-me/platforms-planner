@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Schema;
 use Platform\Core\Contracts\KeyResultMetricProvider;
 use Platform\Core\KeyResult\MetricRequest;
 use Platform\Core\KeyResult\MetricValue;
+use Platform\Planner\Enums\TaskLifecycleState;
 use Platform\Planner\Models\PlannerTask;
 
 /**
@@ -77,7 +78,7 @@ class PlannerKeyResultMetricProvider implements KeyResultMetricProvider
         $ids = $this->collectSelectorIds($requests, $selectorField);
         $rows = empty($ids) ? collect() : $this->scoped($requests)
             ->whereIn($queryColumn, $ids)
-            ->selectRaw("$queryColumn as k, count(*) as total, sum(case when is_done = 1 then 1 else 0 end) as done")
+            ->selectRaw("$queryColumn as k, count(*) as total, sum(case when lifecycle_state = 'erledigt' then 1 else 0 end) as done")
             ->groupBy($queryColumn)
             ->get()->keyBy('k');
 
@@ -105,7 +106,7 @@ class PlannerKeyResultMetricProvider implements KeyResultMetricProvider
             ->whereIn('user_id', $ids)
             ->whereNotNull('user_in_charge_id')
             ->whereColumn('user_in_charge_id', '!=', 'user_id')
-            ->selectRaw('user_id as k, count(*) as total, sum(case when is_done = 1 then 1 else 0 end) as done')
+            ->selectRaw("user_id as k, count(*) as total, sum(case when lifecycle_state = 'erledigt' then 1 else 0 end) as done")
             ->groupBy('user_id')
             ->get()->keyBy('k');
 
@@ -167,7 +168,7 @@ class PlannerKeyResultMetricProvider implements KeyResultMetricProvider
             // (anders als bei der Done-Quote, die nur lebende Arbeit zählt).
             ->withoutGlobalScope(\Platform\Core\Scopes\StalenessScope::class)
             ->whereIn('project_id', $ids)
-            ->where('is_done', false)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->whereNotNull('due_date')
             ->where('due_date', '<', Carbon::now())
             ->selectRaw('project_id as k, count(*) as overdue')

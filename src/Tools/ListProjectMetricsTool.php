@@ -10,6 +10,7 @@ use Platform\Core\Contracts\ToolResult;
 use Platform\Organization\Models\OrganizationTimePlanned;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerTask;
+use Platform\Planner\Enums\TaskLifecycleState;
 use Illuminate\Support\Facades\Gate;
 
 /**
@@ -131,7 +132,7 @@ class ListProjectMetricsTool implements ToolContract, ToolMetadataContract
             }
 
             if (!$includeDone) {
-                $tasksQuery->where('is_done', false);
+                $tasksQuery->where('lifecycle_state', TaskLifecycleState::ACTIVE->value);
             }
 
             // Task-IDs für planned_minutes Batch-Query sammeln
@@ -141,11 +142,11 @@ class ListProjectMetricsTool implements ToolContract, ToolMetadataContract
                 ->select([
                     'project_id',
                     DB::raw('COUNT(*) as tasks_total'),
-                    DB::raw("SUM(CASE WHEN is_done = 0 THEN 1 ELSE 0 END) as tasks_open"),
-                    DB::raw("SUM(CASE WHEN is_done = 1 THEN 1 ELSE 0 END) as tasks_done"),
+                    DB::raw("SUM(CASE WHEN lifecycle_state = 'aktiv' THEN 1 ELSE 0 END) as tasks_open"),
+                    DB::raw("SUM(CASE WHEN lifecycle_state = 'erledigt' THEN 1 ELSE 0 END) as tasks_done"),
                     DB::raw("SUM({$pointsCase}) as points_total"),
-                    DB::raw("SUM(CASE WHEN is_done = 0 THEN {$pointsCase} ELSE 0 END) as points_open"),
-                    DB::raw("SUM(CASE WHEN is_done = 1 THEN {$pointsCase} ELSE 0 END) as points_done"),
+                    DB::raw("SUM(CASE WHEN lifecycle_state = 'aktiv' THEN {$pointsCase} ELSE 0 END) as points_open"),
+                    DB::raw("SUM(CASE WHEN lifecycle_state = 'erledigt' THEN {$pointsCase} ELSE 0 END) as points_done"),
                 ])
                 ->groupBy('project_id')
                 ->get();
