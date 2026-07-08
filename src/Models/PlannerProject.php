@@ -65,6 +65,8 @@ class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayN
         'project_type' => \Platform\Planner\Enums\ProjectType::class,
         'kind' => \Platform\Planner\Enums\ProjectKind::class,
         'status' => \Platform\Planner\Enums\ProjectStatus::class,
+        'lifecycle_state' => \Platform\Planner\Enums\ProjectLifecycleState::class,
+        'lifecycle_state_changed_at' => 'datetime',
         'billing_method' => CustomerBillingMethod::class,
         'hourly_rate' => 'decimal:2',
         'budget_amount' => 'decimal:2',

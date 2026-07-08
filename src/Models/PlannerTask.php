@@ -66,6 +66,8 @@ class PlannerTask extends Model implements HasKeyResultAncestors, HasDisplayName
         'original_due_date' => 'datetime',
         'done_at' => 'datetime',
         'is_forced_frog' => 'boolean',
+        'lifecycle_state' => \Platform\Planner\Enums\TaskLifecycleState::class,
+        'lifecycle_state_changed_at' => 'datetime',
         // Verschlüsselte Felder (description, dod) werden automatisch vom Encryptable Trait
         // in initializeEncryptable() hinzugefügt basierend auf $encryptable Array
     ];
