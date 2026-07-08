@@ -116,11 +116,12 @@ class ActivityClock
             }
         }
 
-        // Signal 5: Canvas-Block-Edits (via canvases → blocks)
+        // Signal 5: Canvas-Block-Edits (via canvases → blocks).
+        // Only the canvases table is soft-deletable; blocks are hard-deleted
+        // via canvas cascade — so no b.deleted_at filter.
         $canvasEdits = DB::table('planner_project_canvas_blocks as b')
             ->join('planner_project_canvases as c', 'c.id', '=', 'b.canvas_id')
             ->whereIn('c.project_id', $projectIds)
-            ->whereNull('b.deleted_at')
             ->whereNull('c.deleted_at')
             ->selectRaw('c.project_id, MAX(b.updated_at) as latest')
             ->groupBy('c.project_id')
