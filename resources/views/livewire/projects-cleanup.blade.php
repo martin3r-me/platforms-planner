@@ -36,6 +36,13 @@
             'no_tasks'  => 'keine Tasks',
             'forgotten' => 'vergessen (>30d)',
         ];
+        $lifecycleDefs = [
+            'all'           => ['label' => 'Alle',           'tone' => 'zinc',    'icon' => 'heroicon-o-squares-2x2'],
+            'aktiv'         => ['label' => 'Aktiv',          'tone' => 'emerald', 'icon' => 'heroicon-o-bolt'],
+            'ruhend'        => ['label' => 'Ruhend',         'tone' => 'amber',   'icon' => 'heroicon-o-moon'],
+            'abgeschlossen' => ['label' => 'Abgeschlossen',  'tone' => 'blue',    'icon' => 'heroicon-o-check-circle'],
+            'verworfen'     => ['label' => 'Verworfen',      'tone' => 'zinc',    'icon' => 'heroicon-o-archive-box-x-mark'],
+        ];
     @endphp
 
     {{-- ════════ LEFT SIDEBAR: Filter ════════ --}}
@@ -79,21 +86,23 @@
                     </div>
                 </section>
 
-                {{-- STATUS --}}
+                {{-- LEBENSZYKLUS --}}
                 <section class="p-3 rounded-lg bg-white border border-[var(--ui-border)]/40 shadow-sm">
-                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] mb-2">Status</h3>
-                    <div class="flex flex-wrap gap-1.5">
-                        @foreach(['all' => 'Alle', 'aktiv' => 'Aktiv', 'passiv' => 'Passiv', 'inaktiv' => 'Inaktiv'] as $key => $label)
+                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] mb-2">Lebenszyklus</h3>
+                    <div class="flex flex-col gap-1">
+                        @foreach($lifecycleDefs as $key => $meta)
                             <button
-                                wire:click="$set('statusFilter', '{{ $key }}')"
-                                class="px-2 py-1 text-[11px] rounded-full font-medium transition-colors {{ $statusFilter === $key ? 'bg-[var(--ui-secondary)] text-white' : 'bg-[var(--ui-muted-5)] text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-10)]' }}"
-                            >{{ $label }}</button>
+                                wire:click="$set('lifecycleFilter', '{{ $key }}')"
+                                class="inline-flex items-center gap-1.5 px-2 py-1 text-[11px] rounded-md font-medium transition-colors text-left {{ $lifecycleFilter === $key ? 'bg-[var(--ui-secondary)] text-white' : 'bg-[var(--ui-muted-5)] text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-10)]' }}"
+                            >
+                                @svg($meta['icon'], 'w-3 h-3 flex-shrink-0')
+                                <span>{{ $meta['label'] }}</span>
+                            </button>
                         @endforeach
                     </div>
-                    <label class="mt-2 flex items-center gap-1.5 text-[11px] text-[var(--ui-muted)] cursor-pointer select-none">
-                        <input type="checkbox" wire:model.live="includeDone" class="rounded border-[var(--ui-border)]" />
-                        Erledigte einblenden
-                    </label>
+                    <p class="mt-2 text-[10px] text-[var(--ui-muted)] leading-tight">
+                        Aktiv ↔ Ruhend automatisch (45d). Abgeschlossen/Verworfen manuell.
+                    </p>
                 </section>
 
                 {{-- OWNER --}}
@@ -240,25 +249,20 @@
                 <button wire:click="clearSelection" class="text-[11px] text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] underline">Auswahl zurücksetzen</button>
                 <div class="ml-auto flex items-center gap-2">
                     <button
-                        wire:click="bulkMarkDone"
-                        class="inline-flex items-center gap-1 rounded-md border border-emerald-300 bg-emerald-50 text-emerald-800 px-2.5 py-1 text-[11px] font-medium hover:bg-emerald-100"
+                        wire:click="bulkComplete"
+                        class="inline-flex items-center gap-1 rounded-md border border-blue-300 bg-blue-50 text-blue-800 px-2.5 py-1 text-[11px] font-medium hover:bg-blue-100"
+                        title="Abschließen — Ziel erreicht, Read-only"
                     >
                         @svg('heroicon-o-check-circle', 'w-3.5 h-3.5')
-                        Erledigt
+                        Abschließen
                     </button>
                     <button
-                        wire:click="bulkSetPassiv"
-                        class="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-50 text-amber-800 px-2.5 py-1 text-[11px] font-medium hover:bg-amber-100"
-                    >
-                        @svg('heroicon-o-pause-circle', 'w-3.5 h-3.5')
-                        Passiv
-                    </button>
-                    <button
-                        wire:click="bulkSetInaktiv"
+                        wire:click="bulkDiscard"
                         class="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 text-zinc-700 px-2.5 py-1 text-[11px] font-medium hover:bg-zinc-100"
+                        title="Verwerfen — offene Tasks werden mit-verworfen"
                     >
-                        @svg('heroicon-o-archive-box', 'w-3.5 h-3.5')
-                        Inaktiv
+                        @svg('heroicon-o-archive-box-x-mark', 'w-3.5 h-3.5')
+                        Verwerfen
                     </button>
                     <button
                         wire:click="askBulkDelete"
@@ -342,10 +346,17 @@
                                     @if($row['kind'])
                                         <span class="uppercase tracking-wider px-1 py-0.5 rounded bg-[var(--ui-muted-5)]">{{ $row['kind'] }}</span>
                                     @endif
-                                    @if($row['status'] === 'passiv')
-                                        <span class="uppercase tracking-wider px-1 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200/60">passiv</span>
-                                    @elseif($row['status'] === 'inaktiv')
-                                        <span class="uppercase tracking-wider px-1 py-0.5 rounded bg-zinc-100 text-zinc-500 border border-zinc-200">inaktiv</span>
+                                    @php
+                                        $lc = $row['lifecycle_state'];
+                                        $lcChip = match($lc) {
+                                            'ruhend'        => ['label' => 'ruhend',        'cls' => 'bg-amber-50 text-amber-700 border border-amber-200/60'],
+                                            'abgeschlossen' => ['label' => 'abgeschlossen', 'cls' => 'bg-blue-50 text-blue-700 border border-blue-200/60'],
+                                            'verworfen'     => ['label' => 'verworfen',     'cls' => 'bg-zinc-100 text-zinc-500 border border-zinc-200'],
+                                            default => null,
+                                        };
+                                    @endphp
+                                    @if($lcChip)
+                                        <span class="uppercase tracking-wider px-1 py-0.5 rounded {{ $lcChip['cls'] }}">{{ $lcChip['label'] }}</span>
                                     @endif
                                     <span class="inline-flex items-center gap-0.5 text-[10px] text-[var(--ui-muted)]" title="Members am Projekt">
                                         @svg('heroicon-o-user-group', 'w-3 h-3')
@@ -439,7 +450,7 @@
                                 <span class="{{ $row['tasks_frog'] > 0 ? 'text-amber-600 font-semibold' : '' }}">{{ $row['tasks_frog'] }}</span>
                             </div>
 
-                            {{-- Aktionen --}}
+                            {{-- Aktionen — zustandsabhängig --}}
                             <div class="flex items-center gap-0.5 justify-end">
                                 <button
                                     type="button"
@@ -450,34 +461,42 @@
                                     @svg('heroicon-o-tag', 'w-4 h-4')
                                 </button>
 
-                                @if($row['status'] === 'aktiv')
+                                @if(in_array($row['lifecycle_state'], ['aktiv', 'ruhend'], true))
                                     <button
                                         type="button"
-                                        wire:click="setStatus({{ $row['id'] }}, 'passiv')"
-                                        class="p-1.5 rounded hover:bg-amber-50 text-amber-600"
-                                        title="Auf Passiv setzen"
+                                        wire:click="complete({{ $row['id'] }})"
+                                        class="p-1.5 rounded hover:bg-blue-50 text-blue-600"
+                                        title="Abschließen (Ziel erreicht)"
                                     >
-                                        @svg('heroicon-o-pause-circle', 'w-4 h-4')
+                                        @svg('heroicon-o-check-circle', 'w-4 h-4')
                                     </button>
-                                @else
                                     <button
                                         type="button"
-                                        wire:click="setStatus({{ $row['id'] }}, 'aktiv')"
-                                        class="p-1.5 rounded hover:bg-emerald-50 text-emerald-600"
-                                        title="Aktivieren"
+                                        wire:click="discard({{ $row['id'] }})"
+                                        class="p-1.5 rounded hover:bg-zinc-100 text-zinc-600"
+                                        title="Verwerfen (kaskadiert offene Tasks)"
                                     >
-                                        @svg('heroicon-o-play-circle', 'w-4 h-4')
+                                        @svg('heroicon-o-archive-box-x-mark', 'w-4 h-4')
+                                    </button>
+                                @elseif($row['lifecycle_state'] === 'abgeschlossen')
+                                    <button
+                                        type="button"
+                                        wire:click="reopen({{ $row['id'] }})"
+                                        class="p-1.5 rounded hover:bg-emerald-50 text-emerald-600"
+                                        title="Wieder öffnen"
+                                    >
+                                        @svg('heroicon-o-arrow-uturn-left', 'w-4 h-4')
+                                    </button>
+                                @elseif($row['lifecycle_state'] === 'verworfen')
+                                    <button
+                                        type="button"
+                                        wire:click="revive({{ $row['id'] }})"
+                                        class="p-1.5 rounded hover:bg-emerald-50 text-emerald-600"
+                                        title="Zurückholen"
+                                    >
+                                        @svg('heroicon-o-arrow-path', 'w-4 h-4')
                                     </button>
                                 @endif
-
-                                <button
-                                    type="button"
-                                    wire:click="markDone({{ $row['id'] }})"
-                                    class="p-1.5 rounded hover:bg-emerald-50 text-emerald-700"
-                                    title="Als erledigt markieren"
-                                >
-                                    @svg('heroicon-o-check-circle', 'w-4 h-4')
-                                </button>
 
                                 <a href="{{ route('planner.projects.show', $row['id']) }}" target="_blank"
                                    class="p-1.5 rounded hover:bg-zinc-100 text-zinc-500"

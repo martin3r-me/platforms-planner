@@ -16,13 +16,11 @@ class HealthIndex extends Component
     /** @var string all|strategy|progress|burn */
     public string $axisFilter = 'all';
 
-    /** @var string all|aktiv|passiv|inaktiv */
-    public string $statusFilter = 'aktiv';
+    /** @var string all|aktiv|ruhend|abgeschlossen|verworfen */
+    public string $lifecycleFilter = 'aktiv';
 
     /** @var string worst|best|movement|confidence|name */
     public string $sort = 'worst';
-
-    public bool $includeDone = false;
 
     public function rendered(): void
     {
@@ -61,17 +59,12 @@ class HealthIndex extends Component
         // der color-Accessor ohne N+1 funktioniert.
         // whereHas('project') filtert Snapshots von soft-deleted Projekten raus.
         $all = PlannerProjectSnapshot::with([
-                'project:id,name,kind,status,done',
+                'project:id,name,kind,lifecycle_state',
                 'project.contextColors',
             ])
             ->whereIn('id', $latestIds)
             ->whereHas('project')
             ->get();
-
-        // Done-Filter: per default raus
-        if (! $this->includeDone) {
-            $all = $all->filter(fn ($s) => ! ($s->project?->done ?? false))->values();
-        }
 
         // ── KPIs / Verteilungen ueber den vollen Scope (vor Filter) ──
         $totalAll = $all->count();
@@ -111,8 +104,10 @@ class HealthIndex extends Component
         if ($this->axisFilter !== 'all') {
             $filtered = $filtered->filter(fn ($s) => $s->worst_axis === $this->axisFilter);
         }
-        if ($this->statusFilter !== 'all') {
-            $filtered = $filtered->filter(fn ($s) => ($s->status ?? null) === $this->statusFilter);
+        if ($this->lifecycleFilter !== 'all') {
+            $filtered = $filtered->filter(
+                fn ($s) => ($s->project?->lifecycle_state?->value ?? 'aktiv') === $this->lifecycleFilter
+            );
         }
 
         // ── Sortierung ──

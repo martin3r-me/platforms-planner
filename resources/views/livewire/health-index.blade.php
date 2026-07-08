@@ -90,21 +90,23 @@
                     </div>
                 </section>
 
-                {{-- STATUS --}}
+                {{-- LEBENSZYKLUS --}}
                 <section class="p-3 rounded-lg bg-white border border-[var(--ui-border)]/40 shadow-sm">
-                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] mb-2">Status</h3>
+                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--ui-muted)] mb-2">Lebenszyklus</h3>
                     <div class="flex flex-wrap gap-1.5">
-                        @foreach(['all' => 'Alle', 'aktiv' => 'Aktiv', 'passiv' => 'Passiv', 'inaktiv' => 'Inaktiv'] as $key => $label)
-                            <button wire:click="$set('statusFilter', '{{ $key }}')"
-                                    class="px-2.5 py-1 text-[11px] rounded-full font-medium transition-colors {{ $statusFilter === $key ? 'bg-[var(--ui-secondary)] text-white' : 'bg-[var(--ui-muted-5)] text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-10)]' }}">
+                        @foreach([
+                            'all' => 'Alle',
+                            'aktiv' => 'Aktiv',
+                            'ruhend' => 'Ruhend',
+                            'abgeschlossen' => 'Abgeschlossen',
+                            'verworfen' => 'Verworfen',
+                        ] as $key => $label)
+                            <button wire:click="$set('lifecycleFilter', '{{ $key }}')"
+                                    class="px-2.5 py-1 text-[11px] rounded-full font-medium transition-colors {{ $lifecycleFilter === $key ? 'bg-[var(--ui-secondary)] text-white' : 'bg-[var(--ui-muted-5)] text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-10)]' }}">
                                 {{ $label }}
                             </button>
                         @endforeach
                     </div>
-                    <label class="flex items-center gap-2 mt-3 text-[11px] text-[var(--ui-secondary)] cursor-pointer">
-                        <input type="checkbox" wire:model.live="includeDone" class="rounded border-[var(--ui-border)]">
-                        <span>Erledigte Projekte einbeziehen</span>
-                    </label>
                 </section>
 
                 {{-- SORTIERUNG --}}

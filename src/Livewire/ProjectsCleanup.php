@@ -16,7 +16,10 @@ use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectCanvas;
 use Platform\Planner\Models\PlannerProjectSnapshot;
 use Platform\Planner\Models\PlannerTask;
+use Platform\Planner\Enums\ProjectLifecycleState;
+use Platform\Planner\Exceptions\InvalidLifecycleTransitionException;
 use Platform\Planner\Services\ActivityClock;
+use Platform\Planner\Services\LifecycleService;
 
 /**
  * Aufraeum-Cockpit fuer Projekte.
@@ -30,15 +33,14 @@ class ProjectsCleanup extends Component
     // ── Filter ──────────────────────────────────────────────────
     /** all|red|yellow|green|gray */
     public string $colorFilter = 'all';
-    /** all|aktiv|passiv|inaktiv */
-    public string $statusFilter = 'all';
+    /** all|aktiv|ruhend|abgeschlossen|verworfen */
+    public string $lifecycleFilter = 'aktiv';
     public ?int $ownerFilter = null;
-    /** ['no_owner','no_entity','no_tasks','stale','forgotten'] */
+    /** ['no_owner','no_entity','no_tasks','forgotten'] */
     public array $suspectFlags = [];
     public string $search = '';
     /** name|score_asc|last_view_desc|tasks_desc|forgotten_desc */
     public string $sort = 'name';
-    public bool $includeDone = false;
 
     // ── Bulk-Selection ──────────────────────────────────────────
     /** @var int[] */
@@ -246,8 +248,13 @@ class ProjectsCleanup extends Component
     public function rows(): array
     {
         $projects = $this->projectsQuery()->get();
-        if (! $this->includeDone) {
-            $projects = $projects->reject(fn ($p) => (bool) $p->done);
+
+        // Default: only ACTIVE projects. Use lifecycleFilter to opt into
+        // dormant/completed/discarded views.
+        if ($this->lifecycleFilter !== 'all') {
+            $projects = $projects->filter(
+                fn ($p) => ($p->lifecycle_state?->value ?? 'aktiv') === $this->lifecycleFilter
+            );
         }
 
         $projectIds = $projects->pluck('id')->all();
@@ -293,7 +300,7 @@ class ProjectsCleanup extends Component
                 'id' => $p->id,
                 'name' => $p->name ?: '—',
                 'kind' => $p->kind,
-                'status' => $p->status?->value ?? 'aktiv',
+                'lifecycle_state' => $p->lifecycle_state?->value ?? 'aktiv',
                 'owner_id' => $p->user_id,
                 'owner_name' => $p->user?->name ?? '—',
                 'members_count' => $membersCount,
@@ -319,9 +326,6 @@ class ProjectsCleanup extends Component
         if ($this->colorFilter !== 'all') {
             $filtered = $filtered->filter(fn ($r) => $r['health_color'] === $this->colorFilter);
         }
-        if ($this->statusFilter !== 'all') {
-            $filtered = $filtered->filter(fn ($r) => $r['status'] === $this->statusFilter);
-        }
         if ($this->ownerFilter) {
             $filtered = $filtered->filter(fn ($r) => (int) $r['owner_id'] === (int) $this->ownerFilter);
         }
@@ -337,10 +341,6 @@ class ProjectsCleanup extends Component
         }
         if (in_array('no_tasks', $this->suspectFlags, true)) {
             $filtered = $filtered->filter(fn ($r) => $r['tasks_open'] === 0 && $r['tasks_overdue'] === 0);
-        }
-        if (in_array('stale', $this->suspectFlags, true)) {
-            $cutoff = now()->subDays(30);
-            $filtered = $filtered->filter(fn ($r) => ! $r['last_viewed_at'] || $r['last_viewed_at']->lt($cutoff));
         }
         if (in_array('forgotten', $this->suspectFlags, true)) {
             $filtered = $filtered->filter(fn ($r) => in_array($r['forgotten_bucket'], ['cold', 'buried'], true));
@@ -491,64 +491,113 @@ class ProjectsCleanup extends Component
         return true;
     }
 
-    public function bulkSetPassiv(): void
+    public function bulkComplete(): void
     {
         if (empty($this->selectedIds)) return;
-        PlannerProject::query()
-            ->whereIn('team_id', $this->relevantTeamIds())
-            ->whereIn('id', $this->selectedIds)
-            ->update(['status' => \Platform\Planner\Enums\ProjectStatus::PASSIV->value]);
+        [$ok, $skipped] = $this->applyLifecycle('complete');
         $this->selectedIds = [];
         unset($this->rows);
-        session()->flash('cleanup_message', 'Status auf Passiv gesetzt.');
+        session()->flash('cleanup_message', "{$ok} Projekt(e) abgeschlossen"
+            . ($skipped > 0 ? " ({$skipped} bereits Endzustand)" : '')
+            . '.');
     }
 
-    public function bulkSetInaktiv(): void
+    public function bulkDiscard(): void
     {
         if (empty($this->selectedIds)) return;
-        PlannerProject::query()
-            ->whereIn('team_id', $this->relevantTeamIds())
-            ->whereIn('id', $this->selectedIds)
-            ->update(['status' => \Platform\Planner\Enums\ProjectStatus::INAKTIV->value]);
+        [$ok, $skipped] = $this->applyLifecycle('discard');
         $this->selectedIds = [];
         unset($this->rows);
-        session()->flash('cleanup_message', 'Status auf Inaktiv gesetzt.');
+        session()->flash('cleanup_message', "{$ok} Projekt(e) verworfen (offene Tasks kaskadiert)"
+            . ($skipped > 0 ? " — {$skipped} übersprungen" : '')
+            . '.');
     }
 
-    public function bulkMarkDone(): void
+    // ── Single lifecycle actions ────────────────────────────────
+
+    public function complete(int $projectId): void
     {
-        if (empty($this->selectedIds)) return;
-        PlannerProject::query()
+        $project = $this->loadOwnProject($projectId);
+        if (! $project) return;
+        try {
+            app(LifecycleService::class)->complete($project);
+            session()->flash('cleanup_message', "'{$project->name}' abgeschlossen.");
+        } catch (InvalidLifecycleTransitionException $e) {
+            session()->flash('cleanup_message', "Nicht möglich: {$e->getMessage()}");
+        }
+        unset($this->rows);
+    }
+
+    public function discard(int $projectId): void
+    {
+        $project = $this->loadOwnProject($projectId);
+        if (! $project) return;
+        try {
+            app(LifecycleService::class)->discard($project);
+            session()->flash('cleanup_message', "'{$project->name}' verworfen (offene Tasks kaskadiert).");
+        } catch (InvalidLifecycleTransitionException $e) {
+            session()->flash('cleanup_message', "Nicht möglich: {$e->getMessage()}");
+        }
+        unset($this->rows);
+    }
+
+    public function reopen(int $projectId): void
+    {
+        $project = $this->loadOwnProject($projectId);
+        if (! $project) return;
+        try {
+            app(LifecycleService::class)->reopen($project);
+            session()->flash('cleanup_message', "'{$project->name}' wieder aktiviert.");
+        } catch (InvalidLifecycleTransitionException $e) {
+            session()->flash('cleanup_message', "Nicht möglich: {$e->getMessage()}");
+        }
+        unset($this->rows);
+    }
+
+    public function revive(int $projectId): void
+    {
+        $project = $this->loadOwnProject($projectId);
+        if (! $project) return;
+        try {
+            app(LifecycleService::class)->revive($project);
+            session()->flash('cleanup_message', "'{$project->name}' zurückgeholt.");
+        } catch (InvalidLifecycleTransitionException $e) {
+            session()->flash('cleanup_message', "Nicht möglich: {$e->getMessage()}");
+        }
+        unset($this->rows);
+    }
+
+    /**
+     * Applies a lifecycle verb to the current selection, swallowing
+     * per-item exceptions and counting outcomes.
+     *
+     * @return array{0:int,1:int}  [ok, skipped]
+     */
+    protected function applyLifecycle(string $verb): array
+    {
+        $lifecycle = app(LifecycleService::class);
+        $projects = PlannerProject::query()
             ->whereIn('team_id', $this->relevantTeamIds())
             ->whereIn('id', $this->selectedIds)
-            ->update(['done' => true, 'done_at' => now()]);
-        $this->selectedIds = [];
-        unset($this->rows);
-        session()->flash('cleanup_message', 'Ausgewählte Projekte als erledigt markiert.');
+            ->get();
+        $ok = 0;
+        $skipped = 0;
+        foreach ($projects as $project) {
+            try {
+                $lifecycle->{$verb}($project);
+                $ok++;
+            } catch (InvalidLifecycleTransitionException) {
+                $skipped++;
+            }
+        }
+        return [$ok, $skipped];
     }
 
-    // ── Einzel-Status/Done-Aktionen ─────────────────────────────
-
-    public function setStatus(int $projectId, string $status): void
+    protected function loadOwnProject(int $projectId): ?PlannerProject
     {
-        // Whitelist
-        if (! in_array($status, ['aktiv', 'passiv', 'inaktiv'], true)) return;
-        PlannerProject::query()
+        return PlannerProject::query()
             ->whereIn('team_id', $this->relevantTeamIds())
-            ->where('id', $projectId)
-            ->update(['status' => $status]);
-        unset($this->rows);
-        session()->flash('cleanup_message', "Status auf '{$status}' gesetzt.");
-    }
-
-    public function markDone(int $projectId): void
-    {
-        PlannerProject::query()
-            ->whereIn('team_id', $this->relevantTeamIds())
-            ->where('id', $projectId)
-            ->update(['done' => true, 'done_at' => now()]);
-        unset($this->rows);
-        session()->flash('cleanup_message', 'Projekt als erledigt markiert.');
+            ->find($projectId);
     }
 
     // ── Entity-Zuweisung ────────────────────────────────────────

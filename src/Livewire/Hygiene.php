@@ -51,10 +51,11 @@ class Hygiene extends Component
             ->pluck('project_id')
             ->toArray();
 
-        // Hygiene-Thresholds: kuerzere Schwellenwerte als die Model-Staleness (120/180d).
-        // Diese beantworten "Was vernachlaessige ich?" — nicht "Was ist uralt?"
-        $projectHygieneDays = 14; // Projekt nicht besucht seit 14 Tagen
-        $taskHygieneDays = 7;     // Task nicht besucht seit 7 Tagen
+        // Hygiene-Thresholds: kuerzeres Fenster als der Lifecycle-Auto-Flip (45d).
+        // Projekt-Fenster 30d = "kurz vor dem automatischen Ruhen" (Vorwarnung).
+        // Task-Fenster 7d = "was liegt mir persoenlich zu lange".
+        $projectHygieneDays = 30;
+        $taskHygieneDays = 7;
         $projectThreshold = now()->subDays($projectHygieneDays);
         $taskThreshold = now()->subDays($taskHygieneDays);
 
@@ -63,21 +64,21 @@ class Hygiene extends Component
 
         $staleProjects = PlannerProject::withStale()
             ->where('team_id', $team->id)
-            ->where('done', false)
+            ->where('lifecycle_state', \Platform\Planner\Enums\ProjectLifecycleState::ACTIVE->value)
             ->visibleTo($user)
             ->where(function ($q) use ($projectThreshold) {
                 $q->whereNull('last_viewed_at')
                   ->orWhere('last_viewed_at', '<', $projectThreshold);
             })
             ->withCount(['tasks as open_tasks_count' => function ($q) {
-                $q->where('is_done', false);
+                $q->where('lifecycle_state', \Platform\Planner\Enums\TaskLifecycleState::ACTIVE->value);
             }])
             ->withCount(['tasks as total_tasks_count'])
             ->orderByRaw('last_viewed_at IS NULL DESC, last_viewed_at ASC')
             ->get();
 
         $staleTasksQuery = PlannerTask::withStale()
-            ->where('is_done', false)
+            ->where('lifecycle_state', \Platform\Planner\Enums\TaskLifecycleState::ACTIVE->value)
             ->where(function ($q) use ($taskThreshold) {
                 $q->whereNull('last_viewed_at')
                   ->orWhere('last_viewed_at', '<', $taskThreshold);
@@ -107,12 +108,12 @@ class Hygiene extends Component
         // Recently viewed projects (letzte 14 Tage, sortiert nach last_viewed_at desc)
         $recentProjects = PlannerProject::withStale()
             ->where('team_id', $team->id)
-            ->where('done', false)
+            ->where('lifecycle_state', \Platform\Planner\Enums\ProjectLifecycleState::ACTIVE->value)
             ->visibleTo($user)
             ->whereNotNull('last_viewed_at')
             ->where('last_viewed_at', '>=', now()->subDays(14))
             ->withCount(['tasks as open_tasks_count' => function ($q) {
-                $q->where('is_done', false);
+                $q->where('lifecycle_state', \Platform\Planner\Enums\TaskLifecycleState::ACTIVE->value);
             }])
             ->orderByDesc('last_viewed_at')
             ->limit(20)
@@ -120,7 +121,7 @@ class Hygiene extends Component
 
         // Recently viewed tasks (letzte 7 Tage)
         $recentTasks = PlannerTask::withStale()
-            ->where('is_done', false)
+            ->where('lifecycle_state', \Platform\Planner\Enums\TaskLifecycleState::ACTIVE->value)
             ->where(function ($q) use ($user, $projectIds) {
                 $q->where(function ($q) use ($user) {
                     $q->whereNull('project_id')
@@ -169,8 +170,8 @@ class Hygiene extends Component
         $tasksDoneToday = PlannerTask::withStale()
             ->where('team_id', $team->id)
             ->where('user_in_charge_id', $user->id)
-            ->where('is_done', true)
-            ->where('done_at', '>=', $todayStart)
+            ->where('lifecycle_state', \Platform\Planner\Enums\TaskLifecycleState::COMPLETED->value)
+            ->where('lifecycle_state_changed_at', '>=', $todayStart)
             ->count();
 
         $projectsViewedToday = PlannerProject::withStale()
