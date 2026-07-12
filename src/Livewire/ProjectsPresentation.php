@@ -313,6 +313,7 @@ class ProjectsPresentation extends Component
         $slides = $this->slides;
 
         $planned = $logged = $openTasks = $overdue = $dodTotal = $dodChecked = 0;
+        $spTotal = $spDone = 0;
         $healthMix = ['green' => 0, 'yellow' => 0, 'red' => 0, 'gray' => 0];
         $nearest = null;
 
@@ -323,6 +324,8 @@ class ProjectsPresentation extends Component
             $overdue += $s['overdue_count'];
             $dodTotal += $s['dod_total'];
             $dodChecked += $s['dod_checked'];
+            $spTotal += $s['sp_total'];
+            $spDone += $s['sp_done'];
             $hc = $s['health_color'] ?: 'gray';
             $healthMix[$hc] = ($healthMix[$hc] ?? 0) + 1;
 
@@ -339,6 +342,8 @@ class ProjectsPresentation extends Component
             'overdue'          => $overdue,
             'dod_total'        => $dodTotal,
             'dod_checked'      => $dodChecked,
+            'sp_total'         => $spTotal,
+            'sp_done'          => $spDone,
             'health_mix'       => $healthMix,
             'nearest_deadline' => $nearest,
             'links'            => $this->engagementLinks,

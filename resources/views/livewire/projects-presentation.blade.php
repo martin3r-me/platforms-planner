@@ -57,7 +57,7 @@
         .pm-chip.trend .tdot { width: 8px; height: 8px; border-radius: 50%; }
         .pm-chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; flex-shrink: 0; }
 
-        .pm-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+        .pm-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
         .pm-tile { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px 22px; box-shadow: var(--shadow-soft); display: flex; align-items: center; gap: 20px; }
         .pm-tile.plain { display: block; }
         .pm-tile .label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; margin-bottom: 7px; }
@@ -318,6 +318,20 @@
                                     <div class="big">{{ $ov['open_tasks'] }}</div>
                                     <div class="note {{ $ov['overdue'] > 0 ? 'warn' : '' }}">{{ $ov['overdue'] > 0 ? $ov['overdue'] . ' überfällig' : 'nichts überfällig' }}</div>
                                 </div>
+                                {{-- Story-Points gesamt --}}
+                                @if($ov['sp_total'] > 0)
+                                    @php $ovSpPct = round($ov['sp_done'] / $ov['sp_total'] * 100); @endphp
+                                    <div class="pm-tile">
+                                        <div class="pm-ring" style="--p: {{ $ovSpPct }}; --c: var(--accent)">
+                                            <span class="val">{{ $ovSpPct }}%</span>
+                                        </div>
+                                        <div>
+                                            <div class="label">Story-Points</div>
+                                            <div class="big">{{ $ov['sp_done'] }}<small> / {{ $ov['sp_total'] }} erledigt</small></div>
+                                            <div class="note">über alle Projekte</div>
+                                        </div>
+                                    </div>
+                                @endif
                             </div>
 
                             {{-- Projekt-Liste + Status-Verteilung --}}
