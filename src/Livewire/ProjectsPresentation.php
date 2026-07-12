@@ -4,17 +4,21 @@ namespace Platform\Planner\Livewire;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Platform\Core\Models\Team;
+use Platform\Organization\Models\OrganizationTimeEntry;
+use Platform\Organization\Models\OrganizationTimePlanned;
 use Platform\Organization\Services\DimensionLinkService;
 use Platform\Organization\Services\EntityDimensionBridge;
 use Platform\Planner\Enums\TaskLifecycleState;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectCanvas;
+use Platform\Planner\Models\PlannerTask;
 
 /**
  * Praesentationsmodus — mit dem Kunden die laufenden Projekte durchgehen.
@@ -222,21 +226,138 @@ class ProjectsPresentation extends Component
             ->filter(fn ($p) => $this->isRunning($p))
             ->values();
 
-        return $projects->map(fn ($p) => $this->buildSlide($p))->all();
+        $liveIds = $projects->pluck('id')->all();
+        $loggedMap = $this->loggedMinutesByProjectId($liveIds);
+        $plannedMap = $this->plannedMinutesByProjectId($liveIds);
+
+        return $projects->map(fn ($p) => $this->buildSlide(
+            $p,
+            (int) ($plannedMap[$p->id] ?? 0),
+            (int) ($loggedMap[$p->id] ?? 0),
+        ))->all();
     }
 
-    protected function buildSlide(PlannerProject $project): array
+    /**
+     * Summiert getrackte Minuten pro Projekt — direkt am Projekt plus an dessen
+     * Tasks. Beruecksichtigt beide Morph-Schreibweisen (Alias wie "project" und
+     * voller Klassenname), weil Zeit-Eintraege je nach Erzeuger unterschiedlich
+     * gespeichert sind. Ohne diese Doppelabfrage bleiben Summen faelschlich 0.
+     * Deckungsgleich mit der Cleanup-Sicht.
+     *
+     * @return array<int, int>  project_id → minutes
+     */
+    protected function loggedMinutesByProjectId(array $projectIds): array
+    {
+        if (empty($projectIds)) {
+            return [];
+        }
+
+        $projectAlias = DimensionLinkService::resolveContextType(PlannerProject::class);
+        $taskAlias = DimensionLinkService::resolveContextType(PlannerTask::class);
+
+        $taskProjectMap = DB::table('planner_tasks')
+            ->whereIn('project_id', $projectIds)
+            ->whereNull('deleted_at')
+            ->pluck('project_id', 'id')
+            ->all();
+        $taskIds = array_keys($taskProjectMap);
+
+        $projectTimes = OrganizationTimeEntry::query()
+            ->whereIn('context_type', [$projectAlias, PlannerProject::class])
+            ->whereIn('context_id', $projectIds)
+            ->selectRaw('context_id, SUM(minutes) as total')
+            ->groupBy('context_id')
+            ->pluck('total', 'context_id')
+            ->all();
+
+        $taskTimes = [];
+        if (! empty($taskIds)) {
+            $taskTimes = OrganizationTimeEntry::query()
+                ->whereIn('context_type', [$taskAlias, PlannerTask::class])
+                ->whereIn('context_id', $taskIds)
+                ->selectRaw('context_id, SUM(minutes) as total')
+                ->groupBy('context_id')
+                ->pluck('total', 'context_id')
+                ->all();
+        }
+
+        $byProject = [];
+        foreach ($projectIds as $pid) {
+            $byProject[$pid] = (int) ($projectTimes[$pid] ?? 0);
+        }
+        foreach ($taskTimes as $taskId => $mins) {
+            $pid = $taskProjectMap[$taskId] ?? null;
+            if ($pid) {
+                $byProject[$pid] = ($byProject[$pid] ?? 0) + (int) $mins;
+            }
+        }
+
+        return $byProject;
+    }
+
+    /**
+     * Summiert geplante Minuten pro Projekt — gleiche Dual-Context-Logik wie
+     * beim Ist, nur gegen die Planungs-Tabelle und auf aktive Eintraege.
+     *
+     * @return array<int, int>  project_id → minutes
+     */
+    protected function plannedMinutesByProjectId(array $projectIds): array
+    {
+        if (empty($projectIds)) {
+            return [];
+        }
+
+        $projectAlias = DimensionLinkService::resolveContextType(PlannerProject::class);
+        $taskAlias = DimensionLinkService::resolveContextType(PlannerTask::class);
+
+        $taskProjectMap = DB::table('planner_tasks')
+            ->whereIn('project_id', $projectIds)
+            ->whereNull('deleted_at')
+            ->pluck('project_id', 'id')
+            ->all();
+        $taskIds = array_keys($taskProjectMap);
+
+        $projectTimes = OrganizationTimePlanned::query()
+            ->where('is_active', true)
+            ->whereIn('context_type', [$projectAlias, PlannerProject::class])
+            ->whereIn('context_id', $projectIds)
+            ->selectRaw('context_id, SUM(planned_minutes) as total')
+            ->groupBy('context_id')
+            ->pluck('total', 'context_id')
+            ->all();
+
+        $taskTimes = [];
+        if (! empty($taskIds)) {
+            $taskTimes = OrganizationTimePlanned::query()
+                ->where('is_active', true)
+                ->whereIn('context_type', [$taskAlias, PlannerTask::class])
+                ->whereIn('context_id', $taskIds)
+                ->selectRaw('context_id, SUM(planned_minutes) as total')
+                ->groupBy('context_id')
+                ->pluck('total', 'context_id')
+                ->all();
+        }
+
+        $byProject = [];
+        foreach ($projectIds as $pid) {
+            $byProject[$pid] = (int) ($projectTimes[$pid] ?? 0);
+        }
+        foreach ($taskTimes as $taskId => $mins) {
+            $pid = $taskProjectMap[$taskId] ?? null;
+            if ($pid) {
+                $byProject[$pid] = ($byProject[$pid] ?? 0) + (int) $mins;
+            }
+        }
+
+        return $byProject;
+    }
+
+    protected function buildSlide(PlannerProject $project, int $plannedMinutes, int $loggedMinutes): array
     {
         $tasks = $project->tasks;
         $activeTasks = $tasks->filter(
             fn ($t) => $t->lifecycle_state === TaskLifecycleState::ACTIVE
         )->values();
-
-        // ── Zeit: geplant vs. investiert (Projekt + alle Tasks) ──
-        $plannedMinutes = $project->totalPlannedMinutes()
-            + $tasks->sum(fn ($t) => $t->totalPlannedMinutes());
-        $loggedMinutes = $project->totalLoggedMinutes()
-            + $tasks->sum(fn ($t) => $t->totalLoggedMinutes());
 
         // ── Offene Aufgaben samt DoD-Kriterien ──
         $dodTotal = 0;
