@@ -45,7 +45,7 @@
 
         /* stage */
         .pm-stagewrap { overflow-y: auto; min-height: 0; }
-        .pm-stage { max-width: 1760px; margin: 0 auto; padding: 30px 40px 40px; display: flex; flex-direction: column; gap: 22px; }
+        .pm-stage { max-width: none; margin: 0; padding: 30px 40px 40px; display: flex; flex-direction: column; gap: 22px; }
         .pm-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
         .pm-head h1 { font-family: var(--serif); font-weight: 600; font-size: 40px; line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; color: var(--ink); }
         .pm-head .meta { margin-top: 8px; font-size: 13.5px; color: var(--muted); }
@@ -92,6 +92,8 @@
         .pm-empty-good { padding: 26px 20px; text-align: center; color: var(--good); font-size: 14px; font-weight: 600; }
 
         .pm-canvas { display: flex; flex-direction: column; gap: 14px; }
+        .pm-split { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; align-items: start; }
+        .pm-side { position: sticky; top: 0; align-self: start; display: flex; flex-direction: column; gap: 14px; }
         .pm-cvcard { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow-soft); padding: 16px 18px; }
         .pm-cvcard .lbl { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
         .pm-cvcard .lbl::after { content: ""; flex: 1; height: 1px; background: var(--line); }
@@ -150,7 +152,7 @@
         .pm-prjrow .m { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
         .pm-prjrow .hd { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 
-        @media (max-width: 1100px) { .pm-tiles { grid-template-columns: 1fr; } .pm-lower { grid-template-columns: 1fr; } }
+        @media (max-width: 1100px) { .pm-tiles { grid-template-columns: 1fr; } .pm-lower { grid-template-columns: 1fr; } .pm-split { grid-template-columns: 1fr; } .pm-side { position: static; } }
         @media (prefers-reduced-motion: reduce) { .pm * { transition: none !important; } }
     </style>
     @endverbatim
@@ -440,55 +442,8 @@
                                 $over = $planned > 0 && $logged > $planned;
                                 $dodPct = $current['dod_total'] > 0 ? round($current['dod_checked'] / $current['dod_total'] * 100) : null;
                             @endphp
-                            <div class="pm-tiles">
-                                {{-- Zeit --}}
-                                <div class="pm-tile">
-                                    <div class="pm-ring" style="--p: {{ $timePct ?? 0 }}; --c: {{ $over ? 'var(--warn)' : 'var(--accent)' }}">
-                                        <span class="val">{{ $timePct !== null ? $timePct . '%' : '–' }}</span>
-                                    </div>
-                                    <div>
-                                        <div class="label">Zeit</div>
-                                        <div class="big">{{ $fmtHours($logged) }}<small> h investiert</small></div>
-                                        <div class="note {{ $over ? 'warn' : '' }}">
-                                            {{ $planned > 0 ? ($over ? 'über ' . $fmtHours($planned) . ' h geplant' : 'von ' . $fmtHours($planned) . ' h geplant') : 'keine Planung hinterlegt' }}
-                                        </div>
-                                    </div>
-                                </div>
-                                {{-- Fortschritt --}}
-                                <div class="pm-tile">
-                                    <div class="pm-ring" style="--p: {{ $dodPct ?? 0 }}; --c: var(--good)">
-                                        <span class="val">{{ $dodPct !== null ? $dodPct . '%' : '–' }}</span>
-                                    </div>
-                                    <div>
-                                        <div class="label">Fortschritt</div>
-                                        <div class="big">{{ $current['dod_checked'] }}<small> / {{ $current['dod_total'] }} Kriterien</small></div>
-                                        <div class="note">{{ $current['dod_total'] > 0 ? 'Definition-of-Done erfüllt' : 'keine Kriterien definiert' }}</div>
-                                    </div>
-                                </div>
-                                {{-- Story-Points (Velocity) — sonst Fallback offene Aufgaben --}}
-                                @if($current['sp_total'] > 0)
-                                    @php $spPct = round($current['sp_done'] / $current['sp_total'] * 100); @endphp
-                                    <div class="pm-tile">
-                                        <div class="pm-ring" style="--p: {{ $spPct }}; --c: var(--accent)">
-                                            <span class="val">{{ $spPct }}%</span>
-                                        </div>
-                                        <div>
-                                            <div class="label">Story-Points</div>
-                                            <div class="big">{{ $current['sp_done'] }}<small> / {{ $current['sp_total'] }} erledigt</small></div>
-                                            <div class="note">Umfang nach Aufwand</div>
-                                        </div>
-                                    </div>
-                                @else
-                                    <div class="pm-tile plain">
-                                        <div class="label">Offene Aufgaben</div>
-                                        <div class="big">{{ $current['open_task_count'] }}</div>
-                                        <div class="note">{{ $current['open_task_count'] === 1 ? 'Aufgabe in Arbeit' : 'Aufgaben in Arbeit' }}</div>
-                                    </div>
-                                @endif
-                            </div>
-
-                            {{-- Unteres Raster --}}
-                            <div class="pm-lower">
+                            {{-- Unteres Raster: links Aufgaben (scrollt), rechts Kennzahlen + Canvas (sticky) --}}
+                            <div class="pm-split">
                                 {{-- Offene Punkte --}}
                                 <div class="pm-panel">
                                     <header>
@@ -528,8 +483,53 @@
                                     </div>
                                 </div>
 
-                                {{-- Canvas-Essenz --}}
-                                <div class="pm-canvas">
+                                {{-- Kennzahlen + Canvas-Essenz — läuft sticky mit --}}
+                                <div class="pm-side">
+                                    {{-- Zeit --}}
+                                    <div class="pm-tile">
+                                        <div class="pm-ring" style="--p: {{ $timePct ?? 0 }}; --c: {{ $over ? 'var(--warn)' : 'var(--accent)' }}">
+                                            <span class="val">{{ $timePct !== null ? $timePct . '%' : '–' }}</span>
+                                        </div>
+                                        <div>
+                                            <div class="label">Zeit</div>
+                                            <div class="big">{{ $fmtHours($logged) }}<small> h investiert</small></div>
+                                            <div class="note {{ $over ? 'warn' : '' }}">
+                                                {{ $planned > 0 ? ($over ? 'über ' . $fmtHours($planned) . ' h geplant' : 'von ' . $fmtHours($planned) . ' h geplant') : 'keine Planung hinterlegt' }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {{-- Fortschritt --}}
+                                    <div class="pm-tile">
+                                        <div class="pm-ring" style="--p: {{ $dodPct ?? 0 }}; --c: var(--good)">
+                                            <span class="val">{{ $dodPct !== null ? $dodPct . '%' : '–' }}</span>
+                                        </div>
+                                        <div>
+                                            <div class="label">Fortschritt</div>
+                                            <div class="big">{{ $current['dod_checked'] }}<small> / {{ $current['dod_total'] }} Kriterien</small></div>
+                                            <div class="note">{{ $current['dod_total'] > 0 ? 'Definition-of-Done erfüllt' : 'keine Kriterien definiert' }}</div>
+                                        </div>
+                                    </div>
+                                    {{-- Story-Points (Velocity) — sonst Fallback offene Aufgaben --}}
+                                    @if($current['sp_total'] > 0)
+                                        @php $spPct = round($current['sp_done'] / $current['sp_total'] * 100); @endphp
+                                        <div class="pm-tile">
+                                            <div class="pm-ring" style="--p: {{ $spPct }}; --c: var(--accent)">
+                                                <span class="val">{{ $spPct }}%</span>
+                                            </div>
+                                            <div>
+                                                <div class="label">Story-Points</div>
+                                                <div class="big">{{ $current['sp_done'] }}<small> / {{ $current['sp_total'] }} erledigt</small></div>
+                                                <div class="note">Umfang nach Aufwand</div>
+                                            </div>
+                                        </div>
+                                    @else
+                                        <div class="pm-tile plain">
+                                            <div class="label">Offene Aufgaben</div>
+                                            <div class="big">{{ $current['open_task_count'] }}</div>
+                                            <div class="note">{{ $current['open_task_count'] === 1 ? 'Aufgabe in Arbeit' : 'Aufgaben in Arbeit' }}</div>
+                                        </div>
+                                    @endif
+
                                     @forelse($current['canvas'] as $block)
                                         <div class="pm-cvcard">
                                             <div class="lbl">{{ $block['label'] }}</div>
