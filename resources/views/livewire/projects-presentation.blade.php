@@ -51,6 +51,11 @@
         .pm-head .meta { margin-top: 8px; font-size: 13.5px; color: var(--muted); }
         .pm-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 5px 11px; border-radius: 999px; background: var(--good-soft); color: var(--good); white-space: nowrap; }
         .pm-chip .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+        .pm-chip.neutral { background: var(--ground); color: var(--ink-soft); }
+        .pm-chip.warn { background: var(--warn-soft); color: var(--warn); }
+        .pm-chip.trend { background: var(--ground); color: var(--ink-soft); }
+        .pm-chip.trend .tdot { width: 8px; height: 8px; border-radius: 50%; }
+        .pm-chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; flex-shrink: 0; }
 
         .pm-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
         .pm-tile { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px 22px; box-shadow: var(--shadow-soft); display: flex; align-items: center; gap: 20px; }
@@ -223,6 +228,12 @@
                     <div class="pm-stagewrap" wire:key="stage-{{ $current['id'] }}">
                         <div class="pm-stage">
                             {{-- Kopf --}}
+                            @php
+                                $days = $current['days_to_end'];
+                                $hcColor = match($current['health_color']) {
+                                    'red' => '#DC2626', 'yellow' => '#D97706', 'green' => '#2E7D5B', default => '#94A3B8',
+                                };
+                            @endphp
                             <div class="pm-head">
                                 <div>
                                     <h1>{{ $current['name'] }}</h1>
@@ -230,7 +241,46 @@
                                         <div class="meta">Verantwortlich · {{ $current['owner_name'] }}</div>
                                     @endif
                                 </div>
-                                <span class="pm-chip"><span class="dot"></span>läuft</span>
+                                <div class="pm-chips">
+                                    <span class="pm-chip"><span class="dot"></span>läuft</span>
+
+                                    {{-- Deadline / Go-Live --}}
+                                    @if($days !== null)
+                                        @if($days >= 0)
+                                            <span class="pm-chip neutral">
+                                                @svg('heroicon-o-flag', 'w-3.5 h-3.5')
+                                                {{ $current['planned_end'] }} · noch {{ $days }} {{ $days === 1 ? 'Tag' : 'Tage' }}
+                                            </span>
+                                        @else
+                                            <span class="pm-chip warn">
+                                                @svg('heroicon-o-flag', 'w-3.5 h-3.5')
+                                                {{ $current['planned_end'] }} · {{ abs($days) }} {{ abs($days) === 1 ? 'Tag' : 'Tage' }} über Termin
+                                            </span>
+                                        @endif
+                                    @endif
+
+                                    {{-- Überfällige Aufgaben --}}
+                                    @if($current['overdue_count'] > 0)
+                                        <span class="pm-chip warn">
+                                            @svg('heroicon-o-exclamation-triangle', 'w-3.5 h-3.5')
+                                            {{ $current['overdue_count'] }} überfällig
+                                        </span>
+                                    @endif
+
+                                    {{-- Health-Trend --}}
+                                    @if($current['health_trend'] !== null)
+                                        <span class="pm-chip trend" title="Interne Ampel-Entwicklung">
+                                            <span class="tdot" style="background: {{ $hcColor }}"></span>
+                                            @if($current['health_trend'] === 'up')
+                                                @svg('heroicon-o-arrow-trending-up', 'w-3.5 h-3.5', ['style' => 'color:var(--good)'])
+                                            @elseif($current['health_trend'] === 'down')
+                                                @svg('heroicon-o-arrow-trending-down', 'w-3.5 h-3.5', ['style' => 'color:var(--warn)'])
+                                            @else
+                                                @svg('heroicon-o-minus-small', 'w-3.5 h-3.5')
+                                            @endif
+                                        </span>
+                                    @endif
+                                </div>
                             </div>
 
                             {{-- Metrik-Kacheln --}}
@@ -266,12 +316,26 @@
                                         <div class="note">{{ $current['dod_total'] > 0 ? 'Definition-of-Done erfüllt' : 'keine Kriterien definiert' }}</div>
                                     </div>
                                 </div>
-                                {{-- Offene Aufgaben --}}
-                                <div class="pm-tile plain">
-                                    <div class="label">Offene Aufgaben</div>
-                                    <div class="big">{{ $current['open_task_count'] }}</div>
-                                    <div class="note">{{ $current['open_task_count'] === 1 ? 'Aufgabe in Arbeit' : 'Aufgaben in Arbeit' }}</div>
-                                </div>
+                                {{-- Story-Points (Velocity) — sonst Fallback offene Aufgaben --}}
+                                @if($current['sp_total'] > 0)
+                                    @php $spPct = round($current['sp_done'] / $current['sp_total'] * 100); @endphp
+                                    <div class="pm-tile">
+                                        <div class="pm-ring" style="--p: {{ $spPct }}; --c: var(--accent)">
+                                            <span class="val">{{ $spPct }}%</span>
+                                        </div>
+                                        <div>
+                                            <div class="label">Story-Points</div>
+                                            <div class="big">{{ $current['sp_done'] }}<small> / {{ $current['sp_total'] }} erledigt</small></div>
+                                            <div class="note">Umfang nach Aufwand</div>
+                                        </div>
+                                    </div>
+                                @else
+                                    <div class="pm-tile plain">
+                                        <div class="label">Offene Aufgaben</div>
+                                        <div class="big">{{ $current['open_task_count'] }}</div>
+                                        <div class="note">{{ $current['open_task_count'] === 1 ? 'Aufgabe in Arbeit' : 'Aufgaben in Arbeit' }}</div>
+                                    </div>
+                                @endif
                             </div>
 
                             {{-- Unteres Raster --}}
@@ -280,9 +344,9 @@
                                 <div class="pm-panel">
                                     <header>
                                         <span class="h">Offene Punkte</span>
-                                        @if($current['dod_total'] > 0)
-                                            <span class="agg">{{ $current['dod_checked'] }} / {{ $current['dod_total'] }} Kriterien erfüllt</span>
-                                        @endif
+                                        <span class="agg">
+                                            {{ $current['open_task_count'] }} {{ $current['open_task_count'] === 1 ? 'Aufgabe' : 'Aufgaben' }}@if($current['dod_total'] > 0) · {{ $current['dod_checked'] }} / {{ $current['dod_total'] }} Kriterien erfüllt @endif
+                                        </span>
                                     </header>
                                     <div class="pad">
                                         @forelse($current['tasks'] as $task)

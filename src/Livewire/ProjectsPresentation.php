@@ -18,6 +18,7 @@ use Platform\Organization\Services\EntityDimensionBridge;
 use Platform\Planner\Enums\TaskLifecycleState;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectCanvas;
+use Platform\Planner\Models\PlannerProjectSnapshot;
 use Platform\Planner\Models\PlannerTask;
 
 /**
@@ -229,12 +230,39 @@ class ProjectsPresentation extends Component
         $liveIds = $projects->pluck('id')->all();
         $loggedMap = $this->loggedMinutesByProjectId($liveIds);
         $plannedMap = $this->plannedMinutesByProjectId($liveIds);
+        $snapshots = $this->latestSnapshotsByProjectId($liveIds);
 
         return $projects->map(fn ($p) => $this->buildSlide(
             $p,
             (int) ($plannedMap[$p->id] ?? 0),
             (int) ($loggedMap[$p->id] ?? 0),
+            $snapshots[$p->id] ?? null,
         ))->all();
+    }
+
+    /**
+     * Neuester Snapshot je Projekt — Quelle fuer die Health-Trend-Daten
+     * (Ampel-Farbe + Score-Delta). Ein Query, kein N+1.
+     *
+     * @return array<int, PlannerProjectSnapshot>  keyed by project_id
+     */
+    protected function latestSnapshotsByProjectId(array $projectIds): array
+    {
+        if (empty($projectIds)) {
+            return [];
+        }
+        $latestIds = DB::table('planner_project_snapshots as a')
+            ->whereIn('a.project_id', $projectIds)
+            ->whereRaw('a.taken_on = (
+                SELECT MAX(b.taken_on) FROM planner_project_snapshots b
+                WHERE b.project_id = a.project_id
+            )')
+            ->pluck('a.id');
+
+        return PlannerProjectSnapshot::whereIn('id', $latestIds)
+            ->get()
+            ->keyBy('project_id')
+            ->all();
     }
 
     /**
@@ -352,12 +380,34 @@ class ProjectsPresentation extends Component
         return $byProject;
     }
 
-    protected function buildSlide(PlannerProject $project, int $plannedMinutes, int $loggedMinutes): array
+    protected function buildSlide(PlannerProject $project, int $plannedMinutes, int $loggedMinutes, ?PlannerProjectSnapshot $snapshot): array
     {
         $tasks = $project->tasks;
         $activeTasks = $tasks->filter(
             fn ($t) => $t->lifecycle_state === TaskLifecycleState::ACTIVE
         )->values();
+        $doneTasks = $tasks->filter(
+            fn ($t) => $t->lifecycle_state === TaskLifecycleState::COMPLETED
+        );
+
+        // ── Deadline / Go-Live (live aus der Projekt-Planung) ──
+        $plannedEnd = $project->plannedEnd();
+        $daysToEnd = $plannedEnd
+            ? (int) now()->startOfDay()->diffInDays($plannedEnd->copy()->startOfDay(), false)
+            : null;
+
+        // ── Ueberfaellige Aufgaben (live) ──
+        $overdueCount = $activeTasks->filter(
+            fn ($t) => $t->due_date && $t->due_date->isPast()
+        )->count();
+
+        // ── Story-Points (live): erledigt vs. gesamt ──
+        $spTotal = (int) $tasks->sum(fn ($t) => $t->story_points?->points() ?? 0);
+        $spDone = (int) $doneTasks->sum(fn ($t) => $t->story_points?->points() ?? 0);
+
+        // ── Health-Trend aus dem neuesten Snapshot (Ampel + Score-Delta) ──
+        $delta = $snapshot?->delta_health_score;
+        $healthTrend = $delta === null ? null : ($delta > 0 ? 'up' : ($delta < 0 ? 'down' : 'flat'));
 
         // ── Offene Aufgaben samt DoD-Kriterien ──
         $dodTotal = 0;
@@ -391,6 +441,13 @@ class ProjectsPresentation extends Component
             'dod_checked'     => $dodChecked,
             'planned_minutes' => (int) $plannedMinutes,
             'logged_minutes'  => (int) $loggedMinutes,
+            'planned_end'     => $plannedEnd?->format('d.m.Y'),
+            'days_to_end'     => $daysToEnd,
+            'overdue_count'   => $overdueCount,
+            'sp_total'        => $spTotal,
+            'sp_done'         => $spDone,
+            'health_color'    => $snapshot?->health_color,
+            'health_trend'    => $healthTrend,
             'url'             => route('planner.projects.show', $project->id),
         ];
     }
