@@ -587,6 +587,7 @@ class ProjectsPresentation extends Component
             'id'              => $project->id,
             'name'            => $project->name ?: '—',
             'owner_name'      => $project->user?->name,
+            'created_at'      => $project->created_at?->format('d.m.Y'),
             'canvas'          => $this->canvasHighlights($project->id),
             'tasks'           => $taskRows,
             'open_task_count' => $activeTasks->count(),

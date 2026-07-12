@@ -388,8 +388,14 @@
                             <div class="pm-head">
                                 <div>
                                     <h1>{{ $current['name'] }}</h1>
-                                    @if($current['owner_name'])
-                                        <div class="meta">Verantwortlich · {{ $current['owner_name'] }}</div>
+                                    @php
+                                        $metaParts = array_filter([
+                                            $current['owner_name'] ? 'Verantwortlich · ' . $current['owner_name'] : null,
+                                            $current['created_at'] ? 'angelegt am ' . $current['created_at'] : null,
+                                        ]);
+                                    @endphp
+                                    @if($metaParts)
+                                        <div class="meta">{{ implode(' · ', $metaParts) }}</div>
                                     @endif
                                 </div>
                                 <div class="pm-chips">
