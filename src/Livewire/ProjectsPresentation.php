@@ -86,37 +86,77 @@ class ProjectsPresentation extends Component
         $this->index = max(0, min($i, count($this->slides)));
     }
 
-    // ── Live-Aktion: Aufgabe abhaken ────────────────────────────
+    // ── Live-Aktionen: Aufgabe/DoD abhaken ──────────────────────
 
     /**
-     * Hakt eine Aufgabe live im Termin ab (→ erledigt). Nur Aufgaben aus dem
-     * eigenen Team-Baum; Erledigen laeuft ueber den LifecycleService (setzt
-     * Zustand + Zeitstempel korrekt, kaskadiert Wiederkehrer).
+     * Aufgabe im Scope laden (Autorisierung ueber den Team-Baum). Null, wenn
+     * die Aufgabe nicht existiert oder nicht zum sichtbaren Projekt-Set gehoert.
      */
-    public function completeTask(int $taskId): void
+    protected function loadScopedTask(int $taskId): ?PlannerTask
     {
         $task = PlannerTask::query()->whereKey($taskId)->first();
         if (! $task) {
-            return;
+            return null;
         }
-
-        // Autorisierung: Aufgabe muss zu einem Projekt im Scope gehoeren.
         $inScope = PlannerProject::query()
             ->whereKey($task->project_id)
             ->whereIn('team_id', $this->relevantTeamIds())
             ->visibleTo(Auth::user())
             ->exists();
-        if (! $inScope) {
+        return $inScope ? $task : null;
+    }
+
+    /**
+     * Hakt eine Aufgabe live ab bzw. oeffnet sie wieder — je nach Zustand.
+     * Laeuft ueber den LifecycleService (Zustand + Zeitstempel, Wiederkehrer).
+     */
+    public function toggleTaskDone(int $taskId): void
+    {
+        $task = $this->loadScopedTask($taskId);
+        if (! $task) {
             return;
         }
 
+        $lifecycle = app(LifecycleService::class);
         try {
-            app(LifecycleService::class)->completeTask($task);
+            if ($task->lifecycle_state === TaskLifecycleState::COMPLETED) {
+                $lifecycle->reopenTask($task);
+            } elseif ($task->lifecycle_state === TaskLifecycleState::ACTIVE) {
+                $lifecycle->completeTask($task);
+            }
         } catch (InvalidLifecycleTransitionException) {
-            // z.B. bereits erledigt/verworfen — stiller No-op.
+            // z.B. verworfen — stiller No-op.
         }
 
-        // Computed-Caches leeren, damit Slide + Ueberblick frisch rechnen.
+        unset($this->slides, $this->overview);
+    }
+
+    /**
+     * Schaltet ein einzelnes DoD-Kriterium einer (aktiven) Aufgabe um und
+     * persistiert es im verschluesselten JSON-Feld. Erledigte Aufgaben werden
+     * nicht angetastet (dort gelten alle Kriterien als erfuellt).
+     */
+    public function toggleDodItem(int $taskId, int $index): void
+    {
+        $task = $this->loadScopedTask($taskId);
+        if (! $task || $task->lifecycle_state !== TaskLifecycleState::ACTIVE) {
+            return;
+        }
+
+        $items = array_values($task->dod_items);
+        if (! isset($items[$index])) {
+            return;
+        }
+        $items[$index]['checked'] = ! ($items[$index]['checked'] ?? false);
+
+        // Gleiches Format wie der Task-Editor: JSON [{text, checked}], leere raus.
+        $clean = array_values(array_filter(
+            array_map(fn ($i) => ['text' => trim($i['text'] ?? ''), 'checked' => (bool) ($i['checked'] ?? false)], $items),
+            fn ($i) => $i['text'] !== ''
+        ));
+        $task->dod = empty($clean) ? '' : json_encode($clean, JSON_UNESCAPED_UNICODE);
+        $task->save();
+
         unset($this->slides, $this->overview);
     }
 
@@ -558,33 +598,41 @@ class ProjectsPresentation extends Component
             fn ($t) => $t->due_date && $t->due_date->isPast()
         )->count();
 
-        // ── Story-Points (live): erledigt vs. gesamt ──
-        $spTotal = (int) $tasks->sum(fn ($t) => $t->story_points?->points() ?? 0);
+        // ── Story-Points (live): erledigt vs. gesamt (ohne verworfene) ──
+        $spTotal = (int) ($activeTasks->sum(fn ($t) => $t->story_points?->points() ?? 0)
+            + $doneTasks->sum(fn ($t) => $t->story_points?->points() ?? 0));
         $spDone = (int) $doneTasks->sum(fn ($t) => $t->story_points?->points() ?? 0);
 
         // ── Health-Trend aus dem neuesten Snapshot (Ampel + Score-Delta) ──
         $delta = $snapshot?->delta_health_score;
         $healthTrend = $delta === null ? null : ($delta > 0 ? 'up' : ($delta < 0 ? 'down' : 'flat'));
 
-        // ── Offene Aufgaben samt DoD-Kriterien ──
+        // ── Aufgaben (offen + erledigt sichtbar) samt DoD-Kriterien ──
+        // Fortschritt zaehlt erledigte Aufgaben als voll erfuellt, damit sowohl
+        // Abhaken als auch einzelne DoD-Haken den Ring nach oben bewegen.
         $dodTotal = 0;
         $dodChecked = 0;
-        $taskRows = $activeTasks->map(function ($t) use (&$dodTotal, &$dodChecked) {
-            $progress = $t->dod_progress;
-            $dodTotal += $progress['total'];
-            $dodChecked += $progress['checked'];
-
-            $openItems = array_values(array_filter(
-                $t->dod_items,
-                fn ($item) => ! $item['checked']
-            ));
+        $relevantTasks = $activeTasks->concat($doneTasks); // offen zuerst, dann erledigt
+        $taskRows = $relevantTasks->map(function ($t) use (&$dodTotal, &$dodChecked) {
+            $isDone = $t->lifecycle_state === TaskLifecycleState::COMPLETED;
+            $items = array_values($t->dod_items);
+            $total = count($items);
+            $checked = $isDone ? $total : count(array_filter($items, fn ($i) => $i['checked']));
+            $dodTotal += $total;
+            $dodChecked += $checked;
 
             return [
-                'id'         => $t->id,
-                'title'      => $t->title ?: '—',
-                'open_items' => array_map(fn ($i) => $i['text'], $openItems),
-                'total'      => $progress['total'],
-                'checked'    => $progress['checked'],
+                'id'           => $t->id,
+                'title'        => $t->title ?: '—',
+                'is_done'      => $isDone,
+                'story_points' => $t->story_points?->points(),
+                'dod_items'    => array_map(fn ($i, $idx) => [
+                    'index'   => $idx,
+                    'text'    => $i['text'],
+                    'checked' => $isDone ? true : (bool) $i['checked'],
+                ], $items, array_keys($items)),
+                'dod_total'    => $total,
+                'dod_checked'  => $checked,
             ];
         })->all();
 
