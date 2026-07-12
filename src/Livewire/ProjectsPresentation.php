@@ -11,6 +11,8 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Platform\Core\Models\Team;
+use Platform\Organization\Models\OrganizationDimensionDefinition;
+use Platform\Organization\Models\OrganizationEntity;
 use Platform\Organization\Models\OrganizationTimeEntry;
 use Platform\Organization\Models\OrganizationTimePlanned;
 use Platform\Organization\Services\DimensionLinkService;
@@ -63,10 +65,13 @@ class ProjectsPresentation extends Component
         $this->index = 0;
     }
 
+    /**
+     * Positions-Modell: Index 0 = Engagement-Ueberblick, Index 1..n = Projekte.
+     * Deshalb ist die Obergrenze count(slides), nicht count-1.
+     */
     public function next(): void
     {
-        $max = max(0, count($this->slides) - 1);
-        $this->index = min($this->index + 1, $max);
+        $this->index = min($this->index + 1, count($this->slides));
     }
 
     public function prev(): void
@@ -76,8 +81,7 @@ class ProjectsPresentation extends Component
 
     public function goTo(int $i): void
     {
-        $max = max(0, count($this->slides) - 1);
-        $this->index = max(0, min($i, $max));
+        $this->index = max(0, min($i, count($this->slides)));
     }
 
     // ── Scope-Helfer ────────────────────────────────────────────
@@ -160,6 +164,13 @@ class ProjectsPresentation extends Component
             $byEntity[$entityId]['count']++;
         }
 
+        // Bezuege (Venture/Kunde) aller Engagements batchweise nachladen
+        $relationsByEngagement = $this->entityLinksForEngagements(array_keys($byEntity));
+        foreach ($byEntity as $id => &$row) {
+            $row['links'] = $relationsByEngagement[$id] ?? [];
+        }
+        unset($row);
+
         $list = array_values($byEntity);
 
         if ($this->search !== '') {
@@ -175,6 +186,54 @@ class ProjectsPresentation extends Component
         return $list;
     }
 
+    /**
+     * Loest die Entity-Bezuege eines Engagements ueber Dimension-Links auf:
+     * das Engagement ist selbst Linkable, seine entity-basierten Dimension-Links
+     * zeigen auf Venture- und Kunden-Entities. Rueckgabe je Engagement eine Liste
+     * aus [label (Dimensionsname, z.B. "Venture"/"Kunde"), name (Entity-Name), key].
+     * Batch — ein Query fuer alle Engagements, kein N+1.
+     *
+     * @return array<int, array<int, array{label:string, key:string, name:string}>>
+     */
+    protected function entityLinksForEngagements(array $engagementIds): array
+    {
+        if (empty($engagementIds)) {
+            return [];
+        }
+
+        // Engagement kann als Alias ODER voller Klassenname als linkable liegen —
+        // beide Schreibweisen abdecken (analog zur Zeit-Aggregation).
+        $entityTypes = array_values(array_unique([
+            DimensionLinkService::resolveContextType(OrganizationEntity::class),
+            OrganizationEntity::class,
+        ]));
+
+        $links = EntityDimensionBridge::linksForLinkables($entityTypes, $engagementIds, true);
+        if ($links->isEmpty()) {
+            return [];
+        }
+
+        $definitions = OrganizationDimensionDefinition::query()
+            ->whereIn('id', $links->pluck('dimension_definition_id')->unique()->all())
+            ->get(['id', 'key', 'name'])
+            ->keyBy('id');
+
+        $byEngagement = [];
+        foreach ($links as $link) {
+            if (! $link->entity_id) {
+                continue;
+            }
+            $def = $definitions->get($link->dimension_definition_id);
+            $byEngagement[(int) $link->linkable_id][] = [
+                'label' => $def?->name ?? 'Bezug',
+                'key'   => $def?->key ?? '',
+                'name'  => $link->entity?->name ?? '—',
+            ];
+        }
+
+        return $byEngagement;
+    }
+
     /** Name des aktiven Engagements (fuer den Kopf der Praesentation). */
     #[Computed]
     public function engagementName(): ?string
@@ -188,9 +247,66 @@ class ProjectsPresentation extends Component
             }
         }
         // Fallback: Engagement ohne laufende Projekte (direkt via URL angesprungen)
-        return \Platform\Organization\Models\OrganizationEntity::query()
+        return OrganizationEntity::query()
             ->whereKey($this->engagementId)
             ->value('name');
+    }
+
+    /**
+     * Entity-Bezuege (Venture/Kunde) des aktiven Engagements — fuer den
+     * Ueberblick-Kopf.
+     *
+     * @return array<int, array{label:string, key:string, name:string}>
+     */
+    #[Computed]
+    public function engagementLinks(): array
+    {
+        if (! $this->engagementId) {
+            return [];
+        }
+        return $this->entityLinksForEngagements([$this->engagementId])[$this->engagementId] ?? [];
+    }
+
+    /**
+     * Aggregat ueber alle laufenden Projekte des Engagements — speist den
+     * Ueberblick-Slide (Position 0).
+     */
+    #[Computed]
+    public function overview(): array
+    {
+        $slides = $this->slides;
+
+        $planned = $logged = $openTasks = $overdue = $dodTotal = $dodChecked = 0;
+        $healthMix = ['green' => 0, 'yellow' => 0, 'red' => 0, 'gray' => 0];
+        $nearest = null;
+
+        foreach ($slides as $s) {
+            $planned += $s['planned_minutes'];
+            $logged += $s['logged_minutes'];
+            $openTasks += $s['open_task_count'];
+            $overdue += $s['overdue_count'];
+            $dodTotal += $s['dod_total'];
+            $dodChecked += $s['dod_checked'];
+            $hc = $s['health_color'] ?: 'gray';
+            $healthMix[$hc] = ($healthMix[$hc] ?? 0) + 1;
+
+            if ($s['days_to_end'] !== null && ($nearest === null || $s['days_to_end'] < $nearest['days'])) {
+                $nearest = ['days' => $s['days_to_end'], 'date' => $s['planned_end'], 'name' => $s['name']];
+            }
+        }
+
+        return [
+            'project_count'    => count($slides),
+            'planned_minutes'  => $planned,
+            'logged_minutes'   => $logged,
+            'open_tasks'       => $openTasks,
+            'overdue'          => $overdue,
+            'dod_total'        => $dodTotal,
+            'dod_checked'      => $dodChecked,
+            'health_mix'       => $healthMix,
+            'nearest_deadline' => $nearest,
+            'links'            => $this->engagementLinks,
+        ];
     }
 
     // ── Slides ──────────────────────────────────────────────────

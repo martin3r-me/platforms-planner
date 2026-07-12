@@ -127,6 +127,26 @@
         .pm-blank h3 { font-size: 16px; margin: 10px 0 4px; }
         .pm-blank p { font-size: 13.5px; color: var(--muted); margin: 0; }
         .pm-center { flex: 1; display: grid; place-items: center; text-align: center; padding: 48px; }
+        .pm-ecard-links { display: flex; flex-wrap: wrap; gap: 3px 12px; margin-top: 5px; }
+        .pm-eclink { font-size: 11.5px; color: var(--ink-soft); }
+        .pm-eclink b { color: var(--muted); font-weight: 600; }
+
+        /* overview */
+        .pm-bezuege { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+        .pm-bezug { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow-soft); padding: 16px 18px; }
+        .pm-bezug .lbl { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); font-weight: 700; margin-bottom: 6px; }
+        .pm-bezug .val { font-size: 18px; font-weight: 600; color: var(--ink); font-family: var(--serif); }
+        .pm-healthbar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--line); }
+        .pm-healthbar > span { display: block; }
+        .pm-hmix { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 11px; font-size: 12px; color: var(--muted); }
+        .pm-hmix .k { display: inline-flex; align-items: center; gap: 5px; }
+        .pm-hmix .k .d { width: 9px; height: 9px; border-radius: 50%; }
+        .pm-prjrow { display: grid; grid-template-columns: 1fr auto auto auto auto; gap: 16px; align-items: center; padding: 12px 4px; border: 0; border-bottom: 1px solid var(--line); background: none; cursor: pointer; font-family: inherit; text-align: left; width: 100%; }
+        .pm-prjrow:last-child { border-bottom: 0; }
+        .pm-prjrow:hover { background: var(--ground); }
+        .pm-prjrow .pn { font-size: 14.5px; font-weight: 600; color: var(--ink); }
+        .pm-prjrow .m { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .pm-prjrow .hd { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 
         @media (max-width: 1100px) { .pm-tiles { grid-template-columns: 1fr; } .pm-lower { grid-template-columns: 1fr; } }
         @media (prefers-reduced-motion: reduce) { .pm * { transition: none !important; } }
@@ -150,9 +170,16 @@
                     @forelse($this->engagements as $e)
                         <button type="button" wire:click="selectEngagement({{ $e['id'] }})" class="pm-ecard">
                             <span class="ico">{{ mb_strtoupper(mb_substr($e['name'], 0, 1)) }}</span>
-                            <span>
+                            <span style="flex:1; min-width:0">
                                 <span class="en" style="display:block">{{ $e['name'] }}</span>
                                 <span class="ec">{{ $e['count'] }} {{ $e['count'] === 1 ? 'laufendes Projekt' : 'laufende Projekte' }}</span>
+                                @if(! empty($e['links']))
+                                    <span class="pm-ecard-links">
+                                        @foreach($e['links'] as $lk)
+                                            <span class="pm-eclink"><b>{{ $lk['label'] }}:</b> {{ $lk['name'] }}</span>
+                                        @endforeach
+                                    </span>
+                                @endif
                             </span>
                             <span class="arr">@svg('heroicon-o-arrow-right', 'w-4 h-4')</span>
                         </button>
@@ -171,8 +198,10 @@
     @else
         @php
             $slides = $this->slides;
-            $total = count($slides);
-            $current = $slides[$index] ?? null;
+            $projectCount = count($slides);
+            $isOverview = ($index === 0);
+            $current = $isOverview ? null : ($slides[$index - 1] ?? null);
+            $ov = $this->overview;
         @endphp
 
         <div class="pm flex-1 flex flex-col min-h-0"
@@ -192,12 +221,10 @@
                         <div class="sub">Engagement · laufende Projekte</div>
                     </div>
                 </div>
-                @if($total > 0)
-                    <div class="pm-counter">Projekt {{ $index + 1 }} / {{ $total }}</div>
-                @endif
+                <div class="pm-counter">{{ $isOverview ? 'Überblick' : 'Projekt ' . $index . ' / ' . $projectCount }}</div>
             </div>
 
-            @if(! $current)
+            @if(! $isOverview && ! $current)
                 <div class="pm-center">
                     <div>
                         @svg('heroicon-o-folder-open', 'w-8 h-8', ['style' => 'color:var(--muted)'])
@@ -207,13 +234,19 @@
                 </div>
             @else
                 <div class="pm-body">
-                    {{-- Projekt-Navigator --}}
+                    {{-- Navigator: Überblick + Projekte --}}
                     <aside class="pm-rail">
-                        <h2>Projekte</h2>
+                        <h2>Engagement</h2>
+                        <div class="pm-navlist">
+                            <button type="button" wire:click="goTo(0)" class="pm-navitem {{ $isOverview ? 'active' : '' }}">
+                                <div class="top"><span class="t">Überblick</span></div>
+                            </button>
+                        </div>
+                        <h2 style="margin-top:14px">Projekte</h2>
                         <div class="pm-navlist">
                             @foreach($slides as $i => $s)
                                 @php $pct = $s['dod_total'] > 0 ? round($s['dod_checked'] / $s['dod_total'] * 100) : 0; @endphp
-                                <button type="button" wire:click="goTo({{ $i }})" class="pm-navitem {{ $i === $index ? 'active' : '' }}">
+                                <button type="button" wire:click="goTo({{ $i + 1 }})" class="pm-navitem {{ $index === $i + 1 ? 'active' : '' }}">
                                     <div class="top">
                                         <span class="t">{{ $s['name'] }}</span>
                                         <span class="pct">{{ $s['dod_total'] > 0 ? $pct . '%' : '—' }}</span>
@@ -225,8 +258,122 @@
                     </aside>
 
                     {{-- Bühne --}}
-                    <div class="pm-stagewrap" wire:key="stage-{{ $current['id'] }}">
+                    <div class="pm-stagewrap" wire:key="stage-{{ $isOverview ? 'overview' : $current['id'] }}">
                         <div class="pm-stage">
+                        @if($isOverview)
+                            {{-- ══ Engagement-Überblick ══ --}}
+                            <div class="pm-head">
+                                <div>
+                                    <h1>Überblick</h1>
+                                    <div class="meta">{{ $ov['project_count'] }} {{ $ov['project_count'] === 1 ? 'laufendes Projekt' : 'laufende Projekte' }}</div>
+                                </div>
+                            </div>
+
+                            {{-- Bezüge: Venture / Kunde (aus Dimension-Links) --}}
+                            @if(! empty($ov['links']))
+                                <div class="pm-bezuege">
+                                    @foreach($ov['links'] as $lk)
+                                        <div class="pm-bezug">
+                                            <div class="lbl">{{ $lk['label'] }}</div>
+                                            <div class="val">{{ $lk['name'] }}</div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endif
+
+                            {{-- Aggregat-Kacheln --}}
+                            @php
+                                $ovTimePct = $ov['planned_minutes'] > 0 ? min(100, round($ov['logged_minutes'] / $ov['planned_minutes'] * 100)) : null;
+                                $ovOver = $ov['planned_minutes'] > 0 && $ov['logged_minutes'] > $ov['planned_minutes'];
+                                $ovDodPct = $ov['dod_total'] > 0 ? round($ov['dod_checked'] / $ov['dod_total'] * 100) : null;
+                                $nd = $ov['nearest_deadline'];
+                            @endphp
+                            <div class="pm-tiles">
+                                <div class="pm-tile">
+                                    <div class="pm-ring" style="--p: {{ $ovTimePct ?? 0 }}; --c: {{ $ovOver ? 'var(--warn)' : 'var(--accent)' }}">
+                                        <span class="val">{{ $ovTimePct !== null ? $ovTimePct . '%' : '–' }}</span>
+                                    </div>
+                                    <div>
+                                        <div class="label">Zeit gesamt</div>
+                                        <div class="big">{{ $fmtHours($ov['logged_minutes']) }}<small> h investiert</small></div>
+                                        <div class="note {{ $ovOver ? 'warn' : '' }}">{{ $ov['planned_minutes'] > 0 ? ($ovOver ? 'über ' . $fmtHours($ov['planned_minutes']) . ' h geplant' : 'von ' . $fmtHours($ov['planned_minutes']) . ' h geplant') : 'keine Planung hinterlegt' }}</div>
+                                    </div>
+                                </div>
+                                <div class="pm-tile">
+                                    <div class="pm-ring" style="--p: {{ $ovDodPct ?? 0 }}; --c: var(--good)">
+                                        <span class="val">{{ $ovDodPct !== null ? $ovDodPct . '%' : '–' }}</span>
+                                    </div>
+                                    <div>
+                                        <div class="label">Fortschritt gesamt</div>
+                                        <div class="big">{{ $ov['dod_checked'] }}<small> / {{ $ov['dod_total'] }} Kriterien</small></div>
+                                        <div class="note">über alle Projekte</div>
+                                    </div>
+                                </div>
+                                <div class="pm-tile plain">
+                                    <div class="label">Offene Aufgaben</div>
+                                    <div class="big">{{ $ov['open_tasks'] }}</div>
+                                    <div class="note {{ $ov['overdue'] > 0 ? 'warn' : '' }}">{{ $ov['overdue'] > 0 ? $ov['overdue'] . ' überfällig' : 'nichts überfällig' }}</div>
+                                </div>
+                            </div>
+
+                            {{-- Projekt-Liste + Status-Verteilung --}}
+                            <div class="pm-lower">
+                                <div class="pm-panel">
+                                    <header><span class="h">Projekte</span><span class="agg">{{ $ov['project_count'] }} laufend</span></header>
+                                    <div class="pad">
+                                        @forelse($slides as $i => $s)
+                                            @php
+                                                $rowPct = $s['dod_total'] > 0 ? round($s['dod_checked'] / $s['dod_total'] * 100) : null;
+                                                $rowHc = match($s['health_color']) { 'red' => '#DC2626', 'yellow' => '#D97706', 'green' => '#2E7D5B', default => '#94A3B8' };
+                                            @endphp
+                                            <button type="button" wire:click="goTo({{ $i + 1 }})" class="pm-prjrow">
+                                                <span class="pn">{{ $s['name'] }}</span>
+                                                <span class="m">{{ $fmtHours($s['logged_minutes']) }} h</span>
+                                                <span class="m">{{ $s['planned_end'] ?? '—' }}</span>
+                                                <span class="m">{{ $rowPct !== null ? $rowPct . '%' : '—' }}</span>
+                                                <span class="hd" style="background: {{ $rowHc }}" title="Status"></span>
+                                            </button>
+                                        @empty
+                                            <div class="pm-empty-good" style="color:var(--muted)">Noch keine laufenden Projekte.</div>
+                                        @endforelse
+                                    </div>
+                                </div>
+
+                                <div class="pm-canvas">
+                                    @if($nd)
+                                        <div class="pm-cvcard">
+                                            <div class="lbl">Nächste Deadline</div>
+                                            <div class="pm-cventry">
+                                                <div class="et">{{ $nd['date'] }} · {{ $nd['name'] }}</div>
+                                                <div class="ec">{{ $nd['days'] >= 0 ? 'noch ' . $nd['days'] . ' Tage' : abs($nd['days']) . ' Tage über Termin' }}</div>
+                                            </div>
+                                        </div>
+                                    @endif
+                                    @php
+                                        $mix = $ov['health_mix'];
+                                        $mixTotal = max(1, array_sum($mix));
+                                        $mixDefs = ['green' => ['#2E7D5B', 'Grün'], 'yellow' => ['#D97706', 'Gelb'], 'red' => ['#DC2626', 'Rot'], 'gray' => ['#94A3B8', 'Offen']];
+                                    @endphp
+                                    <div class="pm-cvcard">
+                                        <div class="lbl">Status-Verteilung</div>
+                                        <div class="pm-healthbar">
+                                            @foreach($mixDefs as $k => $d)
+                                                @if(($mix[$k] ?? 0) > 0)
+                                                    <span style="width: {{ round(($mix[$k] / $mixTotal) * 100) }}%; background: {{ $d[0] }}"></span>
+                                                @endif
+                                            @endforeach
+                                        </div>
+                                        <div class="pm-hmix">
+                                            @foreach($mixDefs as $k => $d)
+                                                @if(($mix[$k] ?? 0) > 0)
+                                                    <span class="k"><span class="d" style="background: {{ $d[0] }}"></span>{{ $d[1] }} {{ $mix[$k] }}</span>
+                                                @endif
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @else
                             {{-- Kopf --}}
                             @php
                                 $days = $current['days_to_end'];
@@ -400,6 +547,7 @@
                                     @endforelse
                                 </div>
                             </div>
+                        @endif
                         </div>
                     </div>
                 </div>
@@ -408,12 +556,13 @@
                 <div class="pm-footer">
                     <button class="pm-navbtn" wire:click="prev" @disabled($index <= 0)>@svg('heroicon-o-chevron-left', 'w-4 h-4') Zurück</button>
                     <div class="pm-dots">
+                        <button wire:click="goTo(0)" class="pm-dot {{ $index === 0 ? 'active' : '' }}" title="Überblick"></button>
                         @foreach($slides as $i => $s)
-                            <button wire:click="goTo({{ $i }})" class="pm-dot {{ $i === $index ? 'active' : '' }}" title="{{ $s['name'] }}"></button>
+                            <button wire:click="goTo({{ $i + 1 }})" class="pm-dot {{ $index === $i + 1 ? 'active' : '' }}" title="{{ $s['name'] }}"></button>
                         @endforeach
                     </div>
                     <span class="pm-kbd"><b>←</b> <b>→</b> zum Blättern</span>
-                    <button class="pm-navbtn primary" wire:click="next" @disabled($index >= $total - 1)>Weiter @svg('heroicon-o-chevron-right', 'w-4 h-4')</button>
+                    <button class="pm-navbtn primary" wire:click="next" @disabled($index >= $projectCount)>Weiter @svg('heroicon-o-chevron-right', 'w-4 h-4')</button>
                 </div>
             @endif
         </div>
