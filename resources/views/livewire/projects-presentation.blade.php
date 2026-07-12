@@ -81,6 +81,8 @@
         .pm-task:last-child { border-bottom: 0; }
         .pm-task .row { display: flex; align-items: center; gap: 10px; }
         .pm-task .tt { font-size: 15px; font-weight: 600; color: var(--ink); }
+        .pm-check { width: 22px; height: 22px; border-radius: 6px; border: 1.5px solid var(--line-strong); background: #fff; cursor: pointer; flex-shrink: 0; display: grid; place-items: center; color: transparent; padding: 0; transition: border-color .12s, background .12s, color .12s; }
+        .pm-check:hover { border-color: var(--good); background: var(--good-soft); color: var(--good); }
         .pm-pill { margin-left: auto; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--ground); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
         .pm-pill.done { background: var(--good-soft); color: var(--good); }
         .pm-dods { margin: 10px 0 2px; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 7px; }
@@ -500,6 +502,9 @@
                                             @php $donePill = $task['total'] > 0 && $task['checked'] === $task['total']; @endphp
                                             <div class="pm-task">
                                                 <div class="row">
+                                                    <button type="button" wire:click="completeTask({{ $task['id'] }})" class="pm-check" title="Aufgabe abhaken">
+                                                        @svg('heroicon-o-check', 'w-3.5 h-3.5')
+                                                    </button>
                                                     <span class="tt">{{ $task['title'] }}</span>
                                                     @if($task['total'] > 0)
                                                         <span class="pm-pill {{ $donePill ? 'done' : '' }}">{{ $task['checked'] }}/{{ $task['total'] }}</span>

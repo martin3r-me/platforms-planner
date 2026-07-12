@@ -18,10 +18,12 @@ use Platform\Organization\Models\OrganizationTimePlanned;
 use Platform\Organization\Services\DimensionLinkService;
 use Platform\Organization\Services\EntityDimensionBridge;
 use Platform\Planner\Enums\TaskLifecycleState;
+use Platform\Planner\Exceptions\InvalidLifecycleTransitionException;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectCanvas;
 use Platform\Planner\Models\PlannerProjectSnapshot;
 use Platform\Planner\Models\PlannerTask;
+use Platform\Planner\Services\LifecycleService;
 
 /**
  * Praesentationsmodus — mit dem Kunden die laufenden Projekte durchgehen.
@@ -82,6 +84,40 @@ class ProjectsPresentation extends Component
     public function goTo(int $i): void
     {
         $this->index = max(0, min($i, count($this->slides)));
+    }
+
+    // ── Live-Aktion: Aufgabe abhaken ────────────────────────────
+
+    /**
+     * Hakt eine Aufgabe live im Termin ab (→ erledigt). Nur Aufgaben aus dem
+     * eigenen Team-Baum; Erledigen laeuft ueber den LifecycleService (setzt
+     * Zustand + Zeitstempel korrekt, kaskadiert Wiederkehrer).
+     */
+    public function completeTask(int $taskId): void
+    {
+        $task = PlannerTask::query()->whereKey($taskId)->first();
+        if (! $task) {
+            return;
+        }
+
+        // Autorisierung: Aufgabe muss zu einem Projekt im Scope gehoeren.
+        $inScope = PlannerProject::query()
+            ->whereKey($task->project_id)
+            ->whereIn('team_id', $this->relevantTeamIds())
+            ->visibleTo(Auth::user())
+            ->exists();
+        if (! $inScope) {
+            return;
+        }
+
+        try {
+            app(LifecycleService::class)->completeTask($task);
+        } catch (InvalidLifecycleTransitionException) {
+            // z.B. bereits erledigt/verworfen — stiller No-op.
+        }
+
+        // Computed-Caches leeren, damit Slide + Ueberblick frisch rechnen.
+        unset($this->slides, $this->overview);
     }
 
     // ── Scope-Helfer ────────────────────────────────────────────
@@ -539,6 +575,7 @@ class ProjectsPresentation extends Component
             ));
 
             return [
+                'id'         => $t->id,
                 'title'      => $t->title ?: '—',
                 'open_items' => array_map(fn ($i) => $i['text'], $openItems),
                 'total'      => $progress['total'],
