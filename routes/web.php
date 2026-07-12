@@ -44,6 +44,10 @@ Route::get('/projects-cleanup', \Platform\Planner\Livewire\ProjectsCleanup::clas
 Route::get('/ops', \Platform\Planner\Livewire\OpsRoom::class)
     ->name('planner.ops');
 
+// Praesentationsmodus (mit Kunden laufende Projekte durchgehen, Slide-Sicht)
+Route::get('/presentation', \Platform\Planner\Livewire\ProjectsPresentation::class)
+    ->name('planner.projects.presentation');
+
 // Project Canvas Routes
 Route::get('/projects/{plannerProject}/canvas', \Platform\Planner\Livewire\ProjectCanvas\Index::class)
     ->name('planner.projects.canvas.index');
