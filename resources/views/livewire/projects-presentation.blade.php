@@ -476,7 +476,7 @@
                                     <header>
                                         <span class="h">Offene Punkte</span>
                                         <span class="agg">
-                                            {{ $current['open_task_count'] }} offen@if($current['dod_total'] > 0) · {{ $current['dod_checked'] }} / {{ $current['dod_total'] }} Kriterien erfüllt @endif
+                                            {{ $current['open_task_count'] }} offen{{ $current['dod_total'] > 0 ? ' · ' . $current['dod_checked'] . ' / ' . $current['dod_total'] . ' Kriterien erfüllt' : '' }}
                                         </span>
                                     </header>
                                     <div class="pad">
