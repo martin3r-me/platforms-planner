@@ -625,6 +625,19 @@ class ProjectsPresentation extends Component
             ? (int) now()->startOfDay()->diffInDays($plannedEnd->copy()->startOfDay(), false)
             : null;
 
+        // Verstrichener Anteil der Laufzeit (Start → Ziel) fuer die Eckdaten-Leiste.
+        $startDate = $project->created_at;
+        $elapsedPct = null;
+        if ($plannedEnd && $startDate) {
+            $span = (int) $startDate->copy()->startOfDay()->diffInDays($plannedEnd->copy()->startOfDay(), false);
+            if ($span > 0) {
+                $elapsed = (int) $startDate->copy()->startOfDay()->diffInDays(now()->startOfDay(), false);
+                $elapsedPct = max(0, min(100, (int) round($elapsed / $span * 100)));
+            } else {
+                $elapsedPct = 100;
+            }
+        }
+
         // ── Ueberfaellige Aufgaben (live) ──
         $overdueCount = $activeTasks->filter(
             fn ($t) => $t->due_date && $t->due_date->isPast()
@@ -682,6 +695,7 @@ class ProjectsPresentation extends Component
             'logged_minutes'  => (int) $loggedMinutes,
             'planned_end'     => $plannedEnd?->format('d.m.Y'),
             'days_to_end'     => $daysToEnd,
+            'elapsed_pct'     => $elapsedPct,
             'overdue_count'   => $overdueCount,
             'sp_total'        => $spTotal,
             'sp_done'         => $spDone,

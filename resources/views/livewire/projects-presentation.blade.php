@@ -57,6 +57,22 @@
         .pm-chip.trend .tdot { width: 8px; height: 8px; border-radius: 50%; }
         .pm-chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; flex-shrink: 0; }
 
+        /* Eckdaten-Leiste: Start → Ziel plakativ */
+        .pm-eckdaten { display: flex; align-items: stretch; margin-top: 22px; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow-soft); overflow: hidden; }
+        .pm-eckdaten .ec-pole { padding: 18px 26px; display: flex; flex-direction: column; justify-content: center; gap: 7px; min-width: 172px; }
+        .pm-eckdaten .ec-pole.end { align-items: flex-end; text-align: right; }
+        .pm-eckdaten .ec-lbl { font-size: 10.5px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); font-weight: 700; }
+        .pm-eckdaten .ec-date { font-family: var(--serif); font-size: 31px; font-weight: 600; line-height: 1; letter-spacing: -.01em; color: var(--ink); font-variant-numeric: tabular-nums; }
+        .pm-eckdaten .ec-date.warn { color: var(--warn); }
+        .pm-eckdaten .ec-track { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 13px; padding: 18px 28px; border-left: 1px solid var(--line); border-right: 1px solid var(--line); min-width: 200px; }
+        .pm-eckdaten .ec-line { position: relative; width: 100%; height: 6px; border-radius: 4px; background: var(--line); overflow: hidden; }
+        .pm-eckdaten .ec-line > span { position: absolute; left: 0; top: 0; height: 100%; border-radius: 4px; background: var(--accent); }
+        .pm-eckdaten .ec-line--open { background: repeating-linear-gradient(90deg, var(--line) 0 7px, transparent 7px 13px); }
+        .pm-eckdaten .ec-count { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; color: var(--accent-ink); }
+        .pm-eckdaten .ec-count b { font-size: 15px; font-weight: 700; }
+        .pm-eckdaten .ec-count.over { color: var(--warn); }
+        .pm-eckdaten .ec-count.muted { color: var(--muted); font-weight: 500; }
+
         .pm-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
         .pm-tile { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px 22px; box-shadow: var(--shadow-soft); display: flex; align-items: center; gap: 20px; }
         .pm-tile.plain { display: block; }
@@ -409,33 +425,12 @@
                             <div class="pm-head">
                                 <div>
                                     <h1>{{ $current['name'] }}</h1>
-                                    @php
-                                        $metaParts = array_filter([
-                                            $current['owner_name'] ? 'Verantwortlich · ' . $current['owner_name'] : null,
-                                            $current['created_at'] ? 'angelegt am ' . $current['created_at'] : null,
-                                        ]);
-                                    @endphp
-                                    @if($metaParts)
-                                        <div class="meta">{{ implode(' · ', $metaParts) }}</div>
+                                    @if($current['owner_name'])
+                                        <div class="meta">Verantwortlich · {{ $current['owner_name'] }}</div>
                                     @endif
                                 </div>
                                 <div class="pm-chips">
                                     <span class="pm-chip"><span class="dot"></span>läuft</span>
-
-                                    {{-- Deadline / Go-Live --}}
-                                    @if($days !== null)
-                                        @if($days >= 0)
-                                            <span class="pm-chip neutral">
-                                                @svg('heroicon-o-flag', 'w-3.5 h-3.5')
-                                                {{ $current['planned_end'] }} · noch {{ $days }} {{ $days === 1 ? 'Tag' : 'Tage' }}
-                                            </span>
-                                        @else
-                                            <span class="pm-chip warn">
-                                                @svg('heroicon-o-flag', 'w-3.5 h-3.5')
-                                                {{ $current['planned_end'] }} · {{ abs($days) }} {{ abs($days) === 1 ? 'Tag' : 'Tage' }} über Termin
-                                            </span>
-                                        @endif
-                                    @endif
 
                                     {{-- Überfällige Aufgaben --}}
                                     @if($current['overdue_count'] > 0)
@@ -460,6 +455,43 @@
                                     @endif
                                 </div>
                             </div>
+
+                            {{-- Eckdaten: Projektstart → Ziel/Go-Live, plakativ --}}
+                            @if($current['created_at'] || $current['planned_end'])
+                                @php $overdue = $days !== null && $days < 0; @endphp
+                                <div class="pm-eckdaten">
+                                    <div class="ec-pole">
+                                        <div class="ec-lbl">Projektstart</div>
+                                        <div class="ec-date">{{ $current['created_at'] ?? '—' }}</div>
+                                    </div>
+                                    <div class="ec-track">
+                                        @if($current['elapsed_pct'] !== null)
+                                            <div class="ec-line"><span style="width: {{ $current['elapsed_pct'] }}%"></span></div>
+                                        @else
+                                            <div class="ec-line ec-line--open"></div>
+                                        @endif
+                                        @if($days !== null)
+                                            @if($days >= 0)
+                                                <div class="ec-count">
+                                                    @svg('heroicon-o-flag', 'w-4 h-4')
+                                                    <b>noch {{ $days }}</b> {{ $days === 1 ? 'Tag' : 'Tage' }} bis Go-Live
+                                                </div>
+                                            @else
+                                                <div class="ec-count over">
+                                                    @svg('heroicon-o-exclamation-triangle', 'w-4 h-4')
+                                                    <b>{{ abs($days) }}</b> {{ abs($days) === 1 ? 'Tag' : 'Tage' }} über Termin
+                                                </div>
+                                            @endif
+                                        @else
+                                            <div class="ec-count muted">kein Zieltermin hinterlegt</div>
+                                        @endif
+                                    </div>
+                                    <div class="ec-pole end">
+                                        <div class="ec-lbl">Ziel · Go-Live</div>
+                                        <div class="ec-date {{ $overdue ? 'warn' : '' }}">{{ $current['planned_end'] ?? 'offen' }}</div>
+                                    </div>
+                                </div>
+                            @endif
 
                             {{-- Metrik-Kacheln --}}
                             @php
