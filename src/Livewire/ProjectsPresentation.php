@@ -14,6 +14,7 @@ use Platform\Core\Models\Team;
 use Platform\Organization\Models\OrganizationDimensionDefinition;
 use Platform\Organization\Models\OrganizationEntity;
 use Platform\Organization\Models\OrganizationTimeEntry;
+use Platform\Organization\Models\OrganizationTimePeriod;
 use Platform\Organization\Models\OrganizationTimePlanned;
 use Platform\Organization\Services\DimensionLinkService;
 use Platform\Organization\Services\EntityDimensionBridge;
@@ -427,6 +428,7 @@ class ProjectsPresentation extends Component
         $liveIds = $projects->pluck('id')->all();
         $loggedMap = $this->loggedMinutesByProjectId($liveIds);
         $plannedMap = $this->plannedMinutesByProjectId($liveIds);
+        $periodMap = $this->plannedEndByProjectId($liveIds);
         $snapshots = $this->latestSnapshotsByProjectId($liveIds);
 
         return $projects->map(fn ($p) => $this->buildSlide(
@@ -434,6 +436,7 @@ class ProjectsPresentation extends Component
             (int) ($plannedMap[$p->id] ?? 0),
             (int) ($loggedMap[$p->id] ?? 0),
             $snapshots[$p->id] ?? null,
+            $periodMap[$p->id] ?? null,
         ))->all();
     }
 
@@ -459,6 +462,34 @@ class ProjectsPresentation extends Component
         return PlannerProjectSnapshot::whereIn('id', $latestIds)
             ->get()
             ->keyBy('project_id')
+            ->all();
+    }
+
+    /**
+     * Geplantes Enddatum (Go-Live/Deadline) je Projekt — als Dual-Context-Query,
+     * NICHT ueber $project->plannedEnd(). Die Trait-Methode nutzt morphMany auf den
+     * Morph-Alias ("project"); Zeitraum-Datensaetze liegen aber teils unter dem
+     * vollen Klassennamen → sonst kommt null zurueck und das Datum verschwindet.
+     * Gleiche Falle wie bei geplanten/getrackten Minuten.
+     *
+     * @return array<int, \Carbon\Carbon>  project_id → planned_end
+     */
+    protected function plannedEndByProjectId(array $projectIds): array
+    {
+        if (empty($projectIds)) {
+            return [];
+        }
+
+        $projectAlias = DimensionLinkService::resolveContextType(PlannerProject::class);
+
+        return OrganizationTimePeriod::query()
+            ->where('is_active', true)
+            ->whereIn('context_type', [$projectAlias, PlannerProject::class])
+            ->whereIn('context_id', $projectIds)
+            ->whereNotNull('planned_end')
+            ->get(['context_id', 'planned_end'])
+            ->groupBy('context_id')
+            ->map(fn ($rows) => $rows->pluck('planned_end')->max())
             ->all();
     }
 
@@ -577,7 +608,7 @@ class ProjectsPresentation extends Component
         return $byProject;
     }
 
-    protected function buildSlide(PlannerProject $project, int $plannedMinutes, int $loggedMinutes, ?PlannerProjectSnapshot $snapshot): array
+    protected function buildSlide(PlannerProject $project, int $plannedMinutes, int $loggedMinutes, ?PlannerProjectSnapshot $snapshot, ?\Carbon\Carbon $plannedEnd = null): array
     {
         $tasks = $project->tasks;
         $activeTasks = $tasks->filter(
@@ -588,7 +619,8 @@ class ProjectsPresentation extends Component
         );
 
         // ── Deadline / Go-Live (live aus der Projekt-Planung) ──
-        $plannedEnd = $project->plannedEnd();
+        // $plannedEnd kommt via Dual-Context-Query rein (siehe plannedEndByProjectId);
+        // NICHT $project->plannedEnd() nutzen — morphMany trifft nur den Alias.
         $daysToEnd = $plannedEnd
             ? (int) now()->startOfDay()->diffInDays($plannedEnd->copy()->startOfDay(), false)
             : null;
