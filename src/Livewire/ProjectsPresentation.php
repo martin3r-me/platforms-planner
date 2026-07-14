@@ -225,21 +225,36 @@ class ProjectsPresentation extends Component
         $linkableType = DimensionLinkService::resolveContextType(PlannerProject::class);
         $links = EntityDimensionBridge::linksForLinkables([$linkableType], $projectIds, true);
 
+        // Jede verlinkte Entity auf ihr Engagement aufloesen: haengt ein Projekt an
+        // einer Initiative, zaehlt es zum Engagement DARUEBER — nicht die Initiative
+        // selbst als "Engagement" listen. Fallback: die Entity selbst.
+        $entityMap = $this->loadEntityChain(
+            $links->pluck('entity_id')->filter()->map(fn ($i) => (int) $i)->unique()->all()
+        );
+
         $byEntity = [];
         foreach ($links as $link) {
             $entityId = (int) ($link->entity_id ?? 0);
             if ($entityId === 0) {
                 continue;
             }
-            if (! isset($byEntity[$entityId])) {
-                $byEntity[$entityId] = [
-                    'id'    => $entityId,
-                    'name'  => $link->entity?->name ?? '—',
-                    'count' => 0,
+            [$engId, $engName] = $this->resolveEngagementId($entityId, $entityMap);
+            if (! isset($byEntity[$engId])) {
+                $byEntity[$engId] = [
+                    'id'       => $engId,
+                    'name'     => $engName,
+                    'projects' => [],
                 ];
             }
-            $byEntity[$entityId]['count']++;
+            // Projekt-ID als Key → distinkt zaehlen (direkt + via Initiative).
+            $byEntity[$engId]['projects'][(int) $link->linkable_id] = true;
         }
+
+        foreach ($byEntity as &$row) {
+            $row['count'] = count($row['projects']);
+            unset($row['projects']);
+        }
+        unset($row);
 
         // Bezuege (Venture/Kunde) aller Engagements batchweise nachladen
         $relationsByEngagement = $this->entityLinksForEngagements(array_keys($byEntity));
@@ -261,6 +276,101 @@ class ProjectsPresentation extends Component
         usort($list, fn ($a, $b) => strcasecmp($a['name'], $b['name']));
 
         return $list;
+    }
+
+    /**
+     * Alle Nachfahren-Entities eines Wurzelknotens (beliebige Tiefe, BFS). Damit
+     * unter einem Engagement ALLES gefunden wird, was irgendwo darunter haengt —
+     * nicht nur direkte Kinder (Engagement → Programm → Initiative → Projekt).
+     * Bounded gegen tiefe/zyklische Baeume.
+     *
+     * @return \Illuminate\Support\Collection<int, OrganizationEntity>
+     */
+    protected function descendantEntities(int $rootId): Collection
+    {
+        $all = collect();
+        $frontier = [$rootId];
+        $guard = 0;
+        while (! empty($frontier) && $guard++ < 15) {
+            $children = OrganizationEntity::query()
+                ->whereIn('parent_entity_id', $frontier)
+                ->with('type:id,code,name')
+                ->get(['id', 'name', 'entity_type_id', 'parent_entity_id']);
+            if ($children->isEmpty()) {
+                break;
+            }
+            $all = $all->concat($children);
+            $frontier = $children->pluck('id')
+                ->map(fn ($i) => (int) $i)
+                ->reject(fn ($i) => $i === $rootId)
+                ->all();
+        }
+
+        return $all->unique('id')->values();
+    }
+
+    /**
+     * Laedt eine Entity-Menge samt Vorfahrenkette (id → code/parent/name), damit
+     * sich ein Linkable-Anker (z.B. eine Initiative) auf sein Engagement aufloesen
+     * laesst. Bounded gegen tiefe/zyklische Baeume.
+     *
+     * @return array<int, array{id:int, name:?string, code:?string, parent:?int}>
+     */
+    protected function loadEntityChain(array $ids): array
+    {
+        $map = [];
+        $toLoad = array_values(array_unique(array_map('intval', $ids)));
+        $guard = 0;
+        while (! empty($toLoad) && $guard++ < 12) {
+            $rows = OrganizationEntity::query()
+                ->whereIn('id', $toLoad)
+                ->with('type:id,code')
+                ->get(['id', 'name', 'entity_type_id', 'parent_entity_id']);
+            $toLoad = [];
+            foreach ($rows as $e) {
+                if (isset($map[(int) $e->id])) {
+                    continue;
+                }
+                $parent = $e->parent_entity_id ? (int) $e->parent_entity_id : null;
+                $map[(int) $e->id] = [
+                    'id'     => (int) $e->id,
+                    'name'   => $e->name,
+                    'code'   => $e->type?->code,
+                    'parent' => $parent,
+                ];
+                if ($parent && ! isset($map[$parent])) {
+                    $toLoad[] = $parent;
+                }
+            }
+        }
+
+        return $map;
+    }
+
+    /**
+     * Loest eine Entity auf ihr Engagement auf (Typ-Code 'engagement'): erst die
+     * Entity selbst, dann die Elternkette hoch. Fallback: die Entity selbst, damit
+     * nie ein Engagement aus der Auswahl verschwindet.
+     *
+     * @param  array<int, array{id:int, name:?string, code:?string, parent:?int}>  $map
+     * @return array{0:int, 1:string}  [engagementId, engagementName]
+     */
+    protected function resolveEngagementId(int $entityId, array $map): array
+    {
+        $cur = $entityId;
+        $guard = 0;
+        while ($cur && $guard++ < 12) {
+            $node = $map[$cur] ?? null;
+            if (! $node) {
+                break;
+            }
+            if (($node['code'] ?? null) === 'engagement') {
+                return [$node['id'], $node['name'] ?? '—'];
+            }
+            $cur = $node['parent'];
+        }
+
+        return [$entityId, $map[$entityId]['name'] ?? '—'];
     }
 
     /**
@@ -357,8 +467,12 @@ class ProjectsPresentation extends Component
         $spTotal = $spDone = 0;
         $healthMix = ['green' => 0, 'yellow' => 0, 'red' => 0, 'gray' => 0];
         $nearest = null;
+        $groups = [];
 
         foreach ($slides as $s) {
+            if (! empty($s['bracket'])) {
+                $groups[$s['bracket']['id']] = $s['bracket']['name'];
+            }
             $planned += $s['planned_minutes'];
             $logged += $s['logged_minutes'];
             $openTasks += $s['open_task_count'];
@@ -377,6 +491,7 @@ class ProjectsPresentation extends Component
 
         return [
             'project_count'    => count($slides),
+            'group_count'      => count($groups),
             'planned_minutes'  => $planned,
             'logged_minutes'   => $logged,
             'open_tasks'       => $openTasks,
@@ -406,13 +521,90 @@ class ProjectsPresentation extends Component
         }
 
         $linkableType = DimensionLinkService::resolveContextType(PlannerProject::class);
-        $projectIds = EntityDimensionBridge::linksForEntity($this->engagementId)
-            ->filter(fn ($l) => ($l->linkable_type ?? null) === $linkableType)
-            ->pluck('linkable_id')
-            ->unique()
-            ->map(fn ($id) => (int) $id)
-            ->all();
 
+        // Alle Nachfahren-Entities des Engagements (Initiativen/Programme/Container,
+        // beliebige Tiefe), die Projekte buendeln. Deren Projekte werden mitgezeigt
+        // und unter ihrem Anker gruppiert — nicht nur, was DIREKT am Engagement haengt.
+        $anchors = $this->descendantEntities($this->engagementId);
+
+        // Ein Batch-Query: Projekt-Links am Engagement UND an allen Nachfahren.
+        $entityIds = array_merge(
+            [$this->engagementId],
+            $anchors->pluck('id')->map(fn ($id) => (int) $id)->all()
+        );
+        $projectsByEntity = [];
+        foreach (EntityDimensionBridge::linksForEntities($entityIds) as $link) {
+            if (($link->linkable_type ?? null) !== $linkableType) {
+                continue;
+            }
+            $eid = (int) ($link->entity_id ?? 0);
+            $pid = (int) $link->linkable_id;
+            if ($eid && $pid) {
+                $projectsByEntity[$eid][] = $pid;
+            }
+        }
+
+        // Jede Entity im Teilbaum schnell greifbar machen (fuer die Bracket-Aufloesung).
+        $entityById = [];
+        foreach ($anchors as $e) {
+            $entityById[(int) $e->id] = [
+                'id'     => (int) $e->id,
+                'name'   => $e->name ?: '—',
+                'type'   => $e->type?->name ?? 'Initiative',
+                'parent' => $e->parent_entity_id ? (int) $e->parent_entity_id : null,
+            ];
+        }
+
+        // Bracket = oberste Entity unter dem Engagement im Anker-Pfad: der Container
+        // (Thema), oder — wenn keiner dazwischenliegt — die Initiative selbst. Das ist
+        // die Gruppen-Klammer fuer Rail/Ueberblick. Der Anker bleibt die Initiative,
+        // an der das Projekt direkt haengt (Breadcrumb-Feinheit).
+        $bracketOf = function (int $anchorId) use ($entityById): ?array {
+            $cur = $anchorId;
+            $guard = 0;
+            while ($cur && $guard++ < 15) {
+                $node = $entityById[$cur] ?? null;
+                if (! $node) {
+                    return null;
+                }
+                // Elternteil ausserhalb des Teilbaums → cur haengt direkt am Engagement.
+                if ($node['parent'] === null || ! isset($entityById[$node['parent']])) {
+                    return ['id' => $node['id'], 'name' => $node['name'], 'type' => $node['type']];
+                }
+                $cur = $node['parent'];
+            }
+            return null;
+        };
+
+        // Reihenfolge: Projekte je Anker-Initiative unter ihrem Bracket; lose Projekte
+        // (direkt am Engagement) zuletzt. Ein Projekt nur EINMAL (Anker vor "lose").
+        $ordered = [];
+        $seen = [];
+        foreach ($anchors->sortBy('name')->values() as $ce) {
+            $aid = (int) $ce->id;
+            $anchor = [
+                'id'   => $aid,
+                'name' => $ce->name ?: '—',
+                'type' => $ce->type?->name ?? 'Initiative',
+            ];
+            $bracket = $bracketOf($aid);
+            foreach (array_unique($projectsByEntity[$aid] ?? []) as $pid) {
+                if (isset($seen[$pid])) {
+                    continue;
+                }
+                $seen[$pid] = true;
+                $ordered[] = ['pid' => $pid, 'anchor' => $anchor, 'bracket' => $bracket];
+            }
+        }
+        foreach (array_unique($projectsByEntity[$this->engagementId] ?? []) as $pid) {
+            if (isset($seen[$pid])) {
+                continue;
+            }
+            $seen[$pid] = true;
+            $ordered[] = ['pid' => $pid, 'anchor' => null, 'bracket' => null];
+        }
+
+        $projectIds = array_column($ordered, 'pid');
         if (empty($projectIds)) {
             return [];
         }
@@ -420,24 +612,59 @@ class ProjectsPresentation extends Component
         $projects = $this->runningProjectsQuery()
             ->whereIn('id', $projectIds)
             ->with(['user:id,name', 'tasks'])
-            ->orderBy('name')
             ->get()
             ->filter(fn ($p) => $this->isRunning($p))
-            ->values();
+            ->keyBy('id');
 
-        $liveIds = $projects->pluck('id')->all();
+        // Sortierung: nach Bracket (Thema) alphabetisch, lose Projekte ganz ans Ende;
+        // innerhalb eines Brackets nach Projektname.
+        usort($ordered, function ($a, $b) use ($projects) {
+            // 1. nach Bracket (Thema), lose zuletzt
+            $ba = $a['bracket']['name'] ?? "\u{FFFF}";
+            $bb = $b['bracket']['name'] ?? "\u{FFFF}";
+            if (($cmp = strcasecmp($ba, $bb)) !== 0) {
+                return $cmp;
+            }
+            // 2. innerhalb eines Brackets Projekte gleicher Initiative zusammenhalten
+            $aa = $a['anchor']['name'] ?? "\u{FFFF}";
+            $ab = $b['anchor']['name'] ?? "\u{FFFF}";
+            if (($cmp = strcasecmp($aa, $ab)) !== 0) {
+                return $cmp;
+            }
+            // 3. dann nach Projektname
+            return strcasecmp(
+                $projects->get($a['pid'])?->name ?? '',
+                $projects->get($b['pid'])?->name ?? ''
+            );
+        });
+
+        $liveIds = $projects->keys()->all();
         $loggedMap = $this->loggedMinutesByProjectId($liveIds);
         $plannedMap = $this->plannedMinutesByProjectId($liveIds);
         $periodMap = $this->plannedEndByProjectId($liveIds);
         $snapshots = $this->latestSnapshotsByProjectId($liveIds);
 
-        return $projects->map(fn ($p) => $this->buildSlide(
-            $p,
-            (int) ($plannedMap[$p->id] ?? 0),
-            (int) ($loggedMap[$p->id] ?? 0),
-            $snapshots[$p->id] ?? null,
-            $periodMap[$p->id] ?? null,
-        ))->all();
+        // In der berechneten Reihenfolge Slides bauen und je Slide Anker (Initiative)
+        // + Bracket (Thema/Container) anheften — fuer Breadcrumb bzw. Rail-Gruppierung.
+        $slides = [];
+        foreach ($ordered as $row) {
+            $p = $projects->get($row['pid']);
+            if (! $p) {
+                continue; // nicht laufend / nicht sichtbar
+            }
+            $slide = $this->buildSlide(
+                $p,
+                (int) ($plannedMap[$p->id] ?? 0),
+                (int) ($loggedMap[$p->id] ?? 0),
+                $snapshots[$p->id] ?? null,
+                $periodMap[$p->id] ?? null,
+            );
+            $slide['initiative'] = $row['anchor'];
+            $slide['bracket'] = $row['bracket'];
+            $slides[] = $slide;
+        }
+
+        return $slides;
     }
 
     /**

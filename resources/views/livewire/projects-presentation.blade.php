@@ -42,6 +42,13 @@
         .pm-navitem.active .pct { color: var(--accent-ink); }
         .pm-minibar { height: 4px; border-radius: 3px; background: var(--line); overflow: hidden; }
         .pm-minibar > span { display: block; height: 100%; border-radius: 3px; background: var(--accent); }
+        .pm-railgroup { display: flex; align-items: center; gap: 6px; margin: 13px 6px 5px; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; color: var(--accent); }
+        .pm-railgroup .loose { color: var(--muted); }
+        .pm-navsub { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); margin-top: 3px; }
+        .pm-crumb { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--accent); margin-bottom: 9px; }
+        .pm-crumb .sep { color: var(--line-strong); margin: 0 1px; }
+        .pm-crumb .sub { color: var(--ink-soft); }
+        .pm-inittag { display: inline-block; margin-left: 9px; font-size: 11px; font-weight: 600; color: var(--accent); background: var(--accent-soft); border-radius: 6px; padding: 1px 7px; vertical-align: middle; }
 
         /* stage */
         .pm-stagewrap { overflow-y: auto; min-height: 0; }
@@ -271,13 +278,32 @@
                         </div>
                         <h2 style="margin-top:14px">Projekte</h2>
                         <div class="pm-navlist">
+                            @php $lastGroup = '__start__'; @endphp
                             @foreach($slides as $i => $s)
-                                @php $pct = $s['dod_total'] > 0 ? round($s['dod_checked'] / $s['dod_total'] * 100) : 0; @endphp
+                                @php
+                                    $pct = $s['dod_total'] > 0 ? round($s['dod_checked'] / $s['dod_total'] * 100) : 0;
+                                    $groupKey = $s['bracket'] ? $s['bracket']['id'] : 0;
+                                    $showAnchor = $s['initiative'] && (! $s['bracket'] || $s['initiative']['id'] !== $s['bracket']['id']);
+                                @endphp
+                                @if($groupKey !== $lastGroup)
+                                    @php $lastGroup = $groupKey; @endphp
+                                    @if($s['bracket'])
+                                        <div class="pm-railgroup">
+                                            @svg('heroicon-o-folder', 'w-3 h-3')
+                                            <span>{{ $s['bracket']['name'] }}</span>
+                                        </div>
+                                    @elseif($ov['group_count'] > 0)
+                                        <div class="pm-railgroup"><span class="loose">Ohne Zuordnung</span></div>
+                                    @endif
+                                @endif
                                 <button type="button" wire:click="goTo({{ $i + 1 }})" class="pm-navitem {{ $index === $i + 1 ? 'active' : '' }}">
                                     <div class="top">
                                         <span class="t">{{ $s['name'] }}</span>
                                         <span class="pct">{{ $s['dod_total'] > 0 ? $pct . '%' : '—' }}</span>
                                     </div>
+                                    @if($showAnchor)
+                                        <div class="pm-navsub">@svg('heroicon-o-flag', 'w-3 h-3')<span>{{ $s['initiative']['name'] }}</span></div>
+                                    @endif
                                     <div class="pm-minibar"><span style="width: {{ $pct }}%"></span></div>
                                 </button>
                             @endforeach
@@ -292,7 +318,7 @@
                             <div class="pm-head">
                                 <div>
                                     <h1>Überblick</h1>
-                                    <div class="meta">{{ $ov['project_count'] }} {{ $ov['project_count'] === 1 ? 'laufendes Projekt' : 'laufende Projekte' }}</div>
+                                    <div class="meta">{{ $ov['project_count'] }} {{ $ov['project_count'] === 1 ? 'laufendes Projekt' : 'laufende Projekte' }}{{ $ov['group_count'] > 0 ? ' · ' . $ov['group_count'] . ' ' . ($ov['group_count'] === 1 ? 'Bereich' : 'Bereiche') : '' }}</div>
                                 </div>
                             </div>
 
@@ -368,7 +394,7 @@
                                                 $rowHc = match($s['health_color']) { 'red' => '#DC2626', 'yellow' => '#D97706', 'green' => '#2E7D5B', default => '#94A3B8' };
                                             @endphp
                                             <button type="button" wire:click="goTo({{ $i + 1 }})" class="pm-prjrow">
-                                                <span class="pn">{{ $s['name'] }}</span>
+                                                <span class="pn">{{ $s['name'] }}@if($s['bracket'])<span class="pm-inittag">{{ $s['bracket']['name'] }}</span>@endif</span>
                                                 <span class="m">{{ $fmtHours($s['logged_minutes']) }} h</span>
                                                 <span class="m">{{ $s['planned_end'] ?? '—' }}</span>
                                                 <span class="m">{{ $rowPct !== null ? $rowPct . '%' : '—' }}</span>
@@ -424,6 +450,17 @@
                             @endphp
                             <div class="pm-head">
                                 <div>
+                                    @if($current['bracket'] || $current['initiative'])
+                                        @php
+                                            $crumbTop = $current['bracket'] ? $current['bracket']['name'] : ($current['initiative'] ? $current['initiative']['name'] : null);
+                                            $crumbSub = ($current['bracket'] && $current['initiative'] && $current['initiative']['id'] !== $current['bracket']['id']) ? $current['initiative']['name'] : null;
+                                        @endphp
+                                        <div class="pm-crumb">
+                                            @svg('heroicon-o-folder', 'w-3.5 h-3.5')
+                                            <span>{{ $crumbTop }}</span>
+                                            @if($crumbSub)<span class="sep">›</span><span class="sub">{{ $crumbSub }}</span>@endif
+                                        </div>
+                                    @endif
                                     <h1>{{ $current['name'] }}</h1>
                                     @if($current['owner_name'])
                                         <div class="meta">Verantwortlich · {{ $current['owner_name'] }}</div>
