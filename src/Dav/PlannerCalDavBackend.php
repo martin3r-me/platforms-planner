@@ -327,8 +327,11 @@ class PlannerCalDavBackend extends AbstractBackend implements SyncSupport
         $query = PlannerTask::query()
             ->where('lifecycle_state', '!=', TaskLifecycleState::DISCARDED->value);
 
+        // Immer nur die eigenen Aufgaben des Abonnenten — auch in Projektlisten.
+        $query->where('user_id', $this->userId());
+
         if ($calendarId === self::MINE) {
-            return $query->where('user_id', $this->userId());
+            return $query;
         }
 
         return $query->where('project_id', (int) $calendarId);
