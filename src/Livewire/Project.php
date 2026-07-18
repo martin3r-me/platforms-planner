@@ -137,15 +137,15 @@ class Project extends Component
 
     public function toggleCaldavExposure(): void
     {
-        $membership = PlannerProjectUser::query()
-            ->where('user_id', Auth::id())
-            ->where('project_id', $this->project->id)
-            ->first();
+        // firstOrNew, damit der Toggle auch für Projekt-Owner ohne eigenen
+        // Pivot-Eintrag funktioniert.
+        $membership = PlannerProjectUser::firstOrNew([
+            'user_id' => Auth::id(),
+            'project_id' => $this->project->id,
+        ]);
 
-        if ($membership) {
-            $membership->expose_in_caldav = ! $membership->expose_in_caldav;
-            $membership->save();
-        }
+        $membership->expose_in_caldav = ! $membership->expose_in_caldav;
+        $membership->save();
     }
 
     public function render()
