@@ -104,9 +104,12 @@ class Sidebar extends Component
             ->orderBy('name')
             ->get();
 
+        // "Alle Projekte" = alle Projekte, die der User laut Policy öffnen darf.
+        // Ohne diesen Filter tauchen Projekte auf, die beim Klick einen 403 werfen.
         $allProjects = Project::query()
             ->with(['contextColors'])
             ->where('team_id', $teamId)
+            ->viewableBy($user)
             ->orderBy('name')
             ->get();
 

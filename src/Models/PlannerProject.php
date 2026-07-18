@@ -147,6 +147,29 @@ class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayN
         });
     }
 
+    /**
+     * Scope: Nur Projekte, die der User laut PlannerProjectPolicy::view() öffnen darf.
+     * Spiegelt die Policy 1:1, damit in der Sidebar keine Projekte erscheinen,
+     * die beim Öffnen einen 403 werfen:
+     * - User ist Projekt-Mitglied (project_users), ODER
+     * - User hat eine eigene Aufgabe im Projekt, ODER
+     * - User hat eine eigene Aufgabe in einem Project-Slot.
+     */
+    public function scopeViewableBy(Builder $query, \Platform\Core\Models\User $user): Builder
+    {
+        return $query->where(function ($q) use ($user) {
+            $q->whereHas('projectUsers', function ($sub) use ($user) {
+                $sub->where('user_id', $user->id);
+            })
+            ->orWhereHas('tasks', function ($sub) use ($user) {
+                $sub->where('user_in_charge_id', $user->id);
+            })
+            ->orWhereHas('projectSlots.tasks', function ($sub) use ($user) {
+                $sub->where('user_in_charge_id', $user->id);
+            });
+        });
+    }
+
     public function team(): BelongsTo
     {
         return $this->belongsTo(\Platform\Core\Models\Team::class);
