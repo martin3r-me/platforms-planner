@@ -4,6 +4,7 @@ namespace Platform\Planner\Livewire;
 
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
+use Platform\Core\Models\DavSubscription;
 use Platform\Planner\Enums\TaskLifecycleState;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Models\PlannerTaskGroup;
@@ -284,6 +285,66 @@ class MyTasks extends Component
             'availableFilterTags' => $availableFilterTags,
             'availableFilterColors' => $availableFilterColors,
         ])->layout('platform::layouts.app');
+    }
+
+    // ----------------------------------------------------------------
+    // CalDAV: Aufgaben als abonnierbare ToDo-Liste (siehe docs/caldav.md)
+    // ----------------------------------------------------------------
+
+    public string $caldavName = '';
+    public ?string $newCaldavSecret = null;
+
+    public function caldavUrl(): string
+    {
+        return rtrim(url('/'.trim((string) config('dav.path', 'crm/dav'), '/')), '/');
+    }
+
+    public function caldavSubscriptions()
+    {
+        return DavSubscription::query()
+            ->where('module', 'planner')
+            ->where('type', 'caldav')
+            ->whereNull('resource_id')
+            ->where('user_id', Auth::id())
+            ->whereNull('revoked_at')
+            ->orderByDesc('created_at')
+            ->get();
+    }
+
+    public function createCaldavSubscription(): void
+    {
+        $subscription = DavSubscription::create([
+            'user_id'     => Auth::id(),
+            'team_id'     => Auth::user()->currentTeam->id,
+            'module'      => 'planner',
+            'type'        => 'caldav',
+            'resource_id' => null,
+            'name'        => trim($this->caldavName) ?: 'Aufgaben-Abo',
+        ]);
+
+        // Secret nur genau jetzt anzeigen – danach nicht mehr abrufbar.
+        $this->newCaldavSecret = $subscription->secret;
+        $this->caldavName = '';
+    }
+
+    public function revokeCaldavSubscription(int $id): void
+    {
+        $subscription = DavSubscription::query()
+            ->where('id', $id)
+            ->where('module', 'planner')
+            ->where('type', 'caldav')
+            ->where('user_id', Auth::id())
+            ->first();
+
+        if ($subscription) {
+            $subscription->revoke();
+            $this->newCaldavSecret = null;
+        }
+    }
+
+    public function dismissNewCaldavSecret(): void
+    {
+        $this->newCaldavSecret = null;
     }
 
     public function createTaskGroup()
