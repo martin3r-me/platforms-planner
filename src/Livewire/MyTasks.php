@@ -293,10 +293,11 @@ class MyTasks extends Component
 
     public string $caldavName = '';
     public ?string $newCaldavSecret = null;
+    public ?string $newCaldavUrl = null;
 
-    public function caldavUrl(): string
+    public function caldavUrlFor(string $handle): string
     {
-        return rtrim(url('/'.trim((string) config('dav.path', 'crm/dav'), '/')), '/');
+        return rtrim(url('/'.trim((string) config('dav.path', 'dav'), '/').'/'.$handle), '/');
     }
 
     public function caldavSubscriptions()
@@ -324,6 +325,7 @@ class MyTasks extends Component
 
         // Secret nur genau jetzt anzeigen – danach nicht mehr abrufbar.
         $this->newCaldavSecret = $subscription->secret;
+        $this->newCaldavUrl = $this->caldavUrlFor($subscription->handle);
         $this->caldavName = '';
     }
 
@@ -339,12 +341,14 @@ class MyTasks extends Component
         if ($subscription) {
             $subscription->revoke();
             $this->newCaldavSecret = null;
+            $this->newCaldavUrl = null;
         }
     }
 
     public function dismissNewCaldavSecret(): void
     {
         $this->newCaldavSecret = null;
+        $this->newCaldavUrl = null;
     }
 
     public function createTaskGroup()

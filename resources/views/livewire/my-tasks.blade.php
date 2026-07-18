@@ -118,25 +118,23 @@
                         Deine Aufgaben als Liste in Apple Erinnerungen (CalDAV) — schreibgeschützt.
                     </p>
 
-                    {{-- Server-URL --}}
-                    <div x-data="{ copied: false }" class="flex items-center gap-1 mb-2">
-                        <code x-ref="caldavurl" class="flex-1 px-2 py-1 text-[10px] rounded bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40 text-[var(--ui-secondary)] font-mono break-all">{{ $this->caldavUrl() }}</code>
-                        <button type="button" @click="navigator.clipboard.writeText($refs.caldavurl.textContent.trim()); copied=true; setTimeout(()=>copied=false,1500)" class="shrink-0 px-2 py-1 text-[10px] rounded border border-[var(--ui-border)]/40 text-[var(--ui-muted)] hover:text-[var(--ui-secondary)]">
-                            <span x-show="!copied">Kopieren</span><span x-show="copied" x-cloak>✓</span>
-                        </button>
-                    </div>
-
-                    {{-- Neues Secret: nur einmalig sichtbar --}}
+                    {{-- Neues Secret + URL: nur einmalig sichtbar --}}
                     @if($newCaldavSecret)
-                        <div class="rounded border border-amber-300 bg-amber-50 p-2 mb-2 space-y-1">
-                            <p class="text-[10px] font-medium text-amber-900 m-0">Secret (Passwort) – jetzt kopieren, wird nur einmal gezeigt:</p>
+                        <div class="rounded border border-amber-300 bg-amber-50 p-2 mb-2 space-y-1.5">
+                            <p class="text-[10px] font-medium text-amber-900 m-0">Jetzt am iPhone einrichten (Passwort wird nur einmal gezeigt):</p>
                             <div x-data="{ copied: false }" class="flex items-center gap-1">
-                                <code x-ref="caldavsecret" class="flex-1 px-2 py-1 text-[10px] rounded bg-white border border-amber-300 font-mono break-all">{{ $newCaldavSecret }}</code>
-                                <button type="button" @click="navigator.clipboard.writeText($refs.caldavsecret.textContent.trim()); copied=true; setTimeout(()=>copied=false,1500)" class="shrink-0 px-2 py-1 text-[10px] rounded bg-amber-600 text-white">
-                                    <span x-show="!copied">Kopieren</span><span x-show="copied" x-cloak>✓</span>
+                                <code x-ref="caldavnewurl" class="flex-1 px-2 py-1 text-[10px] rounded bg-white border border-amber-300 font-mono break-all">{{ $newCaldavUrl }}</code>
+                                <button type="button" @click="navigator.clipboard.writeText($refs.caldavnewurl.textContent.trim()); copied=true; setTimeout(()=>copied=false,1500)" class="shrink-0 px-2 py-1 text-[10px] rounded border border-amber-300 text-amber-800" title="URL kopieren">
+                                    <span x-show="!copied">URL</span><span x-show="copied" x-cloak>✓</span>
                                 </button>
                             </div>
-                            <p class="text-[10px] text-amber-700 m-0">Benutzer beliebig, Passwort = dieses Secret.</p>
+                            <div x-data="{ copied: false }" class="flex items-center gap-1">
+                                <code x-ref="caldavsecret" class="flex-1 px-2 py-1 text-[10px] rounded bg-white border border-amber-300 font-mono break-all">{{ $newCaldavSecret }}</code>
+                                <button type="button" @click="navigator.clipboard.writeText($refs.caldavsecret.textContent.trim()); copied=true; setTimeout(()=>copied=false,1500)" class="shrink-0 px-2 py-1 text-[10px] rounded bg-amber-600 text-white" title="Passwort kopieren">
+                                    <span x-show="!copied">Passwort</span><span x-show="copied" x-cloak>✓</span>
+                                </button>
+                            </div>
+                            <p class="text-[10px] text-amber-700 m-0">Server = obige URL, Benutzer beliebig, Passwort = das Secret.</p>
                         </div>
                     @endif
 
@@ -146,11 +144,19 @@
                         <button type="button" wire:click="createCaldavSubscription" class="shrink-0 px-2.5 py-1 text-[10px] font-medium rounded bg-[var(--planner-status-active)] text-white hover:opacity-90">Abo</button>
                     </div>
 
-                    {{-- Aktive Abos --}}
+                    {{-- Aktive Abos (je eigene URL) --}}
                     @foreach($this->caldavSubscriptions() as $sub)
-                        <div class="flex items-center justify-between mt-1.5 text-[10px]">
-                            <span class="text-[var(--ui-secondary)] truncate">{{ $sub->name }}</span>
-                            <button type="button" wire:click="revokeCaldavSubscription({{ $sub->id }})" wire:confirm="Abo widerrufen? Geräte verlieren den Zugriff." class="shrink-0 text-red-500 hover:underline">widerrufen</button>
+                        <div class="mt-1.5 text-[10px]">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[var(--ui-secondary)] font-medium truncate">{{ $sub->name }}</span>
+                                <button type="button" wire:click="revokeCaldavSubscription({{ $sub->id }})" wire:confirm="Abo widerrufen? Geräte verlieren den Zugriff." class="shrink-0 text-red-500 hover:underline">widerrufen</button>
+                            </div>
+                            <div x-data="{ copied: false }" class="flex items-center gap-1 mt-0.5">
+                                <code x-ref="u{{ $sub->id }}" class="flex-1 px-2 py-0.5 text-[10px] rounded bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40 text-[var(--ui-muted)] font-mono break-all">{{ $this->caldavUrlFor($sub->handle) }}</code>
+                                <button type="button" @click="navigator.clipboard.writeText($refs.u{{ $sub->id }}.textContent.trim()); copied=true; setTimeout(()=>copied=false,1500)" class="shrink-0 px-2 py-0.5 rounded border border-[var(--ui-border)]/40 text-[var(--ui-muted)]">
+                                    <span x-show="!copied">URL</span><span x-show="copied" x-cloak>✓</span>
+                                </button>
+                            </div>
                         </div>
                     @endforeach
                 </section>
