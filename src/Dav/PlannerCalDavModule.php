@@ -4,15 +4,11 @@ namespace Platform\Planner\Dav;
 
 use Platform\Core\Contracts\DavModuleInterface;
 use Platform\Core\Dav\DavContext;
-use Platform\Core\Dav\PrincipalBackend;
 use Platform\Planner\Services\CalDav\TaskVTodoMapper;
-use Sabre\CalDAV\CalendarRoot;
-use Sabre\CalDAV\Plugin as CalDavPlugin;
-use Sabre\DAV\ICollection;
 
 /**
- * Registriert die Planner-Aufgaben als CalDAV-Kalender (VTODO) an der Core-DAV-
- * Infrastruktur. Siehe docs/caldav.md.
+ * Stellt die Planner-Aufgaben als CalDAV-Kalender (VTODO) an der Core-DAV-
+ * Infrastruktur bereit. Siehe docs/caldav.md.
  */
 class PlannerCalDavModule implements DavModuleInterface
 {
@@ -26,16 +22,8 @@ class PlannerCalDavModule implements DavModuleInterface
         return 'caldav';
     }
 
-    public function rootNode(DavContext $context, PrincipalBackend $principals): ICollection
+    public function backend(DavContext $context): object
     {
-        return new CalendarRoot(
-            $principals,
-            new PlannerCalDavBackend($context, new TaskVTodoMapper()),
-        );
-    }
-
-    public function plugins(): array
-    {
-        return [new CalDavPlugin()];
+        return new PlannerCalDavBackend($context, new TaskVTodoMapper());
     }
 }
