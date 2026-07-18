@@ -10,6 +10,9 @@ use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectUser;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Services\CalDav\TaskVTodoMapper;
+use Platform\Planner\Services\LifecycleService;
+use Sabre\VObject\Component\VTodo;
+use Sabre\VObject\Reader;
 use Sabre\CalDAV\Backend\AbstractBackend;
 use Sabre\CalDAV\Backend\SyncSupport;
 use Sabre\CalDAV\Plugin as CalDavPlugin;
@@ -182,18 +185,112 @@ class PlannerCalDavBackend extends AbstractBackend implements SyncSupport
 
     public function createCalendarObject($calendarId, $objectUri, $calendarData)
     {
-        throw new Forbidden('Der Aufgaben-Kalender ist schreibgeschützt.');
+        $this->assertAllowedCalendar($calendarId);
+
+        $vtodo = $this->readVtodo($calendarData);
+
+        $task = new PlannerTask();
+        $task->uuid = $this->uuidFromUri($objectUri);
+        $task->user_id = $this->userId();
+        $task->team_id = $this->sub()->team_id;
+        $task->title = $this->summary($vtodo) ?: 'Aufgabe';
+        $task->due_date = $this->due($vtodo);
+        $task->lifecycle_state = TaskLifecycleState::ACTIVE;
+        if ($calendarId !== self::MINE) {
+            $task->project_id = (int) $calendarId;
+        }
+        $task->save();
+
+        if ($this->isCompleted($vtodo)) {
+            app(LifecycleService::class)->completeTask($task);
+        }
+
+        return TaskVTodoMapper::etagFor($task->refresh());
     }
 
     public function updateCalendarObject($calendarId, $objectUri, $calendarData)
     {
-        // Schritt 4 (Write-Back) hängt hier ein: STATUS:COMPLETED -> lifecycle_state.
-        throw new Forbidden('Der Aufgaben-Kalender ist schreibgeschützt.');
+        $this->assertAllowedCalendar($calendarId);
+
+        $task = $this->tasksQuery($calendarId)
+            ->where('uuid', $this->uuidFromUri($objectUri))
+            ->first();
+
+        if (! $task) {
+            throw new NotFound('Aufgabe nicht gefunden.');
+        }
+
+        $vtodo = $this->readVtodo($calendarData);
+
+        if ($summary = $this->summary($vtodo)) {
+            $task->title = $summary;
+        }
+        if (($due = $this->due($vtodo)) !== null) {
+            $task->due_date = $due;
+        }
+        $task->save();
+
+        // Abhaken / Wieder-Öffnen über die Business-Logik.
+        $lifecycle = app(LifecycleService::class);
+        $completed = $this->isCompleted($vtodo);
+        if ($completed && $task->lifecycle_state !== TaskLifecycleState::COMPLETED) {
+            $lifecycle->completeTask($task);
+        } elseif (! $completed && $task->lifecycle_state === TaskLifecycleState::COMPLETED) {
+            $lifecycle->reopenTask($task);
+        }
+
+        return TaskVTodoMapper::etagFor($task->refresh());
     }
 
     public function deleteCalendarObject($calendarId, $objectUri)
     {
-        throw new Forbidden('Der Aufgaben-Kalender ist schreibgeschützt.');
+        $this->assertAllowedCalendar($calendarId);
+
+        $task = $this->tasksQuery($calendarId)
+            ->where('uuid', $this->uuidFromUri($objectUri))
+            ->first();
+
+        if ($task) {
+            $task->delete();
+        }
+    }
+
+    // ----------------------------------------------------------------
+    // VTODO-Parsing (Write-Back)
+    // ----------------------------------------------------------------
+
+    private function readVtodo(string $calendarData): ?VTodo
+    {
+        $vcal = Reader::read($calendarData);
+
+        return $vcal->VTODO ?? null;
+    }
+
+    private function summary(?VTodo $vtodo): string
+    {
+        return $vtodo && $vtodo->SUMMARY ? trim((string) $vtodo->SUMMARY) : '';
+    }
+
+    private function due(?VTodo $vtodo): ?\DateTimeInterface
+    {
+        if ($vtodo && $vtodo->DUE) {
+            return $vtodo->DUE->getDateTime();
+        }
+
+        return null;
+    }
+
+    private function isCompleted(?VTodo $vtodo): bool
+    {
+        if (! $vtodo) {
+            return false;
+        }
+
+        if ($vtodo->STATUS && strtoupper(trim((string) $vtodo->STATUS)) === 'COMPLETED') {
+            return true;
+        }
+
+        return $vtodo->{'PERCENT-COMPLETE'} && (int) (string) $vtodo->{'PERCENT-COMPLETE'} >= 100;
     }
 
     // ----------------------------------------------------------------
