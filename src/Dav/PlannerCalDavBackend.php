@@ -313,7 +313,10 @@ class PlannerCalDavBackend extends AbstractBackend implements SyncSupport
             return collect();
         }
 
-        return PlannerProject::query()->whereIn('id', $ids)->get();
+        return PlannerProject::query()
+            ->whereIn('id', $ids)
+            ->where('team_id', $this->sub()->team_id)
+            ->get();
     }
 
     /**
