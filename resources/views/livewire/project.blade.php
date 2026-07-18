@@ -102,6 +102,15 @@
                 </x-ui-button>
             @endcan
 
+            {{-- CalDAV: dieses Projekt als eigene Liste in Apple Erinnerungen zeigen (nur bei aktivem Abo) --}}
+            @if($this->hasPlannerCaldavSubscription())
+                <x-ui-button variant="ghost" size="sm" wire:click="toggleCaldavExposure"
+                    title="Dieses Projekt als eigene Liste in meiner Aufgaben-App (Erinnerungen) zeigen">
+                    @svg($this->caldavExposed() ? 'heroicon-s-bell-alert' : 'heroicon-o-bell', 'w-4 h-4')
+                    <span>{{ $this->caldavExposed() ? 'In App ✓' : 'In App' }}</span>
+                </x-ui-button>
+            @endif
+
             {{-- Overflow menu --}}
             <div x-data="{ open: false }" class="relative">
                 <button

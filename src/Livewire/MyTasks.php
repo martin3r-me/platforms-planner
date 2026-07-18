@@ -6,7 +6,6 @@ use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Platform\Core\Models\DavSubscription;
 use Platform\Planner\Enums\TaskLifecycleState;
-use Platform\Planner\Models\PlannerProjectUser;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Models\PlannerTaskGroup;
 use Platform\Planner\Livewire\Concerns\QuickTogglesDone;
@@ -350,33 +349,6 @@ class MyTasks extends Component
     {
         $this->newCaldavSecret = null;
         $this->newCaldavUrl = null;
-    }
-
-    /**
-     * Projekt-Mitgliedschaften des Users (für den „als eigene Liste zeigen"-Toggle).
-     */
-    public function caldavProjects()
-    {
-        return PlannerProjectUser::query()
-            ->where('user_id', Auth::id())
-            ->with('project')
-            ->get()
-            ->filter(fn ($membership) => $membership->project !== null)
-            ->sortBy(fn ($membership) => $membership->project->name)
-            ->values();
-    }
-
-    public function toggleCaldavProject(int $projectId): void
-    {
-        $membership = PlannerProjectUser::query()
-            ->where('user_id', Auth::id())
-            ->where('project_id', $projectId)
-            ->first();
-
-        if ($membership) {
-            $membership->expose_in_caldav = ! $membership->expose_in_caldav;
-            $membership->save();
-        }
     }
 
     public function createTaskGroup()

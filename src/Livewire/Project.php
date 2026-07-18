@@ -4,8 +4,10 @@ namespace Platform\Planner\Livewire;
 
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
+use Platform\Core\Models\DavSubscription;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectSlot;
+use Platform\Planner\Models\PlannerProjectUser;
 use Platform\Planner\Enums\TaskLifecycleState;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Enums\StoryPoints;
@@ -106,6 +108,44 @@ class Project extends Component
             'context_type' => get_class($this->project),
             'context_id' => $this->project->id,
         ]);
+    }
+
+    /**
+     * Hat der User ein Planner-CalDAV-Abo? (Nur dann ist der „in App zeigen"-Toggle sinnvoll.)
+     */
+    public function hasPlannerCaldavSubscription(): bool
+    {
+        return DavSubscription::query()
+            ->where('module', 'planner')
+            ->where('type', 'caldav')
+            ->where('user_id', Auth::id())
+            ->whereNull('revoked_at')
+            ->exists();
+    }
+
+    /**
+     * Wird dieses Projekt in der Aufgaben-App (CalDAV) des Users als eigene Liste gezeigt?
+     */
+    public function caldavExposed(): bool
+    {
+        return PlannerProjectUser::query()
+            ->where('user_id', Auth::id())
+            ->where('project_id', $this->project->id)
+            ->where('expose_in_caldav', true)
+            ->exists();
+    }
+
+    public function toggleCaldavExposure(): void
+    {
+        $membership = PlannerProjectUser::query()
+            ->where('user_id', Auth::id())
+            ->where('project_id', $this->project->id)
+            ->first();
+
+        if ($membership) {
+            $membership->expose_in_caldav = ! $membership->expose_in_caldav;
+            $membership->save();
+        }
     }
 
     public function render()
