@@ -159,6 +159,21 @@
                             </div>
                         </div>
                     @endforeach
+
+                    {{-- Projekte als eigene Liste in Erinnerungen zeigen (default aus) --}}
+                    @if($this->caldavProjects()->isNotEmpty())
+                        <div class="mt-2 pt-2 border-t border-[var(--ui-border)]/40">
+                            <div class="text-[10px] text-[var(--ui-muted)] mb-1">Projekte als eigene Liste zeigen:</div>
+                            <div class="max-h-40 overflow-y-auto space-y-0.5">
+                                @foreach($this->caldavProjects() as $membership)
+                                    <label class="flex items-center gap-1.5 text-[10px] text-[var(--ui-secondary)] py-0.5 cursor-pointer">
+                                        <input type="checkbox" wire:click="toggleCaldavProject({{ $membership->project_id }})" @checked($membership->expose_in_caldav) class="rounded border-[var(--ui-border)] text-[var(--planner-status-active)] focus:ring-0" />
+                                        <span class="truncate">{{ $membership->project->name }}</span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
                 </section>
             </div>
         </x-ui-page-sidebar>
