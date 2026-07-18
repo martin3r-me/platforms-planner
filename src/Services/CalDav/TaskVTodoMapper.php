@@ -29,7 +29,7 @@ class TaskVTodoMapper
             'PRODID' => '-//Platform Planner//CalDAV//DE',
             'VTODO' => [
                 'UID' => $task->uuid,
-                'SUMMARY' => (string) ($task->title ?? 'Aufgabe '.$task->getKey()),
+                'SUMMARY' => $this->summary($task),
             ],
         ]);
 
@@ -61,6 +61,19 @@ class TaskVTodoMapper
     public function serialize(PlannerTask $task): string
     {
         return $this->toVCalendar($task)->serialize();
+    }
+
+    /**
+     * Titel mit Projekt-Kontext, damit man in der gemischten „Meine Aufgaben"-
+     * Liste sieht, wozu eine Aufgabe gehört: „Projekt · Aufgabe".
+     */
+    private function summary(PlannerTask $task): string
+    {
+        $title = (string) ($task->title ?? 'Aufgabe '.$task->getKey());
+
+        $project = $task->project?->name;
+
+        return $project ? $project.' · '.$title : $title;
     }
 
     /**

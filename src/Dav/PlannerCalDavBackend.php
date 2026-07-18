@@ -222,9 +222,9 @@ class PlannerCalDavBackend extends AbstractBackend implements SyncSupport
 
         $vtodo = $this->readVtodo($calendarData);
 
-        if ($summary = $this->summary($vtodo)) {
-            $task->title = $summary;
-        }
+        // Titel NICHT zurückschreiben: die SUMMARY enthält den Projekt-Präfix
+        // („Projekt · Aufgabe"), das würde den echten Titel verhunzen. Nur
+        // Fälligkeit + Status syncen.
         if (($due = $this->due($vtodo)) !== null) {
             $task->due_date = $due;
         }
