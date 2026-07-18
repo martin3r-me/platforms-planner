@@ -11,6 +11,7 @@ use Platform\Planner\Models\PlannerProjectUser;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Services\CalDav\TaskVTodoMapper;
 use Sabre\CalDAV\Backend\AbstractBackend;
+use Sabre\CalDAV\Backend\SyncSupport;
 use Sabre\CalDAV\Plugin as CalDavPlugin;
 use Sabre\CalDAV\Xml\Property\SupportedCalendarComponentSet;
 use Sabre\DAV\Exception\Forbidden;
@@ -26,7 +27,7 @@ use Sabre\DAV\PropPatch;
  *
  * Siehe docs/caldav.md.
  */
-class PlannerCalDavBackend extends AbstractBackend
+class PlannerCalDavBackend extends AbstractBackend implements SyncSupport
 {
     private const MINE = 'mine';
 
@@ -82,8 +83,37 @@ class PlannerCalDavBackend extends AbstractBackend
             'principaluri' => 'principals/'.$this->userId(),
             '{DAV:}displayname' => $displayName,
             '{'.CalDavPlugin::NS_CALENDARSERVER.'}getctag' => $this->computeCtag($id),
+            '{http://sabredav.org/ns}sync-token' => $this->computeCtag($id),
             '{'.CalDavPlugin::NS_CALDAV.'}supported-calendar-component-set' => new SupportedCalendarComponentSet(['VTODO']),
         ];
+    }
+
+    /**
+     * WebDAV-Sync (nötig für Apple Erinnerungen). Ohne Change-Log: bei jeder
+     * Änderung Voll-Resync (Token veraltet -> null), sonst Delta leer.
+     */
+    public function getChangesForCalendar($calendarId, $syncToken, $syncLevel, $limit = null)
+    {
+        $this->assertAllowedCalendar($calendarId);
+
+        $current = $this->computeCtag($calendarId);
+
+        if (! empty($syncToken) && $syncToken === $current) {
+            return ['syncToken' => $current, 'added' => [], 'modified' => [], 'deleted' => []];
+        }
+
+        if (! empty($syncToken)) {
+            // Token veraltet -> Client macht Voll-Resync (initial).
+            return null;
+        }
+
+        // Initial-Sync: alle aktuellen Aufgaben als "added".
+        $uris = $this->tasksQuery($calendarId)
+            ->pluck('uuid')
+            ->map(fn ($uuid) => $uuid.'.ics')
+            ->all();
+
+        return ['syncToken' => $current, 'added' => $uris, 'modified' => [], 'deleted' => []];
     }
 
     public function updateCalendar($calendarId, PropPatch $propPatch)
