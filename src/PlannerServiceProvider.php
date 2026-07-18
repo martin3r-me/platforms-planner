@@ -223,6 +223,12 @@ class PlannerServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'planner');
         $this->registerLivewireComponents();
+
+        // CalDAV: Aufgaben als VTODO an der Core-DAV-Infrastruktur (VTODO ->
+        // Apple Erinnerungen). Nur der Planner-spezifische Teil; Server/Auth/
+        // Routing liegen im Core. Siehe docs/caldav.md.
+        app(\Platform\Core\Dav\DavModuleRegistry::class)
+            ->register(new \Platform\Planner\Dav\PlannerCalDavModule());
         
         // Embedded Komponenten manuell registrieren
         Livewire::component('planner.embedded.project', \Platform\Planner\Livewire\Embedded\Project::class);

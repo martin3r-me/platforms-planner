@@ -6,7 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class PlannerProjectUser extends Model
 {
-    protected $fillable = ['project_id', 'role', 'user_id']; // ggf. erweitern
+    protected $fillable = ['project_id', 'role', 'user_id', 'expose_in_caldav'];
+
+    protected $casts = [
+        'expose_in_caldav' => 'boolean',
+    ];
 
     public function user()
     {

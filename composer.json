@@ -1,5 +1,8 @@
 {
   "name": "martin3r/platform-planner",
+  "require": {
+    "sabre/vobject": "^4.5"
+  },
   "autoload": {
     "psr-4": {
       "Platform\\Planner\\": "src/"
