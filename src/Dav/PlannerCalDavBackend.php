@@ -114,6 +114,9 @@ class PlannerCalDavBackend extends AbstractBackend
             ->map(fn (PlannerTask $task) => [
                 'id' => $task->id,
                 'uri' => $task->uuid.'.ics',
+                // calendarid ist Pflicht: AbstractBackend::calendarQuery reicht es
+                // an getCalendarObject weiter (sonst "Undefined array key calendarid").
+                'calendarid' => $calendarId,
                 'etag' => TaskVTodoMapper::etagFor($task),
                 'lastmodified' => $task->updated_at?->getTimestamp() ?? 0,
                 'component' => 'vtodo',
@@ -138,6 +141,7 @@ class PlannerCalDavBackend extends AbstractBackend
         return [
             'id' => $task->id,
             'uri' => $objectUri,
+            'calendarid' => $calendarId,
             'etag' => TaskVTodoMapper::etagFor($task),
             'lastmodified' => $task->updated_at?->getTimestamp() ?? 0,
             'size' => strlen($data),
