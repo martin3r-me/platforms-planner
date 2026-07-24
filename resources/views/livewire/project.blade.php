@@ -32,116 +32,68 @@
             ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
             ['label' => $project->title],
         ]">
-            {{-- Live-Metriken (konsolidiert aus dem alten Content-Header) --}}
+            {{-- Links: Live-Metriken + kompakter Health-Chip (konsolidierte Kopfzeile) --}}
             <x-slot name="left">
-                @php $metricTotal = $headerOpenCount + $headerDoneCount; $metricPct = $metricTotal > 0 ? round($headerDoneCount / $metricTotal * 100) : 0; @endphp
+                @php
+                    $metricTotal = $headerOpenCount + $headerDoneCount;
+                    $metricPct = $metricTotal > 0 ? round($headerDoneCount / $metricTotal * 100) : 0;
+                @endphp
                 <div class="hidden md:flex items-center gap-3 text-[11px]">
                     <span class="inline-flex items-center gap-1.5 text-[color:var(--nx-text)]">
                         <span class="w-1.5 h-1.5 rounded-full bg-[color:var(--nx-info)]"></span>
                         <span class="font-semibold tabular-nums">{{ $headerOpenCount }}</span>
-                        <span class="text-[color:var(--nx-muted)]">offen</span>
+                        <span class="hidden lg:inline text-[color:var(--nx-muted)]">offen</span>
                     </span>
                     @if($headerOverdueCount > 0)
                         <span class="inline-flex items-center gap-1.5 text-[color:var(--nx-danger)]">
                             <span class="w-1.5 h-1.5 rounded-full bg-[color:var(--nx-danger)]"></span>
                             <span class="font-semibold tabular-nums">{{ $headerOverdueCount }}</span>
-                            <span>überfällig</span>
+                            <span class="hidden lg:inline">überfällig</span>
                         </span>
                     @endif
                     <span class="inline-flex items-center gap-1.5 text-[color:var(--nx-text)]">
                         <span class="w-1.5 h-1.5 rounded-full bg-[color:var(--nx-success)]"></span>
                         <span class="font-semibold tabular-nums">{{ $headerDoneCount }}</span>
-                        <span class="text-[color:var(--nx-muted)]">erledigt</span>
+                        <span class="hidden lg:inline text-[color:var(--nx-muted)]">erledigt</span>
                     </span>
                     @if($metricTotal > 0)
-                        <span class="inline-flex items-center gap-2">
+                        <span class="hidden xl:inline-flex items-center gap-2">
                             <span class="text-[color:var(--nx-muted)] tabular-nums">{{ $metricPct }}%</span>
                             <span class="w-16 h-1 rounded-full bg-[color:var(--nx-line)] overflow-hidden">
                                 <span class="block h-full rounded-full bg-[color:var(--nx-success)]" style="width: {{ $metricPct }}%"></span>
                             </span>
                         </span>
                     @endif
+
+                    {{-- Health-Chip (kompakt, kalm) --}}
+                    @php
+                        $hc = $latestSnapshot?->health_color ?? 'gray';
+                        $hb = [
+                            'green'  => ['bg' => 'bg-[rgba(47,158,68,.10)]', 'fg' => 'text-[color:var(--nx-success)]', 'dot' => 'bg-[color:var(--nx-success)]'],
+                            'yellow' => ['bg' => 'bg-[rgba(232,89,12,.10)]', 'fg' => 'text-[color:var(--nx-warning)]', 'dot' => 'bg-[color:var(--nx-warning)]'],
+                            'red'    => ['bg' => 'bg-[rgba(224,49,49,.10)]', 'fg' => 'text-[color:var(--nx-danger)]', 'dot' => 'bg-[color:var(--nx-danger)]'],
+                            'gray'   => ['bg' => 'bg-[color:var(--nx-bg)]', 'fg' => 'text-[color:var(--nx-muted)]', 'dot' => 'bg-[color:var(--nx-faint)]'],
+                        ][$hc] ?? ['bg' => 'bg-[color:var(--nx-bg)]', 'fg' => 'text-[color:var(--nx-muted)]', 'dot' => 'bg-[color:var(--nx-faint)]'];
+                        $hDelta = $latestSnapshot?->delta_health_score;
+                        $hTrend = ($hDelta === null || $hDelta === 0) ? null : ($hDelta > 0 ? '↑' : '↓');
+                    @endphp
+                    <a href="{{ route('planner.projects.health', $project) }}" wire:navigate
+                       title="Projekt-Health{{ $latestSnapshot ? ' ' . ($latestSnapshot->health_score ?? '–') . ' (' . $hc . ')' : ' — noch kein Snapshot' }}"
+                       class="inline-flex items-center gap-1.5 rounded-[6px] px-2 py-0.5 font-medium transition-opacity hover:opacity-80 {{ $hb['bg'] }} {{ $hb['fg'] }}">
+                        <span class="w-1.5 h-1.5 rounded-full {{ $hb['dot'] }}"></span>
+                        <span class="tabular-nums">{{ $latestSnapshot?->health_score ?? 'Health' }}</span>
+                        @if($hTrend)<span class="tabular-nums opacity-80">{{ $hTrend }}{{ abs($hDelta) }}</span>@endif
+                    </a>
                 </div>
             </x-slot>
 
-            {{-- Health-Pille aus juengstem Snapshot — plakativer Einstieg in die Health-Sicht --}}
-            @if($latestSnapshot)
-                @php
-                    $hc = $latestSnapshot->health_color ?? 'gray';
-                    $hs = $latestSnapshot->health_score;
-                    $healthTones = [
-                        'green'  => ['ring' => 'ring-[rgba(47,158,68,.30)]', 'bg' => 'bg-[rgba(47,158,68,.10)]', 'hover' => 'hover:bg-[rgba(47,158,68,.16)]', 'fg' => 'text-[color:var(--nx-success)]', 'dot' => 'bg-[color:var(--nx-success)]', 'border' => 'border-[rgba(47,158,68,.30)]', 'label' => 'Stabil'],
-                        'yellow' => ['ring' => 'ring-[rgba(232,89,12,.30)]', 'bg' => 'bg-[rgba(232,89,12,.10)]', 'hover' => 'hover:bg-[rgba(232,89,12,.16)]', 'fg' => 'text-[color:var(--nx-warning)]', 'dot' => 'bg-[color:var(--nx-warning)]', 'border' => 'border-[rgba(232,89,12,.30)]', 'label' => 'Achtung'],
-                        'red'    => ['ring' => 'ring-[rgba(224,49,49,.30)]', 'bg' => 'bg-[rgba(224,49,49,.10)]', 'hover' => 'hover:bg-[rgba(224,49,49,.16)]', 'fg' => 'text-[color:var(--nx-danger)]', 'dot' => 'bg-[color:var(--nx-danger)]', 'border' => 'border-[rgba(224,49,49,.30)]', 'label' => 'Brennt'],
-                        'gray'   => ['ring' => 'ring-[color:var(--nx-line-strong)]', 'bg' => 'bg-[color:var(--nx-bg)]', 'hover' => 'hover:bg-[color:var(--nx-hover)]', 'fg' => 'text-[color:var(--nx-muted)]', 'dot' => 'bg-[color:var(--nx-faint)]', 'border' => 'border-[color:var(--nx-line-strong)]', 'label' => 'Keine Daten'],
-                    ];
-                    $t = $healthTones[$hc] ?? $healthTones['gray'];
-                    $delta = $latestSnapshot->delta_health_score;
-                    $trendArrow = $delta === null || $delta === 0 ? null : ($delta > 0 ? '↑' : '↓');
-                    $worstAxisLabel = match($latestSnapshot->worst_axis) {
-                        'strategy' => 'Strategie',
-                        'progress' => 'Fortschritt',
-                        'burn' => 'Druck',
-                        default => null,
-                    };
-                    $tooltipParts = [
-                        'Snapshot ' . optional($latestSnapshot->taken_on)->format('d.m.Y'),
-                        'Health ' . ($hs ?? '–') . ' (' . $hc . ')',
-                        'Confidence ' . $latestSnapshot->confidence_score . '%',
-                    ];
-                    if($worstAxisLabel) $tooltipParts[] = 'Schwaechste Achse: ' . $worstAxisLabel;
-                    if($delta !== null) $tooltipParts[] = 'Veraenderung zum Vortag: ' . ($delta > 0 ? '+' : '') . $delta;
-                    if($latestSnapshot->confidence_reason) $tooltipParts[] = $latestSnapshot->confidence_reason;
-                @endphp
-                <a href="{{ route('planner.projects.health', $project) }}"
-                   wire:navigate
-                   title="{{ implode(' · ', $tooltipParts) }}"
-                   class="group inline-flex items-stretch h-9 rounded-lg border {{ $t['border'] }} {{ $t['bg'] }} {{ $t['hover'] }} text-[12px] {{ $t['fg'] }} font-medium overflow-hidden shadow-sm transition-all hover:shadow-md">
-                    {{-- Score block --}}
-                    <span class="flex items-center gap-2 px-3 border-r {{ $t['border'] }}">
-                        <span class="w-2 h-2 rounded-full {{ $t['dot'] }} animate-pulse"></span>
-                        <span class="text-base font-bold tabular-nums leading-none">{{ $hs ?? '–' }}</span>
-                    </span>
-                    {{-- Context block --}}
-                    <span class="flex items-center gap-1.5 px-3">
-                        @if($worstAxisLabel)
-                            <span class="text-[10px] uppercase tracking-wider opacity-70">{{ $worstAxisLabel }}</span>
-                        @else
-                            <span class="text-[10px] uppercase tracking-wider opacity-70">{{ $t['label'] }}</span>
-                        @endif
-                        @if($trendArrow)
-                            <span class="text-[11px] tabular-nums opacity-80">{{ $trendArrow }}{{ abs($delta) }}</span>
-                        @endif
-                        @svg('heroicon-o-arrow-top-right-on-square', 'w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity')
-                    </span>
-                </a>
-            @else
-                <a href="{{ route('planner.projects.health', $project) }}"
-                   wire:navigate
-                   title="Noch kein Snapshot vorhanden — jetzt einen anlegen"
-                   class="inline-flex items-center gap-1.5 px-3 h-9 rounded-lg border border-dashed border-[var(--nx-line-strong)] bg-[color:var(--nx-surface)] hover:bg-[var(--nx-bg)] text-[12px] text-[var(--nx-muted)] hover:text-[var(--nx-text)] transition-colors">
-                    @svg('heroicon-o-heart', 'w-4 h-4')
-                    <span class="font-medium">Health</span>
-                    @svg('heroicon-o-arrow-right', 'w-3 h-3 opacity-50')
-                </a>
-            @endif
-
-            {{-- Primary action --}}
+            {{-- Genau EINE sichtbare Aktion (nx-Konvention) --}}
             @can('update', $project)
                 <x-nx-button variant="primary" size="sm" wire:click="createTask()" title="Neue Aufgabe (N)">
                     @svg('heroicon-o-plus', 'w-4 h-4')
-                    <span>Aufgabe</span>
+                    <span class="hidden sm:inline">Aufgabe</span>
                 </x-nx-button>
             @endcan
-
-            {{-- CalDAV: dieses Projekt als eigene Liste in Apple Erinnerungen zeigen (nur bei aktivem Abo) --}}
-            @if($this->hasPlannerCaldavSubscription())
-                <x-nx-button variant="ghost" size="sm" wire:click="toggleCaldavExposure"
-                    title="Dieses Projekt als eigene Liste in meiner Aufgaben-App (Erinnerungen) zeigen">
-                    @svg($this->caldavExposed() ? 'heroicon-s-bell-alert' : 'heroicon-o-bell', 'w-4 h-4')
-                    <span>{{ $this->caldavExposed() ? 'In App ✓' : 'In App' }}</span>
-                </x-nx-button>
-            @endif
 
             {{-- Overflow menu --}}
             <div x-data="{ open: false }" class="relative">
@@ -181,6 +133,18 @@
                         @svg('heroicon-o-squares-2x2', 'w-4 h-4 text-[var(--nx-muted)]')
                         <span>Project Canvas</span>
                     </button>
+                    @if($this->hasPlannerCaldavSubscription())
+                        <button
+                            type="button"
+                            wire:click="toggleCaldavExposure"
+                            @click="open = false"
+                            class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition-colors"
+                            title="Dieses Projekt als eigene Liste in meiner Aufgaben-App (Erinnerungen) zeigen"
+                        >
+                            @svg($this->caldavExposed() ? 'heroicon-s-bell-alert' : 'heroicon-o-bell', 'w-4 h-4 text-[var(--nx-muted)]')
+                            <span>{{ $this->caldavExposed() ? 'In App ✓' : 'In App zeigen' }}</span>
+                        </button>
+                    @endif
                     <a
                         href="{{ route('planner.projects.health', $project) }}"
                         wire:navigate
