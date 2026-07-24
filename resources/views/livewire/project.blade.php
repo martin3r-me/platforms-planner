@@ -32,6 +32,38 @@
             ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
             ['label' => $project->title],
         ]">
+            {{-- Live-Metriken (konsolidiert aus dem alten Content-Header) --}}
+            <x-slot name="left">
+                @php $metricTotal = $headerOpenCount + $headerDoneCount; $metricPct = $metricTotal > 0 ? round($headerDoneCount / $metricTotal * 100) : 0; @endphp
+                <div class="hidden md:flex items-center gap-3 text-[11px]">
+                    <span class="inline-flex items-center gap-1.5 text-[color:var(--nx-text)]">
+                        <span class="w-1.5 h-1.5 rounded-full bg-[color:var(--nx-info)]"></span>
+                        <span class="font-semibold tabular-nums">{{ $headerOpenCount }}</span>
+                        <span class="text-[color:var(--nx-muted)]">offen</span>
+                    </span>
+                    @if($headerOverdueCount > 0)
+                        <span class="inline-flex items-center gap-1.5 text-[color:var(--nx-danger)]">
+                            <span class="w-1.5 h-1.5 rounded-full bg-[color:var(--nx-danger)]"></span>
+                            <span class="font-semibold tabular-nums">{{ $headerOverdueCount }}</span>
+                            <span>überfällig</span>
+                        </span>
+                    @endif
+                    <span class="inline-flex items-center gap-1.5 text-[color:var(--nx-text)]">
+                        <span class="w-1.5 h-1.5 rounded-full bg-[color:var(--nx-success)]"></span>
+                        <span class="font-semibold tabular-nums">{{ $headerDoneCount }}</span>
+                        <span class="text-[color:var(--nx-muted)]">erledigt</span>
+                    </span>
+                    @if($metricTotal > 0)
+                        <span class="inline-flex items-center gap-2">
+                            <span class="text-[color:var(--nx-muted)] tabular-nums">{{ $metricPct }}%</span>
+                            <span class="w-16 h-1 rounded-full bg-[color:var(--nx-line)] overflow-hidden">
+                                <span class="block h-full rounded-full bg-[color:var(--nx-success)]" style="width: {{ $metricPct }}%"></span>
+                            </span>
+                        </span>
+                    @endif
+                </div>
+            </x-slot>
+
             {{-- Health-Pille aus juengstem Snapshot — plakativer Einstieg in die Health-Sicht --}}
             @if($latestSnapshot)
                 @php
@@ -192,33 +224,7 @@
         </x-ui-page-sidebar>
     </x-slot>
 
-    <x-slot name="activity">
-        <x-ui-page-sidebar title="Aktivitäten" icon="heroicon-o-bolt" width="w-80" :defaultOpen="true" storeKey="activityOpen" side="right">
-            <div class="p-4 space-y-4">
-                <div class="text-sm text-[var(--nx-muted)]">Letzte Aktivitäten</div>
-                <div class="space-y-3 text-sm">
-                    @foreach(($activities ?? []) as $activity)
-                        <div class="p-2 rounded border border-[color:var(--nx-line)] bg-[var(--nx-bg)]">
-                            <div class="font-medium text-[var(--nx-text)] truncate">{{ $activity['title'] ?? 'Aktivität' }}</div>
-                            <div class="text-[var(--nx-muted)]">{{ $activity['time'] ?? '' }}</div>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-        </x-ui-page-sidebar>
-    </x-slot>
-
     <div class="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
-    {{-- Project Header (immer sichtbar, einheitlich für Board + Dashboard) --}}
-    @include('planner::livewire.project._header', [
-        'project' => $project,
-        'openCount' => $headerOpenCount,
-        'doneCount' => $headerDoneCount,
-        'overdueCount' => $headerOverdueCount,
-        'linkedEntities' => $linkedEntities,
-        'canvasInfo' => $canvasInfo ?? null,
-    ])
-
     @include('planner::livewire.project._filter-bar', [
         'availableFilterTags' => $availableFilterTags,
         'availableFilterColors' => $availableFilterColors,
