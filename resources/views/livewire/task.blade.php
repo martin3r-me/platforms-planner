@@ -107,44 +107,48 @@
     </x-slot>
 
 
-    {{-- Right sidebar: Aktivitäten --}}
-    <x-slot name="activity">
-        <x-ui-page-sidebar title="Aktivitäten" icon="heroicon-o-bolt" width="w-80" :defaultOpen="false" storeKey="activityOpen" side="right">
-            <div class="p-4 space-y-3 bg-[var(--nx-bg)]">
-                <div class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] px-1">Letzte Aktivitäten</div>
-                @forelse(($activities ?? []) as $activity)
-                    <div class="p-3 rounded-lg bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)]">
-                        <div class="flex items-start justify-between gap-2 mb-1.5">
-                            <div class="text-[12px] font-medium text-[var(--nx-text)] leading-snug">
-                                {{ $activity['title'] ?? 'Aktivität' }}
+    {{-- Linke Page-Sidebar: Task-Zustand / Meta (read-only) --}}
+    <x-slot name="sidebar">
+        <x-ui-page-sidebar title="Zustand" icon="heroicon-o-information-circle" width="w-72" :defaultOpen="true">
+            <div class="p-4 space-y-4 bg-[var(--nx-bg)]">
+                <section class="rounded-lg bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)] p-3">
+                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] mb-2.5">Zustand</h3>
+                    <dl class="space-y-2 text-[11px] m-0">
+                        <div class="flex items-baseline justify-between gap-3">
+                            <dt class="inline-flex items-center gap-1.5 text-[var(--nx-muted)]">@svg('heroicon-o-clock', 'w-3.5 h-3.5 opacity-70') Angelegt</dt>
+                            <dd class="m-0 tabular-nums text-[var(--nx-text)]">{{ $task->created_at->format('d.m.Y') }}</dd>
+                        </div>
+                        @if(($task->postpone_count ?? 0) > 0)
+                            <div class="flex items-baseline justify-between gap-3">
+                                <dt class="inline-flex items-center gap-1.5 text-[var(--nx-muted)]">@svg('heroicon-o-arrow-path', 'w-3.5 h-3.5 opacity-70') Verschoben</dt>
+                                <dd class="m-0 tabular-nums text-[var(--nx-text)]">{{ $task->postpone_count }}×</dd>
                             </div>
-                            @if(($activity['type'] ?? null) === 'system')
-                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-medium rounded-full bg-[var(--nx-bg)] text-[var(--nx-muted)] flex-shrink-0">
-                                    @svg('heroicon-o-cog-6-tooth', 'w-2.5 h-2.5')
-                                    System
-                                </span>
-                            @endif
-                        </div>
-                        <div class="flex items-center gap-1.5 text-[10px] text-[var(--nx-muted)]">
-                            @svg('heroicon-o-clock', 'w-3 h-3 opacity-60')
-                            <span>{{ $activity['time'] ?? '' }}</span>
-                        </div>
-                    </div>
-                @empty
-                    <div class="py-8 text-center">
-                        <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] mb-3">
-                            @svg('heroicon-o-bolt', 'w-5 h-5 text-[var(--nx-muted)]')
-                        </div>
-                        <p class="text-xs text-[var(--nx-muted)] m-0">Noch keine Aktivitäten</p>
-                        <p class="text-[10px] text-[var(--nx-muted)] mt-1 m-0">Änderungen werden hier angezeigt</p>
-                    </div>
-                @endforelse
+                        @endif
+                        @if($task->original_due_date)
+                            <div class="flex items-baseline justify-between gap-3">
+                                <dt class="inline-flex items-center gap-1.5 text-[var(--nx-muted)]">@svg('heroicon-o-calendar', 'w-3.5 h-3.5 opacity-70') Ursprünglich</dt>
+                                <dd class="m-0 tabular-nums text-[var(--nx-text)]">{{ $task->original_due_date->format('d.m.Y') }}</dd>
+                            </div>
+                        @endif
+                        @if($task->team)
+                            <div class="flex items-baseline justify-between gap-3">
+                                <dt class="inline-flex items-center gap-1.5 text-[var(--nx-muted)]">@svg('heroicon-o-user-group', 'w-3.5 h-3.5 opacity-70') Team</dt>
+                                <dd class="m-0 truncate text-[var(--nx-text)]">{{ $task->team->name }}</dd>
+                            </div>
+                        @endif
+                        @if($this->contextFileCount > 0)
+                            <div class="flex items-baseline justify-between gap-3">
+                                <dt class="inline-flex items-center gap-1.5 text-[var(--nx-muted)]">@svg('heroicon-o-paper-clip', 'w-3.5 h-3.5 opacity-70') Anhänge</dt>
+                                <dd class="m-0 tabular-nums text-[var(--nx-text)]">{{ $this->contextFileCount }}</dd>
+                            </div>
+                        @endif
+                    </dl>
+                </section>
             </div>
         </x-ui-page-sidebar>
     </x-slot>
 
-    <div class="flex-1 overflow-y-auto bg-[var(--nx-bg)]">
-        <div class="p-6 space-y-4 max-w-[880px] mx-auto">
+    <x-ui-page-container width="contained" spacing="space-y-4" background="bg-[color:var(--nx-bg)]">
 
             {{-- HERO --}}
             <div class="relative rounded-xl bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)] overflow-hidden">
@@ -282,30 +286,6 @@
                     </button>
                 </x-nx-property-row>
 
-                {{-- Read-only Meta --}}
-                @if($task->team)
-                    <x-nx-property-row icon="heroicon-o-user-group" label="Team">
-                        <span class="px-2 truncate">{{ $task->team->name }}</span>
-                    </x-nx-property-row>
-                @endif
-                <x-nx-property-row icon="heroicon-o-clock" label="Erstellt">
-                    <span class="px-2 tabular-nums">{{ $task->created_at->format('d.m.Y') }}</span>
-                </x-nx-property-row>
-                @if(($task->postpone_count ?? 0) > 0)
-                    <x-nx-property-row icon="heroicon-o-arrow-path" label="Verschoben">
-                        <span class="px-2 tabular-nums">{{ $task->postpone_count }}×</span>
-                    </x-nx-property-row>
-                @endif
-                @if($task->original_due_date)
-                    <x-nx-property-row icon="heroicon-o-calendar" label="Ursprünglich">
-                        <span class="px-2 tabular-nums">{{ $task->original_due_date->format('d.m.Y') }}</span>
-                    </x-nx-property-row>
-                @endif
-                @if($this->contextFileCount > 0)
-                    <x-nx-property-row icon="heroicon-o-paper-clip" label="Anhänge">
-                        <span class="px-2 tabular-nums">{{ $this->contextFileCount }}</span>
-                    </x-nx-property-row>
-                @endif
             </section>
 
             {{-- ANMERKUNG --}}
@@ -445,8 +425,7 @@
                 :definitions="$this->extraFieldDefinitions"
                 :model="$task"
             />
-        </div>
-    </div>
+    </x-ui-page-container>
 
     {{-- Print Modal --}}
     <livewire:planner.print-modal />
