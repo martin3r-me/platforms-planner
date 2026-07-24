@@ -229,7 +229,7 @@
 
     {{-- Board --}}
     <div
-        class="planner-board-canvas flex-1 min-h-0 flex"
+        class="flex-1 min-h-0 flex"
         @if($project->color) style="--planner-project-color: {{ $project->color }};" @endif
         x-data="{
             scrollKey: 'planner-project-{{ $project->id }}-scroll-x',
@@ -270,60 +270,50 @@
             });
         "
     >
-    <x-ui-kanban-container sortable="updateTaskGroupOrder" sortable-group="updateTaskOrder">
+    <x-nx-kanban-container sortable="updateTaskGroupOrder" sortable-group="updateTaskOrder">
         {{-- Backlog --}}
             @php $backlog = $groups->first(fn($g) => ($g->isBacklog ?? false)); @endphp
             @if($backlog)
-                <x-ui-kanban-column :title="($backlog->label ?? 'Backlog')" :sortable-id="null" :scrollable="true" :muted="true" class="col-tone-slate">
-                    <x-slot name="headerActions">
-                        <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-[10px] font-semibold rounded-full" style="background-color: color-mix(in srgb, var(--planner-col-backlog) 15%, transparent); color: var(--planner-col-backlog)">
-                            {{ $backlog->tasks->count() }}
-                        </span>
-                    </x-slot>
+                <x-nx-kanban-column :title="($backlog->label ?? 'Backlog')" :sortable-id="null" :scrollable="true" :muted="true" tone="slate" :count="$backlog->tasks->count()">
                     @forelse($backlog->tasks as $task)
                         @include('planner::livewire.task-preview-card', ['task' => $task, 'cardFrom' => 'project'])
                     @empty
-                        <div class="flex flex-col items-center justify-center py-8 text-[var(--ui-muted)]">
+                        <div class="flex flex-col items-center justify-center py-8 text-[color:var(--nx-muted)]">
                             @svg('heroicon-o-inbox', 'w-8 h-8 mb-2 opacity-40')
                             <span class="text-xs">Backlog ist leer</span>
                             <span class="text-[10px] mt-0.5 opacity-60">Neue Aufgaben landen hier</span>
                         </div>
                     @endforelse
-                </x-ui-kanban-column>
+                </x-nx-kanban-column>
             @endif
 
             {{-- Middle columns --}}
             @foreach($middleColumns as $column)
                 @php $tone = $columnTones[$column->id] ?? 'indigo'; @endphp
-                <x-ui-kanban-column :title="($column->label ?? $column->name ?? 'Spalte')" :sortable-id="$column->id" :scrollable="true" :class="'col-tone-' . $tone">
-                    <x-slot name="headerActions">
-                        <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-[10px] font-semibold rounded-full" style="background-color: color-mix(in srgb, var(--planner-col-default) 15%, transparent); color: var(--planner-col-default)">
-                            {{ $column->tasks->count() }}
-                        </span>
-                        @can('update', $project)
+                <x-nx-kanban-column :title="($column->label ?? $column->name ?? 'Spalte')" :sortable-id="$column->id" :scrollable="true" :tone="$tone" :count="$column->tasks->count()">
+                    @can('update', $project)
+                        <x-slot name="headerActions">
                             <button
                                 wire:click="createTask('{{ $column->id }}')"
-                                class="text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] transition-colors"
+                                class="text-[color:var(--nx-faint)] hover:text-[color:var(--nx-text)] transition-colors"
                                 title="Neue Aufgabe"
                             >
                                 @svg('heroicon-o-plus-circle', 'w-4 h-4')
                             </button>
-                        @endcan
-                        @can('update', $project)
                             <button
                                 @click="$dispatch('open-modal-project-slot-settings', { projectSlotId: {{ $column->id }} })"
-                                class="text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] transition-colors"
+                                class="text-[color:var(--nx-faint)] hover:text-[color:var(--nx-text)] transition-colors"
                                 title="Einstellungen"
                             >
                                 @svg('heroicon-o-cog-6-tooth', 'w-4 h-4')
                             </button>
-                        @endcan
-                    </x-slot>
+                        </x-slot>
+                    @endcan
 
                     @forelse($column->tasks as $task)
                         @include('planner::livewire.task-preview-card', ['task' => $task, 'cardFrom' => 'project'])
                     @empty
-                        <div class="flex flex-col items-center justify-center py-8 text-[var(--ui-muted)]">
+                        <div class="flex flex-col items-center justify-center py-8 text-[color:var(--nx-muted)]">
                             @svg('heroicon-o-clipboard', 'w-8 h-8 mb-2 opacity-40')
                             <span class="text-xs">Keine Aufgaben</span>
                             <span class="text-[10px] mt-0.5 opacity-60">Hierher ziehen oder neu erstellen</span>
@@ -332,7 +322,7 @@
                     @can('update', $project)
                         <x-slot name="footer">
                             <div x-data="{ open: false, title: '' }">
-                                <button x-show="!open" @click="open = true; $nextTick(() => $refs.inlineInput.focus())" class="w-full text-left text-xs text-[var(--ui-muted)] hover:text-[var(--ui-primary)] transition-colors flex items-center gap-1.5">
+                                <button x-show="!open" @click="open = true; $nextTick(() => $refs.inlineInput.focus())" class="w-full text-left text-xs text-[color:var(--nx-muted)] hover:text-[color:var(--nx-text)] transition-colors flex items-center gap-1.5 px-2 py-1">
                                     @svg('heroicon-o-plus', 'w-3.5 h-3.5')
                                     <span>Aufgabe</span>
                                 </button>
@@ -345,28 +335,25 @@
                                         @click.outside="open = false; title = ''"
                                         type="text"
                                         placeholder="Titel eingeben..."
-                                        class="w-full text-xs border border-[var(--ui-border)] rounded px-2 py-1.5 bg-white focus:border-[var(--ui-primary)] focus:ring-1 focus:ring-[var(--ui-primary)]/30 outline-none"
+                                        class="w-full text-xs border border-[color:var(--nx-line-strong)] rounded-[6px] px-2 py-1.5 bg-[color:var(--nx-surface)] text-[color:var(--nx-text)] focus:border-[color:var(--nx-accent)] focus:ring-1 focus:ring-[color:var(--nx-accent)] outline-none"
                                     />
                                 </div>
                             </div>
                         </x-slot>
                     @endcan
-                </x-ui-kanban-column>
+                </x-nx-kanban-column>
             @endforeach
 
             {{-- Done column (immer sichtbar — expanded oder collapsed) --}}
             @php $done = $groups->first(fn($g) => ($g->isDoneGroup ?? false)); @endphp
             @if($done)
                 @if($showDoneColumn)
-                    <x-ui-kanban-column :title="($done->label ?? 'Erledigt')" :sortable-id="null" :scrollable="true" :muted="true" class="col-tone-emerald">
+                    <x-nx-kanban-column :title="($done->label ?? 'Erledigt')" :sortable-id="null" :scrollable="true" :muted="true" tone="emerald" :count="$done->tasks->count()">
                         <x-slot name="headerActions">
-                            <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-[10px] font-semibold rounded-full" style="background-color: color-mix(in srgb, var(--planner-col-done) 15%, transparent); color: var(--planner-col-done)">
-                                {{ $done->tasks->count() }}
-                            </span>
                             <button
                                 type="button"
                                 wire:click="toggleShowDoneColumn"
-                                class="text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] transition-colors"
+                                class="text-[color:var(--nx-faint)] hover:text-[color:var(--nx-text)] transition-colors"
                                 title="Einklappen"
                             >
                                 @svg('heroicon-o-chevron-double-right', 'w-4 h-4')
@@ -375,12 +362,12 @@
                         @forelse($done->tasks as $task)
                             @include('planner::livewire.task-preview-card', ['task' => $task, 'cardFrom' => 'project'])
                         @empty
-                            <div class="flex flex-col items-center justify-center py-8 text-[var(--ui-muted)]">
+                            <div class="flex flex-col items-center justify-center py-8 text-[color:var(--nx-muted)]">
                                 @svg('heroicon-o-check-circle', 'w-8 h-8 mb-2 opacity-40')
                                 <span class="text-xs">Noch nichts erledigt</span>
                             </div>
                         @endforelse
-                    </x-ui-kanban-column>
+                    </x-nx-kanban-column>
                 @else
                     {{-- Collapsed-Done: im Board schmaler Streifen rechts, in der Liste eine voll-breite Leiste unten --}}
                     <button
@@ -390,21 +377,21 @@
                         type="button"
                         wire:click="toggleShowDoneColumn"
                         :class="isList
-                            ? 'planner-done-bar group/done sticky bottom-0 z-20 w-full flex flex-row items-center justify-start gap-3 py-3 px-4 pr-14 bg-white border-t border-[var(--planner-status-done)]/30 shadow-lg hover:bg-[var(--planner-card-done)] transition-all cursor-pointer'
-                            : 'planner-done-strip group/done sticky right-0 z-10 flex-shrink-0 h-full flex flex-col items-center justify-between py-4 px-2 bg-white hover:shadow-lg transition-all cursor-pointer'"
+                            ? 'group/done sticky bottom-0 z-20 w-full flex flex-row items-center justify-start gap-3 py-3 px-4 pr-14 bg-[color:var(--nx-surface)] border-t border-[rgba(47,158,68,0.25)] hover:bg-[rgba(47,158,68,0.08)] transition-colors cursor-pointer'
+                            : 'group/done sticky right-0 z-10 flex-shrink-0 h-full flex flex-col items-center justify-between py-4 px-2 bg-[color:var(--nx-surface)] border-l border-[color:var(--nx-line)] hover:bg-[color:var(--nx-hover)] transition-colors cursor-pointer'"
                         :style="!isList ? 'width: 2.75rem; min-width: 2.75rem;' : ''"
                         title="Erledigte anzeigen ({{ $done->tasks->count() }})"
                     >
                         <span x-show="!isList">
-                            @svg('heroicon-o-chevron-double-left', 'w-4 h-4 text-[var(--planner-status-done)] mt-1')
+                            @svg('heroicon-o-chevron-double-left', 'w-4 h-4 text-[color:var(--nx-success)] mt-1')
                         </span>
                         <span x-show="isList">
-                            @svg('heroicon-o-chevron-double-up', 'w-4 h-4 text-[var(--planner-status-done)]')
+                            @svg('heroicon-o-chevron-double-up', 'w-4 h-4 text-[color:var(--nx-success)]')
                         </span>
 
                         {{-- Label: im Board vertikal, in der Liste horizontal --}}
                         <span
-                            class="text-[10px] font-bold uppercase tracking-wider text-[var(--planner-status-done)]"
+                            class="text-[10px] font-bold uppercase tracking-wider text-[color:var(--nx-success)]"
                             :class="!isList ? 'flex-1 my-2' : ''"
                             :style="!isList ? 'writing-mode: vertical-rl; transform: rotate(180deg);' : ''"
                         >
@@ -412,8 +399,7 @@
                         </span>
 
                         <span
-                            class="inline-flex items-center justify-center min-w-[1.5rem] h-5 px-1 text-[10px] font-semibold rounded-full tabular-nums"
-                            style="background-color: color-mix(in srgb, var(--planner-col-done) 18%, transparent); color: var(--planner-col-done)"
+                            class="inline-flex items-center justify-center min-w-[1.5rem] h-5 px-1 text-[10px] font-semibold rounded-full tabular-nums text-[color:var(--nx-success)] bg-[rgba(47,158,68,0.16)]"
                         >
                             {{ $done->tasks->count() }}
                         </span>
@@ -421,14 +407,14 @@
                         {{-- Sub-Hinweis nur in Liste --}}
                         <span
                             x-show="isList"
-                            class="text-[11px] text-[var(--ui-muted)] ml-auto mr-2"
+                            class="text-[11px] text-[color:var(--nx-muted)] ml-auto mr-2"
                         >
                             Klick zum Anzeigen
                         </span>
                     </button>
                 @endif
             @endif
-        </x-ui-kanban-container>
+        </x-nx-kanban-container>
         </div>
     </div>
 
