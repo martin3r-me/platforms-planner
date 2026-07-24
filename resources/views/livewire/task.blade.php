@@ -106,155 +106,6 @@
         </x-ui-page-actionbar>
     </x-slot>
 
-    {{-- Left sidebar: Task-Eigenschaften --}}
-    <x-slot name="sidebar">
-        <x-ui-page-sidebar title="Eigenschaften" icon="heroicon-o-adjustments-horizontal" width="w-72" :defaultOpen="true">
-            <div class="p-4 space-y-4 bg-[var(--nx-bg)]">
-
-                {{-- STATUS & PRIORITÄT --}}
-                <section class="rounded-lg bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)] overflow-hidden">
-                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] px-3 pt-3 pb-1.5">Status & Priorität</h3>
-
-                    @php
-                        $lcMeta = match(true) {
-                            $isDone      => ['dot' => 'bg-[var(--nx-success)]', 'label' => 'Erledigt'],
-                            $isDiscarded => ['dot' => 'bg-[color:var(--nx-faint)]',                     'label' => 'Verworfen'],
-                            default      => ['dot' => 'bg-[var(--nx-accent)]', 'label' => 'Aktiv'],
-                        };
-                    @endphp
-                    <button type="button" wire:click="toggleDone" @if($isDiscarded) disabled @endif class="w-full flex items-center justify-between py-2 px-3 hover:bg-[var(--nx-bg)] transition-colors text-[11px] {{ $isDiscarded ? 'opacity-60 cursor-not-allowed' : '' }}">
-                        <span class="text-[var(--nx-muted)]">Status</span>
-                        <span class="inline-flex items-center gap-1.5 font-medium">
-                            <span class="w-2 h-2 rounded-full {{ $lcMeta['dot'] }}"></span>
-                            <span class="text-[var(--nx-text)]">{{ $lcMeta['label'] }}</span>
-                        </span>
-                    </button>
-                    @if(!$isDone && !$isDiscarded)
-                        <button
-                            type="button"
-                            wire:click="discardTask"
-                            wire:confirm="Aufgabe wirklich verwerfen? Sie wird nicht mehr bearbeitet und kann nicht zurückgeholt werden."
-                            class="w-full flex items-center justify-between py-1.5 px-3 border-t border-[var(--nx-line-strong)]/30 hover:bg-[color:var(--nx-bg)] transition-colors text-[10px] text-[var(--nx-muted)]"
-                            title="Aufgabe verwerfen — Terminal-Zustand"
-                        >
-                            <span>Verwerfen</span>
-                            @svg('heroicon-o-archive-box-x-mark', 'w-3 h-3')
-                        </button>
-                    @endif
-
-                    <div class="py-2 px-3 border-t border-[var(--nx-line-strong)]/30 text-[11px]">
-                        <div class="flex items-center justify-between mb-1.5">
-                            <span class="text-[var(--nx-muted)]">Priorität</span>
-                            @if($priorityColor)
-                                <span class="w-2 h-2 rounded-full" style="background-color: {{ $priorityColor }}"></span>
-                            @endif
-                        </div>
-                        <x-nx-input-select
-                            name="task.priority"
-                            label=""
-                            :options="\Platform\Planner\Enums\TaskPriority::cases()"
-                            optionValue="value"
-                            optionLabel="label"
-                            :nullable="false"
-                            wire:model.live="task.priority"
-                        />
-                    </div>
-
-                    <button type="button" wire:click="toggleFrog" class="w-full flex items-center justify-between py-2 px-3 border-t border-[var(--nx-line-strong)]/30 hover:bg-[var(--nx-bg)] transition-colors text-[11px]">
-                        <span class="text-[var(--nx-muted)]">Frosch</span>
-                        <span class="font-medium text-[var(--nx-text)]">
-                            @if($task->is_frog) 🐸 Ja @else Nein @endif
-                        </span>
-                    </button>
-                </section>
-
-                {{-- PLANUNG --}}
-                <section class="rounded-lg bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)] overflow-hidden">
-                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] px-3 pt-3 pb-1.5">Planung</h3>
-
-                    <div class="py-2 px-3 text-[11px]">
-                        <span class="text-[var(--nx-muted)] block mb-1.5">Verantwortlich</span>
-                        <x-nx-input-select
-                            name="task.user_in_charge_id"
-                            label=""
-                            :options="$teamUsers"
-                            optionValue="id"
-                            optionLabel="name"
-                            :nullable="true"
-                            nullLabel="– Niemand –"
-                            wire:model.live="task.user_in_charge_id"
-                        />
-                    </div>
-
-                    <button type="button" wire:click="openDueDateModal" class="w-full flex items-center justify-between py-2 px-3 border-t border-[var(--nx-line-strong)]/30 hover:bg-[var(--nx-bg)] transition-colors text-[11px]">
-                        <span class="text-[var(--nx-muted)]">Fällig</span>
-                        <span class="font-medium" style="color: {{ $dueDateColor }}">
-                            @if($task->due_date)
-                                {{ $task->due_date->format('d.m.Y H:i') }}
-                            @else
-                                <span class="text-[var(--nx-muted)]/60">Kein Datum</span>
-                            @endif
-                        </span>
-                    </button>
-
-                    <div class="flex items-center gap-1 px-3 pb-2 pt-1">
-                        <button type="button" wire:click="setQuickDueDate('today')" class="flex-1 px-1.5 py-0.5 text-[10px] rounded border border-[color:var(--nx-line)] text-[var(--nx-muted)] hover:border-[var(--nx-accent)]/60 hover:text-[var(--nx-accent)] transition-colors">Heute</button>
-                        <button type="button" wire:click="setQuickDueDate('tomorrow')" class="flex-1 px-1.5 py-0.5 text-[10px] rounded border border-[color:var(--nx-line)] text-[var(--nx-muted)] hover:border-[var(--nx-accent)]/60 hover:text-[var(--nx-accent)] transition-colors">Morgen</button>
-                        <button type="button" wire:click="setQuickDueDate('next_week')" class="flex-1 px-1.5 py-0.5 text-[10px] rounded border border-[color:var(--nx-line)] text-[var(--nx-muted)] hover:border-[var(--nx-accent)]/60 hover:text-[var(--nx-accent)] transition-colors">+1W</button>
-                    </div>
-
-                    <div class="py-2 px-3 border-t border-[var(--nx-line-strong)]/30 text-[11px]">
-                        <span class="text-[var(--nx-muted)] block mb-1.5">Story Points</span>
-                        <x-nx-input-select
-                            name="task.story_points"
-                            label=""
-                            :options="\Platform\Planner\Enums\TaskStoryPoints::cases()"
-                            optionValue="value"
-                            optionLabel="label"
-                            :nullable="true"
-                            nullLabel="–"
-                            wire:model.live="task.story_points"
-                        />
-                    </div>
-                </section>
-
-                {{-- DETAILS --}}
-                <section class="rounded-lg bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)] overflow-hidden">
-                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] px-3 pt-3 pb-1.5">Details</h3>
-                    <dl class="divide-y divide-[var(--nx-line-strong)]/30 text-[11px]">
-                        @if($task->team)
-                            <div class="flex items-baseline justify-between gap-3 py-1.5 px-3">
-                                <dt class="text-[var(--nx-muted)]">Team</dt>
-                                <dd class="text-[var(--nx-text)] m-0 truncate">{{ $task->team->name }}</dd>
-                            </div>
-                        @endif
-                        <div class="flex items-baseline justify-between gap-3 py-1.5 px-3">
-                            <dt class="text-[var(--nx-muted)]">Erstellt</dt>
-                            <dd class="text-[var(--nx-text)] m-0 tabular-nums">{{ $task->created_at->format('d.m.Y') }}</dd>
-                        </div>
-                        @if(($task->postpone_count ?? 0) > 0)
-                            <div class="flex items-baseline justify-between gap-3 py-1.5 px-3">
-                                <dt class="text-[var(--nx-muted)]">Verschoben</dt>
-                                <dd class="text-[var(--nx-text)] m-0 tabular-nums">{{ $task->postpone_count }}×</dd>
-                            </div>
-                        @endif
-                        @if($task->original_due_date)
-                            <div class="flex items-baseline justify-between gap-3 py-1.5 px-3">
-                                <dt class="text-[var(--nx-muted)]">Ursprünglich</dt>
-                                <dd class="text-[var(--nx-text)] m-0 tabular-nums">{{ $task->original_due_date->format('d.m.Y') }}</dd>
-                            </div>
-                        @endif
-                        @if($this->contextFileCount > 0)
-                            <div class="flex items-baseline justify-between gap-3 py-1.5 px-3">
-                                <dt class="text-[var(--nx-muted)]">Anhänge</dt>
-                                <dd class="text-[var(--nx-text)] m-0 tabular-nums">{{ $this->contextFileCount }}</dd>
-                            </div>
-                        @endif
-                    </dl>
-                </section>
-            </div>
-        </x-ui-page-sidebar>
-    </x-slot>
 
     {{-- Right sidebar: Aktivitäten --}}
     <x-slot name="activity">
@@ -293,7 +144,7 @@
     </x-slot>
 
     <div class="flex-1 overflow-y-auto bg-[var(--nx-bg)]">
-        <div class="p-6 space-y-5">
+        <div class="p-6 space-y-4 max-w-[880px] mx-auto">
 
             {{-- HERO --}}
             <div class="relative rounded-xl bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)] overflow-hidden">
@@ -351,47 +202,111 @@
                                 @endif
                             </div>
 
-                            {{-- Status pills --}}
-                            @if($task->is_frog || $isOverdue || $isDone || $isDiscarded || $task->due_date)
-                                <div class="flex flex-wrap items-center gap-1.5 mt-3">
-                                    @if($isDone)
-                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full bg-[var(--nx-success)] text-white">
-                                            @svg('heroicon-s-check', 'w-3 h-3')
-                                            Erledigt
-                                        </span>
-                                    @elseif($isDiscarded)
-                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full bg-[color:var(--nx-accent-soft)] text-[color:var(--nx-muted)]">
-                                            @svg('heroicon-o-archive-box-x-mark', 'w-3 h-3')
-                                            Verworfen
-                                        </span>
-                                    @elseif($isOverdue)
-                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full bg-[var(--nx-danger)] text-white">
-                                            @svg('heroicon-o-exclamation-triangle', 'w-3 h-3')
-                                            {{ (int) $task->due_date->diffInDays(now()) }}d überfällig
-                                        </span>
-                                    @elseif($task->due_date)
-                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded-full" style="background-color: color-mix(in srgb, {{ $dueDateColor }} 14%, white); color: {{ $dueDateColor }};">
-                                            @svg('heroicon-o-clock', 'w-3 h-3')
-                                            {{ $task->due_date->format('d.m.Y H:i') }}
-                                        </span>
-                                    @endif
-                                    @if($task->is_frog)
-                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full bg-[var(--nx-success)]/15 text-[var(--nx-success)]">
-                                            🐸 Frosch
-                                        </span>
-                                    @endif
-                                    @if($task->priority)
-                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded-full" style="background-color: color-mix(in srgb, {{ $task->priority->color() }} 14%, white); color: {{ $task->priority->color() }};">
-                                            <span class="w-1.5 h-1.5 rounded-full" style="background-color: {{ $task->priority->color() }};"></span>
-                                            {{ $task->priority->label() }}
-                                        </span>
-                                    @endif
-                                </div>
-                            @endif
                         </div>
                     </div>
                 </div>
             </div>
+
+            {{-- EIGENSCHAFTEN — Notion-Property-Block (aus der alten linken Sidebar) --}}
+            @php
+                $lcMeta = match(true) {
+                    $isDone      => ['dot' => 'bg-[var(--nx-success)]', 'label' => 'Erledigt'],
+                    $isDiscarded => ['dot' => 'bg-[color:var(--nx-faint)]', 'label' => 'Verworfen'],
+                    default      => ['dot' => 'bg-[var(--nx-accent)]', 'label' => 'Aktiv'],
+                };
+            @endphp
+            <section class="rounded-xl bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)] p-2">
+                {{-- Status --}}
+                <x-nx-property-row icon="heroicon-o-check-circle" label="Status">
+                    <div class="flex items-center gap-1">
+                        <button type="button" wire:click="toggleDone" @if($isDiscarded) disabled @endif
+                            class="inline-flex items-center gap-1.5 rounded-[6px] px-2 py-1 transition-colors hover:bg-[color:var(--nx-hover)] {{ $isDiscarded ? 'opacity-60 cursor-not-allowed' : '' }}">
+                            <span class="w-2 h-2 rounded-full {{ $lcMeta['dot'] }}"></span>
+                            <span class="font-medium text-[color:var(--nx-text)]">{{ $lcMeta['label'] }}</span>
+                        </button>
+                        @if(!$isDone && !$isDiscarded)
+                            <button type="button" wire:click="discardTask"
+                                wire:confirm="Aufgabe wirklich verwerfen? Sie wird nicht mehr bearbeitet und kann nicht zurückgeholt werden."
+                                class="rounded-[6px] px-2 py-1 text-xs text-[color:var(--nx-muted)] transition-colors hover:bg-[color:var(--nx-hover)] hover:text-[color:var(--nx-danger)]"
+                                title="Aufgabe verwerfen — Terminal-Zustand">Verwerfen</button>
+                        @endif
+                    </div>
+                </x-nx-property-row>
+
+                {{-- Priorität --}}
+                <x-nx-property-row icon="heroicon-o-flag" label="Priorität">
+                    <x-nx-input-select name="task.priority" label="" size="sm"
+                        :options="\Platform\Planner\Enums\TaskPriority::cases()" optionValue="value" optionLabel="label"
+                        :nullable="false" wire:model.live="task.priority" />
+                </x-nx-property-row>
+
+                {{-- Verantwortlich --}}
+                <x-nx-property-row icon="heroicon-o-user" label="Verantwortlich">
+                    <x-nx-input-select name="task.user_in_charge_id" label="" size="sm"
+                        :options="$teamUsers" optionValue="id" optionLabel="name"
+                        :nullable="true" nullLabel="– Niemand –" wire:model.live="task.user_in_charge_id" />
+                </x-nx-property-row>
+
+                {{-- Fällig --}}
+                <x-nx-property-row icon="heroicon-o-calendar-days" label="Fällig">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button type="button" wire:click="openDueDateModal"
+                            class="inline-flex items-center gap-1.5 rounded-[6px] px-2 py-1 transition-colors hover:bg-[color:var(--nx-hover)]"
+                            style="color: {{ $task->due_date ? $dueDateColor : 'var(--nx-muted)' }}">
+                            @if($task->due_date)
+                                <span class="font-medium tabular-nums">{{ $task->due_date->format('d.m.Y H:i') }}</span>
+                            @else
+                                <span>Kein Datum</span>
+                            @endif
+                        </button>
+                        <div class="flex items-center gap-1">
+                            <button type="button" wire:click="setQuickDueDate('today')" class="rounded border border-[color:var(--nx-line)] px-1.5 py-0.5 text-[10px] text-[color:var(--nx-muted)] transition-colors hover:border-[var(--nx-accent)]/60 hover:text-[var(--nx-accent)]">Heute</button>
+                            <button type="button" wire:click="setQuickDueDate('tomorrow')" class="rounded border border-[color:var(--nx-line)] px-1.5 py-0.5 text-[10px] text-[color:var(--nx-muted)] transition-colors hover:border-[var(--nx-accent)]/60 hover:text-[var(--nx-accent)]">Morgen</button>
+                            <button type="button" wire:click="setQuickDueDate('next_week')" class="rounded border border-[color:var(--nx-line)] px-1.5 py-0.5 text-[10px] text-[color:var(--nx-muted)] transition-colors hover:border-[var(--nx-accent)]/60 hover:text-[var(--nx-accent)]">+1W</button>
+                        </div>
+                    </div>
+                </x-nx-property-row>
+
+                {{-- Story Points --}}
+                <x-nx-property-row icon="heroicon-o-hashtag" label="Story Points">
+                    <x-nx-input-select name="task.story_points" label="" size="sm"
+                        :options="\Platform\Planner\Enums\TaskStoryPoints::cases()" optionValue="value" optionLabel="label"
+                        :nullable="true" nullLabel="–" wire:model.live="task.story_points" />
+                </x-nx-property-row>
+
+                {{-- Frosch --}}
+                <x-nx-property-row icon="heroicon-o-sparkles" label="Frosch">
+                    <button type="button" wire:click="toggleFrog"
+                        class="inline-flex items-center gap-1.5 rounded-[6px] px-2 py-1 transition-colors hover:bg-[color:var(--nx-hover)]">
+                        @if($task->is_frog)<span class="text-[color:var(--nx-text)]">🐸 Ja</span>@else<span class="text-[color:var(--nx-muted)]">Nein</span>@endif
+                    </button>
+                </x-nx-property-row>
+
+                {{-- Read-only Meta --}}
+                @if($task->team)
+                    <x-nx-property-row icon="heroicon-o-user-group" label="Team">
+                        <span class="px-2 truncate">{{ $task->team->name }}</span>
+                    </x-nx-property-row>
+                @endif
+                <x-nx-property-row icon="heroicon-o-clock" label="Erstellt">
+                    <span class="px-2 tabular-nums">{{ $task->created_at->format('d.m.Y') }}</span>
+                </x-nx-property-row>
+                @if(($task->postpone_count ?? 0) > 0)
+                    <x-nx-property-row icon="heroicon-o-arrow-path" label="Verschoben">
+                        <span class="px-2 tabular-nums">{{ $task->postpone_count }}×</span>
+                    </x-nx-property-row>
+                @endif
+                @if($task->original_due_date)
+                    <x-nx-property-row icon="heroicon-o-calendar" label="Ursprünglich">
+                        <span class="px-2 tabular-nums">{{ $task->original_due_date->format('d.m.Y') }}</span>
+                    </x-nx-property-row>
+                @endif
+                @if($this->contextFileCount > 0)
+                    <x-nx-property-row icon="heroicon-o-paper-clip" label="Anhänge">
+                        <span class="px-2 tabular-nums">{{ $this->contextFileCount }}</span>
+                    </x-nx-property-row>
+                @endif
+            </section>
 
             {{-- ANMERKUNG --}}
             <section class="rounded-xl bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)] overflow-hidden">
