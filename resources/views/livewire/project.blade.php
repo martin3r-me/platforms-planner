@@ -32,54 +32,38 @@
             ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
             ['label' => $project->title],
         ]">
-            {{-- Links: Live-Metriken + kompakter Health-Chip (konsolidierte Kopfzeile) --}}
-            <x-slot name="left">
-                @php
-                    $metricTotal = $headerOpenCount + $headerDoneCount;
-                    $metricPct = $metricTotal > 0 ? round($headerDoneCount / $metricTotal * 100) : 0;
-                @endphp
-                <div class="hidden md:flex items-center gap-3 text-[11px]">
-                    <span class="inline-flex items-center gap-1.5 text-[color:var(--nx-text)]">
-                        <span class="w-1.5 h-1.5 rounded-full bg-[color:var(--nx-info)]"></span>
-                        <span class="font-semibold tabular-nums">{{ $headerOpenCount }}</span>
-                        <span class="hidden lg:inline text-[color:var(--nx-muted)]">offen</span>
-                    </span>
-                    @if($headerOverdueCount > 0)
-                        <span class="inline-flex items-center gap-1.5 text-[color:var(--nx-danger)]">
-                            <span class="w-1.5 h-1.5 rounded-full bg-[color:var(--nx-danger)]"></span>
-                            <span class="font-semibold tabular-nums">{{ $headerOverdueCount }}</span>
-                            <span class="hidden lg:inline">überfällig</span>
-                        </span>
-                    @endif
-                    <span class="inline-flex items-center gap-1.5 text-[color:var(--nx-text)]">
-                        <span class="w-1.5 h-1.5 rounded-full bg-[color:var(--nx-success)]"></span>
-                        <span class="font-semibold tabular-nums">{{ $headerDoneCount }}</span>
-                        <span class="hidden lg:inline text-[color:var(--nx-muted)]">erledigt</span>
-                    </span>
-                    @if($metricTotal > 0)
-                        <span class="hidden xl:inline-flex items-center gap-2">
-                            <span class="text-[color:var(--nx-muted)] tabular-nums">{{ $metricPct }}%</span>
-                            <span class="w-16 h-1 rounded-full bg-[color:var(--nx-line)] overflow-hidden">
-                                <span class="block h-full rounded-full bg-[color:var(--nx-success)]" style="width: {{ $metricPct }}%"></span>
-                            </span>
-                        </span>
-                    @endif
-
-                </div>
-            </x-slot>
-
-            {{-- Health-Index rechts als klickbares nx-Badge (Ton = Health-Status) --}}
+            {{-- Kennzahlen (offen/überfällig/erledigt) + Health-Index in EINEM
+                 klickbaren Badge; Ton = Health-Status, Zahlen mit semantischem Punkt --}}
             @php
                 $healthVariant = match($latestSnapshot?->health_color ?? 'gray') {
                     'green' => 'success', 'yellow' => 'warning', 'red' => 'danger', default => 'neutral',
                 };
+                $hScore = $latestSnapshot?->health_score;
                 $hDelta = $latestSnapshot?->delta_health_score;
                 $hTrend = ($hDelta === null || $hDelta === 0) ? null : ($hDelta > 0 ? '↑' : '↓');
             @endphp
-            <x-nx-badge :variant="$healthVariant" dot :href="route('planner.projects.health', $project)"
-                title="Projekt-Health{{ $latestSnapshot ? ' ' . ($latestSnapshot->health_score ?? '–') : ' — noch kein Snapshot' }}">
-                <span class="tabular-nums">{{ $latestSnapshot?->health_score ?? 'Health' }}</span>
-                @if($hTrend)<span class="tabular-nums opacity-80">{{ $hTrend }}{{ abs($hDelta) }}</span>@endif
+            <x-nx-badge :variant="$healthVariant" :href="route('planner.projects.health', $project)"
+                title="offen {{ $headerOpenCount }} · überfällig {{ $headerOverdueCount }} · erledigt {{ $headerDoneCount }}{{ $hScore !== null ? ' · Health ' . $hScore : '' }}">
+                <span class="inline-flex items-center gap-1 text-[color:var(--nx-text)]">
+                    <span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-info)]"></span>
+                    <span class="tabular-nums">{{ $headerOpenCount }}</span>
+                </span>
+                @if($headerOverdueCount > 0)
+                    <span class="inline-flex items-center gap-1 text-[color:var(--nx-danger)]">
+                        <span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-danger)]"></span>
+                        <span class="tabular-nums">{{ $headerOverdueCount }}</span>
+                    </span>
+                @endif
+                <span class="inline-flex items-center gap-1 text-[color:var(--nx-text)]">
+                    <span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-success)]"></span>
+                    <span class="tabular-nums">{{ $headerDoneCount }}</span>
+                </span>
+                <span class="opacity-30" aria-hidden="true">·</span>
+                <span class="inline-flex items-center gap-1">
+                    <span class="h-1.5 w-1.5 rounded-full" style="background: currentColor"></span>
+                    <span class="tabular-nums">{{ $hScore ?? 'Health' }}</span>
+                    @if($hTrend)<span class="tabular-nums opacity-80">{{ $hTrend }}{{ abs($hDelta) }}</span>@endif
+                </span>
             </x-nx-badge>
 
             {{-- Overflow menu --}}
