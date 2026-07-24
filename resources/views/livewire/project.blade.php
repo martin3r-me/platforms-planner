@@ -229,7 +229,7 @@
 
     {{-- Board --}}
     <div
-        class="flex-1 min-h-0 flex"
+        class="flex-1 min-h-0 flex bg-[color:var(--nx-surface)]"
         @if($project->color) style="--planner-project-color: {{ $project->color }};" @endif
         x-data="{
             scrollKey: 'planner-project-{{ $project->id }}-scroll-x',
