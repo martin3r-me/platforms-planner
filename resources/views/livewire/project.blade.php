@@ -65,35 +65,22 @@
                         </span>
                     @endif
 
-                    {{-- Health-Chip (kompakt, kalm) --}}
-                    @php
-                        $hc = $latestSnapshot?->health_color ?? 'gray';
-                        $hb = [
-                            'green'  => ['bg' => 'bg-[rgba(47,158,68,.10)]', 'fg' => 'text-[color:var(--nx-success)]', 'dot' => 'bg-[color:var(--nx-success)]'],
-                            'yellow' => ['bg' => 'bg-[rgba(232,89,12,.10)]', 'fg' => 'text-[color:var(--nx-warning)]', 'dot' => 'bg-[color:var(--nx-warning)]'],
-                            'red'    => ['bg' => 'bg-[rgba(224,49,49,.10)]', 'fg' => 'text-[color:var(--nx-danger)]', 'dot' => 'bg-[color:var(--nx-danger)]'],
-                            'gray'   => ['bg' => 'bg-[color:var(--nx-bg)]', 'fg' => 'text-[color:var(--nx-muted)]', 'dot' => 'bg-[color:var(--nx-faint)]'],
-                        ][$hc] ?? ['bg' => 'bg-[color:var(--nx-bg)]', 'fg' => 'text-[color:var(--nx-muted)]', 'dot' => 'bg-[color:var(--nx-faint)]'];
-                        $hDelta = $latestSnapshot?->delta_health_score;
-                        $hTrend = ($hDelta === null || $hDelta === 0) ? null : ($hDelta > 0 ? '↑' : '↓');
-                    @endphp
-                    <a href="{{ route('planner.projects.health', $project) }}" wire:navigate
-                       title="Projekt-Health{{ $latestSnapshot ? ' ' . ($latestSnapshot->health_score ?? '–') . ' (' . $hc . ')' : ' — noch kein Snapshot' }}"
-                       class="inline-flex items-center gap-1.5 rounded-[6px] px-2 py-0.5 font-medium transition-opacity hover:opacity-80 {{ $hb['bg'] }} {{ $hb['fg'] }}">
-                        <span class="w-1.5 h-1.5 rounded-full {{ $hb['dot'] }}"></span>
-                        <span class="tabular-nums">{{ $latestSnapshot?->health_score ?? 'Health' }}</span>
-                        @if($hTrend)<span class="tabular-nums opacity-80">{{ $hTrend }}{{ abs($hDelta) }}</span>@endif
-                    </a>
                 </div>
             </x-slot>
 
-            {{-- Genau EINE sichtbare Aktion (nx-Konvention) --}}
-            @can('update', $project)
-                <x-nx-button variant="primary" size="sm" wire:click="createTask()" title="Neue Aufgabe (N)">
-                    @svg('heroicon-o-plus', 'w-4 h-4')
-                    <span class="hidden sm:inline">Aufgabe</span>
-                </x-nx-button>
-            @endcan
+            {{-- Health-Index rechts als klickbares nx-Badge (Ton = Health-Status) --}}
+            @php
+                $healthVariant = match($latestSnapshot?->health_color ?? 'gray') {
+                    'green' => 'success', 'yellow' => 'warning', 'red' => 'danger', default => 'neutral',
+                };
+                $hDelta = $latestSnapshot?->delta_health_score;
+                $hTrend = ($hDelta === null || $hDelta === 0) ? null : ($hDelta > 0 ? '↑' : '↓');
+            @endphp
+            <x-nx-badge :variant="$healthVariant" dot :href="route('planner.projects.health', $project)"
+                title="Projekt-Health{{ $latestSnapshot ? ' ' . ($latestSnapshot->health_score ?? '–') : ' — noch kein Snapshot' }}">
+                <span class="tabular-nums">{{ $latestSnapshot?->health_score ?? 'Health' }}</span>
+                @if($hTrend)<span class="tabular-nums opacity-80">{{ $hTrend }}{{ abs($hDelta) }}</span>@endif
+            </x-nx-badge>
 
             {{-- Overflow menu --}}
             <div x-data="{ open: false }" class="relative">
@@ -114,6 +101,15 @@
                     class="absolute top-full right-0 mt-1 w-52 bg-[color:var(--nx-surface)] border border-[var(--nx-line-strong)] rounded-lg shadow-[var(--nx-shadow-pop)] z-30 py-1"
                 >
                     @can('update', $project)
+                        <button
+                            type="button"
+                            wire:click="createTask()"
+                            @click="open = false"
+                            class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition-colors"
+                        >
+                            @svg('heroicon-o-plus', 'w-4 h-4 text-[var(--nx-muted)]')
+                            <span>Neue Aufgabe</span>
+                        </button>
                         <button
                             type="button"
                             wire:click="createProjectSlot"
@@ -254,6 +250,28 @@
                             <span class="text-[10px] mt-0.5 opacity-60">Neue Aufgaben landen hier</span>
                         </div>
                     @endforelse
+                    @can('update', $project)
+                        <x-slot name="footer">
+                            <div x-data="{ open: false, title: '' }">
+                                <button x-show="!open" @click="open = true; $nextTick(() => $refs.inlineInput.focus())" class="w-full text-left text-xs text-[color:var(--nx-muted)] hover:text-[color:var(--nx-text)] transition-colors flex items-center gap-1.5 px-2 py-1">
+                                    @svg('heroicon-o-plus', 'w-3.5 h-3.5')
+                                    <span>Aufgabe</span>
+                                </button>
+                                <div x-show="open" x-cloak>
+                                    <input
+                                        x-ref="inlineInput"
+                                        x-model="title"
+                                        @keydown.enter.prevent="if(title.trim()) { $wire.createTask('{{ $backlog->id }}', title.trim()); title = ''; open = false; }"
+                                        @keydown.escape="open = false; title = ''"
+                                        @click.outside="open = false; title = ''"
+                                        type="text"
+                                        placeholder="Titel eingeben..."
+                                        class="w-full text-xs border border-[color:var(--nx-line-strong)] rounded-[6px] px-2 py-1.5 bg-[color:var(--nx-surface)] text-[color:var(--nx-text)] focus:border-[color:var(--nx-accent)] focus:ring-1 focus:ring-[color:var(--nx-accent)] outline-none"
+                                    />
+                                </div>
+                            </div>
+                        </x-slot>
+                    @endcan
                 </x-nx-kanban-column>
             @endif
 
