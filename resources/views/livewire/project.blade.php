@@ -38,10 +38,10 @@
                     $hc = $latestSnapshot->health_color ?? 'gray';
                     $hs = $latestSnapshot->health_score;
                     $healthTones = [
-                        'green'  => ['ring' => 'ring-emerald-300', 'bg' => 'bg-emerald-50', 'hover' => 'hover:bg-emerald-100', 'fg' => 'text-emerald-700', 'dot' => 'bg-emerald-500', 'border' => 'border-emerald-300', 'label' => 'Stabil'],
-                        'yellow' => ['ring' => 'ring-amber-300',   'bg' => 'bg-amber-50',   'hover' => 'hover:bg-amber-100',   'fg' => 'text-amber-700',   'dot' => 'bg-amber-500',   'border' => 'border-amber-300',   'label' => 'Achtung'],
-                        'red'    => ['ring' => 'ring-rose-300',    'bg' => 'bg-rose-50',    'hover' => 'hover:bg-rose-100',    'fg' => 'text-rose-700',    'dot' => 'bg-rose-500',    'border' => 'border-rose-300',    'label' => 'Brennt'],
-                        'gray'   => ['ring' => 'ring-zinc-200',    'bg' => 'bg-zinc-50',    'hover' => 'hover:bg-zinc-100',    'fg' => 'text-zinc-600',    'dot' => 'bg-zinc-400',    'border' => 'border-zinc-300',    'label' => 'Keine Daten'],
+                        'green'  => ['ring' => 'ring-[rgba(47,158,68,.30)]', 'bg' => 'bg-[rgba(47,158,68,.10)]', 'hover' => 'hover:bg-[rgba(47,158,68,.16)]', 'fg' => 'text-[color:var(--nx-success)]', 'dot' => 'bg-[color:var(--nx-success)]', 'border' => 'border-[rgba(47,158,68,.30)]', 'label' => 'Stabil'],
+                        'yellow' => ['ring' => 'ring-[rgba(232,89,12,.30)]', 'bg' => 'bg-[rgba(232,89,12,.10)]', 'hover' => 'hover:bg-[rgba(232,89,12,.16)]', 'fg' => 'text-[color:var(--nx-warning)]', 'dot' => 'bg-[color:var(--nx-warning)]', 'border' => 'border-[rgba(232,89,12,.30)]', 'label' => 'Achtung'],
+                        'red'    => ['ring' => 'ring-[rgba(224,49,49,.30)]', 'bg' => 'bg-[rgba(224,49,49,.10)]', 'hover' => 'hover:bg-[rgba(224,49,49,.16)]', 'fg' => 'text-[color:var(--nx-danger)]', 'dot' => 'bg-[color:var(--nx-danger)]', 'border' => 'border-[rgba(224,49,49,.30)]', 'label' => 'Brennt'],
+                        'gray'   => ['ring' => 'ring-[color:var(--nx-line-strong)]', 'bg' => 'bg-[color:var(--nx-bg)]', 'hover' => 'hover:bg-[color:var(--nx-hover)]', 'fg' => 'text-[color:var(--nx-muted)]', 'dot' => 'bg-[color:var(--nx-faint)]', 'border' => 'border-[color:var(--nx-line-strong)]', 'label' => 'Keine Daten'],
                     ];
                     $t = $healthTones[$hc] ?? $healthTones['gray'];
                     $delta = $latestSnapshot->delta_health_score;
@@ -66,7 +66,7 @@
                    title="{{ implode(' · ', $tooltipParts) }}"
                    class="group inline-flex items-stretch h-9 rounded-lg border {{ $t['border'] }} {{ $t['bg'] }} {{ $t['hover'] }} text-[12px] {{ $t['fg'] }} font-medium overflow-hidden shadow-sm transition-all hover:shadow-md">
                     {{-- Score block --}}
-                    <span class="flex items-center gap-2 px-3 border-r {{ $t['border'] }}/70">
+                    <span class="flex items-center gap-2 px-3 border-r {{ $t['border'] }}">
                         <span class="w-2 h-2 rounded-full {{ $t['dot'] }} animate-pulse"></span>
                         <span class="text-base font-bold tabular-nums leading-none">{{ $hs ?? '–' }}</span>
                     </span>
@@ -87,7 +87,7 @@
                 <a href="{{ route('planner.projects.health', $project) }}"
                    wire:navigate
                    title="Noch kein Snapshot vorhanden — jetzt einen anlegen"
-                   class="inline-flex items-center gap-1.5 px-3 h-9 rounded-lg border border-dashed border-[var(--ui-border)] bg-white hover:bg-[var(--ui-muted-5)] text-[12px] text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] transition-colors">
+                   class="inline-flex items-center gap-1.5 px-3 h-9 rounded-lg border border-dashed border-[var(--nx-line-strong)] bg-[color:var(--nx-surface)] hover:bg-[var(--nx-bg)] text-[12px] text-[var(--nx-muted)] hover:text-[var(--nx-text)] transition-colors">
                     @svg('heroicon-o-heart', 'w-4 h-4')
                     <span class="font-medium">Health</span>
                     @svg('heroicon-o-arrow-right', 'w-3 h-3 opacity-50')
@@ -96,19 +96,19 @@
 
             {{-- Primary action --}}
             @can('update', $project)
-                <x-ui-button variant="primary" size="sm" wire:click="createTask()" title="Neue Aufgabe (N)">
+                <x-nx-button variant="primary" size="sm" wire:click="createTask()" title="Neue Aufgabe (N)">
                     @svg('heroicon-o-plus', 'w-4 h-4')
                     <span>Aufgabe</span>
-                </x-ui-button>
+                </x-nx-button>
             @endcan
 
             {{-- CalDAV: dieses Projekt als eigene Liste in Apple Erinnerungen zeigen (nur bei aktivem Abo) --}}
             @if($this->hasPlannerCaldavSubscription())
-                <x-ui-button variant="ghost" size="sm" wire:click="toggleCaldavExposure"
+                <x-nx-button variant="ghost" size="sm" wire:click="toggleCaldavExposure"
                     title="Dieses Projekt als eigene Liste in meiner Aufgaben-App (Erinnerungen) zeigen">
                     @svg($this->caldavExposed() ? 'heroicon-s-bell-alert' : 'heroicon-o-bell', 'w-4 h-4')
                     <span>{{ $this->caldavExposed() ? 'In App ✓' : 'In App' }}</span>
-                </x-ui-button>
+                </x-nx-button>
             @endif
 
             {{-- Overflow menu --}}
@@ -116,7 +116,7 @@
                 <button
                     type="button"
                     @click="open = !open"
-                    class="inline-flex items-center justify-center w-8 h-7 rounded-md text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)] transition-colors"
+                    class="inline-flex items-center justify-center w-8 h-7 rounded-md text-[var(--nx-muted)] hover:text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition-colors"
                     title="Mehr"
                 >
                     @svg('heroicon-o-ellipsis-horizontal', 'w-4 h-4')
@@ -127,16 +127,16 @@
                     x-transition.opacity.duration.100ms
                     @click.outside="open = false"
                     @keydown.escape.window="open = false"
-                    class="absolute top-full right-0 mt-1 w-52 bg-white border border-[var(--ui-border)] rounded-lg shadow-lg z-30 py-1"
+                    class="absolute top-full right-0 mt-1 w-52 bg-[color:var(--nx-surface)] border border-[var(--nx-line-strong)] rounded-lg shadow-[var(--nx-shadow-pop)] z-30 py-1"
                 >
                     @can('update', $project)
                         <button
                             type="button"
                             wire:click="createProjectSlot"
                             @click="open = false"
-                            class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)] transition-colors"
+                            class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition-colors"
                         >
-                            @svg('heroicon-o-square-2-stack', 'w-4 h-4 text-[var(--ui-muted)]')
+                            @svg('heroicon-o-square-2-stack', 'w-4 h-4 text-[var(--nx-muted)]')
                             <span>Neue Spalte</span>
                         </button>
                     @endcan
@@ -144,28 +144,28 @@
                         type="button"
                         wire:click="openCanvas"
                         @click="open = false"
-                        class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)] transition-colors"
+                        class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition-colors"
                     >
-                        @svg('heroicon-o-squares-2x2', 'w-4 h-4 text-[var(--ui-muted)]')
+                        @svg('heroicon-o-squares-2x2', 'w-4 h-4 text-[var(--nx-muted)]')
                         <span>Project Canvas</span>
                     </button>
                     <a
                         href="{{ route('planner.projects.health', $project) }}"
                         wire:navigate
                         @click="open = false"
-                        class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)] transition-colors"
+                        class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition-colors"
                     >
-                        @svg('heroicon-o-heart', 'w-4 h-4 text-[var(--ui-muted)]')
+                        @svg('heroicon-o-heart', 'w-4 h-4 text-[var(--nx-muted)]')
                         <span>Health-Sicht</span>
                     </a>
                     @can('settings', $project)
-                        <div class="border-t border-[var(--ui-border)]/60 my-1"></div>
+                        <div class="border-t border-[color:var(--nx-line)] my-1"></div>
                         <button
                             type="button"
                             @click="open = false; $dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })"
-                            class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)] transition-colors"
+                            class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition-colors"
                         >
-                            @svg('heroicon-o-cog-6-tooth', 'w-4 h-4 text-[var(--ui-muted)]')
+                            @svg('heroicon-o-cog-6-tooth', 'w-4 h-4 text-[var(--nx-muted)]')
                             <span>Einstellungen</span>
                         </button>
                     @endcan
@@ -195,12 +195,12 @@
     <x-slot name="activity">
         <x-ui-page-sidebar title="Aktivitäten" icon="heroicon-o-bolt" width="w-80" :defaultOpen="true" storeKey="activityOpen" side="right">
             <div class="p-4 space-y-4">
-                <div class="text-sm text-[var(--ui-muted)]">Letzte Aktivitäten</div>
+                <div class="text-sm text-[var(--nx-muted)]">Letzte Aktivitäten</div>
                 <div class="space-y-3 text-sm">
                     @foreach(($activities ?? []) as $activity)
-                        <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
-                            <div class="font-medium text-[var(--ui-secondary)] truncate">{{ $activity['title'] ?? 'Aktivität' }}</div>
-                            <div class="text-[var(--ui-muted)]">{{ $activity['time'] ?? '' }}</div>
+                        <div class="p-2 rounded border border-[color:var(--nx-line)] bg-[var(--nx-bg)]">
+                            <div class="font-medium text-[var(--nx-text)] truncate">{{ $activity['title'] ?? 'Aktivität' }}</div>
+                            <div class="text-[var(--nx-muted)]">{{ $activity['time'] ?? '' }}</div>
                         </div>
                     @endforeach
                 </div>

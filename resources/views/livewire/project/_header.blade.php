@@ -8,32 +8,32 @@
 
     // Canvas-Status: missing | red | yellow | green | unknown
     $canvasStatusTokens = [
-        'green'   => ['color' => 'var(--planner-status-done)', 'bg' => 'rgba(34,197,94,0.10)',  'label' => 'OK'],
-        'yellow'  => ['color' => '#d97706',                     'bg' => 'rgba(217,119,6,0.10)',  'label' => 'Lücken'],
-        'red'     => ['color' => 'var(--planner-status-overdue)','bg' => 'rgba(239,68,68,0.10)', 'label' => 'Kritisch'],
-        'missing' => ['color' => 'var(--ui-muted)',              'bg' => 'var(--ui-muted-5)',    'label' => 'Fehlt'],
-        'unknown' => ['color' => 'var(--ui-muted)',              'bg' => 'var(--ui-muted-5)',    'label' => '–'],
+        'green'   => ['color' => 'var(--nx-success)', 'bg' => 'rgba(47,158,68,0.10)',  'label' => 'OK'],
+        'yellow'  => ['color' => 'var(--nx-warning)',                     'bg' => 'rgba(232,89,12,0.10)',  'label' => 'Lücken'],
+        'red'     => ['color' => 'var(--nx-danger)','bg' => 'rgba(224,49,49,0.10)', 'label' => 'Kritisch'],
+        'missing' => ['color' => 'var(--nx-muted)',              'bg' => 'var(--nx-bg)',    'label' => 'Fehlt'],
+        'unknown' => ['color' => 'var(--nx-muted)',              'bg' => 'var(--nx-bg)',    'label' => '–'],
     ];
     $cs = $canvasStatusTokens[$canvasInfo['status'] ?? 'unknown'] ?? $canvasStatusTokens['unknown'];
 @endphp
 
-<div class="px-4 pt-3 pb-2 border-b border-[var(--ui-border)]/40 bg-white">
+<div class="px-4 pt-3 pb-2 border-b border-[color:var(--nx-line)] bg-[color:var(--nx-surface)]">
     <div class="flex items-start justify-between gap-6">
         {{-- Left: Title + subline --}}
         <div class="min-w-0 flex-1">
-            <h1 class="text-base font-semibold text-[var(--ui-secondary)] truncate m-0 leading-tight">
+            <h1 class="text-base font-semibold text-[var(--nx-text)] truncate m-0 leading-tight">
                 {{ $project->name }}
             </h1>
             @if($subline || (isset($linkedEntities) && $linkedEntities->isNotEmpty()))
-                <div class="flex items-center gap-2 mt-0.5 text-[11px] text-[var(--ui-muted)] min-w-0">
+                <div class="flex items-center gap-2 mt-0.5 text-[11px] text-[var(--nx-muted)] min-w-0">
                     @if($subline)
                         <span class="truncate">{{ $subline }}</span>
                     @endif
                     @if(isset($linkedEntities) && $linkedEntities->isNotEmpty())
-                        <span class="text-[var(--ui-border)]">·</span>
+                        <span class="text-[color:var(--nx-faint)]">·</span>
                         <div class="flex items-center gap-1 flex-wrap min-w-0">
                             @foreach($linkedEntities as $entity)
-                                <span class="inline-flex items-center gap-1 text-[var(--ui-secondary)]">
+                                <span class="inline-flex items-center gap-1 text-[var(--nx-text)]">
                                     @svg('heroicon-o-link', 'w-3 h-3 opacity-60')
                                     <span class="truncate">{{ $entity['entity_name'] }}</span>
                                 </span>
@@ -46,32 +46,32 @@
 
         {{-- Right: live metrics --}}
         <div class="flex items-center gap-4 flex-shrink-0 text-[11px]">
-            <span class="inline-flex items-center gap-1.5 text-[var(--ui-secondary)]">
-                <span class="w-1.5 h-1.5 rounded-full bg-[var(--planner-status-active)]"></span>
+            <span class="inline-flex items-center gap-1.5 text-[var(--nx-text)]">
+                <span class="w-1.5 h-1.5 rounded-full bg-[var(--nx-info)]"></span>
                 <span class="font-semibold tabular-nums">{{ $openCount ?? 0 }}</span>
-                <span class="text-[var(--ui-muted)]">offen</span>
+                <span class="text-[var(--nx-muted)]">offen</span>
             </span>
 
             @if(($overdueCount ?? 0) > 0)
-                <span class="inline-flex items-center gap-1.5 text-[var(--planner-status-overdue)]">
-                    <span class="w-1.5 h-1.5 rounded-full bg-[var(--planner-status-overdue)]"></span>
+                <span class="inline-flex items-center gap-1.5 text-[var(--nx-danger)]">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[var(--nx-danger)]"></span>
                     <span class="font-semibold tabular-nums">{{ $overdueCount }}</span>
                     <span>überfällig</span>
                 </span>
             @endif
 
-            <span class="inline-flex items-center gap-1.5 text-[var(--ui-secondary)]">
-                <span class="w-1.5 h-1.5 rounded-full bg-[var(--planner-status-done)]"></span>
+            <span class="inline-flex items-center gap-1.5 text-[var(--nx-text)]">
+                <span class="w-1.5 h-1.5 rounded-full bg-[var(--nx-success)]"></span>
                 <span class="font-semibold tabular-nums">{{ $doneCount ?? 0 }}</span>
-                <span class="text-[var(--ui-muted)]">erledigt</span>
+                <span class="text-[var(--nx-muted)]">erledigt</span>
             </span>
 
             {{-- Progress --}}
             @if($total > 0)
                 <span class="inline-flex items-center gap-2">
-                    <span class="text-[var(--ui-muted)] tabular-nums">{{ $donePct }}%</span>
-                    <span class="w-24 h-1 rounded-full bg-[var(--planner-track)] overflow-hidden">
-                        <span class="block h-full rounded-full bg-[var(--planner-status-done)] transition-all duration-300" style="width: {{ $donePct }}%"></span>
+                    <span class="text-[var(--nx-muted)] tabular-nums">{{ $donePct }}%</span>
+                    <span class="w-24 h-1 rounded-full bg-[var(--nx-line)] overflow-hidden">
+                        <span class="block h-full rounded-full bg-[var(--nx-success)] transition-all duration-300" style="width: {{ $donePct }}%"></span>
                     </span>
                 </span>
             @endif
