@@ -1,6 +1,4 @@
 <x-ui-page>
-    @include('planner::partials.planner-tokens')
-
     <x-slot name="navbar">
         <x-ui-page-navbar title="Präsentation" icon="heroicon-o-presentation-chart-line" />
     </x-slot>
@@ -8,12 +6,13 @@
     @verbatim
     <style>
         .pm {
-            --ink: #16202A; --ink-soft: #3A4652; --muted: #6A7683;
-            --ground: #EDF0F3; --panel: #FFFFFF; --line: #E1E6EB; --line-strong: #CDD5DD;
-            --accent: #0F5F5A; --accent-ink: #0A4744; --accent-soft: #E3F0EE;
-            --good: #2E7D5B; --good-soft: #E4F1EA; --warn: #C77A2B; --warn-soft: #FAF0E3;
+            /* Farben zentral aus nx — lokale Semantik-Namen bleiben, Werte kommen aus nx-Tokens */
+            --ink: var(--nx-text); --ink-soft: color-mix(in srgb, var(--nx-text) 82%, var(--nx-bg)); --muted: var(--nx-muted);
+            --ground: var(--nx-bg); --panel: var(--nx-surface); --line: var(--nx-line); --line-strong: var(--nx-line-strong);
+            --accent: var(--nx-accent); --accent-ink: var(--nx-accent-hover); --accent-soft: var(--nx-accent-soft);
+            --good: var(--nx-success); --good-soft: rgba(47,158,68,.12); --warn: var(--nx-warning); --warn-soft: rgba(232,89,12,.12);
             --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
-            --shadow-soft: 0 1px 2px rgba(16,32,42,.04);
+            --shadow-soft: var(--nx-shadow-card);
             background: var(--ground); color: var(--ink);
         }
         .pm * { box-sizing: border-box; }
@@ -23,7 +22,7 @@
         .pm-back { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--muted); background: none; border: 0; cursor: pointer; padding: 6px 8px; border-radius: 8px; font-family: inherit; }
         .pm-back:hover { color: var(--ink); background: var(--ground); }
         .pm-client { margin: 0 auto; display: flex; align-items: center; gap: 11px; }
-        .pm-mark { width: 30px; height: 30px; border-radius: 8px; background: var(--accent); color: #fff; display: grid; place-items: center; font-family: var(--serif); font-size: 16px; font-weight: 600; }
+        .pm-mark { width: 30px; height: 30px; border-radius: 8px; background: var(--accent); color: var(--nx-on-accent); display: grid; place-items: center; font-family: var(--serif); font-size: 16px; font-weight: 600; }
         .pm-client .name { font-size: 15px; font-weight: 600; }
         .pm-client .sub { font-size: 11px; color: var(--muted); }
         .pm-counter { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -104,14 +103,14 @@
         .pm-task:last-child { border-bottom: 0; }
         .pm-task .row { display: flex; align-items: center; gap: 10px; }
         .pm-task .tt { font-size: 15px; font-weight: 600; color: var(--ink); }
-        .pm-check { width: 22px; height: 22px; border-radius: 6px; border: 1.5px solid var(--line-strong); background: #fff; cursor: pointer; flex-shrink: 0; display: grid; place-items: center; color: transparent; padding: 0; transition: border-color .12s, background .12s, color .12s; }
+        .pm-check { width: 22px; height: 22px; border-radius: 6px; border: 1.5px solid var(--line-strong); background: var(--nx-surface); cursor: pointer; flex-shrink: 0; display: grid; place-items: center; color: transparent; padding: 0; transition: border-color .12s, background .12s, color .12s; }
         .pm-check:hover { border-color: var(--good); background: var(--good-soft); color: var(--good); }
-        .pm-check.on { border-color: var(--good); background: var(--good); color: #fff; }
+        .pm-check.on { border-color: var(--good); background: var(--good); color: var(--nx-on-accent); }
         .pm-task.done .tt { text-decoration: line-through; color: var(--muted); }
         .pm-sp { font-size: 11px; font-weight: 700; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: 2px 8px; white-space: nowrap; flex-shrink: 0; }
-        .pm-dcheck { width: 17px; height: 17px; border-radius: 5px; border: 1.5px solid var(--line-strong); background: #fff; cursor: pointer; padding: 0; display: grid; place-items: center; color: transparent; flex-shrink: 0; margin-top: 1px; transition: border-color .12s, background .12s, color .12s; }
+        .pm-dcheck { width: 17px; height: 17px; border-radius: 5px; border: 1.5px solid var(--line-strong); background: var(--nx-surface); cursor: pointer; padding: 0; display: grid; place-items: center; color: transparent; flex-shrink: 0; margin-top: 1px; transition: border-color .12s, background .12s, color .12s; }
         .pm-dcheck:hover { border-color: var(--good); color: var(--good); }
-        .pm-dcheck.on { border-color: var(--good); background: var(--good); color: #fff; cursor: default; }
+        .pm-dcheck.on { border-color: var(--good); background: var(--good); color: var(--nx-on-accent); cursor: default; }
         .pm-dods li .txt.checked { text-decoration: line-through; color: var(--muted); }
         .pm-pill { margin-left: auto; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--ground); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
         .pm-pill.done { background: var(--good-soft); color: var(--good); }
@@ -135,7 +134,7 @@
         .pm-footer { display: flex; align-items: center; gap: 16px; padding: 12px 28px; background: var(--panel); border-top: 1px solid var(--line); }
         .pm-navbtn { display: inline-flex; align-items: center; gap: 6px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; padding: 8px 14px; border-radius: 9px; border: 1px solid var(--line-strong); background: var(--panel); color: var(--ink); }
         .pm-navbtn:hover { background: var(--ground); }
-        .pm-navbtn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+        .pm-navbtn.primary { background: var(--accent); border-color: var(--accent); color: var(--nx-on-accent); }
         .pm-navbtn.primary:hover { background: var(--accent-ink); }
         .pm-navbtn:disabled { opacity: .4; cursor: not-allowed; }
         .pm-dots { display: flex; gap: 8px; margin: 0 auto; align-items: center; }
@@ -391,7 +390,7 @@
                                         @forelse($slides as $i => $s)
                                             @php
                                                 $rowPct = $s['dod_total'] > 0 ? round($s['dod_checked'] / $s['dod_total'] * 100) : null;
-                                                $rowHc = match($s['health_color']) { 'red' => '#DC2626', 'yellow' => '#D97706', 'green' => '#2E7D5B', default => '#94A3B8' };
+                                                $rowHc = match($s['health_color']) { 'red' => 'var(--nx-danger)', 'yellow' => 'var(--nx-warning)', 'green' => 'var(--nx-success)', default => 'var(--nx-muted)' };
                                             @endphp
                                             <button type="button" wire:click="goTo({{ $i + 1 }})" class="pm-prjrow">
                                                 <span class="pn">{{ $s['name'] }}@if($s['bracket'])<span class="pm-inittag">{{ $s['bracket']['name'] }}</span>@endif</span>
@@ -419,7 +418,7 @@
                                     @php
                                         $mix = $ov['health_mix'];
                                         $mixTotal = max(1, array_sum($mix));
-                                        $mixDefs = ['green' => ['#2E7D5B', 'Grün'], 'yellow' => ['#D97706', 'Gelb'], 'red' => ['#DC2626', 'Rot'], 'gray' => ['#94A3B8', 'Offen']];
+                                        $mixDefs = ['green' => ['var(--nx-success)', 'Grün'], 'yellow' => ['var(--nx-warning)', 'Gelb'], 'red' => ['var(--nx-danger)', 'Rot'], 'gray' => ['var(--nx-muted)', 'Offen']];
                                     @endphp
                                     <div class="pm-cvcard">
                                         <div class="lbl">Status-Verteilung</div>
@@ -445,7 +444,7 @@
                             @php
                                 $days = $current['days_to_end'];
                                 $hcColor = match($current['health_color']) {
-                                    'red' => '#DC2626', 'yellow' => '#D97706', 'green' => '#2E7D5B', default => '#94A3B8',
+                                    'red' => 'var(--nx-danger)', 'yellow' => 'var(--nx-warning)', 'green' => 'var(--nx-success)', default => 'var(--nx-muted)',
                                 };
                             @endphp
                             <div class="pm-head">
