@@ -273,23 +273,26 @@
                 {{-- Middle columns --}}
                 @foreach($middleColumns as $column)
                     @php $tone = $columnTones[$column->id] ?? 'indigo'; @endphp
-                    <x-nx-kanban-column :title="($column->label ?? $column->name ?? 'Spalte')" :sortable-id="$column->id" :scrollable="true" :tone="$tone" :count="$column->tasks->count()">
-                        <x-slot name="headerActions">
-                            <button
-                                wire:click="createTask('{{ $column->id ?? 0 }}')"
-                                class="text-[var(--nx-muted)] hover:text-[var(--nx-accent)] transition-colors"
-                                title="Neue Aufgabe"
-                            >
-                                @svg('heroicon-o-plus-circle', 'w-4 h-4')
-                            </button>
-                            <button
-                                @click="$dispatch('open-modal-task-group-settings', { taskGroupId: {{ $column->id ?? 0 }} })"
-                                class="text-[var(--nx-muted)] hover:text-[var(--nx-accent)] transition-colors"
-                                title="Gruppen-Einstellungen"
-                            >
-                                @svg('heroicon-o-cog-6-tooth', 'w-4 h-4')
-                            </button>
-                        </x-slot>
+                    @php $isRealGroup = is_numeric($column->id); @endphp
+                    <x-nx-kanban-column :title="($column->label ?? $column->name ?? 'Spalte')" :sortable-id="$isRealGroup ? $column->id : null" :scrollable="true" :tone="$tone" :count="$column->tasks->count()">
+                        @if($isRealGroup)
+                            <x-slot name="headerActions">
+                                <button
+                                    wire:click="createTask('{{ $column->id }}')"
+                                    class="text-[var(--nx-muted)] hover:text-[var(--nx-accent)] transition-colors"
+                                    title="Neue Aufgabe"
+                                >
+                                    @svg('heroicon-o-plus-circle', 'w-4 h-4')
+                                </button>
+                                <button
+                                    @click="$dispatch('open-modal-task-group-settings', { taskGroupId: {{ $column->id }} })"
+                                    class="text-[var(--nx-muted)] hover:text-[var(--nx-accent)] transition-colors"
+                                    title="Gruppen-Einstellungen"
+                                >
+                                    @svg('heroicon-o-cog-6-tooth', 'w-4 h-4')
+                                </button>
+                            </x-slot>
+                        @endif
                         @forelse(($column->tasks ?? []) as $task)
                             @include('planner::livewire.task-preview-card', ['task' => $task, 'cardFrom' => 'my-tasks'])
                         @empty
@@ -299,26 +302,28 @@
                                 <span class="text-[10px] mt-0.5 opacity-60">Hierher ziehen oder neu erstellen</span>
                             </div>
                         @endforelse
-                        <x-slot name="footer">
-                            <div x-data="{ open: false, title: '' }">
-                                <button x-show="!open" @click="open = true; $nextTick(() => $refs.inlineInput.focus())" class="w-full text-left text-xs text-[var(--nx-muted)] hover:text-[var(--nx-accent)] transition-colors flex items-center gap-1.5">
-                                    @svg('heroicon-o-plus', 'w-3.5 h-3.5')
-                                    <span>Aufgabe</span>
-                                </button>
-                                <div x-show="open" x-cloak>
-                                    <input
-                                        x-ref="inlineInput"
-                                        x-model="title"
-                                        @keydown.enter.prevent="if(title.trim()) { $wire.createTask('{{ $column->id ?? 0 }}', title.trim()); title = ''; open = false; }"
-                                        @keydown.escape="open = false; title = ''"
-                                        @click.outside="open = false; title = ''"
-                                        type="text"
-                                        placeholder="Titel eingeben..."
-                                        class="w-full text-xs border border-[var(--nx-line-strong)] rounded px-2 py-1.5 bg-[color:var(--nx-surface)] focus:border-[var(--nx-accent)] focus:ring-1 focus:ring-[var(--nx-accent)]/30 outline-none"
-                                    />
+                        @if($isRealGroup)
+                            <x-slot name="footer">
+                                <div x-data="{ open: false, title: '' }">
+                                    <button x-show="!open" @click="open = true; $nextTick(() => $refs.inlineInput.focus())" class="w-full text-left text-xs text-[var(--nx-muted)] hover:text-[var(--nx-text)] transition-colors flex items-center gap-1.5 px-2 py-1">
+                                        @svg('heroicon-o-plus', 'w-3.5 h-3.5')
+                                        <span>Aufgabe</span>
+                                    </button>
+                                    <div x-show="open" x-cloak>
+                                        <input
+                                            x-ref="inlineInput"
+                                            x-model="title"
+                                            @keydown.enter.prevent="if(title.trim()) { $wire.createTask('{{ $column->id }}', title.trim()); title = ''; open = false; }"
+                                            @keydown.escape="open = false; title = ''"
+                                            @click.outside="open = false; title = ''"
+                                            type="text"
+                                            placeholder="Titel eingeben..."
+                                            class="w-full text-xs border border-[color:var(--nx-line-strong)] rounded-[6px] px-2 py-1.5 bg-[color:var(--nx-surface)] text-[color:var(--nx-text)] focus:border-[color:var(--nx-accent)] focus:ring-1 focus:ring-[color:var(--nx-accent)] outline-none"
+                                        />
+                                    </div>
                                 </div>
-                            </div>
-                        </x-slot>
+                            </x-slot>
+                        @endif
                     </x-nx-kanban-column>
                 @endforeach
 
