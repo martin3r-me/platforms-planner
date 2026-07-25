@@ -1,19 +1,19 @@
-<x-ui-modal size="md" model="modalShow">
+<x-nx-modal size="md" model="modalShow">
     <x-slot name="header">
         <div class="flex items-center gap-3">
-            <div class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-[var(--planner-status-active)]/10 flex-shrink-0">
-                @svg('heroicon-o-view-columns', 'w-5 h-5 text-[var(--planner-status-active)]')
+            <div class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-[var(--nx-accent)]/10 flex-shrink-0">
+                @svg('heroicon-o-view-columns', 'w-5 h-5 text-[var(--nx-accent)]')
             </div>
             <div class="min-w-0">
-                <h3 class="text-base font-semibold text-[var(--ui-secondary)] m-0 leading-tight">Spalten-Einstellungen</h3>
-                <p class="text-[12px] text-[var(--ui-muted)] m-0 mt-0.5">Spalte bearbeiten und Farbe wählen</p>
+                <h3 class="text-base font-semibold text-[var(--nx-text)] m-0 leading-tight">Spalten-Einstellungen</h3>
+                <p class="text-[12px] text-[var(--nx-muted)] m-0 mt-0.5">Spalte bearbeiten und Farbe wählen</p>
             </div>
         </div>
     </x-slot>
 
     @if($projectSlot)
         <div class="space-y-6">
-            <x-ui-input-text
+            <x-nx-input-text
                 name="projectSlot.name"
                 label="Spaltenname"
                 wire:model="projectSlot.name"
@@ -22,7 +22,7 @@
             />
 
             <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider text-[var(--ui-muted)] mb-2">Spaltenfarbe</label>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-[var(--nx-muted)] mb-2">Spaltenfarbe</label>
                 @php
                     $toneOptions = [
                         ['key' => 'indigo',  'color' => '#6366f1', 'label' => 'Indigo'],
@@ -41,10 +41,10 @@
                         type="button"
                         wire:click="$set('projectSlot.color', null)"
                         class="inline-flex items-center justify-center w-8 h-8 rounded-full border-2 transition-all
-                            {{ empty($projectSlot->color) ? 'border-[var(--ui-primary)] ring-2 ring-[var(--ui-primary)]/30' : 'border-[var(--ui-border)] hover:border-[var(--ui-primary)]/60' }}"
+                            {{ empty($projectSlot->color) ? 'border-[var(--nx-accent)] ring-2 ring-[var(--nx-accent)]/30' : 'border-[color:var(--nx-line)] hover:border-[var(--nx-accent)]/60' }}"
                         title="Automatisch (Position)"
                     >
-                        <span class="text-[10px] text-[var(--ui-muted)] font-semibold">A</span>
+                        <span class="text-[10px] text-[var(--nx-muted)] font-semibold">A</span>
                     </button>
                     @foreach($toneOptions as $opt)
                         <button
@@ -52,34 +52,29 @@
                             wire:click="$set('projectSlot.color', '{{ $opt['key'] }}')"
                             class="w-8 h-8 rounded-full border-2 transition-all
                                 {{ ($projectSlot->color ?? null) === $opt['key']
-                                    ? 'border-[var(--ui-primary)] ring-2 ring-[var(--ui-primary)]/30 scale-110'
-                                    : 'border-white shadow-sm hover:scale-110' }}"
+                                    ? 'border-[var(--nx-accent)] ring-2 ring-[var(--nx-accent)]/30 scale-110'
+                                    : 'border-white shadow-[var(--nx-shadow-card)] hover:scale-110' }}"
                             style="background-color: {{ $opt['color'] }};"
                             title="{{ $opt['label'] }}"
                         ></button>
                     @endforeach
                 </div>
-                <p class="mt-2 text-[11px] text-[var(--ui-muted)]">„A" = automatische Farbvergabe nach Spaltenposition.</p>
+                <p class="mt-2 text-[11px] text-[var(--nx-muted)]">„A" = automatische Farbvergabe nach Spaltenposition.</p>
             </div>
 
-            <div class="pt-4 border-t border-[var(--ui-border)]/40">
-                <x-ui-confirm-button
-                    action="deleteProjectSlot"
-                    text="Spalte löschen"
-                    confirmText="Wirklich löschen?"
-                    variant="danger"
-                />
+            <div class="pt-4 border-t border-[color:var(--nx-line)]">
+                <x-nx-button variant="danger" size="sm" wire:click="deleteProjectSlot" wire:confirm="Wirklich löschen?">Spalte löschen</x-nx-button>
             </div>
         </div>
     @endif
 
     <x-slot name="footer">
         <div class="flex justify-end gap-2">
-            <x-ui-button variant="secondary-outline" size="sm" wire:click="closeModal">Abbrechen</x-ui-button>
-            <x-ui-button variant="primary" size="sm" wire:click="save">
+            <x-nx-button variant="secondary" size="sm" wire:click="closeModal">Abbrechen</x-nx-button>
+            <x-nx-button variant="primary" size="sm" wire:click="save">
                 @svg('heroicon-o-check', 'w-3.5 h-3.5')
                 <span>Speichern</span>
-            </x-ui-button>
+            </x-nx-button>
         </div>
     </x-slot>
-</x-ui-modal>
+</x-nx-modal>
