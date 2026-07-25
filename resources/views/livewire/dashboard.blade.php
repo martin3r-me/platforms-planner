@@ -94,20 +94,6 @@
                             <dt class="text-[var(--nx-muted)]">Stunden diesen Monat</dt>
                             <dd class="text-[var(--nx-text)] font-medium tabular-nums m-0">{{ number_format($myMonthlyMinutes / 60, 1, ',', '.') }} h</dd>
                         </div>
-                        <div class="flex items-baseline justify-between gap-3">
-                            <dt class="text-[var(--nx-muted)]">Heute fällig</dt>
-                            <dd class="font-medium tabular-nums m-0 {{ $myDueTodayCount > 0 ? 'text-[color:var(--nx-warning)]' : 'text-[var(--nx-text)]' }}">{{ $myDueTodayCount }}</dd>
-                        </div>
-                        <div class="flex items-baseline justify-between gap-3">
-                            <dt class="text-[var(--nx-muted)]">Offen</dt>
-                            <dd class="text-[var(--nx-text)] font-medium tabular-nums m-0">{{ $myOpenTasksCount }}</dd>
-                        </div>
-                        @if($myOverdueCount > 0)
-                            <div class="flex items-baseline justify-between gap-3">
-                                <dt class="text-[var(--nx-muted)]">Überfällig</dt>
-                                <dd class="text-[var(--nx-danger)] font-semibold tabular-nums m-0">{{ $myOverdueCount }}</dd>
-                            </div>
-                        @endif
                     </dl>
                 </section>
 
@@ -145,39 +131,6 @@
                     .
                 @endif
             </p>
-        </div>
-
-        {{-- Quick Navigation Cards --}}
-        @php
-            $quickCards = [
-                ['route' => 'planner.my-tasks',        'icon' => 'heroicon-o-clipboard-document-check', 'emoji' => null, 'count' => $myOpenTasksCount,  'label' => 'Meine Aufgaben'],
-                ['route' => 'planner.frog-tasks',      'icon' => null, 'emoji' => '🐸',                  'count' => $myFrogsCount,      'label' => 'Frösche'],
-                ['route' => 'planner.delegated-tasks', 'icon' => 'heroicon-o-user-group',               'emoji' => null, 'count' => $delegatedOpenCount,'label' => 'Delegiert'],
-                ['route' => 'planner.completed-tasks', 'icon' => 'heroicon-o-check-circle',             'emoji' => null, 'count' => null,               'label' => 'Erledigt', 'sub' => 'Verlauf'],
-            ];
-        @endphp
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-            @foreach($quickCards as $c)
-                <a href="{{ route($c['route']) }}" wire:navigate
-                    class="group flex items-center gap-3 rounded-[10px] border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] px-4 py-3.5 shadow-[var(--nx-shadow-card)] transition-shadow hover:shadow-[0_2px_8px_rgba(15,15,15,.08)]">
-                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] bg-[color:var(--nx-bg)]">
-                        @if($c['emoji'])
-                            <span class="text-lg">{{ $c['emoji'] }}</span>
-                        @else
-                            @svg($c['icon'], 'w-5 h-5 text-[color:var(--nx-muted)]')
-                        @endif
-                    </div>
-                    <div class="min-w-0">
-                        @if(!is_null($c['count']))
-                            <div class="text-xl font-bold leading-none tabular-nums text-[color:var(--nx-text)]">{{ $c['count'] }}</div>
-                            <div class="text-xs text-[color:var(--nx-muted)]">{{ $c['label'] }}</div>
-                        @else
-                            <div class="text-sm font-medium leading-tight text-[color:var(--nx-text)]">{{ $c['label'] }}</div>
-                            <div class="text-xs text-[color:var(--nx-muted)]">{{ $c['sub'] ?? '' }}</div>
-                        @endif
-                    </div>
-                </a>
-            @endforeach
         </div>
 
         {{-- Meine überfälligen Aufgaben --}}
