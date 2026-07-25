@@ -40,7 +40,7 @@ Route::get('/health-index', \Platform\Planner\Livewire\HealthIndex::class)
 Route::get('/projects-cleanup', \Platform\Planner\Livewire\ProjectsCleanup::class)
     ->name('planner.projects.cleanup');
 
-// Ops-Room (Wand-Display, Vollbild, dunkles Theme)
+// Ops-Room = Wand-Modus von Portfolio-Health (Wand-Display, Vollbild, nx-hell)
 Route::get('/ops', \Platform\Planner\Livewire\OpsRoom::class)
     ->name('planner.ops');
 

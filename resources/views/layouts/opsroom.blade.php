@@ -14,18 +14,20 @@
     @livewireStyles
 
     <style>
-        html, body { background: #0a0a0a; color: #e5e5e5; height: 100%; margin: 0; padding: 0; overflow: hidden; }
+        /* nx-hell Kiosk — chromeless Wandmonitor, ruhig, aus Distanz lesbar */
+        html, body { background: var(--nx-bg); color: var(--nx-text); height: 100%; margin: 0; padding: 0; overflow: hidden; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
         .ops-grid-bg {
             background-image:
-                linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+                linear-gradient(rgba(15,15,15,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(15,15,15,0.03) 1px, transparent 1px);
             background-size: 32px 32px;
         }
-        .ops-glow-red    { box-shadow: 0 0 24px -4px rgba(244, 63, 94, 0.55), inset 0 0 0 1px rgba(244, 63, 94, 0.30); }
-        .ops-glow-yellow { box-shadow: 0 0 24px -4px rgba(245, 158, 11, 0.45), inset 0 0 0 1px rgba(245, 158, 11, 0.30); }
-        .ops-glow-green  { box-shadow: 0 0 24px -4px rgba(16, 185, 129, 0.40), inset 0 0 0 1px rgba(16, 185, 129, 0.25); }
-        .ops-glow-gray   { box-shadow: 0 0 16px -4px rgba(115, 115, 115, 0.30), inset 0 0 0 1px rgba(115, 115, 115, 0.25); }
+        /* Glow -> ruhige farbige Anhebung auf Hell: weicher Karten-Schatten + zarter Farb-Ring */
+        .ops-glow-red    { box-shadow: 0 1px 2px rgba(15,15,15,.04), 0 6px 16px -8px rgba(224,49,49,.40), inset 0 0 0 1px rgba(224,49,49,.22); }
+        .ops-glow-yellow { box-shadow: 0 1px 2px rgba(15,15,15,.04), 0 6px 16px -8px rgba(232,89,12,.34), inset 0 0 0 1px rgba(232,89,12,.22); }
+        .ops-glow-green  { box-shadow: 0 1px 2px rgba(15,15,15,.04), 0 6px 16px -8px rgba(47,158,68,.30), inset 0 0 0 1px rgba(47,158,68,.20); }
+        .ops-glow-gray   { box-shadow: 0 1px 2px rgba(15,15,15,.05), inset 0 0 0 1px rgba(15,15,15,.07); }
         .ops-pulse-dot   { animation: opsPulse 2s ease-in-out infinite; }
         @keyframes opsPulse {
             0%, 100% { opacity: 1; transform: scale(1); }

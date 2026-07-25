@@ -30,6 +30,20 @@
             ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
             ['label' => 'Health-Index'],
         ]">
+            {{-- Modus-Umschalter: Analyse (aktiv) ⟷ Wand --}}
+            <div class="inline-flex rounded-md border border-[color:var(--nx-line-strong)] overflow-hidden">
+                <span class="inline-flex items-center gap-1.5 h-7 px-2.5 text-[11px] font-medium bg-[color:var(--nx-accent)] text-[color:var(--nx-on-accent)]">
+                    @svg('heroicon-o-table-cells', 'w-3.5 h-3.5')
+                    Analyse
+                </span>
+                <a href="{{ route('planner.ops') }}" wire:navigate
+                   title="Wand-Modus (Vollbild-Monitor)"
+                   class="inline-flex items-center gap-1.5 h-7 px-2.5 text-[11px] font-medium text-[color:var(--nx-muted)] hover:text-[color:var(--nx-text)] hover:bg-[color:var(--nx-hover)] border-l border-[color:var(--nx-line-strong)] transition-colors">
+                    @svg('heroicon-o-presentation-chart-line', 'w-3.5 h-3.5')
+                    Wand
+                </a>
+            </div>
+
             {{-- Ampel-Verteilung als EIN Badge rechts (Projekt-Standard), health-getönt --}}
             <x-nx-badge :variant="$idxVariant" title="Brennt {{ $byColor['red'] ?? 0 }} · Achtung {{ $byColor['yellow'] ?? 0 }} · Stabil {{ $byColor['green'] ?? 0 }} · Keine Daten {{ $byColor['gray'] ?? 0 }}">
                 <span class="inline-flex items-center gap-1 text-[color:var(--nx-danger)]"><span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-danger)]"></span><span class="tabular-nums">{{ $byColor['red'] ?? 0 }}</span></span>
