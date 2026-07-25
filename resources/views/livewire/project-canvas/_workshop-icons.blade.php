@@ -15,7 +15,7 @@
 <div class="flex items-center gap-1.5">
     @foreach($types as $t)
         @if($t['count'] > 0)
-        <span class="inline-flex items-center gap-0.5 text-gray-400" title="{{ $t['count'] }} {{ $t['label'] }}">
+        <span class="inline-flex items-center gap-0.5 text-[color:var(--nx-muted)]" title="{{ $t['count'] }} {{ $t['label'] }}">
             @svg($t['icon'], 'w-3.5 h-3.5')
             <span class="text-[10px] font-medium">{{ $t['count'] }}</span>
         </span>

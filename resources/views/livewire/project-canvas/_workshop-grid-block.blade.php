@@ -39,7 +39,7 @@
     {{-- Header: Title + Icon --}}
     <div class="workshop-grid-block-header">
         <h4>{{ $label }}</h4>
-        @svg($icon, 'w-5 h-5 text-gray-300')
+        @svg($icon, 'w-5 h-5 text-[color:var(--nx-faint)]')
     </div>
 
     {{-- Body --}}

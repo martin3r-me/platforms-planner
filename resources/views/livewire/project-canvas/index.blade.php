@@ -17,102 +17,76 @@
 
             {{-- Stats --}}
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <x-ui-dashboard-tile
-                    title="Gesamt"
-                    :count="$stats['total']"
-                    subtitle="Canvases"
-                    icon="clipboard-document-list"
-                    variant="secondary"
-                    size="lg"
-                />
-                <x-ui-dashboard-tile
-                    title="Entwurf"
-                    :count="$stats['draft']"
-                    subtitle="Draft"
-                    icon="pencil-square"
-                    variant="secondary"
-                    size="lg"
-                />
-                <x-ui-dashboard-tile
-                    title="Aktiv"
-                    :count="$stats['active']"
-                    subtitle="In Bearbeitung"
-                    icon="check-circle"
-                    variant="secondary"
-                    size="lg"
-                />
-                <x-ui-dashboard-tile
-                    title="Archiviert"
-                    :count="$stats['archived']"
-                    subtitle="Abgeschlossen"
-                    icon="archive-box"
-                    variant="secondary"
-                    size="lg"
-                />
+                <x-nx-stat label="Gesamt" :value="$stats['total']" hint="Canvases" icon="clipboard-document-list" />
+                <x-nx-stat label="Entwurf" :value="$stats['draft']" hint="Draft" icon="pencil-square" />
+                <x-nx-stat label="Aktiv" :value="$stats['active']" hint="In Bearbeitung" icon="check-circle" />
+                <x-nx-stat label="Archiviert" :value="$stats['archived']" hint="Abgeschlossen" icon="archive-box" />
             </div>
 
             {{-- Canvas Table --}}
             @if($canvases->isNotEmpty())
-            <x-ui-panel title="Canvases" subtitle="{{ $stats['total'] }} Canvas(es) in diesem Projekt">
-                <x-ui-table compact="true">
-                    <x-ui-table-header>
-                        <x-ui-table-header-cell compact="true">Name</x-ui-table-header-cell>
-                        <x-ui-table-header-cell compact="true">Ampel</x-ui-table-header-cell>
-                        <x-ui-table-header-cell compact="true">Status</x-ui-table-header-cell>
-                        <x-ui-table-header-cell compact="true">Bloecke</x-ui-table-header-cell>
-                        <x-ui-table-header-cell compact="true">Erstellt von</x-ui-table-header-cell>
-                        <x-ui-table-header-cell compact="true">Aktualisiert</x-ui-table-header-cell>
-                    </x-ui-table-header>
-                    <x-ui-table-body>
+            <x-nx-section title="Canvases" hint="{{ $stats['total'] }} Canvas(es)">
+                <x-nx-card flush>
+                <x-nx-table compact="true">
+                    <x-nx-table-header>
+                        <x-nx-table-header-cell compact="true">Name</x-nx-table-header-cell>
+                        <x-nx-table-header-cell compact="true">Ampel</x-nx-table-header-cell>
+                        <x-nx-table-header-cell compact="true">Status</x-nx-table-header-cell>
+                        <x-nx-table-header-cell compact="true">Bloecke</x-nx-table-header-cell>
+                        <x-nx-table-header-cell compact="true">Erstellt von</x-nx-table-header-cell>
+                        <x-nx-table-header-cell compact="true">Aktualisiert</x-nx-table-header-cell>
+                    </x-nx-table-header>
+                    <x-nx-table-body>
                         @foreach($canvases as $canvas)
                         @php $ampel = $canvasStatuses[$canvas->id] ?? null; @endphp
-                        <x-ui-table-row compact="true" clickable="true" :href="route('planner.projects.canvas.show', [$project, $canvas])" wire:navigate>
-                            <x-ui-table-cell compact="true">
-                                <div class="font-medium text-[var(--ui-secondary)]">{{ $canvas->name }}</div>
+                        <x-nx-table-row compact="true" clickable="true" :href="route('planner.projects.canvas.show', [$project, $canvas])" wire:navigate>
+                            <x-nx-table-cell compact="true">
+                                <div class="font-medium text-[var(--nx-text)]">{{ $canvas->name }}</div>
                                 @if($canvas->description)
-                                <div class="text-xs text-[var(--ui-muted)] truncate max-w-xs mt-0.5">{{ Str::limit($canvas->description, 60) }}</div>
+                                <div class="text-xs text-[var(--nx-muted)] truncate max-w-xs mt-0.5">{{ Str::limit($canvas->description, 60) }}</div>
                                 @endif
-                            </x-ui-table-cell>
-                            <x-ui-table-cell compact="true">
+                            </x-nx-table-cell>
+                            <x-nx-table-cell compact="true">
                                 @if($ampel)
-                                <span class="inline-block w-3 h-3 rounded-full {{ match($ampel['color']) { 'green' => 'bg-green-500', 'yellow' => 'bg-yellow-500', default => 'bg-red-500' } }}"
+                                <span class="inline-block w-3 h-3 rounded-full {{ match($ampel['color']) { 'green' => 'bg-[color:var(--nx-success)]', 'yellow' => 'bg-[color:var(--nx-warning)]', default => 'bg-[color:var(--nx-danger)]' } }}"
                                       title="{{ $ampel['score'] }}%"></span>
                                 @else
-                                <span class="inline-block w-3 h-3 rounded-full bg-[var(--ui-muted)]"></span>
+                                <span class="inline-block w-3 h-3 rounded-full bg-[var(--nx-muted)]"></span>
                                 @endif
-                            </x-ui-table-cell>
-                            <x-ui-table-cell compact="true">
-                                <x-ui-badge :variant="match($canvas->status) { 'active' => 'success', 'archived' => 'secondary', default => 'warning' }">
+                            </x-nx-table-cell>
+                            <x-nx-table-cell compact="true">
+                                <x-nx-badge :variant="match($canvas->status) { 'active' => 'success', 'archived' => 'neutral', default => 'warning' }">
                                     {{ ucfirst($canvas->status) }}
-                                </x-ui-badge>
-                            </x-ui-table-cell>
-                            <x-ui-table-cell compact="true">
+                                </x-nx-badge>
+                            </x-nx-table-cell>
+                            <x-nx-table-cell compact="true">
                                 <span class="text-sm">{{ $canvas->blocks_count }}/9</span>
-                            </x-ui-table-cell>
-                            <x-ui-table-cell compact="true">
-                                <span class="text-sm text-[var(--ui-muted)]">{{ $canvas->createdByUser?->name ?? '-' }}</span>
-                            </x-ui-table-cell>
-                            <x-ui-table-cell compact="true">
-                                <span class="text-sm text-[var(--ui-muted)]">{{ $canvas->updated_at?->diffForHumans() }}</span>
-                            </x-ui-table-cell>
-                        </x-ui-table-row>
+                            </x-nx-table-cell>
+                            <x-nx-table-cell compact="true">
+                                <span class="text-sm text-[var(--nx-muted)]">{{ $canvas->createdByUser?->name ?? '-' }}</span>
+                            </x-nx-table-cell>
+                            <x-nx-table-cell compact="true">
+                                <span class="text-sm text-[var(--nx-muted)]">{{ $canvas->updated_at?->diffForHumans() }}</span>
+                            </x-nx-table-cell>
+                        </x-nx-table-row>
                         @endforeach
-                    </x-ui-table-body>
-                </x-ui-table>
+                    </x-nx-table-body>
+                </x-nx-table>
 
                 <div class="p-4">
                     {{ $canvases->links() }}
                 </div>
-            </x-ui-panel>
+                </x-nx-card>
+            </x-nx-section>
             @else
             {{-- Empty State --}}
-            <x-ui-panel>
+            <x-nx-card>
                 <div class="p-12 text-center">
-                    @svg('heroicon-o-clipboard-document-list', 'w-16 h-16 text-[var(--ui-muted)] mx-auto mb-4')
-                    <h3 class="text-lg font-semibold text-[var(--ui-secondary)] mb-2">Noch keine Canvases</h3>
-                    <p class="text-[var(--ui-muted)]">Erstelle dein erstes Project Canvas per Chat.</p>
+                    @svg('heroicon-o-clipboard-document-list', 'w-16 h-16 text-[var(--nx-muted)] mx-auto mb-4')
+                    <h3 class="text-lg font-semibold text-[var(--nx-text)] mb-2">Noch keine Canvases</h3>
+                    <p class="text-[var(--nx-muted)]">Erstelle dein erstes Project Canvas per Chat.</p>
                 </div>
-            </x-ui-panel>
+            </x-nx-card>
             @endif
         </div>
     </x-ui-page-container>
@@ -123,8 +97,8 @@
             <div class="p-5 space-y-5">
                 {{-- Search --}}
                 <div>
-                    <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-3">Suche</h3>
-                    <x-ui-input-text
+                    <h3 class="text-sm font-bold text-[var(--nx-text)] uppercase tracking-wider mb-3">Suche</h3>
+                    <x-nx-input-text
                         wire:model.live.debounce.300ms="search"
                         placeholder="Canvas suchen..."
                         size="sm"
@@ -133,10 +107,10 @@
 
                 {{-- Status Filter --}}
                 <div>
-                    <h3 class="text-sm font-bold text-[var(--ui-secondary)] uppercase tracking-wider mb-3">Status</h3>
+                    <h3 class="text-sm font-bold text-[var(--nx-text)] uppercase tracking-wider mb-3">Status</h3>
                     <div class="space-y-1">
                         <button wire:click="setStatusFilter('')"
-                            class="d-flex items-center justify-between w-full p-2 rounded-md text-xs transition-colors {{ $statusFilter === '' ? 'bg-[var(--ui-primary)]/10 text-[var(--ui-primary)] font-medium' : 'text-[var(--ui-muted)] hover:bg-[var(--ui-muted-5)] hover:text-[var(--ui-secondary)]' }}">
+                            class="d-flex items-center justify-between w-full p-2 rounded-md text-xs transition-colors {{ $statusFilter === '' ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)] font-medium' : 'text-[var(--nx-muted)] hover:bg-[var(--nx-bg)] hover:text-[var(--nx-text)]' }}">
                             <span class="d-flex items-center gap-2">
                                 @svg('heroicon-o-clipboard-document-list', 'w-3.5 h-3.5')
                                 Alle
@@ -144,7 +118,7 @@
                             <span>{{ $stats['total'] }}</span>
                         </button>
                         <button wire:click="setStatusFilter('draft')"
-                            class="d-flex items-center justify-between w-full p-2 rounded-md text-xs transition-colors {{ $statusFilter === 'draft' ? 'bg-[var(--ui-primary)]/10 text-[var(--ui-primary)] font-medium' : 'text-[var(--ui-muted)] hover:bg-[var(--ui-muted-5)] hover:text-[var(--ui-secondary)]' }}">
+                            class="d-flex items-center justify-between w-full p-2 rounded-md text-xs transition-colors {{ $statusFilter === 'draft' ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)] font-medium' : 'text-[var(--nx-muted)] hover:bg-[var(--nx-bg)] hover:text-[var(--nx-text)]' }}">
                             <span class="d-flex items-center gap-2">
                                 @svg('heroicon-o-pencil-square', 'w-3.5 h-3.5')
                                 Entwurf
@@ -152,7 +126,7 @@
                             <span>{{ $stats['draft'] }}</span>
                         </button>
                         <button wire:click="setStatusFilter('active')"
-                            class="d-flex items-center justify-between w-full p-2 rounded-md text-xs transition-colors {{ $statusFilter === 'active' ? 'bg-[var(--ui-primary)]/10 text-[var(--ui-primary)] font-medium' : 'text-[var(--ui-muted)] hover:bg-[var(--ui-muted-5)] hover:text-[var(--ui-secondary)]' }}">
+                            class="d-flex items-center justify-between w-full p-2 rounded-md text-xs transition-colors {{ $statusFilter === 'active' ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)] font-medium' : 'text-[var(--nx-muted)] hover:bg-[var(--nx-bg)] hover:text-[var(--nx-text)]' }}">
                             <span class="d-flex items-center gap-2">
                                 @svg('heroicon-o-check-circle', 'w-3.5 h-3.5')
                                 Aktiv
@@ -160,7 +134,7 @@
                             <span>{{ $stats['active'] }}</span>
                         </button>
                         <button wire:click="setStatusFilter('archived')"
-                            class="d-flex items-center justify-between w-full p-2 rounded-md text-xs transition-colors {{ $statusFilter === 'archived' ? 'bg-[var(--ui-primary)]/10 text-[var(--ui-primary)] font-medium' : 'text-[var(--ui-muted)] hover:bg-[var(--ui-muted-5)] hover:text-[var(--ui-secondary)]' }}">
+                            class="d-flex items-center justify-between w-full p-2 rounded-md text-xs transition-colors {{ $statusFilter === 'archived' ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)] font-medium' : 'text-[var(--nx-muted)] hover:bg-[var(--nx-bg)] hover:text-[var(--nx-text)]' }}">
                             <span class="d-flex items-center gap-2">
                                 @svg('heroicon-o-archive-box', 'w-3.5 h-3.5')
                                 Archiviert

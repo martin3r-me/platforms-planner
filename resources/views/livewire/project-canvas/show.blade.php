@@ -10,7 +10,7 @@
             ['label' => $canvas->name, 'icon' => 'squares-2x2'],
         ]">
             <x-slot name="left">
-                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#f2ca52] text-[#1a1a2e]">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-[color:var(--nx-accent)] text-[color:var(--nx-on-accent)]">
                     Project Canvas
                 </span>
             </x-slot>
@@ -18,30 +18,30 @@
             {{-- Rechts: Actions --}}
             <button
                 wire:click="toggleVisibility"
-                class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-medium transition-colors {{ $canvas->visibility === 'private' ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'text-gray-400 hover:text-[#1a1a2e] hover:bg-yellow-50' }}"
+                class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-medium transition-colors {{ $canvas->visibility === 'private' ? 'bg-[var(--nx-warning)]/10 text-[color:var(--nx-warning)] hover:bg-[color:var(--nx-warning)]' : 'text-[color:var(--nx-muted)] hover:text-[var(--nx-text)] hover:bg-[var(--nx-accent)]/10' }}"
             >
                 @svg($canvas->visibility === 'private' ? 'heroicon-o-lock-closed' : 'heroicon-o-user-group', 'w-4 h-4')
                 <span>{{ $canvas->visibility === 'private' ? 'Privat' : 'Team' }}</span>
             </button>
 
             <a href="{{ route('planner.projects.canvas.pdf', [$project, $canvas]) }}" target="_blank"
-               class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-medium text-gray-400 hover:text-[#1a1a2e] hover:bg-yellow-50 transition-colors">
+               class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-medium text-[color:var(--nx-muted)] hover:text-[var(--nx-text)] hover:bg-[var(--nx-accent)]/10 transition-colors">
                 @svg('heroicon-o-arrow-down-tray', 'w-4 h-4')
                 <span>PDF</span>
             </a>
 
             {{-- View Mode Toggle --}}
-            <div class="flex items-center bg-gray-100 rounded-full p-0.5">
+            <div class="flex items-center bg-[color:var(--nx-line)] rounded-full p-0.5">
                 <button
                     wire:click="$set('viewMode', 'list')"
-                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[12px] font-medium transition-all {{ $viewMode === 'list' ? 'bg-white text-[#1a1a2e] shadow-sm' : 'text-gray-400 hover:text-[#1a1a2e]' }}"
+                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[12px] font-medium transition-all {{ $viewMode === 'list' ? 'bg-[color:var(--nx-surface)] text-[var(--nx-text)] shadow-[var(--nx-shadow-card)]' : 'text-[color:var(--nx-muted)] hover:text-[var(--nx-text)]' }}"
                 >
                     @svg('heroicon-o-list-bullet', 'w-3.5 h-3.5')
                     <span>Liste</span>
                 </button>
                 <button
                     wire:click="$set('viewMode', 'workshop')"
-                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[12px] font-medium transition-all {{ $viewMode === 'workshop' ? 'bg-white text-[#1a1a2e] shadow-sm' : 'text-gray-400 hover:text-[#1a1a2e]' }}"
+                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[12px] font-medium transition-all {{ $viewMode === 'workshop' ? 'bg-[color:var(--nx-surface)] text-[var(--nx-text)] shadow-[var(--nx-shadow-card)]' : 'text-[color:var(--nx-muted)] hover:text-[var(--nx-text)]' }}"
                 >
                     @svg('heroicon-o-square-3-stack-3d', 'w-3.5 h-3.5')
                     <span>Workshop</span>
@@ -52,7 +52,7 @@
                 <div class="flex items-center gap-1" x-data="{ copied: false }">
                     <button
                         wire:click="togglePublicLink"
-                        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-medium transition-colors {{ $canvas->is_public ? 'bg-[#f2ca52] text-[#1a1a2e] shadow-sm hover:bg-[#e0b83e]' : 'text-gray-400 hover:text-[#1a1a2e] hover:bg-yellow-50' }}"
+                        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-medium transition-colors {{ $canvas->is_public ? 'bg-[color:var(--nx-accent)] text-[color:var(--nx-on-accent)] shadow-[var(--nx-shadow-card)] hover:bg-[var(--nx-accent-hover)]' : 'text-[color:var(--nx-muted)] hover:text-[var(--nx-text)] hover:bg-[var(--nx-accent)]/10' }}"
                     >
                         @svg('heroicon-o-globe-alt', 'w-4 h-4')
                         <span>{{ $canvas->is_public ? 'Public' : 'Privat' }}</span>
@@ -60,20 +60,20 @@
                     @if($canvas->is_public)
                         <button
                             x-on:click="navigator.clipboard.writeText('{{ $canvas->getPublicUrl() }}'); copied = true; setTimeout(() => copied = false, 2000)"
-                            class="p-1.5 rounded-full text-gray-400 hover:text-[#1a1a2e] hover:bg-yellow-50 transition-colors"
+                            class="p-1.5 rounded-full text-[color:var(--nx-muted)] hover:text-[var(--nx-text)] hover:bg-[var(--nx-accent)]/10 transition-colors"
                         >
                             <template x-if="!copied">
                                 @svg('heroicon-o-clipboard', 'w-4 h-4')
                             </template>
                             <template x-if="copied">
-                                @svg('heroicon-o-check', 'w-4 h-4 text-green-500')
+                                @svg('heroicon-o-check', 'w-4 h-4 text-[color:var(--nx-success)]')
                             </template>
                         </button>
                     @endif
                 </div>
             @else
                 <button wire:click="createPublicLink"
-                        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-medium text-gray-400 hover:text-[#1a1a2e] hover:bg-yellow-50 transition-colors">
+                        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-medium text-[color:var(--nx-muted)] hover:text-[var(--nx-text)] hover:bg-[var(--nx-accent)]/10 transition-colors">
                     @svg('heroicon-o-link', 'w-4 h-4')
                     <span>Teilen</span>
                 </button>
@@ -84,17 +84,17 @@
     {{-- Main Content --}}
     <x-ui-page-container padding="p-0" spacing="" background="">
         {{-- Meta-Infos --}}
-        <div class="px-4 sm:px-6 py-4 border-b border-gray-200/40 bg-white/50">
+        <div class="px-4 sm:px-6 py-4 border-b border-[color:var(--nx-line)]/40 bg-[color:var(--nx-surface)]/50">
             <div class="flex flex-wrap items-start gap-6">
                 {{-- Status --}}
                 <div class="flex items-center gap-2">
-                    <span class="text-[11px] font-medium text-gray-400 uppercase tracking-wide">Status</span>
+                    <span class="text-[11px] font-medium text-[color:var(--nx-muted)] uppercase tracking-wide">Status</span>
                     @php
                         $statusBadge = match($canvas->status) {
-                            'open' => 'bg-blue-100 text-blue-700',
-                            'completed' => 'bg-green-100 text-green-700',
-                            'discarded' => 'bg-gray-100 text-gray-400',
-                            default => 'bg-gray-100 text-gray-600',
+                            'open' => 'bg-[var(--nx-info)]/10 text-[color:var(--nx-info)]',
+                            'completed' => 'bg-[var(--nx-success)]/10 text-[color:var(--nx-success)]',
+                            'discarded' => 'bg-[color:var(--nx-line)] text-[color:var(--nx-muted)]',
+                            default => 'bg-[color:var(--nx-line)] text-[color:var(--nx-muted)]',
                         };
                     @endphp
                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium {{ $statusBadge }}">
@@ -105,62 +105,62 @@
                 {{-- Ampel (traffic_light strategy) --}}
                 @if(($analysisData['strategy'] ?? null) === 'traffic_light')
                 <div class="flex items-center gap-2">
-                    <span class="inline-block w-4 h-4 rounded-full flex-shrink-0 {{ match($analysisData['color'] ?? 'red') { 'green' => 'bg-green-500', 'yellow' => 'bg-yellow-500', default => 'bg-red-500' } }}"></span>
-                    <span class="text-xs font-semibold text-[#1a1a2e]">{{ $analysisData['score'] ?? 0 }}%</span>
-                    <span class="text-xs text-gray-400">
+                    <span class="inline-block w-4 h-4 rounded-full flex-shrink-0 {{ match($analysisData['color'] ?? 'red') { 'green' => 'bg-[color:var(--nx-success)]', 'yellow' => 'bg-[color:var(--nx-warning)]', default => 'bg-[color:var(--nx-danger)]' } }}"></span>
+                    <span class="text-xs font-semibold text-[var(--nx-text)]">{{ $analysisData['score'] ?? 0 }}%</span>
+                    <span class="text-xs text-[color:var(--nx-muted)]">
                         {{ match($analysisData['color'] ?? 'red') { 'green' => 'Auf Kurs', 'yellow' => 'Aufmerksamkeit noetig', default => 'Kritisch' } }}
                     </span>
                 </div>
                 @endif
 
                 {{-- Creator --}}
-                <div class="flex items-center gap-1.5 text-xs text-gray-400">
+                <div class="flex items-center gap-1.5 text-xs text-[color:var(--nx-muted)]">
                     @svg('heroicon-o-user', 'w-3.5 h-3.5')
                     {{ $canvas->createdByUser?->name ?? 'Unbekannt' }}
                 </div>
 
                 {{-- Date --}}
-                <div class="flex items-center gap-1.5 text-xs text-gray-400">
+                <div class="flex items-center gap-1.5 text-xs text-[color:var(--nx-muted)]">
                     @svg('heroicon-o-calendar', 'w-3.5 h-3.5')
                     {{ $canvas->created_at?->format('d.m.Y H:i') }}
                 </div>
 
                 {{-- Completeness --}}
                 <div class="flex items-center gap-2">
-                    <span class="text-xs text-gray-400">Fortschritt</span>
+                    <span class="text-xs text-[color:var(--nx-muted)]">Fortschritt</span>
                     @php
                         $barColor = match($analysisData['strategy'] ?? 'basic') {
                             'completeness' => match($analysisData['health'] ?? 'empty') {
-                                'good' => 'bg-green-500',
-                                'partial' => 'bg-yellow-500',
-                                'minimal' => 'bg-orange-500',
-                                default => 'bg-gray-300',
+                                'good' => 'bg-[color:var(--nx-success)]',
+                                'partial' => 'bg-[color:var(--nx-warning)]',
+                                'minimal' => 'bg-[color:var(--nx-warning)]',
+                                default => 'bg-[color:var(--nx-muted)]',
                             },
                             'traffic_light' => match($analysisData['color'] ?? 'red') {
-                                'green' => 'bg-green-500',
-                                'yellow' => 'bg-yellow-500',
-                                default => 'bg-red-500',
+                                'green' => 'bg-[color:var(--nx-success)]',
+                                'yellow' => 'bg-[color:var(--nx-warning)]',
+                                default => 'bg-[color:var(--nx-danger)]',
                             },
-                            default => 'bg-[#f2ca52]',
+                            default => 'bg-[var(--nx-accent)]',
                         };
                     @endphp
-                    <div class="w-24 h-2 rounded-full bg-gray-100">
+                    <div class="w-24 h-2 rounded-full bg-[color:var(--nx-line)]">
                         <div class="h-2 rounded-full transition-all {{ $barColor }}"
                              style="width: {{ $analysisData['completeness_percent'] ?? 0 }}%"></div>
                     </div>
-                    <span class="text-xs font-semibold text-[#1a1a2e]">{{ $analysisData['completeness_percent'] ?? 0 }}%</span>
+                    <span class="text-xs font-semibold text-[var(--nx-text)]">{{ $analysisData['completeness_percent'] ?? 0 }}%</span>
                 </div>
 
                 {{-- Stats --}}
-                <div class="flex items-center gap-3 text-xs text-gray-400">
+                <div class="flex items-center gap-3 text-xs text-[color:var(--nx-muted)]">
                     <span>{{ $analysisData['filled_blocks'] ?? 0 }}/{{ $analysisData['total_blocks'] ?? 0 }} Bloecke</span>
                     <span>{{ $analysisData['total_entries'] ?? 0 }} Eintraege</span>
                     @if(($analysisData['strategy'] ?? null) === 'completeness')
                         @php
                             $healthBadge = match($analysisData['health'] ?? 'empty') {
-                                'good' => 'bg-green-100 text-green-700',
-                                'partial' => 'bg-amber-100 text-amber-700',
-                                default => 'bg-red-100 text-red-700',
+                                'good' => 'bg-[var(--nx-success)]/10 text-[color:var(--nx-success)]',
+                                'partial' => 'bg-[var(--nx-warning)]/10 text-[color:var(--nx-warning)]',
+                                default => 'bg-[var(--nx-danger)]/10 text-[color:var(--nx-danger)]',
                             };
                         @endphp
                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium {{ $healthBadge }}">
@@ -170,7 +170,7 @@
                     @if(($analysisData['strategy'] ?? null) === 'traffic_light')
                         <span>{{ $analysisData['risk_count'] ?? 0 }} Risiken</span>
                         @if(($analysisData['overdue_milestones'] ?? 0) > 0)
-                            <span class="text-red-600 font-medium">{{ $analysisData['overdue_milestones'] }} Ueberfaellig</span>
+                            <span class="text-[color:var(--nx-danger)] font-medium">{{ $analysisData['overdue_milestones'] }} Ueberfaellig</span>
                         @endif
                     @endif
                 </div>
@@ -178,16 +178,16 @@
 
             {{-- Description --}}
             @if($canvas->description)
-            <p class="mt-2 text-xs text-gray-400 leading-relaxed">{{ $canvas->description }}</p>
+            <p class="mt-2 text-xs text-[color:var(--nx-muted)] leading-relaxed">{{ $canvas->description }}</p>
             @endif
 
             {{-- Warnings (traffic_light) --}}
             @if(!empty($analysisData['warnings'] ?? []))
             <div class="mt-3 flex flex-wrap gap-2">
                 @foreach($analysisData['warnings'] as $warning)
-                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
-                    @svg('heroicon-o-exclamation-triangle', 'w-3.5 h-3.5 text-yellow-600 flex-shrink-0')
-                    <span class="text-[11px] text-[#1a1a2e]">{{ $warning }}</span>
+                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[var(--nx-warning)]/10 border border-[var(--nx-accent)]/30">
+                    @svg('heroicon-o-exclamation-triangle', 'w-3.5 h-3.5 text-[color:var(--nx-accent)] flex-shrink-0')
+                    <span class="text-[11px] text-[var(--nx-text)]">{{ $warning }}</span>
                 </div>
                 @endforeach
             </div>
@@ -197,15 +197,15 @@
             @if(($analysisData['strategy'] ?? null) === 'completeness' && !empty($analysisData['missing_blocks'] ?? []))
             <div class="mt-3">
                 <details class="group">
-                    <summary class="text-xs font-medium text-gray-400 cursor-pointer hover:text-[#1a1a2e]">
+                    <summary class="text-xs font-medium text-[color:var(--nx-muted)] cursor-pointer hover:text-[var(--nx-text)]">
                         {{ count($analysisData['missing_blocks']) }} fehlende Bloecke anzeigen
                     </summary>
                     <div class="mt-2 flex flex-wrap gap-2">
                         @foreach($analysisData['missing_blocks'] as $missing)
-                        <div class="px-2.5 py-1.5 rounded-xl bg-gray-50 border border-gray-200/40">
-                            <div class="text-xs font-semibold text-[#1a1a2e]">{{ $missing['label'] }}</div>
+                        <div class="px-2.5 py-1.5 rounded-xl bg-[color:var(--nx-bg)] border border-[color:var(--nx-line)]/40">
+                            <div class="text-xs font-semibold text-[var(--nx-text)]">{{ $missing['label'] }}</div>
                             @foreach($missing['guiding_questions'] ?? [] as $question)
-                            <div class="text-[11px] text-gray-400 flex items-start gap-1 mt-0.5">
+                            <div class="text-[11px] text-[color:var(--nx-muted)] flex items-start gap-1 mt-0.5">
                                 @svg('heroicon-o-question-mark-circle', 'w-3 h-3 mt-0.5 flex-shrink-0')
                                 {{ $question }}
                             </div>
@@ -220,9 +220,9 @@
             @if(($analysisData['strategy'] ?? null) === 'completeness' && !empty($analysisData['recommendations'] ?? []))
             <div class="mt-2 flex flex-wrap gap-2">
                 @foreach($analysisData['recommendations'] as $rec)
-                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
-                    @svg('heroicon-o-light-bulb', 'w-3.5 h-3.5 text-yellow-600 flex-shrink-0')
-                    <span class="text-[11px] text-[#1a1a2e]">{{ $rec }}</span>
+                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[var(--nx-warning)]/10 border border-[var(--nx-accent)]/30">
+                    @svg('heroicon-o-light-bulb', 'w-3.5 h-3.5 text-[color:var(--nx-accent)] flex-shrink-0')
+                    <span class="text-[11px] text-[var(--nx-text)]">{{ $rec }}</span>
                 </div>
                 @endforeach
             </div>
@@ -233,11 +233,11 @@
         {{-- ═══ LIST VIEW ═══ --}}
         <div wire:key="view-list" x-data="blockNav()" x-init="init()">
             {{-- Block Navigation --}}
-            <div class="sticky top-0 z-20 border-b border-gray-200/40 bg-white/95 backdrop-blur-sm">
+            <div class="sticky top-0 z-20 border-b border-[color:var(--nx-line)]/40 bg-[color:var(--nx-surface)]/95 backdrop-blur-sm">
                 <div class="px-4 sm:px-6 overflow-x-auto">
                     <div class="flex items-center gap-1 py-2">
-                        <span class="shrink-0 text-[11px] font-bold text-[#f2ca52] uppercase tracking-wider mr-2">Project Canvas</span>
-                        <span class="shrink-0 w-px h-4 bg-gray-200/40 mr-1"></span>
+                        <span class="shrink-0 text-[11px] font-bold text-[var(--nx-accent)] uppercase tracking-wider mr-2">Project Canvas</span>
+                        <span class="shrink-0 w-px h-4 bg-[color:var(--nx-line)]/40 mr-1"></span>
                         @foreach($blockDefs as $def)
                             @php
                                 $blockKey = $def['key'];
@@ -245,7 +245,7 @@
                             @endphp
                             <button
                                 x-on:click="scrollTo('block-{{ $blockKey }}')"
-                                :class="activeBlock === 'block-{{ $blockKey }}' ? 'bg-[#f2ca52] text-[#1a1a2e] shadow-sm' : 'text-gray-400 hover:text-[#1a1a2e] hover:bg-yellow-50'"
+                                :class="activeBlock === 'block-{{ $blockKey }}' ? 'bg-[color:var(--nx-accent)] text-[color:var(--nx-on-accent)] shadow-[var(--nx-shadow-card)]' : 'text-[color:var(--nx-muted)] hover:text-[var(--nx-text)] hover:bg-[var(--nx-accent)]/10'"
                                 class="shrink-0 px-3 py-1.5 rounded-full text-[11px] font-medium transition-all whitespace-nowrap"
                             >
                                 {{ $label }}
@@ -362,7 +362,7 @@
              })"
              class="relative overflow-hidden"
              :class="isFullscreen ? 'workshop-fullscreen' : 'h-[calc(100vh-220px)]'"
-             style="background: #eef0f4;"
+             style="background: var(--nx-bg);"
         >
             {{-- Board Presence (visible in fullscreen) --}}
             <div class="workshop-presence">
@@ -458,8 +458,8 @@
                     grid-template-columns: repeat({{ $gridCols }}, 1fr);
                     grid-template-rows: repeat({{ $gridRows }}, minmax(180px, auto));
                     gap: 1.5px;
-                    background: #2d2d2d;
-                    border: 1.5px solid #2d2d2d;
+                    background: var(--nx-line-strong);
+                    border: 1.5px solid var(--nx-line-strong);
                     border-radius: 4px;
                     overflow: hidden;
                 ">
@@ -488,7 +488,7 @@
                     <div class="flex items-center gap-1.5 flex-nowrap">
                         <button
                             wire:click="filterByBlock(null)"
-                            class="shrink-0 px-2.5 py-1 rounded-full text-[10px] font-medium transition-colors whitespace-nowrap {{ !$filterBlockId ? 'bg-[#f2ca52] text-[#1a1a2e]' : 'bg-gray-100 text-gray-400 hover:text-[#1a1a2e]' }}"
+                            class="shrink-0 px-2.5 py-1 rounded-full text-[10px] font-medium transition-colors whitespace-nowrap {{ !$filterBlockId ? 'bg-[color:var(--nx-accent)] text-[color:var(--nx-on-accent)]' : 'bg-[color:var(--nx-line)] text-[color:var(--nx-muted)] hover:text-[var(--nx-text)]' }}"
                         >
                             Alle
                         </button>
@@ -497,7 +497,7 @@
                             @if($blockCount > 0)
                             <button
                                 wire:click="filterByBlock({{ $block->id }})"
-                                class="shrink-0 px-2.5 py-1 rounded-full text-[10px] font-medium transition-colors whitespace-nowrap {{ $filterBlockId === $block->id ? 'bg-[#f2ca52] text-[#1a1a2e]' : 'bg-gray-100 text-gray-400 hover:text-[#1a1a2e]' }}"
+                                class="shrink-0 px-2.5 py-1 rounded-full text-[10px] font-medium transition-colors whitespace-nowrap {{ $filterBlockId === $block->id ? 'bg-[color:var(--nx-accent)] text-[color:var(--nx-on-accent)]' : 'bg-[color:var(--nx-line)] text-[color:var(--nx-muted)] hover:text-[var(--nx-text)]' }}"
                             >
                                 {{ $block->label }} ({{ $blockCount }})
                             </button>
@@ -510,21 +510,21 @@
                 <form wire:submit="addComment" class="space-y-2">
                     @if($replyToId)
                         @php $replyTarget = $comments->firstWhere('id', $replyToId); @endphp
-                        <div class="flex items-center gap-2 px-2 py-1.5 rounded-xl bg-[#f2ca52]/10 border border-[#f2ca52]/30">
-                            @svg('heroicon-o-arrow-uturn-left', 'w-3 h-3 text-[#f2ca52] shrink-0')
-                            <span class="text-[10px] text-[#1a1a2e] truncate grow">
+                        <div class="flex items-center gap-2 px-2 py-1.5 rounded-xl bg-[var(--nx-accent)]/10 border border-[var(--nx-accent)]/30">
+                            @svg('heroicon-o-arrow-uturn-left', 'w-3 h-3 text-[var(--nx-accent)] shrink-0')
+                            <span class="text-[10px] text-[var(--nx-text)] truncate grow">
                                 Antwort auf: {{ Str::limit($replyTarget?->content ?? '', 50) }}
                             </span>
-                            <button type="button" wire:click="cancelReply" class="shrink-0 text-gray-400 hover:text-[#1a1a2e]">
+                            <button type="button" wire:click="cancelReply" class="shrink-0 text-[color:var(--nx-muted)] hover:text-[var(--nx-text)]">
                                 @svg('heroicon-o-x-mark', 'w-3 h-3')
                             </button>
                         </div>
                     @elseif($commentBlockId)
                         @php $selectedBlock = $canvas->blocks->firstWhere('id', $commentBlockId); @endphp
-                        <div class="flex items-center gap-2 px-2 py-1.5 rounded-xl bg-gray-50 border border-gray-200">
-                            @svg('heroicon-o-cube', 'w-3 h-3 text-gray-400 shrink-0')
-                            <span class="text-[10px] text-[#1a1a2e] grow">{{ $selectedBlock?->label ?? 'Block' }}</span>
-                            <button type="button" wire:click="$set('commentBlockId', null)" class="shrink-0 text-gray-400 hover:text-[#1a1a2e]">
+                        <div class="flex items-center gap-2 px-2 py-1.5 rounded-xl bg-[color:var(--nx-bg)] border border-[color:var(--nx-line)]">
+                            @svg('heroicon-o-cube', 'w-3 h-3 text-[color:var(--nx-muted)] shrink-0')
+                            <span class="text-[10px] text-[var(--nx-text)] grow">{{ $selectedBlock?->label ?? 'Block' }}</span>
+                            <button type="button" wire:click="$set('commentBlockId', null)" class="shrink-0 text-[color:var(--nx-muted)] hover:text-[var(--nx-text)]">
                                 @svg('heroicon-o-x-mark', 'w-3 h-3')
                             </button>
                         </div>
@@ -534,7 +534,7 @@
                         @endphp
                         <select
                             wire:model="commentBlockId"
-                            class="w-full px-3 py-2 text-[13px] rounded-xl border border-gray-200 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#f2ca52]/30 focus:border-[#f2ca52] transition-colors appearance-none pr-10 bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg+xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22+viewBox%3D%220+0+20+20%22+fill%3D%22%236b7280%22%3E%3Cpath+fill-rule%3D%22evenodd%22+d%3D%22M5.23+7.21a.75.75+0+011.06.02L10+11.168l3.71-3.938a.75.75+0+111.08+1.04l-4.25+4.5a.75.75+0+01-1.08+0l-4.25-4.5a.75.75+0+01.02-1.06z%22+clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')] bg-[length:20px_20px] bg-[position:right_8px_center] bg-no-repeat"
+                            class="w-full px-3 py-2 text-[13px] rounded-xl border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] text-[color:var(--nx-text)] focus:outline-none focus:ring-2 focus:ring-[var(--nx-accent)]/30 focus:border-[var(--nx-accent)] transition-colors appearance-none pr-10 bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg+xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22+viewBox%3D%220+0+20+20%22+fill%3D%22%236b7280%22%3E%3Cpath+fill-rule%3D%22evenodd%22+d%3D%22M5.23+7.21a.75.75+0+011.06.02L10+11.168l3.71-3.938a.75.75+0+111.08+1.04l-4.25+4.5a.75.75+0+01-1.08+0l-4.25-4.5a.75.75+0+01.02-1.06z%22+clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')] bg-[length:20px_20px] bg-[position:right_8px_center] bg-no-repeat"
                         >
                             <option value="">Canvas-weiter Kommentar</option>
                             @foreach($blockOptions as $id => $label)
@@ -548,18 +548,18 @@
                             wire:model="commentContent"
                             rows="2"
                             placeholder="{{ $replyToId ? 'Antwort schreiben...' : 'Kommentar schreiben...' }}"
-                            class="grow rounded-xl border border-gray-200 bg-white text-xs text-[#1a1a2e] p-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-[#f2ca52]/30 focus:border-[#f2ca52] transition-colors"
+                            class="grow rounded-xl border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] text-xs text-[var(--nx-text)] p-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-[var(--nx-accent)]/30 focus:border-[var(--nx-accent)] transition-colors"
                         ></textarea>
                         <button
                             type="submit"
-                            class="shrink-0 self-end px-3 py-2 rounded-full bg-[#f2ca52] text-[#1a1a2e] text-xs font-bold hover:bg-[#e0b83e] transition-colors disabled:opacity-50 shadow-sm"
+                            class="shrink-0 self-end px-3 py-2 rounded-full bg-[color:var(--nx-accent)] text-[color:var(--nx-on-accent)] text-xs font-bold hover:bg-[var(--nx-accent-hover)] transition-colors disabled:opacity-50 shadow-[var(--nx-shadow-card)]"
                             wire:loading.attr="disabled"
                         >
                             @svg('heroicon-o-paper-airplane', 'w-4 h-4')
                         </button>
                     </div>
                     @error('commentContent')
-                        <p class="text-[10px] text-red-500">{{ $message }}</p>
+                        <p class="text-[10px] text-[color:var(--nx-danger)]">{{ $message }}</p>
                     @enderror
                 </form>
 
@@ -568,36 +568,36 @@
                     @forelse($comments as $comment)
                         <div class="space-y-2">
                             {{-- Root Comment --}}
-                            <div class="rounded-xl border border-gray-200 bg-white p-3 hover:shadow-sm transition-shadow">
+                            <div class="rounded-xl border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] p-3 hover:shadow-[var(--nx-shadow-card)] transition-shadow">
                                 <div class="flex items-center gap-2 mb-1.5">
                                     @if($comment->building_block_id)
-                                        <span class="flex items-center gap-1 text-[9px] font-medium text-[#f2ca52] bg-[#f2ca52]/10 rounded-full px-1.5 py-0.5">
+                                        <span class="flex items-center gap-1 text-[9px] font-medium text-[var(--nx-accent)] bg-[var(--nx-accent)]/10 rounded-full px-1.5 py-0.5">
                                             @svg('heroicon-o-cube', 'w-2.5 h-2.5')
                                             {{ $comment->block?->label ?? 'Block' }}
                                         </span>
                                     @else
-                                        <span class="text-[9px] font-medium text-gray-400 bg-gray-100 rounded-full px-1.5 py-0.5">Canvas-weit</span>
+                                        <span class="text-[9px] font-medium text-[color:var(--nx-muted)] bg-[color:var(--nx-line)] rounded-full px-1.5 py-0.5">Canvas-weit</span>
                                     @endif
-                                    <span class="text-[10px] text-gray-300 ml-auto">{{ $comment->created_at->format('d.m. H:i') }}</span>
+                                    <span class="text-[10px] text-[color:var(--nx-faint)] ml-auto">{{ $comment->created_at->format('d.m. H:i') }}</span>
                                 </div>
-                                <p class="text-xs text-[#1a1a2e] leading-relaxed whitespace-pre-line">{{ $comment->content }}</p>
+                                <p class="text-xs text-[var(--nx-text)] leading-relaxed whitespace-pre-line">{{ $comment->content }}</p>
                                 <div class="mt-2 flex items-center gap-2">
                                     <button
                                         wire:click="setReplyTo({{ $comment->id }})"
-                                        class="flex items-center gap-1 text-[10px] text-gray-400 hover:text-[#f2ca52] transition-colors"
+                                        class="flex items-center gap-1 text-[10px] text-[color:var(--nx-muted)] hover:text-[var(--nx-accent)] transition-colors"
                                     >
                                         @svg('heroicon-o-arrow-uturn-left', 'w-3 h-3')
                                         Antworten
                                     </button>
                                     @if($comment->replies->count() > 0)
-                                        <span class="text-[10px] text-gray-300">
+                                        <span class="text-[10px] text-[color:var(--nx-faint)]">
                                             {{ $comment->replies->count() }} {{ $comment->replies->count() === 1 ? 'Antwort' : 'Antworten' }}
                                         </span>
                                     @endif
                                     <button
                                         wire:click="deleteComment({{ $comment->id }})"
                                         wire:confirm="Kommentar und alle Antworten loeschen?"
-                                        class="flex items-center gap-1 text-[10px] text-gray-400 hover:text-red-500 transition-colors ml-auto"
+                                        class="flex items-center gap-1 text-[10px] text-[color:var(--nx-muted)] hover:text-[color:var(--nx-danger)] transition-colors ml-auto"
                                     >
                                         @svg('heroicon-o-trash', 'w-3 h-3')
                                     </button>
@@ -606,20 +606,20 @@
 
                             {{-- Replies --}}
                             @if($comment->replies->count() > 0)
-                                <div class="ml-4 space-y-2 border-l-2 border-gray-100 pl-3">
+                                <div class="ml-4 space-y-2 border-l-2 border-[color:var(--nx-line)] pl-3">
                                     @foreach($comment->replies as $reply)
-                                        <div class="rounded-xl border border-gray-100 bg-gray-50 p-2.5 group/reply">
+                                        <div class="rounded-xl border border-[color:var(--nx-line)] bg-[color:var(--nx-bg)] p-2.5 group/reply">
                                             <div class="flex items-center gap-2 mb-1">
-                                                <span class="text-[10px] text-gray-300">{{ $reply->created_at->format('d.m. H:i') }}</span>
+                                                <span class="text-[10px] text-[color:var(--nx-faint)]">{{ $reply->created_at->format('d.m. H:i') }}</span>
                                                 <button
                                                     wire:click="deleteComment({{ $reply->id }})"
                                                     wire:confirm="Antwort loeschen?"
-                                                    class="ml-auto opacity-0 group-hover/reply:opacity-100 text-gray-400 hover:text-red-500 transition-all"
+                                                    class="ml-auto opacity-0 group-hover/reply:opacity-100 text-[color:var(--nx-muted)] hover:text-[color:var(--nx-danger)] transition-all"
                                                 >
                                                     @svg('heroicon-o-trash', 'w-3 h-3')
                                                 </button>
                                             </div>
-                                            <p class="text-[11px] text-[#1a1a2e] leading-relaxed whitespace-pre-line">{{ $reply->content }}</p>
+                                            <p class="text-[11px] text-[var(--nx-text)] leading-relaxed whitespace-pre-line">{{ $reply->content }}</p>
                                         </div>
                                     @endforeach
                                 </div>
@@ -627,12 +627,12 @@
                         </div>
                     @empty
                         <div class="text-center py-8">
-                            @svg('heroicon-o-chat-bubble-left-right', 'w-8 h-8 text-gray-200 mx-auto mb-3')
-                            <p class="text-xs text-gray-400">
+                            @svg('heroicon-o-chat-bubble-left-right', 'w-8 h-8 text-[color:var(--nx-faint)] mx-auto mb-3')
+                            <p class="text-xs text-[color:var(--nx-muted)]">
                                 {{ $filterBlockId ? 'Keine Kommentare fuer diesen Block.' : 'Noch keine Kommentare.' }}
                             </p>
                             @if($filterBlockId)
-                                <button wire:click="filterByBlock(null)" class="mt-2 text-[10px] text-[#f2ca52] hover:text-[#e0b83e]">
+                                <button wire:click="filterByBlock(null)" class="mt-2 text-[10px] text-[var(--nx-accent)] hover:text-[var(--nx-accent-hover)]">
                                     Alle Kommentare anzeigen
                                 </button>
                             @endif
@@ -647,37 +647,37 @@
     <x-slot name="activity">
         <x-ui-page-sidebar title="Aktivitaeten" width="w-80" :defaultOpen="false" storeKey="activityOpen" side="right">
             <div class="p-6">
-                <h3 class="text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-4">Letzte Aktivitaeten</h3>
+                <h3 class="text-[11px] font-medium text-[color:var(--nx-muted)] uppercase tracking-wide mb-4">Letzte Aktivitaeten</h3>
                 <div class="space-y-3">
                     @forelse(($activities ?? []) as $activity)
-                        <div class="p-3 rounded-xl border border-gray-200 bg-white hover:shadow-sm transition-shadow">
+                        <div class="p-3 rounded-xl border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] hover:shadow-[var(--nx-shadow-card)] transition-shadow">
                             <div class="flex items-start justify-between gap-2 mb-1">
                                 <div class="flex-1 min-w-0">
-                                    <div class="text-[13px] font-medium text-[#1a1a2e] leading-snug">
+                                    <div class="text-[13px] font-medium text-[var(--nx-text)] leading-snug">
                                         {{ $activity['title'] ?? 'Aktivitaet' }}
                                     </div>
                                 </div>
                                 @if(($activity['type'] ?? null) === 'system')
                                     <div class="flex-shrink-0">
-                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 border border-gray-200 text-xs text-gray-400">
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[color:var(--nx-line)] border border-[color:var(--nx-line)] text-xs text-[color:var(--nx-muted)]">
                                             @svg('heroicon-o-cog', 'w-3 h-3')
                                             System
                                         </span>
                                     </div>
                                 @endif
                             </div>
-                            <div class="flex items-center gap-2 text-xs text-gray-400">
+                            <div class="flex items-center gap-2 text-xs text-[color:var(--nx-muted)]">
                                 @svg('heroicon-o-clock', 'w-3 h-3')
                                 <span>{{ $activity['time'] ?? '' }}</span>
                             </div>
                         </div>
                     @empty
                         <div class="py-8 text-center">
-                            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-yellow-50 mb-3">
-                                @svg('heroicon-o-clock', 'w-6 h-6 text-[#f2ca52]')
+                            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[var(--nx-accent)]/10 mb-3">
+                                @svg('heroicon-o-clock', 'w-6 h-6 text-[var(--nx-accent)]')
                             </div>
-                            <p class="text-[13px] text-gray-400">Noch keine Aktivitaeten</p>
-                            <p class="text-xs text-gray-400 mt-1">Aenderungen werden hier angezeigt</p>
+                            <p class="text-[13px] text-[color:var(--nx-muted)]">Noch keine Aktivitaeten</p>
+                            <p class="text-xs text-[color:var(--nx-muted)] mt-1">Aenderungen werden hier angezeigt</p>
                         </div>
                     @endforelse
                 </div>
