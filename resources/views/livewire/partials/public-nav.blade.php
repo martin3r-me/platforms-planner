@@ -8,33 +8,33 @@
 @php
     $boardActive = $current === 'board';
     $tabBase = 'group inline-flex items-center gap-1.5 px-3 py-2.5 text-[13px] font-medium transition-colors whitespace-nowrap border-b-2 -mb-px';
-    $tabActive = 'border-[#f2ca52] text-[#1a1a2e]';
-    $tabIdle = 'border-transparent text-[var(--ui-muted,#64748b)] hover:text-[#1a1a2e] hover:border-gray-200';
+    $tabActive = 'border-[var(--nx-accent)] text-[var(--nx-text)]';
+    $tabIdle = 'border-transparent text-[var(--nx-muted)] hover:text-[var(--nx-text)] hover:border-[color:var(--nx-line)]';
 
     $statusDot = fn ($status) => match($status) {
-        'open' => 'bg-blue-400',
-        'completed' => 'bg-green-500',
-        'discarded' => 'bg-gray-300',
-        default => 'bg-gray-300',
+        'open' => 'bg-[color:var(--nx-info)]',
+        'completed' => 'bg-[color:var(--nx-success)]',
+        'discarded' => 'bg-[color:var(--nx-muted)]',
+        default => 'bg-[color:var(--nx-muted)]',
     };
 @endphp
 
-<header class="flex-shrink-0 bg-white border-b border-[var(--ui-border,#e2e8f0)]">
+<header class="flex-shrink-0 bg-[color:var(--nx-surface)] border-b border-[var(--nx-line)]">
     <div class="px-4 sm:px-6 pt-4">
         {{-- Title row --}}
         <div class="flex items-start justify-between gap-4 flex-wrap">
             <div class="min-w-0 flex-1">
                 <div class="flex items-center gap-2 flex-wrap">
-                    <h1 class="text-xl font-semibold text-[var(--ui-secondary,#1e293b)] truncate">
+                    <h1 class="text-xl font-semibold text-[var(--nx-text)] truncate">
                         {{ $project->name }}
                     </h1>
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-600 border border-blue-100">
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[var(--nx-info)]/10 text-[color:var(--nx-info)] border border-[var(--nx-info)]/30">
                         @svg('heroicon-o-globe-alt', 'w-3 h-3')
                         <span>Öffentlich geteilt</span>
                     </span>
                 </div>
                 @if($project->description)
-                    <p class="mt-0.5 text-xs text-[var(--ui-muted,#64748b)] truncate max-w-3xl">
+                    <p class="mt-0.5 text-xs text-[var(--nx-muted)] truncate max-w-3xl">
                         {{ $project->description }}
                     </p>
                 @endif
@@ -51,7 +51,7 @@
                 @svg('heroicon-o-clipboard-document-list', 'w-4 h-4')
                 <span>Board</span>
                 @if(!is_null($taskCount))
-                    <span class="ml-1 inline-flex items-center justify-center min-w-[18px] px-1.5 rounded-full text-[10px] font-semibold {{ $boardActive ? 'bg-[#f2ca52]/20 text-[#1a1a2e]' : 'bg-gray-100 text-gray-500' }}">
+                    <span class="ml-1 inline-flex items-center justify-center min-w-[18px] px-1.5 rounded-full text-[10px] font-semibold {{ $boardActive ? 'bg-[var(--nx-accent)]/20 text-[var(--nx-text)]' : 'bg-[color:var(--nx-line)] text-[color:var(--nx-muted)]' }}">
                         {{ $taskCount }}
                     </span>
                 @endif

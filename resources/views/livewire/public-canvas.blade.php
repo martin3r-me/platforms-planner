@@ -1,14 +1,14 @@
 @php
     $statusBadge = match($canvas->status) {
-        'open' => 'bg-blue-100 text-blue-700',
-        'completed' => 'bg-green-100 text-green-700',
-        'discarded' => 'bg-gray-100 text-gray-500',
-        default => 'bg-gray-100 text-gray-600',
+        'open' => 'bg-[var(--nx-info)]/10 text-[color:var(--nx-info)]',
+        'completed' => 'bg-[var(--nx-success)]/10 text-[color:var(--nx-success)]',
+        'discarded' => 'bg-[color:var(--nx-line)] text-[color:var(--nx-muted)]',
+        default => 'bg-[color:var(--nx-line)] text-[color:var(--nx-muted)]',
     };
     $statusLabel = \Platform\Planner\Models\PlannerProjectCanvas::STATUS_LABELS[$canvas->status] ?? $canvas->status;
 @endphp
 
-<div class="h-screen flex flex-col overflow-hidden bg-[var(--ui-bg,#f8fafc)]">
+<div class="h-screen flex flex-col overflow-hidden bg-[var(--nx-bg)]">
     {{-- Shared Nav --}}
     @include('planner::livewire.partials.public-nav', [
         'project' => $project,
@@ -17,19 +17,19 @@
     ])
 
     {{-- Sub action bar (canvas-specific) --}}
-    <div class="flex-shrink-0 bg-white border-b border-[var(--ui-border,#e2e8f0)]">
+    <div class="flex-shrink-0 bg-[color:var(--nx-surface)] border-b border-[var(--nx-line)]">
         <div class="px-4 sm:px-6 py-2 flex items-center gap-3 flex-wrap">
             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium {{ $statusBadge }}">
                 {{ $statusLabel }}
             </span>
             @if($canvas->createdByUser?->name)
-                <span class="inline-flex items-center gap-1 text-xs text-[var(--ui-muted,#64748b)]">
+                <span class="inline-flex items-center gap-1 text-xs text-[var(--nx-muted)]">
                     @svg('heroicon-o-user', 'w-3.5 h-3.5')
                     {{ $canvas->createdByUser->name }}
                 </span>
             @endif
             @if($canvas->created_at)
-                <span class="inline-flex items-center gap-1 text-xs text-[var(--ui-muted,#64748b)]">
+                <span class="inline-flex items-center gap-1 text-xs text-[var(--nx-muted)]">
                     @svg('heroicon-o-calendar', 'w-3.5 h-3.5')
                     {{ $canvas->created_at->format('d.m.Y') }}
                 </span>
@@ -38,7 +38,7 @@
 
         @if($canvas->description)
             <div class="px-4 sm:px-6 pb-2 -mt-1">
-                <p class="text-xs text-gray-500 leading-relaxed">{{ $canvas->description }}</p>
+                <p class="text-xs text-[color:var(--nx-muted)] leading-relaxed">{{ $canvas->description }}</p>
             </div>
         @endif
     </div>
