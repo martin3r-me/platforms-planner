@@ -29,9 +29,9 @@ enum TaskPriority: string
     public function color(): string
     {
         return match ($this) {
-            self::High => 'var(--planner-priority-high)',
-            self::Normal => 'var(--planner-priority-normal)',
-            self::Low => 'var(--planner-priority-low)',
+            self::High => 'var(--nx-danger)',
+            self::Normal => 'var(--nx-accent)',
+            self::Low => 'var(--nx-muted)',
         };
     }
 }
