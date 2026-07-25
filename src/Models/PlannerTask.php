@@ -105,6 +105,18 @@ class PlannerTask extends Model implements HasKeyResultAncestors, HasDisplayName
             self::tryChainRecurring($model);
         });
 
+        // Zuweisung → Eingang: wird die Aufgabe von jemand anderem AN MICH übergeben
+        // (Ownership-Wechsel, Actor ≠ neuer Inhaber), landet sie im Posteingang des
+        // neuen Inhabers. Jeder Handoff zurück = neues Item (kein dedupe).
+        static::created(function (self $model) {
+            self::notifyAssignment($model);
+        });
+        static::updated(function (self $model) {
+            if ($model->wasChanged('user_in_charge_id')) {
+                self::notifyAssignment($model);
+            }
+        });
+
         // Analog beim Löschen — der User räumt die letzte Instanz weg.
         static::deleting(function (self $model) {
             if (! $model->recurring_task_id) return;
@@ -121,6 +133,41 @@ class PlannerTask extends Model implements HasKeyResultAncestors, HasDisplayName
      *   - Es gibt keine weitere offene Instanz dieser Vorlage (sonst kommt die nächste
      *     erst, wenn die letzte aus dem Weg ist).
      */
+    /**
+     * Push ein „dir zugewiesen"-Item in den Eingang des neuen Inhabers — nur wenn
+     * ein *anderer* Nutzer zugewiesen hat (kein Self-Assign, kein System-Actor).
+     * Loose/guarded: fehlt das Inbox-Modul, passiert nichts.
+     */
+    protected static function notifyAssignment(self $task): void
+    {
+        $assignee = $task->user_in_charge_id;
+        $actor = Auth::id();
+
+        if (! $assignee || ! $actor || (int) $assignee === (int) $actor) {
+            return; // keine Zuweisung, kein Actor, oder Selbst-Zuweisung
+        }
+        if (! class_exists(\Platform\Inbox\Inbox::class)) {
+            return; // Inbox nicht installiert → loose
+        }
+
+        try {
+            $assigner = Auth::user();
+            \Platform\Inbox\Inbox::deliver([
+                'user_id'           => (int) $assignee,
+                'team_id'           => (int) $task->team_id,
+                'channel'           => 'task',
+                'subject'           => $task->title ?: 'Aufgabe',
+                'body'              => $task->description ?? null,
+                'source'            => $task,
+                'sender_kind'       => 'user',
+                'sender_label'      => $assigner?->fullname ?? $assigner?->name ?? 'Jemand',
+                'sender_identifier' => (string) $actor,
+            ]);
+        } catch (\Throwable $e) {
+            // Zuweisung darf nie an der Inbox scheitern.
+        }
+    }
+
     protected static function tryChainRecurring(self $task): void
     {
         try {
