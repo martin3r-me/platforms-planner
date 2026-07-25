@@ -27,6 +27,7 @@ class PlannerPersonActivityProvider implements PersonActivityProvider
     public function metricConfig(): array
     {
         return [
+            'frogs' => ['label' => 'Frösche', 'type' => 'danger', 'sort_weight' => 4],
             'open_tasks' => ['label' => 'Offene Aufgaben', 'type' => 'warning', 'sort_weight' => 1],
             'overdue_tasks' => ['label' => 'Überfällig', 'type' => 'danger', 'sort_weight' => 3],
             'own_projects' => ['label' => 'Eigene Projekte', 'type' => 'info', 'sort_weight' => 0],
@@ -56,6 +57,12 @@ class PlannerPersonActivityProvider implements PersonActivityProvider
             ->whereHas('project', fn($q) => $q->where('team_id', $teamId))
             ->count();
 
+        $frogs = PlannerTask::where('user_in_charge_id', $userId)
+            ->where('team_id', $teamId)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
+            ->where('is_frog', true)
+            ->count();
+
         $signs = [
             [
                 'key' => 'open_tasks',
@@ -64,6 +71,16 @@ class PlannerPersonActivityProvider implements PersonActivityProvider
                 'variant' => $openTasks > 0 ? 'default' : 'success',
             ],
         ];
+
+        // Frösche zuerst (Fokus).
+        if ($frogs > 0) {
+            array_unshift($signs, [
+                'key' => 'frogs',
+                'label' => 'Frösche',
+                'value' => $frogs,
+                'variant' => 'danger',
+            ]);
+        }
 
         if ($overdueTasks > 0) {
             $signs[] = [
@@ -95,10 +112,47 @@ class PlannerPersonActivityProvider implements PersonActivityProvider
     {
         $groups = [];
 
-        // Zugewiesene Aufgaben (offen)
+        // Frösche zuerst (absolute Fokus-Aufgaben) — überfällig zuerst.
+        $frogQuery = PlannerTask::where('user_in_charge_id', $userId)
+            ->where('team_id', $teamId)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
+            ->where('is_frog', true)
+            ->with('project')
+            ->orderByRaw('CASE WHEN due_date IS NOT NULL AND due_date < NOW() THEN 0 ELSE 1 END')
+            ->orderBy('due_date');
+
+        $totalFrogs = $frogQuery->count();
+        $frogTasks = $frogQuery->limit($limit)->get();
+
+        if ($totalFrogs > 0) {
+            $groups[] = [
+                'key' => 'frogs',
+                'label' => 'Frösche',
+                'icon' => 'fire',
+                'total_count' => $totalFrogs,
+                'items' => $frogTasks->map(function ($t) {
+                    $meta = [];
+                    if ($t->project) {
+                        $meta[] = $t->project->name;
+                    }
+                    if ($t->due_date) {
+                        $meta[] = $t->due_date->isPast() ? 'überfällig' : 'fällig ' . $t->due_date->format('d.m.Y');
+                    }
+                    return [
+                        'id' => $t->id,
+                        'name' => $t->title ?? '—',
+                        'url' => route('planner.tasks.show', $t),
+                        'meta' => implode(' · ', $meta) ?: null,
+                    ];
+                })->toArray(),
+            ];
+        }
+
+        // Zugewiesene Aufgaben (offen) — Frösche hier ausgeschlossen (stehen oben).
         $taskQuery = PlannerTask::where('user_in_charge_id', $userId)
             ->where('team_id', $teamId)
             ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
+            ->where('is_frog', false)
             ->orderByRaw('CASE WHEN due_date IS NOT NULL AND due_date < NOW() THEN 0 ELSE 1 END')
             ->orderBy('due_date');
 
