@@ -22,18 +22,17 @@
             ['route' => 'planner.delegated-tasks',  'icon' => 'heroicon-o-user-group',               'label' => 'Delegierte Aufgaben'],
             ['route' => 'planner.completed-tasks',  'icon' => 'heroicon-o-check-circle',             'label' => 'Erledigte Aufgaben'],
             ['route' => 'planner.frog-tasks',       'icon' => 'heroicon-o-exclamation-triangle',     'label' => 'Frösche'],
-            ['route' => 'planner.hygiene',          'icon' => 'heroicon-o-shield-check',             'label' => 'Hygiene'],
-            ['route' => 'planner.projects.cleanup', 'icon' => 'heroicon-o-adjustments-horizontal',   'label' => 'Projects Cleanup'],
+            // Konsolidiert (5→3): Pflege = Hygiene+Cleanup (Meins/Team), Portfolio-Health = Health-Index+Ops (Analyse/Wand)
+            ['route' => 'planner.hygiene',          'icon' => 'heroicon-o-shield-check',             'label' => 'Pflege',           'active' => ['planner.hygiene', 'planner.projects.cleanup']],
+            ['route' => 'planner.health-index',     'icon' => 'heroicon-o-heart',                    'label' => 'Portfolio-Health', 'active' => ['planner.health-index', 'planner.ops']],
             ['route' => 'planner.projects.presentation', 'icon' => 'heroicon-o-presentation-chart-line', 'label' => 'Präsentation'],
-            ['route' => 'planner.health-index',     'icon' => 'heroicon-o-heart',                    'label' => 'Health-Index'],
-            ['route' => 'planner.ops',              'icon' => 'heroicon-o-command-line',             'label' => 'Ops-Room'],
         ];
     @endphp
     <div x-show="!collapsed" class="px-2 pb-2">
         <div class="text-[10px] uppercase tracking-wider text-[var(--ui-muted)] px-1 py-1">Allgemein</div>
         <nav class="flex flex-col">
             @foreach($navItems as $item)
-                @php $isActive = request()->routeIs($item['route']); @endphp
+                @php $isActive = request()->routeIs(...($item['active'] ?? [$item['route']])); @endphp
                 <a href="{{ route($item['route']) }}" wire:navigate
                    class="flex items-center gap-2 px-2 py-1 rounded text-xs transition {{ $isActive ? 'bg-[rgb(var(--ui-primary-rgb))] text-[var(--ui-on-primary)]' : 'text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}">
                     @svg($item['icon'], 'w-3.5 h-3.5 opacity-80 flex-shrink-0')
@@ -66,19 +65,14 @@
             <a href="{{ route('planner.frog-tasks') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.frog-tasks') ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)]' : 'text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}">
                 @svg('heroicon-o-exclamation-triangle', 'w-5 h-5')
             </a>
-            <a href="{{ route('planner.health-index') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.health-index') ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)]' : 'text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}">
-                @svg('heroicon-o-heart', 'w-5 h-5')
-            </a>
-            <a href="{{ route('planner.ops') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.ops') ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)]' : 'text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}">
-                @svg('heroicon-o-command-line', 'w-5 h-5')
-            </a>
-            <a href="{{ route('planner.hygiene') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.hygiene') ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)]' : 'text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}">
+            {{-- Konsolidiert (5→3): Pflege · Portfolio-Health · Präsentation --}}
+            <a href="{{ route('planner.hygiene') }}" wire:navigate title="Pflege" class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.hygiene', 'planner.projects.cleanup') ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)]' : 'text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}">
                 @svg('heroicon-o-shield-check', 'w-5 h-5')
             </a>
-            <a href="{{ route('planner.projects.cleanup') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.projects.cleanup') ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)]' : 'text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}">
-                @svg('heroicon-o-adjustments-horizontal', 'w-5 h-5')
+            <a href="{{ route('planner.health-index') }}" wire:navigate title="Portfolio-Health" class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.health-index', 'planner.ops') ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)]' : 'text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}">
+                @svg('heroicon-o-heart', 'w-5 h-5')
             </a>
-            <a href="{{ route('planner.projects.presentation') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.projects.presentation') ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)]' : 'text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}">
+            <a href="{{ route('planner.projects.presentation') }}" wire:navigate title="Präsentation" class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.projects.presentation') ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)]' : 'text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}">
                 @svg('heroicon-o-presentation-chart-line', 'w-5 h-5')
             </a>
         </div>
