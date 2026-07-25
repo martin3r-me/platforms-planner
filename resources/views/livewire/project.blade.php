@@ -22,7 +22,6 @@
     x-data
     @keydown.n.window.prevent="$wire.createTask()"
 >
-    @include('planner::partials.planner-tokens')
     <x-slot name="navbar">
         <x-ui-page-navbar :title="$project->title" icon="heroicon-o-clipboard-document-list" />
     </x-slot>
@@ -180,7 +179,6 @@
     {{-- Board --}}
     <div
         class="flex-1 min-h-0 flex bg-[color:var(--nx-surface)]"
-        @if($project->color) style="--planner-project-color: {{ $project->color }};" @endif
         x-data="{
             scrollKey: 'planner-project-{{ $project->id }}-scroll-x',
             scroller: null,
