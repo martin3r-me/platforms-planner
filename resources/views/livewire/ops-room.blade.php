@@ -124,7 +124,7 @@
                     <p class="text-sm m-0">Keine roten Projekte.</p>
                 </div>
             @else
-                <ul class="flex-1 space-y-2 overflow-hidden">
+                <ul class="flex-1 space-y-2 min-h-0 overflow-y-auto">
                     @foreach($brennt as $s)
                         @php $wl = $axisLabel[$s->worst_axis] ?? null; @endphp
                         <li class="rounded-lg bg-[var(--nx-danger)]/5 border border-[var(--nx-danger)]/30 p-2.5 ops-glow-red">
@@ -197,7 +197,7 @@
             @if($workload->isNotEmpty())
                 <div class="mt-4 flex-1 min-h-0 flex flex-col">
                     <div class="text-[10px] uppercase tracking-[0.25em] text-[color:var(--nx-muted)] mb-2 flex-shrink-0">Workload Top {{ $workload->count() }}</div>
-                    <ul class="space-y-1.5 flex-1 overflow-hidden">
+                    <ul class="space-y-1.5 flex-1 min-h-0 overflow-y-auto">
                         @php $maxOpen = max(1, $workload->max('open')); @endphp
                         @foreach($workload as $w)
                             <li>
@@ -234,7 +234,7 @@
                     <p class="text-sm m-0">Alle Projekte sind gepflegt.</p>
                 </div>
             @else
-                <ul class="flex-1 space-y-1.5 overflow-hidden">
+                <ul class="flex-1 space-y-1.5 min-h-0 overflow-y-auto">
                     @foreach($karteileichen as $s)
                         @php
                             $missing = $s->confidence_reason && str_starts_with($s->confidence_reason, 'missing:')
@@ -274,7 +274,7 @@
                     <p class="text-sm m-0">Kein Frosch ist überfällig.</p>
                 </div>
             @else
-                <ul class="flex-1 space-y-1.5 overflow-hidden">
+                <ul class="flex-1 space-y-1.5 min-h-0 overflow-y-auto">
                     @foreach($aelteste as $task)
                         @php $daysOver = (int) now()->startOfDay()->diffInDays($task->due_date->copy()->startOfDay(), false) * -1; @endphp
                         <li class="rounded bg-[var(--nx-warning)]/5 border border-[var(--nx-warning)]/20 p-2 flex items-center gap-2.5">
@@ -342,7 +342,7 @@
                     @if($gewinner->isEmpty())
                         <div class="text-[11px] text-[color:var(--nx-faint)]">—</div>
                     @else
-                        <ul class="space-y-1 overflow-hidden">
+                        <ul class="space-y-1 min-h-0 overflow-y-auto">
                             @foreach($gewinner as $s)
                                 <li class="flex items-center gap-2 text-[11px]">
                                     <span class="tabular-nums text-[color:var(--nx-success)] font-semibold flex-shrink-0">+{{ $s->delta_health_score }}</span>
@@ -359,7 +359,7 @@
                     @if($verlierer->isEmpty())
                         <div class="text-[11px] text-[color:var(--nx-faint)]">—</div>
                     @else
-                        <ul class="space-y-1 overflow-hidden">
+                        <ul class="space-y-1 min-h-0 overflow-y-auto">
                             @foreach($verlierer as $s)
                                 <li class="flex items-center gap-2 text-[11px]">
                                     <span class="tabular-nums text-[color:var(--nx-danger)] font-semibold flex-shrink-0">{{ $s->delta_health_score }}</span>
