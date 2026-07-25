@@ -5,54 +5,54 @@
         <div class="max-w-2xl mx-auto p-6">
             <!-- Header -->
             <div class="text-center mb-6">
-                <div class="inline-flex items-center justify-center w-12 h-12 bg-blue-600 rounded-full mb-3">
+                <div class="inline-flex items-center justify-center w-12 h-12 bg-[color:var(--nx-info)] rounded-full mb-3">
                     @svg('heroicon-o-clipboard-document-list', 'w-6 h-6 text-white')
                 </div>
-                <h1 class="text-2xl font-bold text-gray-900 mb-2">Planner Tab einrichten</h1>
-                <p class="text-gray-600 text-sm">Wähle zuerst ein Team, dann ein Projekt</p>
+                <h1 class="text-2xl font-bold text-[color:var(--nx-text)] mb-2">Planner Tab einrichten</h1>
+                <p class="text-[color:var(--nx-muted)] text-sm">Wähle zuerst ein Team, dann ein Projekt</p>
             </div>
 
             <!-- Teams Auswahl -->
-            <div class="bg-white rounded-lg shadow-sm border p-4 mb-6">
+            <div class="bg-[color:var(--nx-surface)] rounded-lg shadow-[var(--nx-shadow-card)] border p-4 mb-6">
                 <div class="mb-3">
-                    <label class="block text-sm font-medium text-gray-900 mb-1">Team auswählen</label>
-                    <p class="text-xs text-gray-500">Nur Teams, denen du angehörst</p>
+                    <label class="block text-sm font-medium text-[color:var(--nx-text)] mb-1">Team auswählen</label>
+                    <p class="text-xs text-[color:var(--nx-muted)]">Nur Teams, denen du angehörst</p>
                 </div>
                 <div id="teamGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     @forelse(($teams ?? collect()) as $team)
-                        <button type="button" class="team-tile flex items-center justify-center p-3 rounded-lg border border-gray-200 bg-white hover:border-blue-500 text-sm"
+                        <button type="button" class="team-tile flex items-center justify-center p-3 rounded-lg border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] hover:border-[var(--nx-info)]/30 text-sm"
                                 data-team-id="{{ $team->id }}" data-team-name="{{ $team->name }}">
                             <span class="truncate">{{ $team->name }}</span>
                         </button>
                     @empty
-                        <div class="text-xs text-gray-500">Keine Teams gefunden.</div>
+                        <div class="text-xs text-[color:var(--nx-muted)]">Keine Teams gefunden.</div>
                     @endforelse
                 </div>
             </div>
 
             <!-- Project Selection -->
-            <div class="bg-white rounded-lg shadow-sm border p-4">
+            <div class="bg-[color:var(--nx-surface)] rounded-lg shadow-[var(--nx-shadow-card)] border p-4">
                 <div class="mb-3 flex items-center justify-between">
                     <div>
-                        <label class="block text-sm font-medium text-gray-900 mb-1">Projekt auswählen</label>
-                        <p class="text-xs text-gray-500">Nur Projekte aus dem gewählten Team</p>
+                        <label class="block text-sm font-medium text-[color:var(--nx-text)] mb-1">Projekt auswählen</label>
+                        <p class="text-xs text-[color:var(--nx-muted)]">Nur Projekte aus dem gewählten Team</p>
                     </div>
-                    <button id="newProjectBtn" type="button" class="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-300 text-gray-700 text-xs font-medium rounded-md hover:bg-gray-50">
+                    <button id="newProjectBtn" type="button" class="inline-flex items-center gap-2 px-3 py-1.5 bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] text-[color:var(--nx-text)] text-xs font-medium rounded-md hover:bg-[color:var(--nx-bg)]">
                         @svg('heroicon-o-plus', 'w-4 h-4')
                         Neues Projekt
                     </button>
                 </div>
 
                 <div class="space-y-4">
-                    <select id="projectSelect" class="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <select id="projectSelect" class="w-full rounded-lg border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] px-4 py-3 text-sm focus:ring-2 focus:ring-[var(--nx-info)]/30 focus:border-[var(--nx-info)]/30">
                         <option value="">– Bitte erst ein Team wählen –</option>
                     </select>
 
                     <div class="flex items-center justify-between pt-2">
-                        <div class="text-sm text-gray-500">
+                        <div class="text-sm text-[color:var(--nx-muted)]">
                             <span id="projectCount">0</span> Projekte verfügbar
                         </div>
-                        <button id="saveBtn" type="button" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
+                        <button id="saveBtn" type="button" class="inline-flex items-center gap-2 px-4 py-2 bg-[color:var(--nx-info)] text-white text-sm font-medium rounded-lg hover:bg-[color:var(--nx-info)] focus:ring-2 focus:ring-[var(--nx-info)]/30 focus:ring-offset-2 transition-colors">
                             @svg('heroicon-o-check', 'w-4 h-4')
                             Tab hinzufügen
                         </button>
@@ -63,35 +63,35 @@
             <!-- Neues Projekt Modal (einfach) -->
             <div id="newProjectModal" class="hidden fixed inset-0 z-50 bg-black/30">
                 <div class="absolute inset-0 flex items-center justify-center p-4">
-                    <div class="w-full max-w-sm rounded-lg bg-white border shadow p-4 space-y-3">
-                        <div class="text-sm font-medium text-gray-900">Neues Projekt anlegen</div>
+                    <div class="w-full max-w-sm rounded-lg bg-[color:var(--nx-surface)] border shadow p-4 space-y-3">
+                        <div class="text-sm font-medium text-[color:var(--nx-text)]">Neues Projekt anlegen</div>
                         <div class="space-y-2">
-                            <label class="block text-xs text-gray-600">Team</label>
-                            <select id="newProjectTeam" class="w-full rounded border border-gray-300 px-3 py-2 text-sm bg-white">
+                            <label class="block text-xs text-[color:var(--nx-muted)]">Team</label>
+                            <select id="newProjectTeam" class="w-full rounded border border-[color:var(--nx-line)] px-3 py-2 text-sm bg-[color:var(--nx-surface)]">
                                 @foreach(($teams ?? collect()) as $team)
                                     <option value="{{ $team->id }}">{{ $team->name }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="space-y-2">
-                            <label class="block text-xs text-gray-600">Projektname</label>
-                            <input id="newProjectName" type="text" class="w-full rounded border border-gray-300 px-3 py-2 text-sm" placeholder="Projektname" />
+                            <label class="block text-xs text-[color:var(--nx-muted)]">Projektname</label>
+                            <input id="newProjectName" type="text" class="w-full rounded border border-[color:var(--nx-line)] px-3 py-2 text-sm" placeholder="Projektname" />
                         </div>
                         <div class="flex items-center justify-end gap-2 pt-2">
-                            <button type="button" id="newProjectCancel" class="px-3 py-1.5 text-xs rounded border border-gray-300">Abbrechen</button>
-                            <button type="button" id="newProjectCreate" class="px-3 py-1.5 text-xs rounded bg-blue-600 text-white">Anlegen</button>
+                            <button type="button" id="newProjectCancel" class="px-3 py-1.5 text-xs rounded border border-[color:var(--nx-line)]">Abbrechen</button>
+                            <button type="button" id="newProjectCreate" class="px-3 py-1.5 text-xs rounded bg-[color:var(--nx-info)] text-white">Anlegen</button>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Info Box -->
-            <div class="mt-4 bg-blue-50 rounded-lg p-3">
+            <div class="mt-4 bg-[var(--nx-info)]/10 rounded-lg p-3">
                 <div class="flex items-start gap-2">
-                    @svg('heroicon-o-information-circle', 'w-4 h-4 text-blue-600 mt-0.5')
+                    @svg('heroicon-o-information-circle', 'w-4 h-4 text-[color:var(--nx-info)] mt-0.5')
                     <div>
-                        <p class="text-xs font-medium text-blue-900">Was passiert als nächstes?</p>
-                        <p class="text-xs text-blue-700 mt-1">Nach der Auswahl wird der Planner Tab zu deinem Teams Kanal hinzugefügt.</p>
+                        <p class="text-xs font-medium text-[color:var(--nx-info)]">Was passiert als nächstes?</p>
+                        <p class="text-xs text-[color:var(--nx-info)] mt-1">Nach der Auswahl wird der Planner Tab zu deinem Teams Kanal hinzugefügt.</p>
                     </div>
                 </div>
             </div>
@@ -112,8 +112,8 @@
         teamTiles.forEach(tile => {
             tile.addEventListener('click', function(){
                 // Active-State
-                teamTiles.forEach(t => t.classList.remove('ring-2','ring-blue-500'));
-                this.classList.add('ring-2','ring-blue-500');
+                teamTiles.forEach(t => t.classList.remove('ring-2','ring-[var(--nx-info)]/30'));
+                this.classList.add('ring-2','ring-[var(--nx-info)]/30');
                 selectedTeamId = this.getAttribute('data-team-id');
                 // Projekte neu filtern
                 renderProjects();

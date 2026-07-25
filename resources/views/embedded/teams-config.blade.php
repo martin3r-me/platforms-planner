@@ -2,9 +2,9 @@
 
 @section('content')
     <div class="p-6">
-        <h1 class="text-xl font-semibold text-[var(--ui-secondary)] mb-2">Teams Tab Konfiguration – Test</h1>
-        <p class="text-sm text-[var(--ui-muted)] mb-1">Prüft die Einbettung und die Teams SDK-Initialisierung.</p>
-        <p class="text-sm text-[var(--ui-secondary)] mb-4">
+        <h1 class="text-xl font-semibold text-[var(--nx-text)] mb-2">Teams Tab Konfiguration – Test</h1>
+        <p class="text-sm text-[var(--nx-muted)] mb-1">Prüft die Einbettung und die Teams SDK-Initialisierung.</p>
+        <p class="text-sm text-[var(--nx-text)] mb-4">
             @php($teamsUser = \Platform\Core\Helpers\TeamsAuthHelper::getTeamsUser(request()))
             @if($teamsUser)
                 Hallo, {{ $teamsUser['name'] ?? $teamsUser['email'] ?? 'User' }}
@@ -13,17 +13,17 @@
             @endif
         </p>
 
-        <div id="sdkStatus" class="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-md border border-[var(--ui-border)] bg-[var(--ui-muted-5)] text-[var(--ui-secondary)]">
+        <div id="sdkStatus" class="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-md border border-[var(--nx-line)] bg-[var(--nx-bg)] text-[var(--nx-text)]">
             SDK: wird geprüft…
         </div>
 
         <div class="mt-6 space-y-3">
-            <label class="block text-sm text-[var(--ui-secondary)]">Projekt wählen</label>
-            <select id="projectSelect" class="w-full rounded-md border border-[var(--ui-border)] bg-white px-3 py-2 text-sm">
+            <label class="block text-sm text-[var(--nx-text)]">Projekt wählen</label>
+            <select id="projectSelect" class="w-full rounded-md border border-[var(--nx-line)] bg-[color:var(--nx-surface)] px-3 py-2 text-sm">
                 <option value="">– Bitte wählen –</option>
             </select>
 
-            <button id="saveBtn" type="button" class="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-md border border-[var(--ui-border)] bg-white hover:bg-[var(--ui-muted-5)] text-[var(--ui-secondary)]">Speichern</button>
+            <button id="saveBtn" type="button" class="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-md border border-[var(--nx-line)] bg-[color:var(--nx-surface)] hover:bg-[var(--nx-bg)] text-[var(--nx-text)]">Speichern</button>
         </div>
 
         <script>
@@ -35,7 +35,7 @@
                             const el = document.getElementById('sdkStatus');
                             if (el) {
                                 el.textContent = 'SDK: bereit';
-                                el.className = 'inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-md border border-green-200 bg-green-50 text-green-700';
+                                el.className = 'inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-md border border-[var(--nx-success)]/30 bg-[var(--nx-success)]/10 text-[color:var(--nx-success)]';
                             }
 
                             // Config-API aktivieren: Validity setzen und Save-Handler registrieren
@@ -114,21 +114,21 @@
                             const el = document.getElementById('sdkStatus');
                             if (el) {
                                 el.textContent = 'SDK: Fehler bei initialize()';
-                                el.className = 'inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-md border border-red-200 bg-red-50 text-red-700';
+                                el.className = 'inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-md border border-[var(--nx-danger)]/30 bg-[var(--nx-danger)]/10 text-[color:var(--nx-danger)]';
                             }
                         });
                     } else {
                         const el = document.getElementById('sdkStatus');
                         if (el) {
                             el.textContent = 'SDK: nicht geladen (vermutlich außerhalb von Teams)';
-                            el.className = 'inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-md border border-yellow-200 bg-yellow-50 text-yellow-700';
+                            el.className = 'inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-md border border-[var(--nx-warning)]/30 bg-[var(--nx-warning)]/10 text-[color:var(--nx-warning)]';
                         }
                     }
                 } catch (e) {
                     const el = document.getElementById('sdkStatus');
                     if (el) {
                         el.textContent = 'SDK: Ausnahme aufgetreten';
-                        el.className = 'inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-md border border-red-200 bg-red-50 text-red-700';
+                        el.className = 'inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-md border border-[var(--nx-danger)]/30 bg-[var(--nx-danger)]/10 text-[color:var(--nx-danger)]';
                     }
                 }
             })();

@@ -1,14 +1,14 @@
     <x-ui-page>
         <x-slot name="navbar">
             <x-ui-page-navbar :title="$task->title" icon="heroicon-o-clipboard-document-check">
-            <div class="mt-1 text-sm text-[var(--ui-muted)] flex items-center gap-2">
+            <div class="mt-1 text-sm text-[var(--nx-muted)] flex items-center gap-2">
                 <span class="flex items-center gap-1">
                         @svg('heroicon-o-home', 'w-4 h-4')
                         Teams
                     </span>
                     @if($task->project)
                     <span>›</span>
-                        <a href="{{ route('planner.embedded.project', $task->project) }}" class="text-[var(--ui-secondary)] hover:text-[var(--ui-primary)] flex items-center gap-1">
+                        <a href="{{ route('planner.embedded.project', $task->project) }}" class="text-[var(--nx-text)] hover:text-[var(--nx-accent)] flex items-center gap-1">
                             @svg('heroicon-o-folder', 'w-4 h-4')
                             {{ $task->project->name }}
                         </a>
@@ -26,15 +26,15 @@
         <x-ui-page-sidebar title="Navigation & Details" width="w-80" :defaultOpen="true">
             <div class="p-4 space-y-3 text-sm">
                 @if($task->project)
-                    <x-ui-button variant="secondary-outline" :href="route('planner.embedded.project', $task->project)" class="w-full">
+                    <x-nx-button variant="secondary-outline" :href="route('planner.embedded.project', $task->project)" class="w-full">
                         @svg('heroicon-o-arrow-uturn-left', 'w-4 h-4 mr-1')
                         Zur Projektübersicht
-                    </x-ui-button>
+                    </x-nx-button>
                 @endif
-                <div class="text-[var(--ui-muted)]">Task-ID: {{ $task->id }}</div>
+                <div class="text-[var(--nx-muted)]">Task-ID: {{ $task->id }}</div>
                 
                 {{-- Debug Box --}}
-                <div class="mt-4 p-3 bg-gray-50 rounded border text-xs">
+                <div class="mt-4 p-3 bg-[color:var(--nx-bg)] rounded border text-xs">
                     <div class="font-bold mb-2">🔍 Debug Info</div>
                     <div id="teams-sdk-status">Teams SDK: Lade...</div>
                     <div id="teams-context-status">Teams Context: Lade...</div>
@@ -52,18 +52,18 @@
     <x-slot name="activity">
         <x-ui-page-sidebar title="Aktivitäten" width="w-80" :defaultOpen="false" side="right" storeKey="activityOpen">
             <div class="p-4 space-y-2 text-sm">
-                <div class="p-2 rounded border border-[var(--ui-border)]/60 bg-[var(--ui-muted-5)]">
-                    <div class="font-medium text-[var(--ui-secondary)] truncate">Aufgabe geöffnet</div>
-                    <div class="text-[var(--ui-muted)]">Gerade eben</div>
+                <div class="p-2 rounded border border-[var(--nx-line)]/60 bg-[var(--nx-bg)]">
+                    <div class="font-medium text-[var(--nx-text)] truncate">Aufgabe geöffnet</div>
+                    <div class="text-[var(--nx-muted)]">Gerade eben</div>
                 </div>
             </div>
         </x-ui-page-sidebar>
         </x-slot>
 
     <div class="p-4 space-y-4">
-            <div class="bg-white rounded-lg border p-4">
-            <div class="text-sm text-[var(--ui-muted)] mb-2">Task-ID: {{ $task->id }}</div>
-                        <x-ui-input-text
+            <div class="bg-[color:var(--nx-surface)] rounded-lg border p-4">
+            <div class="text-sm text-[var(--nx-muted)] mb-2">Task-ID: {{ $task->id }}</div>
+                        <x-nx-input-text
                             name="task.title"
                             label="Titel"
                 wire:model.live.debounce.500ms="task.title"
@@ -72,8 +72,8 @@
                             :errorKey="'task.title'"
                         />
                     </div>
-        <div class="bg-white rounded-lg border p-4">
-                        <x-ui-input-select
+        <div class="bg-[color:var(--nx-surface)] rounded-lg border p-4">
+                        <x-nx-input-select
                             name="task.priority"
                             label="Priorität"
                             :options="\Platform\Planner\Enums\TaskPriority::cases()"
@@ -83,19 +83,19 @@
                             wire:model.live="task.priority"
                         />
                     </div>
-        <div class="bg-white rounded-lg border p-4">
+        <div class="bg-[color:var(--nx-surface)] rounded-lg border p-4">
             <div class="space-y-2">
-                <label class="block text-sm font-medium text-[var(--ui-secondary)]">Fälligkeitsdatum</label>
+                <label class="block text-sm font-medium text-[var(--nx-text)]">Fälligkeitsdatum</label>
                 <input 
                     type="datetime-local" 
-                    class="w-full rounded border border-[var(--ui-border)]/60 px-3 py-2 text-sm"
+                    class="w-full rounded border border-[var(--nx-line)]/60 px-3 py-2 text-sm"
                     wire:model.live="dueDateInput"
                     @keydown.enter.prevent
                 />
             </div>
         </div>
-        <div class="bg-white rounded-lg border p-4">
-            <x-ui-input-select
+        <div class="bg-[color:var(--nx-surface)] rounded-lg border p-4">
+            <x-nx-input-select
                 name="task.story_points"
                 label="Story Points"
                 :options="\Platform\Planner\Enums\TaskStoryPoints::cases()"
@@ -106,8 +106,8 @@
                 wire:model.live="task.story_points"
                         />
                     </div>
-        <div class="bg-white rounded-lg border p-4">
-                        <x-ui-input-select
+        <div class="bg-[color:var(--nx-surface)] rounded-lg border p-4">
+                        <x-nx-input-select
                             name="task.user_in_charge_id"
                             label="Verantwortlicher"
                 :options="$teamUsers"
@@ -120,17 +120,17 @@
                     </div>
 
         {{-- Definition of Done als interaktive Checkliste --}}
-        <div class="bg-white rounded-lg border p-4">
+        <div class="bg-[color:var(--nx-surface)] rounded-lg border p-4">
             <div class="mb-3">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2">
-                        <label class="text-sm font-medium text-[var(--ui-secondary)]">Definition of Done</label>
-                        <span class="text-xs text-[var(--ui-muted)] px-1.5 py-0.5 bg-[var(--ui-muted-5)] border border-[var(--ui-border)]/40 rounded">
+                        <label class="text-sm font-medium text-[var(--nx-text)]">Definition of Done</label>
+                        <span class="text-xs text-[var(--nx-muted)] px-1.5 py-0.5 bg-[var(--nx-bg)] border border-[var(--nx-line)]/40 rounded">
                             Verschlüsselt
                         </span>
                     </div>
                     @if(count($dodItems) > 0)
-                        <span class="text-xs text-[var(--ui-muted)]">
+                        <span class="text-xs text-[var(--nx-muted)]">
                             {{ $this->dodProgress['checked'] }}/{{ $this->dodProgress['total'] }}
                         </span>
                     @endif
@@ -141,31 +141,31 @@
             <div class="space-y-2">
                 @forelse($dodItems as $index => $item)
                     <div
-                        class="group flex items-center gap-2 p-2 rounded border border-[var(--ui-border)]/40 {{ $item['checked'] ? 'bg-green-50' : 'bg-white' }}"
+                        class="group flex items-center gap-2 p-2 rounded border border-[var(--nx-line)]/40 {{ $item['checked'] ? 'bg-[var(--nx-success)]/10' : 'bg-[color:var(--nx-surface)]' }}"
                         wire:key="dod-item-{{ $index }}"
                     >
                         <button
                             type="button"
                             wire:click="toggleDodItem({{ $index }})"
-                            class="flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center {{ $item['checked'] ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300 hover:border-blue-500' }}"
+                            class="flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center {{ $item['checked'] ? 'bg-[color:var(--nx-success)] border-[var(--nx-success)]/30 text-white' : 'border-[color:var(--nx-line)] hover:border-[var(--nx-info)]/30' }}"
                         >
                             @if($item['checked'])
                                 @svg('heroicon-s-check', 'w-3 h-3')
                             @endif
                         </button>
-                        <span class="flex-1 text-sm {{ $item['checked'] ? 'line-through text-gray-400' : 'text-gray-700' }}">
+                        <span class="flex-1 text-sm {{ $item['checked'] ? 'line-through text-[color:var(--nx-muted)]' : 'text-[color:var(--nx-text)]' }}">
                             {{ $item['text'] }}
                         </span>
                         <button
                             type="button"
                             wire:click="removeDodItem({{ $index }})"
-                            class="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500"
+                            class="opacity-0 group-hover:opacity-100 p-1 text-[color:var(--nx-muted)] hover:text-[color:var(--nx-danger)]"
                         >
                             @svg('heroicon-o-x-mark', 'w-4 h-4')
                         </button>
                     </div>
                 @empty
-                    <p class="text-sm text-gray-400 text-center py-4">Keine DoD-Kriterien</p>
+                    <p class="text-sm text-[color:var(--nx-muted)] text-center py-4">Keine DoD-Kriterien</p>
                 @endforelse
             </div>
 
@@ -175,7 +175,7 @@
                     <button
                         type="button"
                         @click="adding = true; $nextTick(() => $refs.input?.focus())"
-                        class="w-full flex items-center gap-2 p-2 border border-dashed border-gray-300 rounded text-gray-400 hover:border-blue-400 hover:text-blue-500"
+                        class="w-full flex items-center gap-2 p-2 border border-dashed border-[color:var(--nx-line)] rounded text-[color:var(--nx-muted)] hover:border-[var(--nx-info)]/30 hover:text-[color:var(--nx-info)]"
                     >
                         @svg('heroicon-o-plus', 'w-4 h-4')
                         <span class="text-sm">Hinzufügen</span>
@@ -189,13 +189,13 @@
                             x-model="newText"
                             @keydown.enter.prevent="if(newText.trim()) { $wire.addDodItem(newText); newText = ''; }"
                             @keydown.escape="adding = false"
-                            class="flex-1 p-2 border border-gray-300 rounded text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            class="flex-1 p-2 border border-[color:var(--nx-line)] rounded text-sm focus:border-[var(--nx-info)]/30 focus:ring-1 focus:ring-[var(--nx-info)]/30"
                             placeholder="DoD-Kriterium..."
                         />
                         <button
                             type="button"
                             @click="if(newText.trim()) { $wire.addDodItem(newText); newText = ''; } adding = false;"
-                            class="p-2 text-blue-500 hover:bg-blue-50 rounded"
+                            class="p-2 text-[color:var(--nx-info)] hover:bg-[var(--nx-info)]/10 rounded"
                         >
                             @svg('heroicon-o-check', 'w-5 h-5')
                         </button>
