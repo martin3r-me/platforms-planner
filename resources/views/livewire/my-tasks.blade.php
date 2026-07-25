@@ -43,51 +43,47 @@
             ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
             ['label' => 'Meine Aufgaben'],
         ]">
-            {{-- Live-Metriken (konsolidiert aus der alten Content-Header-Leiste) --}}
-            <x-slot name="left">
-                <div class="hidden md:flex items-center gap-3 text-[11px]">
-                    <span class="inline-flex items-center gap-1.5 text-[color:var(--nx-text)]">
-                        <span class="w-1.5 h-1.5 rounded-full bg-[color:var(--nx-info)]"></span>
-                        <span class="font-semibold tabular-nums">{{ $headerOpenCount }}</span>
-                        <span class="hidden lg:inline text-[color:var(--nx-muted)]">offen</span>
+            {{-- Kennzahlen als EIN Badge rechts (Projekt-Standard) --}}
+            <x-nx-badge title="offen {{ $headerOpenCount }} · überfällig {{ $headerOverdueCount }} · Frösche {{ $frogCount }}{{ $openPoints > 0 ? ' · ' . $openPoints . ' SP' : '' }}">
+                <span class="inline-flex items-center gap-1 text-[color:var(--nx-text)]">
+                    <span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-info)]"></span>
+                    <span class="tabular-nums">{{ $headerOpenCount }}</span>
+                </span>
+                @if($headerOverdueCount > 0)
+                    <span class="inline-flex items-center gap-1 text-[color:var(--nx-danger)]">
+                        <span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-danger)]"></span>
+                        <span class="tabular-nums">{{ $headerOverdueCount }}</span>
                     </span>
-                    @if($headerOverdueCount > 0)
-                        <span class="inline-flex items-center gap-1.5 text-[color:var(--nx-danger)]">
-                            <span class="w-1.5 h-1.5 rounded-full bg-[color:var(--nx-danger)]"></span>
-                            <span class="font-semibold tabular-nums">{{ $headerOverdueCount }}</span>
-                            <span class="hidden lg:inline">überfällig</span>
-                        </span>
-                    @endif
-                    @if($frogCount > 0)
-                        <span class="inline-flex items-center gap-1 text-[color:var(--nx-success)]">
-                            <span>🐸</span><span class="font-semibold tabular-nums">{{ $frogCount }}</span>
-                        </span>
-                    @endif
-                    @if($openPoints > 0)
-                        <span class="hidden lg:inline-flex items-center gap-1.5 text-[color:var(--nx-text)]">
-                            <span class="font-semibold tabular-nums">{{ $openPoints }}</span>
-                            <span class="text-[color:var(--nx-muted)]">SP</span>
-                        </span>
-                    @endif
-                    @if($totalCount > 0)
-                        <span class="hidden xl:inline-flex items-center gap-2">
-                            <span class="text-[color:var(--nx-muted)] tabular-nums">{{ $donePct }}%</span>
-                            <span class="w-16 h-1 rounded-full bg-[color:var(--nx-line)] overflow-hidden">
-                                <span class="block h-full rounded-full bg-[color:var(--nx-success)]" style="width: {{ $donePct }}%"></span>
-                            </span>
-                        </span>
-                    @endif
-                </div>
-            </x-slot>
+                @endif
+                @if($frogCount > 0)
+                    <span class="inline-flex items-center gap-1"><span>🐸</span><span class="tabular-nums">{{ $frogCount }}</span></span>
+                @endif
+                @if($openPoints > 0)
+                    <span class="opacity-30" aria-hidden="true">·</span>
+                    <span class="tabular-nums">{{ $openPoints }} SP</span>
+                @endif
+            </x-nx-badge>
 
-            <x-nx-button variant="primary" size="sm" wire:click="createTask()" title="Neue Aufgabe (N)">
-                @svg('heroicon-o-plus', 'w-4 h-4')
-                <span>Aufgabe</span>
-            </x-nx-button>
-            <x-nx-button variant="ghost" size="sm" wire:click="createTaskGroup">
-                @svg('heroicon-o-square-2-stack', 'w-4 h-4')
-                <span>Spalte</span>
-            </x-nx-button>
+            {{-- Aktionen im Overflow-Menü (keine sichtbaren Buttons — Projekt-Standard) --}}
+            <div x-data="{ open: false }" class="relative">
+                <button type="button" @click="open = !open"
+                    class="inline-flex items-center justify-center w-8 h-7 rounded-md text-[var(--nx-muted)] hover:text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition-colors" title="Mehr">
+                    @svg('heroicon-o-ellipsis-horizontal', 'w-4 h-4')
+                </button>
+                <div x-show="open" x-cloak x-transition.opacity.duration.100ms @click.outside="open = false" @keydown.escape.window="open = false"
+                    class="absolute top-full right-0 mt-1 w-52 bg-[color:var(--nx-surface)] border border-[var(--nx-line-strong)] rounded-lg shadow-[var(--nx-shadow-pop)] z-30 py-1">
+                    <button type="button" wire:click="createTask()" @click="open = false"
+                        class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition-colors">
+                        @svg('heroicon-o-plus', 'w-4 h-4 text-[var(--nx-muted)]')
+                        <span>Neue Aufgabe</span>
+                    </button>
+                    <button type="button" wire:click="createTaskGroup" @click="open = false"
+                        class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition-colors">
+                        @svg('heroicon-o-square-2-stack', 'w-4 h-4 text-[var(--nx-muted)]')
+                        <span>Neue Spalte</span>
+                    </button>
+                </div>
+            </div>
         </x-ui-page-actionbar>
     </x-slot>
 
