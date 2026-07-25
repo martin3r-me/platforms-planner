@@ -51,7 +51,7 @@
 
         /* stage */
         .pm-stagewrap { overflow-y: auto; min-height: 0; }
-        .pm-stage { display: flex; flex-direction: column; gap: 20px; }
+        .pm-stage { display: flex; flex-direction: column; gap: 20px; container-type: inline-size; }
         .pm-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
         .pm-head h1 { font-family: var(--serif); font-weight: 600; font-size: 25px; line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; color: var(--ink); }
         .pm-head .meta { margin-top: 8px; font-size: 13.5px; color: var(--muted); }
@@ -181,7 +181,7 @@
         .pm-prjrow .m { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
         .pm-prjrow .hd { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 
-        @media (max-width: 1100px) { .pm-tiles { grid-template-columns: 1fr; } .pm-lower { grid-template-columns: 1fr; } .pm-split { grid-template-columns: 1fr; } .pm-side { position: static; } }
+        @container (max-width: 780px) { .pm-tiles { grid-template-columns: 1fr; } .pm-lower { grid-template-columns: 1fr; } .pm-split { grid-template-columns: 1fr; } .pm-side { position: static; } .pm-eckdaten { flex-direction: column; } .pm-eckdaten .ec-track { border-left: 0; border-right: 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); } .pm-eckdaten .ec-pole.end { align-items: flex-start; text-align: left; } }
         @media (prefers-reduced-motion: reduce) { .pm * { transition: none !important; } }
     </style>
     @endverbatim
