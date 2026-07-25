@@ -14,15 +14,29 @@
 
 <x-ui-page>
     <x-slot name="navbar">
-        <x-ui-page-navbar title="Hygiene" icon="heroicon-o-shield-check" />
+        <x-ui-page-navbar title="Pflege" icon="heroicon-o-shield-check" />
     </x-slot>
 
     <x-slot name="actionbar">
         <x-ui-page-actionbar :breadcrumbs="[
             ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
-            ['label' => 'Hygiene'],
+            ['label' => 'Pflege'],
         ]">
-            {{-- Hygiene-Zustand als EIN Badge rechts (Projekt-Standard), health-getönt --}}
+            {{-- Scope-Umschalter: Meins (aktiv) ⟷ Team --}}
+            <div class="inline-flex rounded-md border border-[color:var(--nx-line-strong)] overflow-hidden">
+                <span class="inline-flex items-center gap-1.5 h-7 px-2.5 text-[11px] font-medium bg-[color:var(--nx-accent)] text-[color:var(--nx-on-accent)]">
+                    @svg('heroicon-o-user', 'w-3.5 h-3.5')
+                    Meins
+                </span>
+                <a href="{{ route('planner.projects.cleanup') }}" wire:navigate
+                   title="Team-Sicht (Aufräum-Cockpit)"
+                   class="inline-flex items-center gap-1.5 h-7 px-2.5 text-[11px] font-medium text-[color:var(--nx-muted)] hover:text-[color:var(--nx-text)] hover:bg-[color:var(--nx-hover)] border-l border-[color:var(--nx-line-strong)] transition-colors">
+                    @svg('heroicon-o-user-group', 'w-3.5 h-3.5')
+                    Team
+                </a>
+            </div>
+
+            {{-- Pflege-Zustand als EIN Badge rechts (Projekt-Standard), health-getönt --}}
             <x-nx-badge :variant="$hygieneVariant" title="{{ $hygieneTitle }}">
                 @svg('heroicon-o-shield-check', 'w-3 h-3')
                 @if($totalStale === 0)
