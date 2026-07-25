@@ -10,7 +10,7 @@
     }"
 >
     {{-- Modul Header --}}
-    <div x-show="!collapsed" class="p-3 text-sm italic text-[var(--ui-secondary)] uppercase border-b border-[var(--ui-border)] mb-2">
+    <div x-show="!collapsed" class="p-3 text-sm italic text-[var(--nx-text)] uppercase border-b border-[var(--nx-line)] mb-2">
         Planner
     </div>
 
@@ -29,18 +29,18 @@
         ];
     @endphp
     <div x-show="!collapsed" class="px-2 pb-2">
-        <div class="text-[10px] uppercase tracking-wider text-[var(--ui-muted)] px-1 py-1">Allgemein</div>
+        <div class="text-[10px] uppercase tracking-wider text-[var(--nx-muted)] px-1 py-1">Allgemein</div>
         <nav class="flex flex-col">
             @foreach($navItems as $item)
                 @php $isActive = request()->routeIs(...($item['active'] ?? [$item['route']])); @endphp
                 <a href="{{ route($item['route']) }}" wire:navigate
-                   class="flex items-center gap-2 px-2 py-1 rounded text-xs transition {{ $isActive ? 'bg-[rgb(var(--ui-primary-rgb))] text-[var(--ui-on-primary)]' : 'text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}">
+                   class="flex items-center gap-2 px-2 py-1 rounded text-xs transition {{ $isActive ? 'bg-[color:var(--nx-accent)] text-[var(--nx-on-accent)]' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
                     @svg($item['icon'], 'w-3.5 h-3.5 opacity-80 flex-shrink-0')
                     <span class="truncate">{{ $item['label'] }}</span>
                 </a>
             @endforeach
             <button type="button" wire:click="createProject"
-                    class="flex items-center gap-2 px-2 py-1 mt-1 rounded text-xs text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)] transition text-left">
+                    class="flex items-center gap-2 px-2 py-1 mt-1 rounded text-xs text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition text-left">
                 @svg('heroicon-o-plus-circle', 'w-3.5 h-3.5 opacity-80 flex-shrink-0')
                 <span class="truncate">Neues Projekt</span>
             </button>
@@ -48,37 +48,37 @@
     </div>
 
     {{-- Collapsed: Icons-only für Allgemein --}}
-    <div x-show="collapsed" class="px-2 py-2 border-b border-[var(--ui-border)]">
+    <div x-show="collapsed" class="px-2 py-2 border-b border-[var(--nx-line)]">
         <div class="flex flex-col gap-2">
-            <a href="{{ route('planner.dashboard') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.dashboard') ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)]' : 'text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}">
+            <a href="{{ route('planner.dashboard') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.dashboard') ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)]' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
                 @svg('heroicon-o-home', 'w-5 h-5')
             </a>
-            <a href="{{ route('planner.my-tasks') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.my-tasks') ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)]' : 'text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}">
+            <a href="{{ route('planner.my-tasks') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.my-tasks') ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)]' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
                 @svg('heroicon-o-clipboard-document-check', 'w-5 h-5')
             </a>
-            <a href="{{ route('planner.delegated-tasks') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.delegated-tasks') ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)]' : 'text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}">
+            <a href="{{ route('planner.delegated-tasks') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.delegated-tasks') ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)]' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
                 @svg('heroicon-o-user-group', 'w-5 h-5')
             </a>
-            <a href="{{ route('planner.completed-tasks') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.completed-tasks') ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)]' : 'text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}">
+            <a href="{{ route('planner.completed-tasks') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.completed-tasks') ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)]' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
                 @svg('heroicon-o-check-circle', 'w-5 h-5')
             </a>
-            <a href="{{ route('planner.frog-tasks') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.frog-tasks') ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)]' : 'text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}">
+            <a href="{{ route('planner.frog-tasks') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.frog-tasks') ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)]' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
                 @svg('heroicon-o-exclamation-triangle', 'w-5 h-5')
             </a>
             {{-- Konsolidiert (5→3): Pflege · Portfolio-Health · Präsentation --}}
-            <a href="{{ route('planner.hygiene') }}" wire:navigate title="Pflege" class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.hygiene', 'planner.projects.cleanup') ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)]' : 'text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}">
+            <a href="{{ route('planner.hygiene') }}" wire:navigate title="Pflege" class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.hygiene', 'planner.projects.cleanup') ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)]' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
                 @svg('heroicon-o-shield-check', 'w-5 h-5')
             </a>
-            <a href="{{ route('planner.health-index') }}" wire:navigate title="Portfolio-Health" class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.health-index', 'planner.ops') ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)]' : 'text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}">
+            <a href="{{ route('planner.health-index') }}" wire:navigate title="Portfolio-Health" class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.health-index', 'planner.ops') ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)]' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
                 @svg('heroicon-o-heart', 'w-5 h-5')
             </a>
-            <a href="{{ route('planner.projects.presentation') }}" wire:navigate title="Präsentation" class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.projects.presentation') ? 'bg-[var(--ui-primary-10)] text-[var(--ui-primary)]' : 'text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}">
+            <a href="{{ route('planner.projects.presentation') }}" wire:navigate title="Präsentation" class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.projects.presentation') ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)]' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
                 @svg('heroicon-o-presentation-chart-line', 'w-5 h-5')
             </a>
         </div>
     </div>
-    <div x-show="collapsed" class="px-2 py-2 border-b border-[var(--ui-border)]">
-        <button type="button" wire:click="createProject" class="flex items-center justify-center p-2 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]">
+    <div x-show="collapsed" class="px-2 py-2 border-b border-[var(--nx-line)]">
+        <button type="button" wire:click="createProject" class="flex items-center justify-center p-2 rounded-md text-[var(--nx-text)] hover:bg-[var(--nx-bg)]">
             @svg('heroicon-o-plus-circle', 'w-5 h-5')
         </button>
     </div>
@@ -106,8 +106,8 @@
                            href="{{ route('planner.projects.show', ['plannerProject' => $project]) }}"
                            wire:navigate
                            title="{{ $project->title }}"
-                           class="flex items-center gap-1.5 py-0.5 pl-3 pr-2 text-[var(--ui-secondary)] hover:text-[var(--ui-primary)] transition truncate">
-                            <span class="w-1 h-1 rounded-full flex-shrink-0 bg-[var(--ui-muted)] opacity-40"></span>
+                           class="flex items-center gap-1.5 py-0.5 pl-3 pr-2 text-[var(--nx-text)] hover:text-[var(--nx-accent)] transition truncate">
+                            <span class="w-1 h-1 rounded-full flex-shrink-0 bg-[var(--nx-muted)] opacity-40"></span>
                             <span class="truncate text-[11px]">{{ $project->title }}</span>
                             @if($project->color)
                                 <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 ml-auto" style="background-color: {{ $project->color }}"></span>
@@ -124,7 +124,7 @@
                         type="button"
                         wire:click="toggleShowAllProjects"
                         x-on:click="localStorage.setItem('planner.showAllProjects', (!$wire.showAllProjects).toString())"
-                        class="flex items-center gap-2 text-xs text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] transition-colors"
+                        class="flex items-center gap-2 text-xs text-[var(--nx-muted)] hover:text-[var(--nx-text)] transition-colors"
                     >
                         @if($showAllProjects)
                             @svg('heroicon-o-eye-slash', 'w-4 h-4')
@@ -139,7 +139,7 @@
 
             {{-- Keine Projekte --}}
             @if($entityTypeGroups->isEmpty() && $unlinkedProjects->isEmpty())
-                <div class="px-3 py-1 text-xs text-[var(--ui-muted)]">
+                <div class="px-3 py-1 text-xs text-[var(--nx-muted)]">
                     @if($showAllProjects)
                         Keine Projekte
                     @else
