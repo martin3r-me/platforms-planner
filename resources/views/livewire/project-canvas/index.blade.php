@@ -17,10 +17,10 @@
 
             {{-- Stats --}}
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <x-nx-stat label="Gesamt" :value="$stats['total']" hint="Canvases" icon="clipboard-document-list" />
-                <x-nx-stat label="Entwurf" :value="$stats['draft']" hint="Draft" icon="pencil-square" />
-                <x-nx-stat label="Aktiv" :value="$stats['active']" hint="In Bearbeitung" icon="check-circle" />
-                <x-nx-stat label="Archiviert" :value="$stats['archived']" hint="Abgeschlossen" icon="archive-box" />
+                <x-nx-stat label="Gesamt" :value="$stats['total']" hint="Canvases" icon="heroicon-o-clipboard-document-list" />
+                <x-nx-stat label="Entwurf" :value="$stats['draft']" hint="Draft" icon="heroicon-o-pencil-square" />
+                <x-nx-stat label="Aktiv" :value="$stats['active']" hint="In Bearbeitung" icon="heroicon-o-check-circle" />
+                <x-nx-stat label="Archiviert" :value="$stats['archived']" hint="Abgeschlossen" icon="heroicon-o-archive-box" />
             </div>
 
             {{-- Canvas Table --}}
