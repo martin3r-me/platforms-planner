@@ -43,6 +43,43 @@
             ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
             ['label' => 'Meine Aufgaben'],
         ]">
+            {{-- Live-Metriken (konsolidiert aus der alten Content-Header-Leiste) --}}
+            <x-slot name="left">
+                <div class="hidden md:flex items-center gap-3 text-[11px]">
+                    <span class="inline-flex items-center gap-1.5 text-[color:var(--nx-text)]">
+                        <span class="w-1.5 h-1.5 rounded-full bg-[color:var(--nx-info)]"></span>
+                        <span class="font-semibold tabular-nums">{{ $headerOpenCount }}</span>
+                        <span class="hidden lg:inline text-[color:var(--nx-muted)]">offen</span>
+                    </span>
+                    @if($headerOverdueCount > 0)
+                        <span class="inline-flex items-center gap-1.5 text-[color:var(--nx-danger)]">
+                            <span class="w-1.5 h-1.5 rounded-full bg-[color:var(--nx-danger)]"></span>
+                            <span class="font-semibold tabular-nums">{{ $headerOverdueCount }}</span>
+                            <span class="hidden lg:inline">überfällig</span>
+                        </span>
+                    @endif
+                    @if($frogCount > 0)
+                        <span class="inline-flex items-center gap-1 text-[color:var(--nx-success)]">
+                            <span>🐸</span><span class="font-semibold tabular-nums">{{ $frogCount }}</span>
+                        </span>
+                    @endif
+                    @if($openPoints > 0)
+                        <span class="hidden lg:inline-flex items-center gap-1.5 text-[color:var(--nx-text)]">
+                            <span class="font-semibold tabular-nums">{{ $openPoints }}</span>
+                            <span class="text-[color:var(--nx-muted)]">SP</span>
+                        </span>
+                    @endif
+                    @if($totalCount > 0)
+                        <span class="hidden xl:inline-flex items-center gap-2">
+                            <span class="text-[color:var(--nx-muted)] tabular-nums">{{ $donePct }}%</span>
+                            <span class="w-16 h-1 rounded-full bg-[color:var(--nx-line)] overflow-hidden">
+                                <span class="block h-full rounded-full bg-[color:var(--nx-success)]" style="width: {{ $donePct }}%"></span>
+                            </span>
+                        </span>
+                    @endif
+                </div>
+            </x-slot>
+
             <x-nx-button variant="primary" size="sm" wire:click="createTask()" title="Neue Aufgabe (N)">
                 @svg('heroicon-o-plus', 'w-4 h-4')
                 <span>Aufgabe</span>
@@ -180,52 +217,6 @@
 
     <div class="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
 
-        {{-- Lightweight Header mit Live-Counts --}}
-        <div class="px-4 pt-3 pb-2 border-b border-[color:var(--nx-line)] bg-[color:var(--nx-surface)]">
-            <div class="flex items-start justify-between gap-6">
-                <div class="min-w-0">
-                    <h1 class="text-base font-semibold text-[var(--nx-text)] truncate m-0 leading-tight">Meine Aufgaben</h1>
-                    <p class="text-[11px] text-[var(--nx-muted)] mt-0.5 m-0">
-                        {{ $byProject->count() }} aktive Projekt{{ $byProject->count() === 1 ? '' : 'e' }}
-                    </p>
-                </div>
-                <div class="flex items-center gap-4 flex-shrink-0 text-[11px]">
-                    <span class="inline-flex items-center gap-1.5 text-[var(--nx-text)]">
-                        <span class="w-1.5 h-1.5 rounded-full bg-[var(--nx-accent)]"></span>
-                        <span class="font-semibold tabular-nums">{{ $headerOpenCount }}</span>
-                        <span class="text-[var(--nx-muted)]">offen</span>
-                    </span>
-                    @if($headerOverdueCount > 0)
-                        <span class="inline-flex items-center gap-1.5 text-[var(--nx-danger)]">
-                            <span class="w-1.5 h-1.5 rounded-full bg-[var(--nx-danger)]"></span>
-                            <span class="font-semibold tabular-nums">{{ $headerOverdueCount }}</span>
-                            <span>überfällig</span>
-                        </span>
-                    @endif
-                    @if($frogCount > 0)
-                        <span class="inline-flex items-center gap-1.5 text-[var(--nx-success)]">
-                            <span>🐸</span>
-                            <span class="font-semibold tabular-nums">{{ $frogCount }}</span>
-                        </span>
-                    @endif
-                    @if($openPoints > 0)
-                        <span class="inline-flex items-center gap-1.5 text-[var(--nx-text)]">
-                            <span class="font-semibold tabular-nums">{{ $openPoints }}</span>
-                            <span class="text-[var(--nx-muted)]">SP</span>
-                        </span>
-                    @endif
-                    @if($totalCount > 0)
-                        <span class="inline-flex items-center gap-2">
-                            <span class="text-[var(--nx-muted)] tabular-nums">{{ $donePct }}%</span>
-                            <span class="w-24 h-1 rounded-full bg-[var(--nx-line)] overflow-hidden">
-                                <span class="block h-full rounded-full bg-[var(--nx-success)] transition-all duration-300" style="width: {{ $donePct }}%"></span>
-                            </span>
-                        </span>
-                    @endif
-                </div>
-            </div>
-        </div>
-
         {{-- Filter-Bar --}}
         @include('planner::livewire.project._filter-bar', [
             'availableFilterTags' => $availableFilterTags,
@@ -260,6 +251,26 @@
                                 <span class="text-[10px] mt-0.5 opacity-60">Neue Aufgaben landen hier</span>
                             </div>
                         @endforelse
+                        <x-slot name="footer">
+                            <div x-data="{ open: false, title: '' }">
+                                <button x-show="!open" @click="open = true; $nextTick(() => $refs.inlineInput.focus())" class="w-full text-left text-xs text-[color:var(--nx-muted)] hover:text-[color:var(--nx-text)] transition-colors flex items-center gap-1.5 px-2 py-1">
+                                    @svg('heroicon-o-plus', 'w-3.5 h-3.5')
+                                    <span>Aufgabe</span>
+                                </button>
+                                <div x-show="open" x-cloak>
+                                    <input
+                                        x-ref="inlineInput"
+                                        x-model="title"
+                                        @keydown.enter.prevent="if(title.trim()) { $wire.createTask('{{ $backlog->id }}', title.trim()); title = ''; open = false; }"
+                                        @keydown.escape="open = false; title = ''"
+                                        @click.outside="open = false; title = ''"
+                                        type="text"
+                                        placeholder="Titel eingeben..."
+                                        class="w-full text-xs border border-[color:var(--nx-line-strong)] rounded-[6px] px-2 py-1.5 bg-[color:var(--nx-surface)] text-[color:var(--nx-text)] focus:border-[color:var(--nx-accent)] focus:ring-1 focus:ring-[color:var(--nx-accent)] outline-none"
+                                    />
+                                </div>
+                            </div>
+                        </x-slot>
                     </x-nx-kanban-column>
                 @endif
 
