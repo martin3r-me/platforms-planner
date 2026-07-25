@@ -11,7 +11,7 @@
             --ground: var(--nx-bg); --panel: var(--nx-surface); --line: var(--nx-line); --line-strong: var(--nx-line-strong);
             --accent: var(--nx-accent); --accent-ink: var(--nx-accent-hover); --accent-soft: var(--nx-accent-soft);
             --good: var(--nx-success); --good-soft: rgba(47,158,68,.12); --warn: var(--nx-warning); --warn-soft: rgba(232,89,12,.12);
-            --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+            --serif: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
             --shadow-soft: var(--nx-shadow-card);
             background: var(--ground); color: var(--ink);
         }
@@ -51,9 +51,9 @@
 
         /* stage */
         .pm-stagewrap { overflow-y: auto; min-height: 0; }
-        .pm-stage { max-width: none; margin: 0; padding: 30px 40px 40px; display: flex; flex-direction: column; gap: 22px; }
+        .pm-stage { display: flex; flex-direction: column; gap: 20px; }
         .pm-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
-        .pm-head h1 { font-family: var(--serif); font-weight: 600; font-size: 40px; line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; color: var(--ink); }
+        .pm-head h1 { font-family: var(--serif); font-weight: 600; font-size: 25px; line-height: 1.05; margin: 0; letter-spacing: -.01em; text-wrap: balance; color: var(--ink); }
         .pm-head .meta { margin-top: 8px; font-size: 13.5px; color: var(--muted); }
         .pm-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 5px 11px; border-radius: 999px; background: var(--good-soft); color: var(--good); white-space: nowrap; }
         .pm-chip .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
@@ -144,7 +144,7 @@
         .pm-kbd b { background: var(--ground); border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; font-weight: 600; font-size: 11px; }
 
         /* chooser */
-        .pm-chooser { max-width: 760px; width: 100%; margin: 0 auto; padding: 44px 24px; }
+        .pm-chooser { width: 100%; }
         .pm-chooser h1 { font-family: var(--serif); font-size: 30px; font-weight: 600; margin: 0 0 6px; letter-spacing: -.01em; }
         .pm-chooser .lead { font-size: 14px; color: var(--muted); margin: 0 0 22px; }
         .pm-search { width: 100%; font-size: 14px; border-radius: 10px; border: 1px solid var(--line-strong); padding: 11px 14px; margin-bottom: 16px; outline: none; font-family: inherit; }
@@ -192,7 +192,14 @@
 
     {{-- ═══════════ ZUSTAND A · Engagement-Auswahl ═══════════ --}}
     @if(! $engagementId)
-        <div class="pm flex-1 flex flex-col min-h-0 overflow-y-auto">
+        <x-slot name="actionbar">
+            <x-ui-page-actionbar :breadcrumbs="[
+                ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
+                ['label' => 'Präsentation'],
+            ]" />
+        </x-slot>
+        <x-ui-page-container width="contained" spacing="space-y-4">
+            <div class="pm">
             <div class="pm-chooser">
                 <h1>Mit welchem Kunden gehst du durch?</h1>
                 <p class="lead">Wähle ein Engagement — du bekommst dann dessen laufende Projekte als ruhige, durchklickbare Slides.</p>
@@ -225,7 +232,8 @@
                     @endforelse
                 </div>
             </div>
-        </div>
+            </div>
+        </x-ui-page-container>
 
     {{-- ═══════════ ZUSTAND B · Präsentation ═══════════ --}}
     @else
@@ -237,25 +245,74 @@
             $ov = $this->overview;
         @endphp
 
-        <div class="pm flex-1 flex flex-col min-h-0"
+        {{-- Actionbar: Breadcrumb + Blätter-Nav + Kunde wechseln --}}
+        <x-slot name="actionbar">
+            <x-ui-page-actionbar :breadcrumbs="[
+                ['label' => 'Präsentation', 'href' => route('planner.projects.presentation')],
+                ['label' => $this->engagementName ?? 'Engagement'],
+                ['label' => $isOverview ? 'Überblick' : ($current['name'] ?? '—')],
+            ]">
+                <span class="text-[11px] text-[color:var(--nx-muted)] tabular-nums mr-1 hidden sm:inline">{{ $isOverview ? 'Überblick' : 'Projekt ' . $index . ' / ' . $projectCount }}</span>
+                <div class="inline-flex rounded-md border border-[color:var(--nx-line-strong)] overflow-hidden">
+                    <button type="button" wire:click="prev" @disabled($index <= 0) class="inline-flex items-center justify-center w-7 h-7 text-[color:var(--nx-muted)] hover:text-[color:var(--nx-text)] hover:bg-[color:var(--nx-hover)] disabled:opacity-40" title="Zurück">@svg('heroicon-o-chevron-left','w-4 h-4')</button>
+                    <button type="button" wire:click="next" @disabled($index >= $projectCount) class="inline-flex items-center justify-center w-7 h-7 text-[color:var(--nx-muted)] hover:text-[color:var(--nx-text)] hover:bg-[color:var(--nx-hover)] border-l border-[color:var(--nx-line-strong)] disabled:opacity-40" title="Weiter">@svg('heroicon-o-chevron-right','w-4 h-4')</button>
+                </div>
+                <button type="button" wire:click="exitPresentation" class="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md border border-[color:var(--nx-line-strong)] text-[11px] font-medium text-[color:var(--nx-muted)] hover:text-[color:var(--nx-text)] hover:bg-[color:var(--nx-hover)] transition-colors" title="Kunde wechseln">
+                    @svg('heroicon-o-arrow-left','w-3.5 h-3.5') Kunde
+                </button>
+            </x-ui-page-actionbar>
+        </x-slot>
+
+        {{-- Sidebar: Engagement-/Projekt-Navigator (Rail) --}}
+        <x-slot name="sidebar">
+            <x-ui-page-sidebar title="{{ $this->engagementName ?? 'Engagement' }}" icon="heroicon-o-briefcase" width="w-72" :defaultOpen="true">
+                <div class="pm p-3">
+                    <div class="pm-navlist">
+                        <button type="button" wire:click="goTo(0)" class="pm-navitem {{ $isOverview ? 'active' : '' }}">
+                            <div class="top"><span class="t">Überblick</span></div>
+                        </button>
+                    </div>
+                    <h2 style="margin-top:14px">Projekte</h2>
+                    <div class="pm-navlist">
+                        @php $lastGroup = '__start__'; @endphp
+                        @foreach($slides as $i => $s)
+                            @php
+                                $pct = $s['dod_total'] > 0 ? round($s['dod_checked'] / $s['dod_total'] * 100) : 0;
+                                $groupKey = $s['bracket'] ? $s['bracket']['id'] : 0;
+                                $showAnchor = $s['initiative'] && (! $s['bracket'] || $s['initiative']['id'] !== $s['bracket']['id']);
+                            @endphp
+                            @if($groupKey !== $lastGroup)
+                                @php $lastGroup = $groupKey; @endphp
+                                @if($s['bracket'])
+                                    <div class="pm-railgroup">
+                                        @svg('heroicon-o-folder', 'w-3 h-3')
+                                        <span>{{ $s['bracket']['name'] }}</span>
+                                    </div>
+                                @elseif($ov['group_count'] > 0)
+                                    <div class="pm-railgroup"><span class="loose">Ohne Zuordnung</span></div>
+                                @endif
+                            @endif
+                            <button type="button" wire:click="goTo({{ $i + 1 }})" class="pm-navitem {{ $index === $i + 1 ? 'active' : '' }}">
+                                <div class="top">
+                                    <span class="t">{{ $s['name'] }}</span>
+                                    <span class="pct">{{ $s['dod_total'] > 0 ? $pct . '%' : '—' }}</span>
+                                </div>
+                                @if($showAnchor)
+                                    <div class="pm-navsub">@svg('heroicon-o-flag', 'w-3 h-3')<span>{{ $s['initiative']['name'] }}</span></div>
+                                @endif
+                                <div class="pm-minibar"><span style="width: {{ $pct }}%"></span></div>
+                            </button>
+                        @endforeach
+                    </div>
+                </div>
+            </x-ui-page-sidebar>
+        </x-slot>
+
+        <x-ui-page-container width="contained" spacing="space-y-5"
              x-data
              @keydown.arrow-right.window="$wire.next()"
              @keydown.arrow-left.window="$wire.prev()">
-
-            {{-- Client-Leiste --}}
-            <div class="pm-clientbar">
-                <button class="pm-back" wire:click="exitPresentation" title="Kunde wechseln">
-                    @svg('heroicon-o-arrow-left', 'w-4 h-4') Kunde wechseln
-                </button>
-                <div class="pm-client">
-                    <div class="pm-mark">{{ mb_strtoupper(mb_substr($this->engagementName ?? 'E', 0, 1)) }}</div>
-                    <div>
-                        <div class="name">{{ $this->engagementName ?? 'Engagement' }}</div>
-                        <div class="sub">Engagement · laufende Projekte</div>
-                    </div>
-                </div>
-                <div class="pm-counter">{{ $isOverview ? 'Überblick' : 'Projekt ' . $index . ' / ' . $projectCount }}</div>
-            </div>
+            <div class="pm">
 
             @if(! $isOverview && ! $current)
                 <div class="pm-center">
@@ -266,52 +323,7 @@
                     </div>
                 </div>
             @else
-                <div class="pm-body">
-                    {{-- Navigator: Überblick + Projekte --}}
-                    <aside class="pm-rail">
-                        <h2>Engagement</h2>
-                        <div class="pm-navlist">
-                            <button type="button" wire:click="goTo(0)" class="pm-navitem {{ $isOverview ? 'active' : '' }}">
-                                <div class="top"><span class="t">Überblick</span></div>
-                            </button>
-                        </div>
-                        <h2 style="margin-top:14px">Projekte</h2>
-                        <div class="pm-navlist">
-                            @php $lastGroup = '__start__'; @endphp
-                            @foreach($slides as $i => $s)
-                                @php
-                                    $pct = $s['dod_total'] > 0 ? round($s['dod_checked'] / $s['dod_total'] * 100) : 0;
-                                    $groupKey = $s['bracket'] ? $s['bracket']['id'] : 0;
-                                    $showAnchor = $s['initiative'] && (! $s['bracket'] || $s['initiative']['id'] !== $s['bracket']['id']);
-                                @endphp
-                                @if($groupKey !== $lastGroup)
-                                    @php $lastGroup = $groupKey; @endphp
-                                    @if($s['bracket'])
-                                        <div class="pm-railgroup">
-                                            @svg('heroicon-o-folder', 'w-3 h-3')
-                                            <span>{{ $s['bracket']['name'] }}</span>
-                                        </div>
-                                    @elseif($ov['group_count'] > 0)
-                                        <div class="pm-railgroup"><span class="loose">Ohne Zuordnung</span></div>
-                                    @endif
-                                @endif
-                                <button type="button" wire:click="goTo({{ $i + 1 }})" class="pm-navitem {{ $index === $i + 1 ? 'active' : '' }}">
-                                    <div class="top">
-                                        <span class="t">{{ $s['name'] }}</span>
-                                        <span class="pct">{{ $s['dod_total'] > 0 ? $pct . '%' : '—' }}</span>
-                                    </div>
-                                    @if($showAnchor)
-                                        <div class="pm-navsub">@svg('heroicon-o-flag', 'w-3 h-3')<span>{{ $s['initiative']['name'] }}</span></div>
-                                    @endif
-                                    <div class="pm-minibar"><span style="width: {{ $pct }}%"></span></div>
-                                </button>
-                            @endforeach
-                        </div>
-                    </aside>
-
-                    {{-- Bühne --}}
-                    <div class="pm-stagewrap" wire:key="stage-{{ $isOverview ? 'overview' : $current['id'] }}">
-                        <div class="pm-stage">
+                <div class="pm-stage" wire:key="stage-{{ $isOverview ? 'overview' : $current['id'] }}">
                         @if($isOverview)
                             {{-- ══ Engagement-Überblick ══ --}}
                             <div class="pm-head">
@@ -655,24 +667,10 @@
                                 </div>
                             </div>
                         @endif
-                        </div>
-                    </div>
-                </div>
-
-                {{-- Fußzeile / Navigation --}}
-                <div class="pm-footer">
-                    <button class="pm-navbtn" wire:click="prev" @disabled($index <= 0)>@svg('heroicon-o-chevron-left', 'w-4 h-4') Zurück</button>
-                    <div class="pm-dots">
-                        <button wire:click="goTo(0)" class="pm-dot {{ $index === 0 ? 'active' : '' }}" title="Überblick"></button>
-                        @foreach($slides as $i => $s)
-                            <button wire:click="goTo({{ $i + 1 }})" class="pm-dot {{ $index === $i + 1 ? 'active' : '' }}" title="{{ $s['name'] }}"></button>
-                        @endforeach
-                    </div>
-                    <span class="pm-kbd"><b>←</b> <b>→</b> zum Blättern</span>
-                    <button class="pm-navbtn primary" wire:click="next" @disabled($index >= $projectCount)>Weiter @svg('heroicon-o-chevron-right', 'w-4 h-4')</button>
                 </div>
             @endif
-        </div>
+            </div>
+        </x-ui-page-container>
     @endif
 
 </x-ui-page>
