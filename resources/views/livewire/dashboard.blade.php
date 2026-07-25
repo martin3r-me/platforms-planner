@@ -180,97 +180,85 @@
             </div>
         @endif
 
-        {{-- Main: Anstehend + Meine Aufgaben (Projekte sind in der linken Sidebar) --}}
-        <div class="space-y-8">
+        {{-- Zwei komplementäre Spalten (nebeneinander ab lg): mit Datum | ohne Datum --}}
+        <div class="grid gap-6 lg:grid-cols-2">
 
-                {{-- Meine anstehenden Aufgaben (nächste 7 Tage) --}}
-                @if($upcomingTasksList->count() > 0)
-                    <div class="rounded-xl border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] shadow-[var(--nx-shadow-card)] overflow-hidden">
-                        <div class="px-4 py-3 border-b border-[color:var(--nx-line)] bg-[var(--nx-bg)] flex items-center gap-2">
-                            @svg('heroicon-o-calendar-days', 'w-4 h-4 text-[var(--nx-accent)]')
-                            <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--nx-text)] m-0">Meine anstehenden Aufgaben</h3>
-                            <span class="text-[10px] text-[var(--nx-muted)]">nächste 7 Tage</span>
-                            <span class="ml-auto inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 text-[10px] font-semibold rounded-full bg-[var(--nx-accent)]/10 text-[var(--nx-accent)]">{{ $upcomingTasksList->count() }}</span>
-                        </div>
-                        <div class="divide-y divide-[color:var(--nx-line)]">
-                            @foreach($upcomingTasksList as $task)
-                                @php
-                                    $daysLeft = now()->startOfDay()->diffInDays($task->due_date->startOfDay(), false);
-                                    $isUrgent = $daysLeft <= 1;
-                                    $priorityColor = $task->priority?->color() ?? 'var(--nx-muted)';
-                                    $edgeColor = $isUrgent ? 'var(--nx-warning)' : 'var(--nx-accent)';
-                                @endphp
-                                <a href="{{ route('planner.tasks.show', ['plannerTask' => $task->id]) }}" wire:navigate class="relative flex items-center gap-3 pl-5 pr-4 py-2.5 hover:bg-[var(--nx-bg)] transition group">
-                                    <span class="absolute top-2 bottom-2 left-1.5 w-[3px] rounded-full" style="background-color: {{ $edgeColor }};"></span>
-                                    <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {{ $priorityColor }};"></span>
-                                    <span class="flex-1 min-w-0 text-sm font-medium text-[var(--nx-text)] truncate group-hover:text-[var(--nx-accent)]">{{ $task->title }}</span>
-                                    @if($task->project)
-                                        <span class="hidden sm:inline-flex items-center gap-1 text-[10px] text-[var(--nx-muted)] truncate max-w-[140px]">
-                                            <span class="w-1.5 h-1.5 rounded-full" style="background-color: {{ $task->project->color ?? 'var(--nx-muted)' }};"></span>
-                                            {{ $task->project->name }}
-                                        </span>
-                                    @endif
-                                    <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-full tabular-nums flex-shrink-0
-                                        {{ $isUrgent ? 'bg-[rgba(232,89,12,0.16)] text-[color:var(--nx-warning)]' : 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)]' }}">
-                                        @if($daysLeft == 0) heute
-                                        @elseif($daysLeft == 1) morgen
-                                        @else in {{ (int) $daysLeft }}d
-                                        @endif
-                                    </span>
-                                </a>
-                            @endforeach
-                        </div>
-                    </div>
-                @endif
-
-                {{-- Meine Aufgaben (alle offenen, Vorschau) --}}
-                <div class="rounded-xl border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] shadow-[var(--nx-shadow-card)] overflow-hidden">
-                    <div class="px-4 py-3 border-b border-[color:var(--nx-line)] bg-[var(--nx-bg)] flex items-center gap-2">
-                        @svg('heroicon-o-clipboard-document-check', 'w-4 h-4 text-[var(--nx-accent)]')
-                        <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--nx-text)] m-0">Meine Aufgaben</h3>
-                        <span class="ml-auto inline-flex items-center gap-2">
-                            @if($myOpenTasksCount > $myTasksList->count())
-                                <a href="{{ route('planner.my-tasks') }}" wire:navigate class="text-[10px] font-medium text-[var(--nx-accent)] hover:underline">
-                                    Alle {{ $myOpenTasksCount }} anzeigen →
-                                </a>
-                            @else
-                                <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 text-[10px] font-semibold rounded-full bg-[var(--nx-accent)]/10 text-[var(--nx-accent)]">{{ $myOpenTasksCount }}</span>
-                            @endif
-                        </span>
-                    </div>
-                    <div class="divide-y divide-[color:var(--nx-line)]">
-                        @forelse($myTasksList as $task)
-                            @php
-                                $pColor = $task->priority?->color() ?? 'var(--nx-muted)';
-                                $taskOverdue = $task->due_date && $task->due_date->isPast();
-                                $edgeColor = $taskOverdue ? 'var(--nx-danger)' : $pColor;
-                            @endphp
-                            <a href="{{ route('planner.tasks.show', ['plannerTask' => $task->id]) }}" wire:navigate class="relative flex items-center gap-3 pl-5 pr-4 py-2.5 hover:bg-[var(--nx-bg)] transition group">
-                                <span class="absolute top-2 bottom-2 left-1.5 w-[3px] rounded-full" style="background-color: {{ $edgeColor }};"></span>
-                                <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {{ $pColor }};"></span>
-                                <span class="flex-1 min-w-0 text-sm font-medium text-[var(--nx-text)] truncate group-hover:text-[var(--nx-accent)]">{{ $task->title }}</span>
-                                @if($task->project)
-                                    <span class="hidden sm:inline-flex items-center gap-1 text-[10px] text-[var(--nx-muted)] truncate max-w-[140px]">
-                                        <span class="w-1.5 h-1.5 rounded-full" style="background-color: {{ $task->project->color ?? 'var(--nx-muted)' }};"></span>
-                                        {{ $task->project->name }}
-                                    </span>
-                                @endif
-                                @if($task->due_date)
-                                    <span class="text-xs flex-shrink-0 tabular-nums {{ $taskOverdue ? 'text-[var(--nx-danger)] font-semibold' : 'text-[var(--nx-muted)]' }}">{{ $task->due_date->format('d.m.') }}</span>
-                                @else
-                                    <span class="text-[10px] flex-shrink-0 text-[var(--nx-muted)]/60 italic">offen</span>
-                                @endif
-                            </a>
-                        @empty
-                            <div class="px-3 py-8 text-sm text-[var(--nx-muted)] text-center">
-                                @svg('heroicon-o-check-circle', 'w-8 h-8 mx-auto mb-2 opacity-30 text-[var(--nx-success)]')
-                                Keine offenen Aufgaben — gut so.
-                            </div>
-                        @endforelse
-                    </div>
+            {{-- Anstehend — offene Tasks MIT Datum (chronologisch) --}}
+            <section class="rounded-xl border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] shadow-[var(--nx-shadow-card)] overflow-hidden">
+                <div class="px-4 py-3 border-b border-[color:var(--nx-line)] bg-[var(--nx-bg)] flex items-center gap-2">
+                    @svg('heroicon-o-calendar-days', 'w-4 h-4 text-[var(--nx-muted)]')
+                    <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--nx-text)] m-0">Anstehend</h3>
+                    <span class="ml-auto inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 text-[10px] font-semibold rounded-full bg-[color:var(--nx-accent-soft)] text-[var(--nx-muted)]">{{ $upcomingTasksList->count() }}</span>
                 </div>
+                <div class="divide-y divide-[color:var(--nx-line)]">
+                    @forelse($upcomingTasksList as $task)
+                        @php
+                            $daysLeft = now()->startOfDay()->diffInDays($task->due_date->startOfDay(), false);
+                            $isUrgent = $daysLeft <= 1;
+                            $priorityColor = $task->priority?->color() ?? 'var(--nx-muted)';
+                        @endphp
+                        <a href="{{ route('planner.tasks.show', ['plannerTask' => $task->id]) }}" wire:navigate class="relative flex items-center gap-3 pl-5 pr-4 py-2.5 hover:bg-[var(--nx-bg)] transition group">
+                            <span class="absolute top-2 bottom-2 left-1.5 w-[3px] rounded-full" style="background-color: {{ $isUrgent ? 'var(--nx-warning)' : 'var(--nx-line-strong)' }};"></span>
+                            <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {{ $priorityColor }};"></span>
+                            <span class="flex-1 min-w-0 text-sm font-medium text-[var(--nx-text)] truncate group-hover:text-[var(--nx-accent)]">{{ $task->title }}</span>
+                            @if($task->project)
+                                <span class="hidden sm:inline-flex items-center gap-1 text-[10px] text-[var(--nx-muted)] truncate max-w-[110px]">
+                                    <span class="w-1.5 h-1.5 rounded-full" style="background-color: {{ $task->project->color ?? 'var(--nx-muted)' }};"></span>
+                                    {{ $task->project->name }}
+                                </span>
+                            @endif
+                            <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-full tabular-nums flex-shrink-0
+                                {{ $isUrgent ? 'bg-[rgba(232,89,12,0.16)] text-[color:var(--nx-warning)]' : 'bg-[color:var(--nx-accent-soft)] text-[var(--nx-muted)]' }}">
+                                @if($daysLeft == 0) heute
+                                @elseif($daysLeft == 1) morgen
+                                @else in {{ (int) $daysLeft }}d
+                                @endif
+                            </span>
+                        </a>
+                    @empty
+                        <div class="px-3 py-8 text-sm text-[var(--nx-muted)] text-center">Nichts terminiert.</div>
+                    @endforelse
+                </div>
+            </section>
 
+            {{-- Ohne Termin — offene Tasks OHNE Datum (Backlog) --}}
+            <section class="rounded-xl border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] shadow-[var(--nx-shadow-card)] overflow-hidden">
+                <div class="px-4 py-3 border-b border-[color:var(--nx-line)] bg-[var(--nx-bg)] flex items-center gap-2">
+                    @svg('heroicon-o-inbox', 'w-4 h-4 text-[var(--nx-muted)]')
+                    <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--nx-text)] m-0">Ohne Termin</h3>
+                    <span class="ml-auto inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 text-[10px] font-semibold rounded-full bg-[color:var(--nx-accent-soft)] text-[var(--nx-muted)]">{{ $undatedTasksList->count() }}</span>
+                </div>
+                <div class="divide-y divide-[color:var(--nx-line)]">
+                    @forelse($undatedTasksList as $task)
+                        @php $priorityColor = $task->priority?->color() ?? 'var(--nx-muted)'; @endphp
+                        <a href="{{ route('planner.tasks.show', ['plannerTask' => $task->id]) }}" wire:navigate class="relative flex items-center gap-3 pl-5 pr-4 py-2.5 hover:bg-[var(--nx-bg)] transition group">
+                            <span class="absolute top-2 bottom-2 left-1.5 w-[3px] rounded-full" style="background-color: {{ $priorityColor }};"></span>
+                            <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {{ $priorityColor }};"></span>
+                            <span class="flex-1 min-w-0 text-sm font-medium text-[var(--nx-text)] truncate group-hover:text-[var(--nx-accent)]">{{ $task->title }}</span>
+                            @if($task->project)
+                                <span class="hidden sm:inline-flex items-center gap-1 text-[10px] text-[var(--nx-muted)] truncate max-w-[110px]">
+                                    <span class="w-1.5 h-1.5 rounded-full" style="background-color: {{ $task->project->color ?? 'var(--nx-muted)' }};"></span>
+                                    {{ $task->project->name }}
+                                </span>
+                            @endif
+                        </a>
+                    @empty
+                        <div class="px-3 py-8 text-sm text-[var(--nx-muted)] text-center">
+                            @svg('heroicon-o-check-circle', 'w-8 h-8 mx-auto mb-2 opacity-30 text-[var(--nx-success)]')
+                            Alles terminiert oder erledigt.
+                        </div>
+                    @endforelse
+                </div>
+            </section>
         </div>
+
+        @if($myOpenTasksCount > ($upcomingTasksList->count() + $undatedTasksList->count()))
+            <div class="mt-4 text-center">
+                <a href="{{ route('planner.my-tasks') }}" wire:navigate class="text-xs font-medium text-[var(--nx-muted)] hover:text-[var(--nx-text)] hover:underline">
+                    Alle {{ $myOpenTasksCount }} Aufgaben anzeigen →
+                </a>
+            </div>
+        @endif
 
     </x-ui-page-container>
 </x-ui-page>

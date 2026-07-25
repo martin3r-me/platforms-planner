@@ -88,22 +88,23 @@ class Dashboard extends Component
             ->limit(10)
             ->get();
 
-        // Meine anstehenden Aufgaben (nächste 7 Tage)
+        // Anstehend — offene Tasks MIT Datum, ab heute (überfällige stehen oben separat)
         $upcomingTasksList = $myTasksQuery()
             ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->whereNotNull('due_date')
-            ->whereBetween('due_date', [now()->startOfDay(), now()->addDays(7)->endOfDay()])
+            ->where('due_date', '>=', now()->startOfDay())
             ->with(['project'])
             ->orderBy('due_date', 'asc')
-            ->limit(10)
+            ->limit(15)
             ->get();
 
-        // Meine Aufgaben — Vorschau (alle offenen, sortiert nach Datum)
-        $myTasksList = $myTasksQuery()
+        // Ohne Termin — offene Tasks OHNE Datum (Backlog)
+        $undatedTasksList = $myTasksQuery()
             ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
+            ->whereNull('due_date')
             ->with(['project'])
-            ->orderByRaw('due_date IS NULL, due_date ASC')
-            ->limit(10)
+            ->orderByDesc('created_at')
+            ->limit(15)
             ->get();
 
         // Meine Frösche
@@ -175,7 +176,7 @@ class Dashboard extends Component
             'myMonthlyMinutes'  => $myMonthlyMinutes,
             'overdueTasksList'  => $overdueTasksList,
             'upcomingTasksList' => $upcomingTasksList,
-            'myTasksList'       => $myTasksList,
+            'undatedTasksList'  => $undatedTasksList,
             'myOpenTasksCount'  => $myOpenTasksCount,
             'myFrogsCount'      => $myFrogsCount,
             'delegatedOpenCount'=> $delegatedOpenCount,
