@@ -529,15 +529,9 @@ class Task extends Component
         $projects = PlannerProject::query()
             ->with(['projectSlots' => fn ($q) => $q->orderBy('order')])
             ->where('team_id', $taskTeamId)
-            ->where(function ($query) use ($user) {
-                // Projekte, in denen der User Mitglied ist oder Aufgaben hat
-                $query->whereHas('projectUsers', fn ($q) => $q->where('user_id', $user->id))
-                      ->orWhereHas('tasks', fn ($q) => $q->where('user_in_charge_id', $user->id))
-                      ->orWhereHas('projectSlots.tasks', fn ($q) => $q->where('user_in_charge_id', $user->id));
-            })
+            ->visibleTo($user)
             ->orderBy('name')
             ->get()
-            ->filter(fn ($project) => $user->can('view', $project))
             ->values();
 
         $this->projectMoveOptions = $projects->map(function ($project) {
@@ -1047,44 +1041,23 @@ class Task extends Component
             $groups   = $printing->listPrinterGroups();
         }
 
-        // Projekt-Mitglieder für Verantwortliche-Auswahl laden (wenn Aufgabe zu Projekt gehört)
-        // Sonst Team-Mitglieder als Fallback
-        if ($this->task->project_id && $this->task->project) {
-            $projectUsers = $this->task->project
-                ->projectUsers()
-                ->with('user')
-                ->get()
-                ->map(function ($projectUser) {
-                    $user = $projectUser->user;
-                    if (!$user) {
-                        return null;
-                    }
-                    return [
-                        'id' => $user->id,
-                        'name' => $user->fullname ?? $user->name,
-                        'email' => $user->email,
-                    ];
-                })
-                ->filter()
-                ->sortBy('name')
-                ->values();
-            
-            $teamUsers = $projectUsers;
-        } else {
-            // Fallback: Team-Mitglieder für Aufgaben ohne Projekt
-            $teamUsers = Auth::user()
-                ->currentTeam
-                ->users()
+        // Verantwortliche-Auswahl: Mitglieder des (Projekt-)Teams. Der Zugriff wird
+        // vom Graphen gesteuert, nicht mehr von einer Projekt-Mitgliedschaft — der
+        // Kandidaten-Pool für die Zuweisung ist schlicht das Team.
+        $assigneeTeam = ($this->task->project_id && $this->task->project)
+            ? $this->task->project->team
+            : Auth::user()->currentTeam;
+
+        $teamUsers = $assigneeTeam
+            ? $assigneeTeam->users()
                 ->orderBy('name')
                 ->get()
-                ->map(function ($user) {
-                    return [
-                        'id' => $user->id,
-                        'name' => $user->fullname ?? $user->name,
-                        'email' => $user->email,
-                    ];
-                });
-        }
+                ->map(fn ($user) => [
+                    'id' => $user->id,
+                    'name' => $user->fullname ?? $user->name,
+                    'email' => $user->email,
+                ])
+            : collect();
 
         return view('planner::livewire.task', [
             'printers' => $printers,

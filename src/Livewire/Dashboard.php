@@ -132,11 +132,6 @@ class Dashboard extends Component
                     ->whereNotNull('project_id')
                     ->pluck('project_id')
             )
-            ->merge(
-                DB::table('planner_project_users')
-                    ->where('user_id', $user->id)
-                    ->pluck('project_id')
-            )
             ->unique()
             ->values();
 

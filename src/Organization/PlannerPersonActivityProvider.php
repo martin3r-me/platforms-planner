@@ -6,7 +6,6 @@ use Platform\Organization\Contracts\PersonActivityProvider;
 use Platform\Planner\Enums\TaskLifecycleState;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Models\PlannerProject;
-use Platform\Planner\Models\PlannerProjectUser;
 
 class PlannerPersonActivityProvider implements PersonActivityProvider
 {
@@ -31,7 +30,7 @@ class PlannerPersonActivityProvider implements PersonActivityProvider
             'open_tasks' => ['label' => 'Offene Aufgaben', 'type' => 'warning', 'sort_weight' => 1],
             'overdue_tasks' => ['label' => 'Überfällig', 'type' => 'danger', 'sort_weight' => 3],
             'own_projects' => ['label' => 'Eigene Projekte', 'type' => 'info', 'sort_weight' => 0],
-            'memberships' => ['label' => 'Mitgliedschaften', 'type' => 'info', 'sort_weight' => 0],
+            'memberships' => ['label' => 'Beteiligte Projekte', 'type' => 'info', 'sort_weight' => 0],
         ];
     }
 
@@ -53,9 +52,15 @@ class PlannerPersonActivityProvider implements PersonActivityProvider
             ->where('team_id', $teamId)
             ->count();
 
-        $memberships = PlannerProjectUser::where('user_id', $userId)
-            ->whereHas('project', fn($q) => $q->where('team_id', $teamId))
-            ->count();
+        // Beteiligte (fremde) Projekte = Projekte mit Aufgaben-Verantwortung, die
+        // die Person nicht selbst erstellt hat. Ersetzt die frühere Mitgliedschaft
+        // (Zugriff kommt jetzt aus dem Graphen).
+        $memberships = PlannerTask::where('user_in_charge_id', $userId)
+            ->where('team_id', $teamId)
+            ->whereNotNull('project_id')
+            ->whereHas('project', fn($q) => $q->where('user_id', '!=', $userId))
+            ->distinct()
+            ->count('project_id');
 
         $frogs = PlannerTask::where('user_in_charge_id', $userId)
             ->where('team_id', $teamId)
@@ -100,7 +105,7 @@ class PlannerPersonActivityProvider implements PersonActivityProvider
 
         $signs[] = [
             'key' => 'memberships',
-            'label' => 'Projekt-Mitgliedschaften',
+            'label' => 'Beteiligte Projekte',
             'value' => $memberships,
             'variant' => 'default',
         ];

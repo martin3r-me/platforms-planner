@@ -75,7 +75,7 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
         ?\DateTimeInterface $since = null,
     ): Subject {
         if (! $project instanceof PlannerProject) {
-            $project = PlannerProject::with(['user:id,name', 'projectUsers.user:id,name', 'entityLinks.entity:id,name'])
+            $project = PlannerProject::with(['user:id,name', 'entityLinks.entity:id,name'])
                 ->findOrFail($project);
         }
 
@@ -810,23 +810,41 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
         return $edges;
     }
 
-    /** @return Edge[] */
+    /**
+     * "arbeitet_mit" = Aufgaben-Zuständige des Projekts (ohne den Ersteller).
+     * Ersetzt die frühere Projekt-Mitgliedschaft — Zugriff kommt aus dem Graphen,
+     * Beteiligung leitet sich aus der tatsächlichen Aufgaben-Verantwortung ab.
+     *
+     * @return Edge[]
+     */
     protected function edgesTeam(PlannerProject $project): array
     {
         $edges = [];
-        foreach ($project->projectUsers ?? [] as $pu) {
-            if (! $pu->user || (int) $pu->user_id === (int) $project->user_id) {
-                continue;
-            }
+
+        $participants = \Platform\Planner\Models\PlannerTask::query()
+            ->where('project_id', $project->id)
+            ->whereNotNull('user_in_charge_id')
+            ->where('user_in_charge_id', '!=', (int) $project->user_id)
+            ->distinct()
+            ->pluck('user_in_charge_id');
+
+        if ($participants->isEmpty()) {
+            return $edges;
+        }
+
+        $users = \Platform\Core\Models\User::whereIn('id', $participants)->get(['id', 'name']);
+
+        foreach ($users as $user) {
             $edges[] = new Edge(
                 relation: 'arbeitet_mit',
                 targetType: 'person',
-                targetId: (string) $pu->user_id,
-                targetLabel: $pu->user->name ?? ('User #' . $pu->user_id),
+                targetId: (string) $user->id,
+                targetLabel: $user->name ?? ('User #' . $user->id),
                 claim: Claim::systemVerified(),
                 weight: FactPriority::QUALIFYING,
             );
         }
+
         return $edges;
     }
 

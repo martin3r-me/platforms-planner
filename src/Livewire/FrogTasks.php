@@ -5,7 +5,6 @@ namespace Platform\Planner\Livewire;
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Platform\Planner\Models\PlannerTask;
-use Platform\Planner\Models\PlannerProjectUser;
 use Platform\Planner\Enums\TaskLifecycleState;
 use Platform\Planner\Enums\TaskStoryPoints;
 use Platform\Planner\Livewire\Concerns\QuickTogglesDone;
@@ -55,9 +54,9 @@ class FrogTasks extends Component
         $user = Auth::user();
         $userId = $user->id;
 
-        // Alle Projekt-IDs, in denen der Benutzer Mitglied ist
-        $projectIds = PlannerProjectUser::where('user_id', $userId)
-            ->pluck('project_id')
+        // Alle Projekte, die der User sehen darf (Graph: Ersteller ODER erreichbar).
+        $projectIds = \Platform\Planner\Models\PlannerProject::visibleTo($user)
+            ->pluck('id')
             ->toArray();
 
         // Basis-Query: alle Frog-Tasks (nicht erledigt) aus Projekten des Users

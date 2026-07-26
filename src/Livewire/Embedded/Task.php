@@ -134,44 +134,22 @@ class Task extends BaseTask
 
     public function render()
     {
-        // Projekt-Mitglieder für Verantwortliche-Auswahl laden (wenn Aufgabe zu Projekt gehört)
-        // Sonst Team-Mitglieder als Fallback
-        if ($this->task->project_id && $this->task->project) {
-            $projectUsers = $this->task->project
-                ->projectUsers()
-                ->with('user')
-                ->get()
-                ->map(function ($projectUser) {
-                    $user = $projectUser->user;
-                    if (!$user) {
-                        return null;
-                    }
-                    return [
-                        'id' => $user->id,
-                        'name' => $user->fullname ?? $user->name,
-                        'email' => $user->email,
-                    ];
-                })
-                ->filter()
-                ->sortBy('name')
-                ->values();
-            
-            $teamUsers = $projectUsers;
-        } else {
-            // Fallback: Team-Mitglieder für Aufgaben ohne Projekt
-            $teamUsers = Auth::user()
-                ->currentTeam
-                ->users()
+        // Verantwortliche-Auswahl: Mitglieder des (Projekt-)Teams. Zugriff steuert
+        // der Graph, nicht mehr eine Projekt-Mitgliedschaft.
+        $assigneeTeam = ($this->task->project_id && $this->task->project)
+            ? $this->task->project->team
+            : Auth::user()->currentTeam;
+
+        $teamUsers = $assigneeTeam
+            ? $assigneeTeam->users()
                 ->orderBy('name')
                 ->get()
-                ->map(function ($user) {
-                    return [
-                        'id' => $user->id,
-                        'name' => $user->fullname ?? $user->name,
-                        'email' => $user->email,
-                    ];
-                });
-        }
+                ->map(fn ($user) => [
+                    'id' => $user->id,
+                    'name' => $user->fullname ?? $user->name,
+                    'email' => $user->email,
+                ])
+            : collect();
 
         return view('planner::livewire.embedded.task', [
             'teamUsers' => $teamUsers,

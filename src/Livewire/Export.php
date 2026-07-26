@@ -7,7 +7,6 @@ use Illuminate\Support\Facades\Auth;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Enums\TaskLifecycleState;
 use Platform\Planner\Models\PlannerProject;
-use Platform\Planner\Models\PlannerProjectUser;
 use Platform\Planner\Export\ExportService;
 use Platform\Planner\Export\ExportFormat;
 
@@ -95,15 +94,13 @@ class Export extends Component
         $user = Auth::user();
         $team = $user->currentTeam;
 
-        // Projekte des Users (Team-basiert + Mitgliedschaft)
-        $projectIds = PlannerProjectUser::where('user_id', $user->id)
-            ->pluck('project_id')
+        // Projekte, die der User sehen darf (Graph: Ersteller ODER erreichbar).
+        // Kein pauschales "alle Team-Projekte" mehr — nur was der Graph freigibt.
+        $projectIds = PlannerProject::visibleTo($user)
+            ->pluck('id')
             ->toArray();
 
-        $projects = PlannerProject::where(function ($q) use ($team, $projectIds) {
-                $q->where('team_id', $team->id)
-                  ->orWhereIn('id', $projectIds);
-            })
+        $projects = PlannerProject::whereIn('id', $projectIds)
             ->orderBy('name')
             ->get();
 

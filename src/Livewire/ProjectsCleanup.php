@@ -68,7 +68,7 @@ class ProjectsCleanup extends Component
         return PlannerProject::query()
             ->whereIn('team_id', $this->relevantTeamIds())
             ->visibleTo($user)
-            ->with(['user:id,name', 'projectUsers:project_id,user_id']);
+            ->with(['user:id,name']);
     }
 
     /**
@@ -267,7 +267,8 @@ class ProjectsCleanup extends Component
         $rows = $projects->map(function ($p) use ($snapshots, $entityLinks, $trackedMinutes, $activityByProject, $now) {
             $snap = $snapshots[$p->id] ?? null;
             $link = $entityLinks[$p->id] ?? null;
-            $membersCount = max(0, $p->projectUsers->count());
+            // Projekt-Mitgliedschaft gibt es nicht mehr (Zugriff = Graph).
+            $membersCount = 0;
 
             // Layer-Status aus confidence_reason (Form "missing:canvas,planned_period,...")
             $missing = [];

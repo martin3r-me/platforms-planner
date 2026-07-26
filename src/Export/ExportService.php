@@ -164,11 +164,24 @@ class ExportService
             'projectSlots.tasks.user',
             'projectSlots.tasks.userInCharge',
             'projectSlots.tasks.plannedTimeEntries',
-            'projectUsers.user',
             'tasks.user',
             'tasks.userInCharge',
             'tasks.plannedTimeEntries',
         ]);
+
+        // Beteiligte = Ersteller + Aufgaben-Zuständige (Membership gibt es nicht mehr;
+        // Zugriff kommt aus dem Graphen). Distinct über eigene + Slot-Aufgaben.
+        $participants = collect([$project->user])
+            ->merge($project->tasks->flatMap(fn ($t) => [$t->user, $t->userInCharge]))
+            ->merge($project->projectSlots->flatMap(fn ($s) => $s->tasks)->flatMap(fn ($t) => [$t->user, $t->userInCharge]))
+            ->filter()
+            ->unique('id')
+            ->map(fn ($u) => [
+                'user_id' => $u->id,
+                'name' => $u->name,
+                'email' => $u->email,
+            ])
+            ->values();
 
         $data = [
             'id' => $project->id,
@@ -192,12 +205,7 @@ class ExportService
                 'id' => $project->team->id,
                 'name' => $project->team->name,
             ] : null,
-            'members' => $project->projectUsers->map(fn($pu) => [
-                'user_id' => $pu->user_id,
-                'name' => $pu->user?->name,
-                'email' => $pu->user?->email,
-                'role' => $pu->role,
-            ])->values()->toArray(),
+            'members' => $participants->toArray(),
             'extra_fields' => $this->buildExtraFieldsData($project),
             'statistics' => $this->buildProjectStatistics($project),
             'slots' => $this->buildSlotsData($project),
@@ -262,7 +270,7 @@ class ExportService
             'completed_story_points' => $doneTasks->sum(fn($t) => $t->story_points?->points() ?? 0),
             'open_story_points' => $openTasks->sum(fn($t) => $t->story_points?->points() ?? 0),
             'total_slots' => $project->projectSlots->count(),
-            'total_members' => $project->projectUsers->count(),
+            'total_members' => $participants->count(),
         ];
     }
 

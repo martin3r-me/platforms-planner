@@ -40,14 +40,8 @@
 {{ $line }}
 {{ str_pad('PROJEKT INFO:', 15, ' ') }}
 {{ str_pad('Projekt:', 15, ' ') }}{{ \Illuminate\Support\Str::limit($printable->project->name, $width - 15) }}
-@if($printable->user_in_charge_id)
-@php
-    $assignedUser = collect($printable->project->projectUsers ?? [])
-        ->firstWhere('user.id', $printable->user_in_charge_id);
-@endphp
-@if($assignedUser)
-{{ str_pad('Verantwortlich:', 15, ' ') }}{{ \Illuminate\Support\Str::limit($assignedUser['user']['fullname'] ?? 'Unbekannt', $width - 15) }}
-@endif
+@if($printable->user_in_charge_id && $printable->userInCharge)
+{{ str_pad('Verantwortlich:', 15, ' ') }}{{ \Illuminate\Support\Str::limit($printable->userInCharge->fullname ?? $printable->userInCharge->name ?? 'Unbekannt', $width - 15) }}
 @endif
 @endif
 

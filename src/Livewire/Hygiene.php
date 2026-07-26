@@ -6,7 +6,6 @@ use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Models\PlannerProject;
-use Platform\Planner\Models\PlannerProjectUser;
 use Platform\Planner\Enums\TaskStoryPoints;
 use Platform\Planner\Livewire\Concerns\QuickTogglesDone;
 use Livewire\Attributes\On;
@@ -47,8 +46,9 @@ class Hygiene extends Component
         $user = Auth::user();
         $team = $user->currentTeam;
 
-        $projectIds = PlannerProjectUser::where('user_id', $user->id)
-            ->pluck('project_id')
+        // Alle Projekte, die der User sehen darf (Graph: Ersteller ODER erreichbar).
+        $projectIds = \Platform\Planner\Models\PlannerProject::visibleTo($user)
+            ->pluck('id')
             ->toArray();
 
         // Hygiene-Thresholds: kuerzeres Fenster als der Lifecycle-Auto-Flip (45d).
