@@ -9,11 +9,10 @@ use Platform\Core\Contracts\ToolContract;
 use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Core\SemanticLayer\Services\SemanticLayerResolver;
+use Platform\Core\Verbalization\Contracts\ReportEngine;
 use Platform\Core\Verbalization\GuardRails;
-use Platform\Core\Verbalization\Recipe\RecipeResolver;
 use Platform\Core\Verbalization\StyleProfile;
 use Platform\Core\Verbalization\Template\TemplateRegistry;
-use Platform\Core\Verbalization\Verbalizer;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Verbalization\PlannerProjectSubjectCollector;
 
@@ -133,9 +132,7 @@ class ProjectVerbalizeTool implements ToolContract, ToolMetadataContract
         if ($recipeKey) {
             try {
                 $teamForRecipe = $context->team ?? $context->user->currentTeam ?? null;
-                /** @var RecipeResolver $recipeResolver */
-                $recipeResolver = app(RecipeResolver::class);
-                $recipe = $recipeResolver->resolve($recipeKey, $teamForRecipe?->id, 'planner_project');
+                $recipe = app(ReportEngine::class)->resolveRecipe($recipeKey, $teamForRecipe?->id, 'planner_project');
                 if (! $recipe) {
                     return ToolResult::error(
                         'RECIPE_NOT_FOUND',
@@ -190,9 +187,7 @@ class ProjectVerbalizeTool implements ToolContract, ToolMetadataContract
                 ]);
             }
 
-            /** @var Verbalizer $verbalizer */
-            $verbalizer = app(Verbalizer::class);
-            $result = $verbalizer->verbalize(
+            $result = app(ReportEngine::class)->verbalize(
                 subject: $subject,
                 style: $style,
                 rails: new GuardRails(),

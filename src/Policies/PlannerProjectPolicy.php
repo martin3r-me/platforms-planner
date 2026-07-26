@@ -14,6 +14,10 @@ class PlannerProjectPolicy extends RolePolicy
      */
     public function view(User $user, $project): bool
     {
+        if (config('authz.enforce_planner')) {
+            return $this->graphAllows($user, $project, 'read');
+        }
+
         // 1. Projekt-Mitgliedschaft prüfen (egal in welchem Team)
         $userRole = $this->getUserProjectRole($user, $project);
         if ($userRole !== null) {
@@ -49,6 +53,10 @@ class PlannerProjectPolicy extends RolePolicy
      */
     public function update(User $user, $project): bool
     {
+        if (config('authz.enforce_planner')) {
+            return $this->graphAllows($user, $project, 'write');
+        }
+
         // Projekt-Schreibrolle prüfen (egal in welchem Team)
         $userRole = $this->getUserProjectRole($user, $project);
         return in_array($userRole, [
@@ -63,6 +71,10 @@ class PlannerProjectPolicy extends RolePolicy
      */
     public function delete(User $user, $project): bool
     {
+        if (config('authz.enforce_planner')) {
+            return $this->graphAllows($user, $project, 'manage');
+        }
+
         // Nur Owner darf löschen (egal in welchem Team)
         $userRole = $this->getUserProjectRole($user, $project);
         return $userRole === ProjectRole::OWNER->value;
@@ -141,6 +153,22 @@ class PlannerProjectPolicy extends RolePolicy
     {
         // Jeder Projekt-Mitglied kann Settings öffnen
         return $this->view($user, $project);
+    }
+
+    /**
+     * Graph-Autorisierung: Ersteller (owns) ODER strukturell erreichbar (may).
+     * Aktiv wenn authz.enforce_planner an ist — Projekt-Mitgliedschaft greift dann nicht.
+     */
+    protected function graphAllows(User $user, $project, string $cap): bool
+    {
+        if (! $project || ! $project->id) {
+            return false;
+        }
+        $resolver = app(\Platform\Core\Authz\AuthzResolver::class);
+        $type = PlannerProject::class;
+
+        return $resolver->may($user, $cap, $type, (int) $project->id)
+            || $resolver->owns($user, $type, (int) $project->id);
     }
 
     /**

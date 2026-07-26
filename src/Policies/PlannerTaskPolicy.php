@@ -154,10 +154,29 @@ class PlannerTaskPolicy extends BasePolicy
     }
 
     /**
+     * Graph-Autorisierung auf dem PROJEKT (Ersteller oder strukturell erreichbar).
+     * Aktiv wenn authz.enforce_planner an ist — Mitgliedschaft greift dann nicht.
+     */
+    protected function projectGraphAllows(User $user, $project, string $cap): bool
+    {
+        if (! $project || ! $project->id) {
+            return false;
+        }
+        $resolver = app(\Platform\Core\Authz\AuthzResolver::class);
+        $type = PlannerProject::class;
+
+        return $resolver->may($user, $cap, $type, (int) $project->id)
+            || $resolver->owns($user, $type, (int) $project->id);
+    }
+
+    /**
      * Prüft Projekt-Zugriff (Lesen)
      */
     protected function canAccessProject(User $user, $project): bool
     {
+        if (config('authz.enforce_planner')) {
+            return $this->projectGraphAllows($user, $project, 'read');
+        }
         // Projekt-Mitgliedschaft prüfen (egal in welchem Team)
         $userRole = $this->getUserProjectRole($user, $project);
         return $userRole !== null;
@@ -168,6 +187,9 @@ class PlannerTaskPolicy extends BasePolicy
      */
     protected function canWriteProject(User $user, $project): bool
     {
+        if (config('authz.enforce_planner')) {
+            return $this->projectGraphAllows($user, $project, 'write');
+        }
         // Projekt-Schreibrolle prüfen (egal in welchem Team)
         $userRole = $this->getUserProjectRole($user, $project);
         return in_array($userRole, ['owner', 'admin', 'member'], true);
@@ -178,6 +200,9 @@ class PlannerTaskPolicy extends BasePolicy
      */
     protected function canAdminProject(User $user, $project): bool
     {
+        if (config('authz.enforce_planner')) {
+            return $this->projectGraphAllows($user, $project, 'manage');
+        }
         // Projekt-Admin-Rolle prüfen (egal in welchem Team)
         $userRole = $this->getUserProjectRole($user, $project);
         return in_array($userRole, ['owner', 'admin'], true);
