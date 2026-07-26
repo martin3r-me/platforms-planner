@@ -161,9 +161,15 @@ class Sidebar extends Component
         // (Beer-Multi-Perspektive), ohne Daten zu duplizieren.
         $ancestorService = new EntityAncestorService();
         $directEntityIds = array_keys($entityProjectMap);
+
+        // Unter Enforce nur der strukturelle Baum (Venture-Träger / Organisationseinheiten):
+        // KEIN engagement_with-Channel → kein Customer-Virtual-Parent (Umwelt) und
+        // keine parallele Doppel-Sicht. Sonst wie gehabt (Beer-Multi-Perspektive).
+        $channels = config('authz.enforce_planner') ? [] : ['engagement_with'];
+
         $expandedEntityIds = $ancestorService->expandEntitiesWithAncestors(
             $directEntityIds,
-            ['engagement_with']
+            $channels
         );
 
         foreach ($expandedEntityIds as $entityId) {
@@ -185,7 +191,7 @@ class Sidebar extends Component
             // Eltern-Kind-Beziehungen: Tree-Edges + Channel-Edges via Service.
             // Channel engagement_with: Customer wird virtual-parent von Engagement,
             // damit Engagement auch unter Customer-Root erscheint.
-            $hierarchy = $ancestorService->buildParentChildrenMap($entities, ['engagement_with']);
+            $hierarchy = $ancestorService->buildParentChildrenMap($entities, $channels);
             $entityChildrenMap = $hierarchy['parent_to_children'];
             $rootEntityIds = $hierarchy['roots'];
 
