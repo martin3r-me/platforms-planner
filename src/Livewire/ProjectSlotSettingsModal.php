@@ -5,7 +5,6 @@ namespace Platform\Planner\Livewire;
 use Livewire\Component;
 use Platform\Core\PlatformCore;
 use Platform\Planner\Models\PlannerProject;
-use Platform\Planner\Models\PlannerProjectUser;
 use Platform\Planner\Models\PlannerProjectSlot;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On; 

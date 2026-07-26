@@ -8,8 +8,6 @@ use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Planner\Models\PlannerProject;
-use Platform\Planner\Models\PlannerProjectUser;
-use Platform\Planner\Enums\ProjectRole;
 use Platform\Planner\Enums\ProjectType;
 use Platform\Organization\Services\StorePlannedTime;
 use Platform\Organization\Services\StorePlannedPeriod;
@@ -38,7 +36,7 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract, ToolMet
 
     public function getDescription(): string
     {
-        return 'POST /projects - Erstellt ein neues Projekt. REST-Parameter: name (required, string) - Projektname. team_id (optional, integer) - wenn nicht angegeben, wird aktuelles Team verwendet. description (optional, string) - Beschreibung. project_type (optional, string) - Typ: internal, customer, event, cooking. owner_user_id (optional, integer) - Owner des Projekts. members (optional, array) - Array von User-IDs als Mitglieder.';
+        return 'POST /projects - Erstellt ein neues Projekt. REST-Parameter: name (required, string) - Projektname. team_id (optional, integer) - wenn nicht angegeben, wird aktuelles Team verwendet. description (optional, string) - Beschreibung. project_type (optional, string) - Typ: internal, customer, event, cooking. owner_user_id (optional, integer) - Ersteller/Owner des Projekts (Default: aktueller Nutzer).';
     }
 
     public function getSchema(): array
@@ -75,25 +73,6 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract, ToolMet
                 'owner_user_id' => [
                     'type' => 'integer',
                     'description' => 'Optional: ID des Projekt-Owners. WICHTIG: Wenn der Nutzer sagt "nimm mich selbst" oder "nimm nur mich", LASS DIESEN PARAMETER WEG oder setze ihn auf null. Das Tool verwendet dann automatisch die User-ID des aktuellen Nutzers aus dem Kontext. Verwende NIEMALS hardcoded IDs wie 1 oder 0. Wenn nicht angegeben, wird automatisch der aktuelle Nutzer als Owner gesetzt. Frage nur nach, wenn der Nutzer explizit einen anderen Owner wünscht.'
-                ],
-                'members' => [
-                    'type' => 'array',
-                    'description' => 'Optional: Array von Projektmitgliedern. WICHTIG: Wenn der Nutzer sagt "nimm nur mich" oder "nimm mich selbst", LASS DIESEN PARAMETER WEG oder setze ihn auf null. Das Tool fügt automatisch den aktuellen Nutzer als Owner hinzu. Jedes Mitglied ist ein Objekt mit "user_id" (integer, erforderlich) und "role" (string: "owner", "admin", "member", "viewer", Standard: "member"). Verwende NIEMALS hardcoded User-IDs wie 1 oder 0. Frage nur nach, wenn der Nutzer explizit weitere Mitglieder hinzufügen möchte.',
-                    'items' => [
-                        'type' => 'object',
-                        'properties' => [
-                            'user_id' => [
-                                'type' => 'integer',
-                                'description' => 'ID des Benutzers. WICHTIG: Verwende NIEMALS hardcoded IDs wie 1 oder 0. Nutze "core.teams.users.GET" um User-IDs zu finden.'
-                            ],
-                            'role' => [
-                                'type' => 'string',
-                                'description' => 'Rolle des Benutzers im Projekt: "owner", "admin", "member", "viewer"',
-                                'enum' => ['owner', 'admin', 'member', 'viewer']
-                            ]
-                        ],
-                        'required' => ['user_id']
-                    ]
                 ],
                 'planned_minutes' => [
                     'type' => 'integer',
@@ -275,55 +254,15 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract, ToolMet
                 }
             }
 
-            // Owner als Projekt-User hinzufügen
-            PlannerProjectUser::create([
-                'project_id' => $project->id,
+            // Keine Projekt-Mitgliedschaft mehr: Ersteller = user_id, Zugriff für
+            // andere entsteht durch Aufhängen im Org-Graphen. Ein evtl. übergebenes
+            // "members" wird ignoriert. Für die Response ist der Ersteller "owner".
+            $creator = \Platform\Core\Models\User::find($ownerUserId);
+            $projectUsers = [[
                 'user_id' => $ownerUserId,
-                'role' => ProjectRole::OWNER->value,
-            ]);
-
-            // Weitere Mitglieder hinzufügen (falls angegeben)
-            if (!empty($arguments['members']) && is_array($arguments['members'])) {
-                foreach ($arguments['members'] as $member) {
-                    if (empty($member['user_id'])) {
-                        continue; // Überspringe ungültige Einträge
-                    }
-
-                    // Prüfe, ob User bereits als Owner existiert
-                    $existingUser = PlannerProjectUser::where('project_id', $project->id)
-                        ->where('user_id', $member['user_id'])
-                        ->first();
-
-                    if ($existingUser) {
-                        // Update Rolle, falls nicht Owner
-                        if ($existingUser->role !== ProjectRole::OWNER->value) {
-                            $existingUser->update([
-                                'role' => $member['role'] ?? ProjectRole::MEMBER->value
-                            ]);
-                        }
-                    } else {
-                        // Neues Mitglied hinzufügen
-                        PlannerProjectUser::create([
-                            'project_id' => $project->id,
-                            'user_id' => $member['user_id'],
-                            'role' => $member['role'] ?? ProjectRole::MEMBER->value,
-                        ]);
-                    }
-                }
-            }
-
-            // Projekt-User laden für Response
-            $projectUsers = PlannerProjectUser::where('project_id', $project->id)
-                ->with('user')
-                ->get()
-                ->map(function ($pu) {
-                    return [
-                        'user_id' => $pu->user_id,
-                        'user_name' => $pu->user->name ?? 'Unbekannt',
-                        'role' => $pu->role,
-                    ];
-                })
-                ->toArray();
+                'user_name' => $creator?->name ?? 'Unbekannt',
+                'role' => 'owner',
+            ]];
 
             // Entity-Links laden (via DimensionLink Bridge)
             $entityLinks = \Platform\Organization\Services\EntityDimensionBridge::linksForLinkables(

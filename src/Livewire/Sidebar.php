@@ -48,12 +48,7 @@ class Sidebar extends Component
         $project->team_id = $teamId;
         $project->order = Project::where('team_id', $teamId)->max('order') + 1;
         $project->save();
-
-        // --> ProjectUser als Owner anlegen!
-        $project->projectUsers()->create([
-            'user_id' => $user->id,
-            'role' => \Platform\Planner\Enums\ProjectRole::OWNER->value,
-        ]);
+        // Ersteller = user_id. Kein projectUsers-OWNER-Eintrag mehr (Zugriff = Graph).
 
         // 2. Standard-Project-Slots erzeugen: To Do, Doing, On Hold
         $defaultSlots = ['To Do', 'Doing', 'On Hold'];

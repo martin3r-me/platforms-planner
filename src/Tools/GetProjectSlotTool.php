@@ -59,7 +59,7 @@ class GetProjectSlotTool implements ToolContract, ToolMetadataContract
             }
 
             // Slot holen
-            $slot = PlannerProjectSlot::with(['project', 'project.projectUsers'])
+            $slot = PlannerProjectSlot::with(['project'])
                 ->find($arguments['id']);
 
             if (!$slot) {

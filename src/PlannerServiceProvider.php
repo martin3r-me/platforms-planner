@@ -289,10 +289,6 @@ class PlannerServiceProvider extends ServiceProvider
             $registry->register(new \Platform\Planner\Tools\DeleteProjectTool());
             $registry->register(new \Platform\Planner\Tools\TransferProjectTool());
 
-            // Projekt-Teilnehmer (Team-Mitglieder)
-            $registry->register(new \Platform\Planner\Tools\AddProjectUserTool());
-            $registry->register(new \Platform\Planner\Tools\RemoveProjectUserTool());
-            
             // Slot-Tools
             $registry->register(new \Platform\Planner\Tools\CreateProjectSlotTool());
             $registry->register(new \Platform\Planner\Tools\ListProjectSlotsTool());

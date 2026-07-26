@@ -7,7 +7,6 @@ use Illuminate\Support\Facades\Auth;
 use Platform\Core\Models\DavSubscription;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectSlot;
-use Platform\Planner\Models\PlannerProjectUser;
 use Platform\Planner\Enums\TaskLifecycleState;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Enums\StoryPoints;
@@ -128,24 +127,28 @@ class Project extends Component
      */
     public function caldavExposed(): bool
     {
-        return PlannerProjectUser::query()
+        return \Platform\Planner\Models\PlannerCalendarExposure::query()
             ->where('user_id', Auth::id())
             ->where('project_id', $this->project->id)
-            ->where('expose_in_caldav', true)
             ->exists();
     }
 
     public function toggleCaldavExposure(): void
     {
-        // firstOrNew, damit der Toggle auch für Projekt-Owner ohne eigenen
-        // Pivot-Eintrag funktioniert.
-        $membership = PlannerProjectUser::firstOrNew([
-            'user_id' => Auth::id(),
-            'project_id' => $this->project->id,
-        ]);
+        // Kalender-Abo = Zeile existiert (An/Aus). Reine per-User-Wahl, kein Zugriff.
+        $existing = \Platform\Planner\Models\PlannerCalendarExposure::query()
+            ->where('user_id', Auth::id())
+            ->where('project_id', $this->project->id)
+            ->first();
 
-        $membership->expose_in_caldav = ! $membership->expose_in_caldav;
-        $membership->save();
+        if ($existing) {
+            $existing->delete();
+        } else {
+            \Platform\Planner\Models\PlannerCalendarExposure::create([
+                'user_id' => Auth::id(),
+                'project_id' => $this->project->id,
+            ]);
+        }
     }
 
     public function render()
@@ -170,11 +173,8 @@ class Project extends Component
 
         $linkedEntities = $linkedEntities->unique('entity_name');
 
-        // Aktuelle Rolle des Users im Projekt ermitteln
-        $projectUser = $this->project->projectUsers()
-            ->where('user_id', $user->id)
-            ->first();
-        $currentUserRole = $projectUser?->role;
+        // Rolle im Projekt = Ersteller (owner) oder nichts. Keine Mitgliedschaft mehr.
+        $currentUserRole = ((int) $this->project->user_id === (int) $user->id) ? 'owner' : null;
 
         // Offene Aufgaben dieses Users im Projekt (zählt Tasks mit oder ohne Slot)
         $userOpenTaskCount = PlannerTask::where('project_id', $this->project->id)
@@ -193,8 +193,6 @@ class Project extends Component
             'settings' => $user->can('settings', $this->project),
             'invite' => $user->can('invite', $this->project),
         ];
-
-        $allProjectUsers = $this->project->projectUsers()->with('user')->get();
 
         // === CANVAS-INFO (für Header + Dashboard) ===
         $canvas = $this->project->canvases()->first();
@@ -294,11 +292,23 @@ class Project extends Component
             $canvasBriefing = $briefing;
         }
 
-        $teamMembers = $allProjectUsers->map(fn ($pu) => [
-            'name' => $pu->user?->name ?? 'Unbekannt',
-            'role' => $pu->role,
+        // Beteiligte = Aufgaben-Zuständige des Projekts (+ Ersteller). Keine
+        // Mitgliedschaft mehr — Zugriff steuert der Graph.
+        $participantIds = PlannerTask::where('project_id', $this->project->id)
+            ->whereNotNull('user_in_charge_id')
+            ->distinct()
+            ->pluck('user_in_charge_id')
+            ->push($this->project->user_id)
+            ->filter()
+            ->unique()
+            ->values();
+        $participantUsers = \Platform\Core\Models\User::whereIn('id', $participantIds)->get()->keyBy('id');
+
+        $teamMembers = $participantIds->map(fn ($uid) => [
+            'name' => $participantUsers[$uid]?->name ?? 'Unbekannt',
+            'role' => (int) $uid === (int) $this->project->user_id ? 'owner' : 'beteiligt',
             'open_tasks' => PlannerTask::where('project_id', $this->project->id)
-                ->where('user_in_charge_id', $pu->user_id)
+                ->where('user_in_charge_id', $uid)
                 ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
                 ->count(),
         ]);
@@ -467,7 +477,6 @@ class Project extends Component
             'userOpenTaskCount' => $userOpenTaskCount,
             'hasAnyTasks' => $hasAnyTasks,
             'permissions' => $permissions,
-            'allProjectUsers' => $allProjectUsers,
             'availableFilterTags' => $availableFilterTags,
             'availableFilterColors' => $availableFilterColors,
             'canvasInfo' => $canvasInfo,

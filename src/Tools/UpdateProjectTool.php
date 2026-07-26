@@ -269,23 +269,9 @@ class UpdateProjectTool implements ToolContract
             }
 
             if (isset($arguments['owner_user_id'])) {
-                // Owner ändern: Projekt-User aktualisieren
+                // Ersteller/Owner = user_id-Spalte. Keine projectUsers-Rolle mehr.
                 $project->user_id = $arguments['owner_user_id'];
                 $updateData['user_id'] = $arguments['owner_user_id'];
-                
-                // Rolle des neuen Owners auf 'owner' setzen
-                $projectUser = $project->projectUsers()
-                    ->where('user_id', $arguments['owner_user_id'])
-                    ->first();
-                
-                if ($projectUser) {
-                    $projectUser->update(['role' => 'owner']);
-                } else {
-                    $project->projectUsers()->create([
-                        'user_id' => $arguments['owner_user_id'],
-                        'role' => 'owner',
-                    ]);
-                }
             }
 
             // Projekt aktualisieren
@@ -309,15 +295,14 @@ class UpdateProjectTool implements ToolContract
 
             // Aktualisiertes Projekt laden
             $project->refresh();
-            $project->load(['user', 'projectUsers.user']);
+            $project->load(['user']);
 
-            $projectUsers = $project->projectUsers->map(function($pu) {
-                return [
-                    'user_id' => $pu->user_id,
-                    'user_name' => $pu->user->name ?? 'Unbekannt',
-                    'role' => $pu->role,
-                ];
-            })->toArray();
+            // Kein Mitgliedschaftskonzept mehr — "members" = Ersteller (owner).
+            $projectUsers = [[
+                'user_id' => $project->user_id,
+                'user_name' => $project->user->name ?? 'Unbekannt',
+                'role' => 'owner',
+            ]];
 
             // Entity-Links laden (via DimensionLink Bridge)
             $entityLinks = \Platform\Organization\Services\EntityDimensionBridge::linksForLinkables(

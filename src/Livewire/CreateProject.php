@@ -22,18 +22,8 @@ class CreateProject extends Component
         $project->team_id = $teamId;
         $project->order = Project::where('team_id', $teamId)->max('order') + 1;
         $project->save();
-
-        // --> ProjectUser als Owner anlegen!
-        $project->projectUsers()->create([
-            'user_id' => $user->id,
-            'role' => \Platform\Planner\Enums\ProjectRole::OWNER->value,
-        ]);
-        // Alternativ, falls du direkt das Model nutzen möchtest:
-        // \Platform\Planner\Models\PlannerProjectUser::create([
-        //     'project_id' => $project->id,
-        //     'user_id' => $user->id,
-        //     'role' => \Platform\Planner\Enums\ProjectRole::OWNER->value,
-        // ]);
+        // Ersteller = user_id (oben gesetzt). Kein projectUsers-OWNER-Eintrag mehr —
+        // Zugriff kommt aus dem Graphen bzw. der Ersteller-Residuale.
 
         // 2. Standard-Project-Slots erzeugen: To Do, Doing, On Hold
         $defaultSlots = ['To Do', 'Doing', 'On Hold'];

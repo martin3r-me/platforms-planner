@@ -58,7 +58,7 @@ class GetProjectTool implements ToolContract, ToolMetadataContract
             }
 
             // Projekt holen
-            $project = PlannerProject::with(['user', 'team', 'projectUsers.user', 'projectSlots', 'plannedTimeEntries', 'plannedPeriodEntries'])
+            $project = PlannerProject::with(['user', 'team', 'projectSlots', 'plannedTimeEntries', 'plannedPeriodEntries'])
                 ->find($arguments['id']);
 
             if (!$project) {
@@ -75,14 +75,12 @@ class GetProjectTool implements ToolContract, ToolMetadataContract
             // Staleness-Tracking: View aufzeichnen
             $project->recordView();
 
-            // Projekt-User formatieren
-            $projectUsers = $project->projectUsers->map(function($pu) {
-                return [
-                    'user_id' => $pu->user_id,
-                    'user_name' => $pu->user->name ?? 'Unbekannt',
-                    'role' => $pu->role,
-                ];
-            })->toArray();
+            // Kein Mitgliedschaftskonzept mehr — "members" = Ersteller (owner).
+            $projectUsers = [[
+                'user_id' => $project->user_id,
+                'user_name' => $project->user->name ?? 'Unbekannt',
+                'role' => 'owner',
+            ]];
 
             // Slots mit IDs und Aufgaben-Anzahl formatieren
             $slots = $project->projectSlots()->orderBy('order')->get();

@@ -95,7 +95,7 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
             // Query aufbauen - nur Projekte dieses Teams
             $query = PlannerProject::query()
                 ->where('team_id', $teamIdArg)
-                ->with(['user', 'team', 'projectUsers.user', 'projectSlots', 'plannedTimeEntries', 'plannedPeriodEntries']);
+                ->with(['user', 'team', 'projectSlots', 'plannedTimeEntries', 'plannedPeriodEntries']);
 
             // Content-Authz: nur graph-sichtbare Projekte (Ersteller ODER über den
             // Org-Graphen erreichbar) — dieselbe Sicht wie die UI. Ohne das würde die
@@ -154,13 +154,12 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
 
             // Projekte formatieren mit Slots- und Backlog-Statistiken
             $projectsList = $projects->map(function($project) use ($context) {
-                $projectUsers = $project->projectUsers->map(function($pu) {
-                    return [
-                        'user_id' => $pu->user_id,
-                        'user_name' => $pu->user->name ?? 'Unbekannt',
-                        'role' => $pu->role,
-                    ];
-                })->toArray();
+                // Kein Mitgliedschaftskonzept mehr — "members" = Ersteller (owner).
+                $projectUsers = [[
+                    'user_id' => $project->user_id,
+                    'user_name' => $project->user->name ?? 'Unbekannt',
+                    'role' => 'owner',
+                ]];
 
                 // Slots-Statistiken
                 $slots = $project->projectSlots;
