@@ -127,11 +127,6 @@ class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayN
         return $this->belongsTo(\Platform\Core\Models\User::class);
     }
 
-    public function projectUsers()
-    {
-        return $this->hasMany(PlannerProjectUser::class, 'project_id');
-    }
-
     /**
      * Scope: Nur Projekte, die der User sehen darf = Ersteller ODER im
      * Org-Graphen erreichbar (read). Spiegelt PlannerProjectPolicy::view().
