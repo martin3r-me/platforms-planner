@@ -82,7 +82,7 @@
     </x-slot>
 
     {{-- Main Content --}}
-    <x-ui-page-container padding="p-0" spacing="" background="">
+    <x-ui-page-container width="full" padding="p-0" spacing="" background="">
         {{-- Meta-Infos --}}
         <div class="px-4 sm:px-6 py-4 border-b border-[color:var(--nx-line)]/40 bg-[color:var(--nx-surface)]/50">
             <div class="flex flex-wrap items-start gap-6">
