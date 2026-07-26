@@ -7,7 +7,7 @@ use Platform\Core\Dav\DavContext;
 use Platform\Core\Models\DavSubscription;
 use Platform\Planner\Enums\TaskLifecycleState;
 use Platform\Planner\Models\PlannerProject;
-use Platform\Planner\Models\PlannerProjectUser;
+use Platform\Planner\Models\PlannerCalendarExposure;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Services\CalDav\TaskVTodoMapper;
 use Platform\Planner\Services\LifecycleService;
@@ -26,7 +26,7 @@ use Sabre\DAV\PropPatch;
  *
  * Ein Account (Core-{@see DavSubscription}, module=planner/type=caldav) zeigt
  * mehrere Listen: „Meine Aufgaben" (immer) plus je opt-in-Projekt eine Liste
- * (PlannerProjectUser.expose_in_caldav). Alle Schreib-Ops werfen {@see Forbidden}.
+ * (PlannerCalendarExposure). Alle Schreib-Ops werfen {@see Forbidden}.
  *
  * Siehe docs/caldav.md.
  */
@@ -304,9 +304,8 @@ class PlannerCalDavBackend extends AbstractBackend implements SyncSupport
      */
     private function optedInProjects()
     {
-        $ids = PlannerProjectUser::query()
+        $ids = PlannerCalendarExposure::query()
             ->where('user_id', $this->userId())
-            ->where('expose_in_caldav', true)
             ->pluck('project_id');
 
         if ($ids->isEmpty()) {
@@ -349,9 +348,8 @@ class PlannerCalDavBackend extends AbstractBackend implements SyncSupport
             return;
         }
 
-        $allowed = PlannerProjectUser::query()
+        $allowed = PlannerCalendarExposure::query()
             ->where('user_id', $this->userId())
-            ->where('expose_in_caldav', true)
             ->where('project_id', (int) $calendarId)
             ->exists();
 
