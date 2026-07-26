@@ -97,8 +97,12 @@ class Sidebar extends Component
                       ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
                       ->whereNull('project_slot_id');
                 })
-                ->orWhereHas('projectUsers', function ($q) use ($user) {
-                    $q->where('user_id', $user->id);
+                ->when(! config('authz.enforce_planner'), function ($query) use ($user) {
+                    // Mitgliedschaft nur im Alt-Modus; bei Enforce zählt der Graph
+                    // (die "Alle Projekte"-Liste unten via viewableBy).
+                    $query->orWhereHas('projectUsers', function ($q) use ($user) {
+                        $q->where('user_id', $user->id);
+                    });
                 });
             })
             ->orderBy('name')

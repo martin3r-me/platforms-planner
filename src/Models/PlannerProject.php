@@ -139,6 +139,10 @@ class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayN
      */
     public function scopeVisibleTo(Builder $query, \Platform\Core\Models\User $user): Builder
     {
+        if (config('authz.enforce_planner')) {
+            return $query->authzVisibleTo($user, 'read');
+        }
+
         $memberProjectIds = PlannerProjectUser::where('user_id', $user->id)->pluck('project_id');
 
         return $query->where(function ($q) use ($user, $memberProjectIds) {
@@ -157,6 +161,10 @@ class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayN
      */
     public function scopeViewableBy(Builder $query, \Platform\Core\Models\User $user): Builder
     {
+        if (config('authz.enforce_planner')) {
+            return $query->authzVisibleTo($user, 'read');
+        }
+
         return $query->where(function ($q) use ($user) {
             $q->whereHas('projectUsers', function ($sub) use ($user) {
                 $sub->where('user_id', $user->id);

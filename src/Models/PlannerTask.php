@@ -205,6 +205,23 @@ class PlannerTask extends Model implements HasKeyResultAncestors, HasDisplayName
      */
     public function scopeVisibleTo(Builder $query, \Platform\Core\Models\User $user): Builder
     {
+        if (config('authz.enforce_planner')) {
+            // Task sichtbar: Ersteller ODER Zuständiger ODER das Projekt ist
+            // graph-erreichbar (Tasks erben die Verortung ihres Projekts).
+            $reachable = app(\Platform\Core\Authz\AuthzResolver::class)->reachableEntityIds($user, 'read');
+            $reachableProjectIds = empty($reachable) ? [] : \Illuminate\Support\Facades\DB::table('authz_resource_link')
+                ->where('resource_type', \Platform\Planner\Models\PlannerProject::class)
+                ->whereIn('scope_id', $reachable)
+                ->pluck('resource_id')
+                ->all();
+
+            return $query->where(function ($q) use ($user, $reachableProjectIds) {
+                $q->where('user_id', $user->id)
+                  ->orWhere('user_in_charge_id', $user->id)
+                  ->orWhereIn('project_id', $reachableProjectIds);
+            });
+        }
+
         $memberProjectIds = PlannerProjectUser::where('user_id', $user->id)->pluck('project_id');
 
         return $query->where(function ($q) use ($user, $memberProjectIds) {
