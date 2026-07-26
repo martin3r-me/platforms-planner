@@ -111,7 +111,7 @@
         </x-ui-page-sidebar>
     </x-slot>
 
-    <x-ui-page-container>
+    <x-ui-page-container width="contained">
 
         {{-- Greeting --}}
         <div class="mb-8">

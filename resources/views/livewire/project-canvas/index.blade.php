@@ -12,7 +12,7 @@
     </x-slot>
 
     {{-- Main Content --}}
-    <x-ui-page-container>
+    <x-ui-page-container width="contained">
         <div class="space-y-6">
 
             {{-- Stats --}}
