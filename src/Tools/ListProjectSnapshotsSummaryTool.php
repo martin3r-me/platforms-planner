@@ -59,13 +59,25 @@ class ListProjectSnapshotsSummaryTool implements ToolContract, ToolMetadataContr
             $includeDone = $arguments['include_done'] ?? true;
 
             // Juengsten Snapshot je Projekt holen (per Subquery)
-            $latestIds = DB::table('planner_project_snapshots as a')
+            $latestQuery = DB::table('planner_project_snapshots as a')
                 ->where('a.team_id', $teamId)
                 ->whereRaw('a.taken_on = (
                     SELECT MAX(b.taken_on) FROM planner_project_snapshots b
                     WHERE b.project_id = a.project_id
-                )')
-                ->pluck('a.id');
+                )');
+
+            // Content-Authz (MCP-Lücke): unter Enforce nur Snapshots sichtbarer Projekte
+            // aggregieren (Ersteller ODER graph-erreichbar) — sonst leakt das Aggregat
+            // Health/Confidence-Daten aus Projekten, die der User nicht sehen darf.
+            if (config('authz.enforce_planner')) {
+                $visibleProjectIds = PlannerProject::query()
+                    ->where('team_id', $teamId)
+                    ->visibleTo($context->user)
+                    ->pluck('id');
+                $latestQuery->whereIn('a.project_id', $visibleProjectIds);
+            }
+
+            $latestIds = $latestQuery->pluck('a.id');
 
             $latest = PlannerProjectSnapshot::with('project:id,name,kind,lifecycle_state')
                 ->whereIn('id', $latestIds)
