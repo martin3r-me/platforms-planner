@@ -114,11 +114,9 @@ class ListTasksTool implements ToolContract
             $query = PlannerTask::query()
                 ->with(['project', 'projectSlot', 'user', 'userInCharge', 'plannedTimeEntries']);
 
-            // Content-Authz (MCP-Lücke schließen): unter Enforce nur graph-sichtbare Tasks
-            // (Ersteller ODER Zuständiger ODER Projekt graph-erreichbar) — wie die UI.
-            if (config('authz.enforce_planner')) {
-                $query->visibleTo($context->user);
-            }
+            // Content-Authz: nur graph-sichtbare Tasks (Ersteller ODER Zuständiger
+            // ODER Projekt graph-erreichbar) — wie die UI.
+            $query->visibleTo($context->user);
 
             // Stale Records einblenden wenn gewuenscht
             if (!empty($arguments['include_stale'])) {

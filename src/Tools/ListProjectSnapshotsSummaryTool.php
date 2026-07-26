@@ -66,16 +66,14 @@ class ListProjectSnapshotsSummaryTool implements ToolContract, ToolMetadataContr
                     WHERE b.project_id = a.project_id
                 )');
 
-            // Content-Authz (MCP-Lücke): unter Enforce nur Snapshots sichtbarer Projekte
-            // aggregieren (Ersteller ODER graph-erreichbar) — sonst leakt das Aggregat
-            // Health/Confidence-Daten aus Projekten, die der User nicht sehen darf.
-            if (config('authz.enforce_planner')) {
-                $visibleProjectIds = PlannerProject::query()
-                    ->where('team_id', $teamId)
-                    ->visibleTo($context->user)
-                    ->pluck('id');
-                $latestQuery->whereIn('a.project_id', $visibleProjectIds);
-            }
+            // Content-Authz: nur Snapshots sichtbarer Projekte aggregieren (Ersteller
+            // ODER graph-erreichbar) — sonst leakt das Aggregat Health/Confidence aus
+            // Projekten, die der User nicht sehen darf.
+            $visibleProjectIds = PlannerProject::query()
+                ->where('team_id', $teamId)
+                ->visibleTo($context->user)
+                ->pluck('id');
+            $latestQuery->whereIn('a.project_id', $visibleProjectIds);
 
             $latestIds = $latestQuery->pluck('a.id');
 

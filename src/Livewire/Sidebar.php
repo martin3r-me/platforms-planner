@@ -96,13 +96,6 @@ class Sidebar extends Component
                     $q->where('user_in_charge_id', $user->id)
                       ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
                       ->whereNull('project_slot_id');
-                })
-                ->when(! config('authz.enforce_planner'), function ($query) use ($user) {
-                    // Mitgliedschaft nur im Alt-Modus; bei Enforce zählt der Graph
-                    // (die "Alle Projekte"-Liste unten via viewableBy).
-                    $query->orWhereHas('projectUsers', function ($q) use ($user) {
-                        $q->where('user_id', $user->id);
-                    });
                 });
             })
             ->orderBy('name')
@@ -117,19 +110,11 @@ class Sidebar extends Component
             ->orderBy('name')
             ->get();
 
-        // Unter Enforce zeigt die Sidebar genau, was der User sehen DARF —
-        // der "alle / nur meine"-Toggle ist damit sinnlos: immer die sichtbare Liste.
-        if (config('authz.enforce_planner')) {
-            $this->showAllProjects = true;
-        }
-
-        $projectsToShow = $this->showAllProjects
-            ? $allProjects
-            : $projectsWithUserTasks;
-
-        $hasMoreProjects = config('authz.enforce_planner')
-            ? false
-            : $allProjects->count() > $projectsWithUserTasks->count();
+        // Die Sidebar zeigt genau, was der User sehen DARF (Graph) — der
+        // "alle / nur meine"-Toggle ist damit sinnlos: immer die sichtbare Liste.
+        $this->showAllProjects = true;
+        $projectsToShow = $allProjects;
+        $hasMoreProjects = false;
 
         // 2. Entity-Verknüpfungen laden via DimensionLink
         $projectIds = $projectsToShow->pluck('id')->toArray();
@@ -162,10 +147,10 @@ class Sidebar extends Component
         $ancestorService = new EntityAncestorService();
         $directEntityIds = array_keys($entityProjectMap);
 
-        // Unter Enforce nur der strukturelle Baum (Venture-Träger / Organisationseinheiten):
+        // Nur der strukturelle Baum (Venture-Träger / Organisationseinheiten):
         // KEIN engagement_with-Channel → kein Customer-Virtual-Parent (Umwelt) und
-        // keine parallele Doppel-Sicht. Sonst wie gehabt (Beer-Multi-Perspektive).
-        $channels = config('authz.enforce_planner') ? [] : ['engagement_with'];
+        // keine parallele Doppel-Sicht.
+        $channels = [];
 
         $expandedEntityIds = $ancestorService->expandEntitiesWithAncestors(
             $directEntityIds,

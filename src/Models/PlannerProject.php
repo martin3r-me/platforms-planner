@@ -133,49 +133,20 @@ class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayN
     }
 
     /**
-     * Scope: Nur Projekte, die der User laut Policy sehen darf.
-     * - User ist Owner des Projekts
-     * - User ist Mitglied des Projekts (project_users)
+     * Scope: Nur Projekte, die der User sehen darf = Ersteller ODER im
+     * Org-Graphen erreichbar (read). Spiegelt PlannerProjectPolicy::view().
      */
     public function scopeVisibleTo(Builder $query, \Platform\Core\Models\User $user): Builder
     {
-        if (config('authz.enforce_planner')) {
-            return $query->authzVisibleTo($user, 'read');
-        }
-
-        $memberProjectIds = PlannerProjectUser::where('user_id', $user->id)->pluck('project_id');
-
-        return $query->where(function ($q) use ($user, $memberProjectIds) {
-            $q->where('user_id', $user->id)
-              ->orWhereIn('id', $memberProjectIds);
-        });
+        return $query->authzVisibleTo($user, 'read');
     }
 
     /**
-     * Scope: Nur Projekte, die der User laut PlannerProjectPolicy::view() öffnen darf.
-     * Spiegelt die Policy 1:1, damit in der Sidebar keine Projekte erscheinen,
-     * die beim Öffnen einen 403 werfen:
-     * - User ist Projekt-Mitglied (project_users), ODER
-     * - User hat eine eigene Aufgabe im Projekt, ODER
-     * - User hat eine eigene Aufgabe in einem Project-Slot.
+     * Alias für die Sidebar — identische Graph-Sichtbarkeit wie scopeVisibleTo.
      */
     public function scopeViewableBy(Builder $query, \Platform\Core\Models\User $user): Builder
     {
-        if (config('authz.enforce_planner')) {
-            return $query->authzVisibleTo($user, 'read');
-        }
-
-        return $query->where(function ($q) use ($user) {
-            $q->whereHas('projectUsers', function ($sub) use ($user) {
-                $sub->where('user_id', $user->id);
-            })
-            ->orWhereHas('tasks', function ($sub) use ($user) {
-                $sub->where('user_in_charge_id', $user->id);
-            })
-            ->orWhereHas('projectSlots.tasks', function ($sub) use ($user) {
-                $sub->where('user_in_charge_id', $user->id);
-            });
-        });
+        return $query->authzVisibleTo($user, 'read');
     }
 
     public function team(): BelongsTo

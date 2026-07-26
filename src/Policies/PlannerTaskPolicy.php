@@ -155,7 +155,7 @@ class PlannerTaskPolicy extends BasePolicy
 
     /**
      * Graph-Autorisierung auf dem PROJEKT (Ersteller oder strukturell erreichbar).
-     * Aktiv wenn authz.enforce_planner an ist — Mitgliedschaft greift dann nicht.
+     * Task-Zugriff erbt vom Projekt; Owner/Zuständiger sind oben kurzgeschlossen.
      */
     protected function projectGraphAllows(User $user, $project, string $cap): bool
     {
@@ -169,70 +169,26 @@ class PlannerTaskPolicy extends BasePolicy
             || $resolver->owns($user, $type, (int) $project->id);
     }
 
-    /**
-     * Prüft Projekt-Zugriff (Lesen)
-     */
     protected function canAccessProject(User $user, $project): bool
     {
-        if (config('authz.enforce_planner')) {
-            return $this->projectGraphAllows($user, $project, 'read');
-        }
-        // Projekt-Mitgliedschaft prüfen (egal in welchem Team)
-        $userRole = $this->getUserProjectRole($user, $project);
-        return $userRole !== null;
+        return $this->projectGraphAllows($user, $project, 'read');
     }
 
-    /**
-     * Prüft Projekt-Schreibzugriff
-     */
     protected function canWriteProject(User $user, $project): bool
     {
-        if (config('authz.enforce_planner')) {
-            return $this->projectGraphAllows($user, $project, 'write');
-        }
-        // Projekt-Schreibrolle prüfen (egal in welchem Team)
-        $userRole = $this->getUserProjectRole($user, $project);
-        return in_array($userRole, ['owner', 'admin', 'member'], true);
+        return $this->projectGraphAllows($user, $project, 'write');
     }
 
-    /**
-     * Prüft Projekt-Admin-Zugriff
-     */
     protected function canAdminProject(User $user, $project): bool
     {
-        if (config('authz.enforce_planner')) {
-            return $this->projectGraphAllows($user, $project, 'manage');
-        }
-        // Projekt-Admin-Rolle prüfen (egal in welchem Team)
-        $userRole = $this->getUserProjectRole($user, $project);
-        return in_array($userRole, ['owner', 'admin'], true);
+        return $this->projectGraphAllows($user, $project, 'manage');
     }
 
     /**
-     * Hole die Projekt-Rolle des Users
-     */
-    protected function getUserProjectRole(User $user, $project): ?string
-    {
-        $relation = $project->projectUsers()->where('user_id', $user->id)->first();
-        return $relation?->role ?? null;
-    }
-
-    /**
-     * BasePolicy-Interface implementieren
+     * BasePolicy-Interface: nur noch Ersteller-Pattern (kein Projekt-Rollen-Konzept).
      */
     protected function getUserRole(User $user, $model): ?string
     {
-        // Für Aufgaben ohne Projekt: Owner-Pattern
-        if (!$model->project_id) {
-            return $this->isOwner($user, $model) ? 'owner' : null;
-        }
-
-        // Für Aufgaben mit Projekt: Projekt-Rolle
-        $project = $model->project;
-        if (!$project) {
-            return null;
-        }
-
-        return $this->getUserProjectRole($user, $project);
+        return $this->isOwner($user, $model) ? 'owner' : null;
     }
 }

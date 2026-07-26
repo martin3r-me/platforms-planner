@@ -5,159 +5,69 @@ namespace Platform\Planner\Policies;
 use Platform\Core\Policies\RolePolicy;
 use Platform\Core\Models\User;
 use Platform\Planner\Models\PlannerProject;
-use Platform\Planner\Enums\ProjectRole;
 
+/**
+ * Zugriff auf Projekte = Ersteller (owns) ODER strukturell im Org-Graphen
+ * erreichbar (may). Keine Projekt-Mitgliedschaft mehr — Teilen = im Graphen
+ * aufhängen. read < write < manage.
+ */
 class PlannerProjectPolicy extends RolePolicy
 {
-    /**
-     * Darf der User dieses Projekt sehen?
-     */
     public function view(User $user, $project): bool
     {
-        if (config('authz.enforce_planner')) {
-            return $this->graphAllows($user, $project, 'read');
-        }
+        return $this->graphAllows($user, $project, 'read');
+    }
 
-        // 1. Projekt-Mitgliedschaft prüfen (egal in welchem Team)
-        $userRole = $this->getUserProjectRole($user, $project);
-        if ($userRole !== null) {
-            return true;
-        }
+    public function update(User $user, $project): bool
+    {
+        return $this->graphAllows($user, $project, 'write');
+    }
 
-        // 2. User hat Aufgaben im Projekt (auch wenn nicht als Mitglied eingetragen)
-        // Das entspricht der Sidebar-Logik: Projekte mit User-Aufgaben werden angezeigt
-        $hasTasks = $project->tasks()
-            ->where('user_in_charge_id', $user->id)
-            ->exists();
+    public function delete(User $user, $project): bool
+    {
+        return $this->graphAllows($user, $project, 'manage');
+    }
 
-        if ($hasTasks) {
-            return true;
-        }
+    public function create(User $user): bool
+    {
+        // Jedes Team-Mitglied kann Projekte erstellen (wird sein Ersteller).
+        return $user->currentTeam !== null;
+    }
 
-        // 3. User hat Aufgaben in Project-Slots
-        $hasTasksInSlots = $project->projectSlots()
-            ->whereHas('tasks', function ($q) use ($user) {
-                $q->where('user_in_charge_id', $user->id);
-            })
-            ->exists();
+    public function settings(User $user, $project): bool
+    {
+        return $this->view($user, $project);
+    }
 
-        if ($hasTasksInSlots) {
-            return true;
-        }
+    // Member-Verwaltung gibt es nicht mehr: „einladen/entfernen/Rollen" =
+    // Projekt im Graphen (um)hängen. Als manage abgebildet; „leave" ist tot.
+    public function invite(User $user, $project): bool
+    {
+        return $this->graphAllows($user, $project, 'manage');
+    }
 
+    public function removeMember(User $user, $project): bool
+    {
+        return $this->graphAllows($user, $project, 'manage');
+    }
+
+    public function changeRole(User $user, $project): bool
+    {
+        return $this->graphAllows($user, $project, 'manage');
+    }
+
+    public function transferOwnership(User $user, $project): bool
+    {
+        return $this->graphAllows($user, $project, 'manage');
+    }
+
+    public function leave(User $user, $project): bool
+    {
         return false;
     }
 
     /**
-     * Darf der User dieses Projekt bearbeiten?
-     */
-    public function update(User $user, $project): bool
-    {
-        if (config('authz.enforce_planner')) {
-            return $this->graphAllows($user, $project, 'write');
-        }
-
-        // Projekt-Schreibrolle prüfen (egal in welchem Team)
-        $userRole = $this->getUserProjectRole($user, $project);
-        return in_array($userRole, [
-            ProjectRole::OWNER->value,
-            ProjectRole::ADMIN->value,
-            ProjectRole::MEMBER->value
-        ], true);
-    }
-
-    /**
-     * Darf der User dieses Projekt löschen?
-     */
-    public function delete(User $user, $project): bool
-    {
-        if (config('authz.enforce_planner')) {
-            return $this->graphAllows($user, $project, 'manage');
-        }
-
-        // Nur Owner darf löschen (egal in welchem Team)
-        $userRole = $this->getUserProjectRole($user, $project);
-        return $userRole === ProjectRole::OWNER->value;
-    }
-
-    /**
-     * Darf der User dieses Projekt erstellen?
-     */
-    public function create(User $user): bool
-    {
-        // Jeder Team-Mitglied kann Projekte erstellen
-        return $user->currentTeam !== null;
-    }
-
-    /**
-     * Darf der User Mitglieder einladen?
-     */
-    public function invite(User $user, $project): bool
-    {
-        // Nur Owner und Admin können einladen (egal in welchem Team)
-        $userRole = $this->getUserProjectRole($user, $project);
-        return in_array($userRole, [
-            ProjectRole::OWNER->value,
-            ProjectRole::ADMIN->value
-        ], true);
-    }
-
-    /**
-     * Darf der User Mitglieder entfernen?
-     */
-    public function removeMember(User $user, $project): bool
-    {
-        // Nur Owner und Admin können entfernen (egal in welchem Team)
-        $userRole = $this->getUserProjectRole($user, $project);
-        return in_array($userRole, [
-            ProjectRole::OWNER->value,
-            ProjectRole::ADMIN->value
-        ], true);
-    }
-
-    /**
-     * Darf der User Rollen ändern?
-     */
-    public function changeRole(User $user, $project): bool
-    {
-        // Nur Owner kann Rollen ändern (egal in welchem Team)
-        $userRole = $this->getUserProjectRole($user, $project);
-        return $userRole === ProjectRole::OWNER->value;
-    }
-
-    /**
-     * Darf der User das Projekt verlassen?
-     */
-    public function leave(User $user, $project): bool
-    {
-        // Owner kann nicht gehen (muss erst Ownership übertragen)
-        $userRole = $this->getUserProjectRole($user, $project);
-        return $userRole !== ProjectRole::OWNER->value;
-    }
-
-    /**
-     * Darf der User Ownership übertragen?
-     */
-    public function transferOwnership(User $user, $project): bool
-    {
-        // Nur Owner kann Ownership übertragen (egal in welchem Team)
-        $userRole = $this->getUserProjectRole($user, $project);
-        return $userRole === ProjectRole::OWNER->value;
-    }
-
-    /**
-     * Darf der User die Settings öffnen?
-     * Jeder mit view-Rechten kann Settings öffnen (auch Viewer)
-     */
-    public function settings(User $user, $project): bool
-    {
-        // Jeder Projekt-Mitglied kann Settings öffnen
-        return $this->view($user, $project);
-    }
-
-    /**
      * Graph-Autorisierung: Ersteller (owns) ODER strukturell erreichbar (may).
-     * Aktiv wenn authz.enforce_planner an ist — Projekt-Mitgliedschaft greift dann nicht.
      */
     protected function graphAllows(User $user, $project, string $cap): bool
     {
@@ -172,19 +82,10 @@ class PlannerProjectPolicy extends RolePolicy
     }
 
     /**
-     * Hole die Projekt-Rolle des Users
-     */
-    protected function getUserProjectRole(User $user, $project): ?string
-    {
-        $relation = $project->projectUsers()->where('user_id', $user->id)->first();
-        return $relation?->role ?? null;
-    }
-
-    /**
-     * BasePolicy-Interface implementieren
+     * Kein Projekt-Rollen-Konzept mehr (BasePolicy-Interface).
      */
     protected function getUserRole(User $user, $model): ?string
     {
-        return $this->getUserProjectRole($user, $model);
+        return null;
     }
 }
