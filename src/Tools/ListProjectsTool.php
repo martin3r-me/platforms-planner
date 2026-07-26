@@ -97,6 +97,13 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
                 ->where('team_id', $teamIdArg)
                 ->with(['user', 'team', 'projectUsers.user', 'projectSlots', 'plannedTimeEntries', 'plannedPeriodEntries']);
 
+            // Content-Authz (MCP-Lücke schließen): unter Enforce nur graph-sichtbare Projekte
+            // (Ersteller ODER über den Org-Graphen erreichbar) — dieselbe Sicht wie die UI.
+            // Ohne das würde die KI den ganzen Team-Bestand sehen, egal was der User darf.
+            if (config('authz.enforce_planner')) {
+                $query->visibleTo($context->user);
+            }
+
             // Stale Records einblenden wenn gewuenscht
             if (!empty($arguments['include_stale'])) {
                 $query->withStale();
