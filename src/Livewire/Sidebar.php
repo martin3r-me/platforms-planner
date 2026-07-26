@@ -117,11 +117,19 @@ class Sidebar extends Component
             ->orderBy('name')
             ->get();
 
+        // Unter Enforce zeigt die Sidebar genau, was der User sehen DARF —
+        // der "alle / nur meine"-Toggle ist damit sinnlos: immer die sichtbare Liste.
+        if (config('authz.enforce_planner')) {
+            $this->showAllProjects = true;
+        }
+
         $projectsToShow = $this->showAllProjects
             ? $allProjects
             : $projectsWithUserTasks;
 
-        $hasMoreProjects = $allProjects->count() > $projectsWithUserTasks->count();
+        $hasMoreProjects = config('authz.enforce_planner')
+            ? false
+            : $allProjects->count() > $projectsWithUserTasks->count();
 
         // 2. Entity-Verknüpfungen laden via DimensionLink
         $projectIds = $projectsToShow->pluck('id')->toArray();
