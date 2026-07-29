@@ -77,6 +77,54 @@ class PlannerAgentController extends Controller
     }
 
     /**
+     * Pipeline-Leitwarte des Backoffice-Workers: seine zugewiesenen Tasks.
+     *
+     * GET /api/planner/agent/pipeline → { totals, next_up } (Task-geformt, keine Packages).
+     */
+    public function pipeline(Request $request): JsonResponse
+    {
+        $userId = $request->user()?->id;
+        if (! $userId) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $completed = TaskLifecycleState::COMPLETED->value;
+        $open = fn () => PlannerTask::query()
+            ->where('user_in_charge_id', $userId)
+            ->where('lifecycle_state', '!=', $completed);
+
+        $nextUp = PlannerTask::query()
+            ->where('user_in_charge_id', $userId)
+            ->agentClaimable()
+            ->with('project:id,name')
+            ->orderByRaw('due_date IS NULL, due_date ASC')
+            ->orderBy('project_slot_order')
+            ->orderBy('order')
+            ->orderBy('created_at')
+            ->limit(12)
+            ->get()
+            ->map(fn ($t) => [
+                'id' => $t->id,
+                'title' => $t->title,
+                'type' => 'task',
+                'package' => optional($t->project)->name,
+                'story_points' => $t->story_points?->value,
+                'created_at' => optional($t->created_at)->toIso8601String(),
+            ])->values();
+
+        return response()->json(['data' => [
+            'totals' => [
+                'tasks' => $open()->count(),
+                'ready' => PlannerTask::query()->where('user_in_charge_id', $userId)->agentClaimable()->count(),
+                'rueckfragen' => $open()->where('agent_summary', 'like', 'RÜCKFRAGE:%')->count(),
+                'oldest' => $open()->min('created_at'),
+            ],
+            'next_up' => $nextUp,
+            'packages' => [], // Backoffice: keine Dev-Packages.
+        ]]);
+    }
+
+    /**
      * Nachrichten des Context-Threads dieser Task — nur wenn der Worker Mitglied ist.
      * Liefert den bisherigen Rückfrage-/Antwort-Verlauf als Kontext fürs nächste Claimen.
      *

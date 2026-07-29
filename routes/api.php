@@ -32,6 +32,7 @@ Route::get('/export/projects/{project}', [ExportController::class, 'exportProjec
  * Auth erbt die api.auth-Middleware der apiGroup.
  */
 Route::prefix('agent')->group(function () {
+    Route::get('/pipeline', [PlannerAgentController::class, 'pipeline'])->name('planner.api.agent.pipeline');
     Route::post('/next-task', [PlannerAgentController::class, 'nextTask'])->name('planner.api.agent.next-task');
     Route::post('/tasks/{id}/complete', [PlannerAgentController::class, 'complete'])->name('planner.api.agent.complete');
     Route::post('/tasks/{id}/log-time', [PlannerAgentController::class, 'logTime'])->name('planner.api.agent.log-time');
