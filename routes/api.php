@@ -36,6 +36,7 @@ Route::prefix('agent')->group(function () {
     Route::post('/tasks/{id}/complete', [PlannerAgentController::class, 'complete'])->name('planner.api.agent.complete');
     Route::post('/tasks/{id}/log-time', [PlannerAgentController::class, 'logTime'])->name('planner.api.agent.log-time');
     Route::post('/tasks/{id}/defer', [PlannerAgentController::class, 'defer'])->name('planner.api.agent.defer');
+    Route::post('/tasks/{id}/ask', [PlannerAgentController::class, 'ask'])->name('planner.api.agent.ask');
     Route::post('/tasks/{id}/fail', [PlannerAgentController::class, 'fail'])->name('planner.api.agent.fail');
     Route::post('/tasks/{id}/unlock', [PlannerAgentController::class, 'unlock'])->name('planner.api.agent.unlock');
 });

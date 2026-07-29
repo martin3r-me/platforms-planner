@@ -70,8 +70,44 @@ class PlannerAgentController extends Controller
                 'story_points' => $task->story_points?->value,
                 'project_id' => $task->project_id,
                 'type' => 'task',
+                // Kontext-Thread (Rückfragen/Antworten), falls der Worker Mitglied ist.
+                'thread' => $this->contextThread($task, (int) $userId),
             ],
         ]);
+    }
+
+    /**
+     * Nachrichten des Context-Threads dieser Task — nur wenn der Worker Mitglied ist.
+     * Liefert den bisherigen Rückfrage-/Antwort-Verlauf als Kontext fürs nächste Claimen.
+     *
+     * @return array<int, array{user_id:int, author:string, body:?string, at:?string}>|null
+     */
+    protected function contextThread(PlannerTask $task, int $workerId): ?array
+    {
+        $channel = \Platform\Core\Models\TerminalChannel::forTeam((int) $task->team_id)
+            ->forContext(PlannerTask::class, $task->id)
+            ->first();
+        if (! $channel) {
+            return null;
+        }
+
+        $isMember = \Platform\Core\Models\TerminalChannelMember::where('channel_id', $channel->id)
+            ->where('user_id', $workerId)->exists();
+        if (! $isMember) {
+            return null;
+        }
+
+        return $channel->messages()
+            ->with('user:id,name')
+            ->orderBy('id')
+            ->limit(80)
+            ->get()
+            ->map(fn ($m) => [
+                'user_id' => (int) $m->user_id,
+                'author' => $m->user?->name ?? ('User #'.$m->user_id),
+                'body' => $m->body_plain,
+                'at' => optional($m->created_at)->toIso8601String(),
+            ])->values()->all();
     }
 
     /** Task als erledigt melden + Notiz des Workers. */
@@ -128,6 +164,45 @@ class PlannerAgentController extends Controller
         Log::info('[Planner Agent] Time logged', ['task_id' => $task->id, 'minutes' => (int) $data['minutes'], 'entry_id' => $entry->id]);
 
         return response()->json(['message' => 'Time logged', 'data' => ['id' => $entry->id, 'minutes' => $entry->minutes, 'task_id' => $task->id]]);
+    }
+
+    /**
+     * Rückfrage stellen: die Frage in den Context-Thread der Task posten (Thread
+     * anlegen, falls keiner da) — Absender = Worker, IMMER den Ersteller (user_id)
+     * erwähnen und als Mitglied sicherstellen. Danach die Task parken (agentDefer),
+     * sie wartet damit auf die Antwort des Erstellers.
+     *
+     * POST /api/planner/agent/tasks/{id}/ask  { question }
+     */
+    public function ask(Request $request, int $id): JsonResponse
+    {
+        $task = $this->ownedTask($request, $id);
+        if (! $task) {
+            return response()->json(['message' => 'Task not found'], 404);
+        }
+        $data = $request->validate(['question' => 'required|string|max:5000']);
+
+        $workerId = (int) $request->user()->id;
+        $creatorId = (int) $task->user_id;
+        $recipients = array_values(array_filter([$creatorId]));  // Ersteller = Empfänger
+
+        app(\Platform\Core\Services\PostContextMessage::class)->post(
+            teamId: (int) $task->team_id,
+            contextType: PlannerTask::class,
+            contextId: $task->id,
+            contextName: $task->title ?: 'Aufgabe',
+            senderId: $workerId,
+            body: $data['question'],
+            memberIds: $recipients,
+            mentionUserIds: $recipients,   // immer erwähnen
+        );
+
+        // Task parken — wartet auf die Antwort des Erstellers (Rückweg folgt).
+        $task->agentDefer($data['question']);
+
+        Log::info('[Planner Agent] Rückfrage in Context-Thread', ['task_id' => $task->id, 'creator_id' => $creatorId]);
+
+        return response()->json(['message' => 'Question posted to context thread', 'data' => ['id' => $task->id]]);
     }
 
     /** Rückfrage: zurück an den Delegierer, Frage anhängen. */
