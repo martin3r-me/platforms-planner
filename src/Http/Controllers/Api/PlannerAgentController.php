@@ -43,11 +43,16 @@ class PlannerAgentController extends Controller
             });
         }
 
+        // Reihenfolge = Board-Layout (der Mensch priorisiert per Anordnung):
+        // Slot-Order → Position im Slot. Ohne Slot zuletzt. Keine Fälligkeits-Heuristik.
         $task = $query
-            ->orderByRaw('due_date IS NULL, due_date ASC')  // Fällige zuerst, Undatierte danach
-            ->orderBy('project_slot_order')
-            ->orderBy('order')
-            ->orderBy('created_at')
+            ->leftJoin('planner_project_slots', 'planner_tasks.project_slot_id', '=', 'planner_project_slots.id')
+            ->orderByRaw('planner_project_slots.order IS NULL')
+            ->orderBy('planner_project_slots.order')
+            ->orderBy('planner_tasks.project_slot_order')
+            ->orderBy('planner_tasks.order')
+            ->orderBy('planner_tasks.created_at')
+            ->select('planner_tasks.*')
             ->first();
 
         if (! $task) {
@@ -97,10 +102,13 @@ class PlannerAgentController extends Controller
             ->where('user_in_charge_id', $userId)
             ->agentClaimable()
             ->with('project:id,name')
-            ->orderByRaw('due_date IS NULL, due_date ASC')
-            ->orderBy('project_slot_order')
-            ->orderBy('order')
-            ->orderBy('created_at')
+            ->leftJoin('planner_project_slots', 'planner_tasks.project_slot_id', '=', 'planner_project_slots.id')
+            ->orderByRaw('planner_project_slots.order IS NULL')
+            ->orderBy('planner_project_slots.order')
+            ->orderBy('planner_tasks.project_slot_order')
+            ->orderBy('planner_tasks.order')
+            ->orderBy('planner_tasks.created_at')
+            ->select('planner_tasks.*')
             ->limit(12)
             ->get()
             ->map(fn ($t) => [
