@@ -119,6 +119,12 @@ class PlannerAgentController extends Controller
         }
         $data = $request->validate(['summary' => 'nullable|string|max:10000']);
         $task->agentComplete($data['summary'] ?? null);
+
+        // Kurze Erledigt-Meldung in den Context-Thread (Thread anlegen, falls keiner) —
+        // der Ersteller wird erwähnt und weiß Bescheid, auch ohne vorherige Rückfrage.
+        $summary = trim((string) ($data['summary'] ?? ''));
+        $this->postToContextThread($task, (int) $request->user()->id, '✅ Erledigt'.($summary !== '' ? ': '.$summary : '.'));
+
         Log::info('[Planner Agent] Task completed', ['task_id' => $task->id]);
 
         return response()->json(['message' => 'Task completed', 'data' => ['id' => $task->id, 'lifecycle_state' => 'erledigt']]);
@@ -182,27 +188,37 @@ class PlannerAgentController extends Controller
         }
         $data = $request->validate(['question' => 'required|string|max:5000']);
 
-        $workerId = (int) $request->user()->id;
-        $creatorId = (int) $task->user_id;
-        $recipients = array_values(array_filter([$creatorId]));  // Ersteller = Empfänger
+        $this->postToContextThread($task, (int) $request->user()->id, $data['question']);
+
+        // Task parken (agentDefer setzt user_in_charge_id zurück auf den Ersteller,
+        // bleibt aber ACTIVE). Rückweg: der Ersteller setzt den Verantwortlichen
+        // wieder auf den Worker → next-task zieht sie samt Thread erneut.
+        $task->agentDefer($data['question']);
+
+        Log::info('[Planner Agent] Rückfrage in Context-Thread', ['task_id' => $task->id, 'creator_id' => (int) $task->user_id]);
+
+        return response()->json(['message' => 'Question posted to context thread', 'data' => ['id' => $task->id]]);
+    }
+
+    /**
+     * Postet eine Nachricht in den Context-Thread der Task (Thread anlegen, falls
+     * keiner da) — Absender = Worker, IMMER den Ersteller (user_id) erwähnen und
+     * als Mitglied sicherstellen.
+     */
+    protected function postToContextThread(PlannerTask $task, int $senderId, string $body): void
+    {
+        $recipients = array_values(array_filter([(int) $task->user_id]));  // Ersteller = Empfänger
 
         app(\Platform\Core\Services\PostContextMessage::class)->post(
             teamId: (int) $task->team_id,
             contextType: PlannerTask::class,
             contextId: $task->id,
             contextName: $task->title ?: 'Aufgabe',
-            senderId: $workerId,
-            body: $data['question'],
+            senderId: $senderId,
+            body: $body,
             memberIds: $recipients,
             mentionUserIds: $recipients,   // immer erwähnen
         );
-
-        // Task parken — wartet auf die Antwort des Erstellers (Rückweg folgt).
-        $task->agentDefer($data['question']);
-
-        Log::info('[Planner Agent] Rückfrage in Context-Thread', ['task_id' => $task->id, 'creator_id' => $creatorId]);
-
-        return response()->json(['message' => 'Question posted to context thread', 'data' => ['id' => $task->id]]);
     }
 
     /** Rückfrage: zurück an den Delegierer, Frage anhängen. */
