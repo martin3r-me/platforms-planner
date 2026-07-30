@@ -176,10 +176,11 @@ class PlannerAgentController extends Controller
         $data = $request->validate(['summary' => 'nullable|string|max:10000']);
         $task->agentComplete($data['summary'] ?? null);
 
-        // Kurze Erledigt-Meldung in den Context-Thread (Thread anlegen, falls keiner) —
-        // der Ersteller wird erwähnt und weiß Bescheid, auch ohne vorherige Rückfrage.
+        // Erledigt-Meldung: existiert schon ein Rückfrage-Thread → dort (Kreis schließen),
+        // sonst DM an den Ersteller. Für „fertig" lohnt kein neuer Thread.
         $summary = trim((string) ($data['summary'] ?? ''));
-        $this->postToContextThread($task, (int) $request->user()->id, '✅ Erledigt'.($summary !== '' ? ': '.$summary : '.'));
+        $body = '✅ Erledigt: '.($task->title ?: 'Aufgabe').($summary !== '' ? "\n\n".$summary : '');
+        $this->announceCompletion($task, (int) $request->user()->id, $body);
 
         Log::info('[Planner Agent] Task completed', ['task_id' => $task->id]);
 
@@ -254,6 +255,27 @@ class PlannerAgentController extends Controller
         Log::info('[Planner Agent] Rückfrage in Context-Thread', ['task_id' => $task->id, 'creator_id' => (int) $task->user_id]);
 
         return response()->json(['message' => 'Question posted to context thread', 'data' => ['id' => $task->id]]);
+    }
+
+    /**
+     * Erfolgsmeldung zustellen: existiert schon ein Kontext-Thread (es lief eine
+     * Rückfrage) → dort rein, um den Kreis zu schließen. Sonst als DM an den
+     * Ersteller — für ein einmaliges „fertig" lohnt kein neuer Thread.
+     */
+    protected function announceCompletion(PlannerTask $task, int $senderId, string $body): void
+    {
+        $hasThread = \Platform\Core\Models\TerminalChannel::forTeam((int) $task->team_id)
+            ->forContext(PlannerTask::class, $task->id)
+            ->exists();
+
+        if ($hasThread) {
+            $this->postToContextThread($task, $senderId, $body);
+
+            return;
+        }
+
+        app(\Platform\Core\Services\PostDirectMessage::class)
+            ->post((int) $task->team_id, $senderId, (int) $task->user_id, $body);
     }
 
     /**
