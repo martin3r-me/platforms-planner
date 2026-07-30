@@ -57,6 +57,10 @@ class PlannerTask extends Model implements HasKeyResultAncestors, HasDisplayName
         'delegated_group_id',
         'delegated_group_order',
         'recurring_task_id',
+        'agent_locked_at',
+        'agent_locked_by',
+        'agent_completed_at',
+        'agent_summary',
     ];
 
     protected $casts = [
@@ -68,6 +72,8 @@ class PlannerTask extends Model implements HasKeyResultAncestors, HasDisplayName
         'lifecycle_state' => \Platform\Planner\Enums\TaskLifecycleState::class,
         'lifecycle_state_changed_at' => 'datetime',
         'lifecycle_state_reason' => 'string',
+        'agent_locked_at' => 'datetime',
+        'agent_completed_at' => 'datetime',
         // Verschlüsselte Felder (description, dod) werden automatisch vom Encryptable Trait
         // in initializeEncryptable() hinzugefügt basierend auf $encryptable Array
     ];
@@ -272,6 +278,82 @@ class PlannerTask extends Model implements HasKeyResultAncestors, HasDisplayName
     public function userInCharge()
     {
         return $this->belongsTo(\Platform\Core\Models\User::class, 'user_in_charge_id');
+    }
+
+    // ── Agent (Backoffice-Worker) ───────────────────────────────────────────
+    // Ein Worker holt seine EXKLUSIV zugewiesenen (user_in_charge_id) aktiven
+    // Tasks, sperrt sie kurz (Lock, 30-Min-Timeout gegen Worker-Crash) und meldet
+    // Ergebnis/Rückfrage über agent_summary zurück.
+
+    /** Tasks, die diesem User exklusiv zugewiesen sind. */
+    public function scopeAssignedTo(Builder $query, int $userId): Builder
+    {
+        return $query->where('user_in_charge_id', $userId);
+    }
+
+    /** Vom Agent holbar: aktiv und nicht (frisch) gesperrt. */
+    public function scopeAgentClaimable(Builder $query): Builder
+    {
+        return $query
+            ->where('lifecycle_state', \Platform\Planner\Enums\TaskLifecycleState::ACTIVE->value)
+            ->where(function ($q) {
+                $q->whereNull('agent_locked_at')
+                  ->orWhere('agent_locked_at', '<', now()->subMinutes(30));
+            });
+    }
+
+    public function isAgentLocked(): bool
+    {
+        return $this->agent_locked_at !== null && $this->agent_locked_at >= now()->subMinutes(30);
+    }
+
+    /** Task auf erledigt setzen + Notiz des Workers hinterlegen. */
+    public function agentComplete(?string $summary = null): void
+    {
+        $this->update([
+            'lifecycle_state' => \Platform\Planner\Enums\TaskLifecycleState::COMPLETED,
+            'lifecycle_state_changed_at' => now(),
+            'lifecycle_state_reason' => 'Vom Worker erledigt',
+            'agent_summary' => $summary,
+            'agent_completed_at' => now(),
+            'agent_locked_at' => null,
+            'agent_locked_by' => null,
+        ]);
+        $this->logActivity("Worker hat diese Aufgabe erledigt." . ($summary ? "\n\n{$summary}" : ''), [
+            'source' => 'agent', 'status' => 'completed',
+        ]);
+    }
+
+    /** Rückfrage: zurück an den Delegierer (Ersteller), Frage anhängen — bleibt aktiv. */
+    public function agentDefer(string $question): void
+    {
+        $this->update([
+            'user_in_charge_id' => $this->user_id, // zurück an den, der delegiert hat
+            'agent_summary' => 'RÜCKFRAGE: ' . $question,
+            'agent_locked_at' => null,
+            'agent_locked_by' => null,
+        ]);
+        $this->logActivity("Worker hat eine Rückfrage gestellt und die Aufgabe zurückgegeben.\n\nFrage: {$question}", [
+            'source' => 'agent', 'status' => 'deferred',
+        ]);
+    }
+
+    /** Fehlgeschlagen: Notiz, Lock lösen — bleibt aktiv (Retry / menschliche Prüfung). */
+    public function agentFail(string $error): void
+    {
+        $this->update([
+            'agent_summary' => 'FAILED: ' . $error,
+            'agent_locked_at' => null,
+            'agent_locked_by' => null,
+        ]);
+        $this->logActivity("Worker konnte diese Aufgabe nicht erledigen.\n\nFehler: {$error}", [
+            'source' => 'agent', 'status' => 'failed',
+        ]);
+    }
+
+    public function agentUnlock(): void
+    {
+        $this->update(['agent_locked_at' => null, 'agent_locked_by' => null]);
     }
 
     public function recurringTask()
