@@ -5,6 +5,7 @@ namespace Platform\Planner\Http\Controllers\Api;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Platform\Planner\Enums\TaskLifecycleState;
 use Platform\Planner\Enums\TaskStoryPoints;
@@ -26,6 +27,19 @@ class PlannerAgentController extends Controller
         $userId = $request->user()?->id;
         if (! $userId) {
             return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        // Resume-First: hat eine wartende Task dieses Workers eine Antwort im Thread
+        // bekommen? Dann DIESE zuerst — die geparkte Session wird fortgesetzt (die Antwort
+        // steckt im mitgelieferten Thread), statt neue Arbeit zu ziehen.
+        if (($resume = $this->resumableTask((int) $userId))) {
+            $resume->update([
+                'agent_waiting_at' => null,
+                'agent_locked_at' => now(),
+                'agent_locked_by' => 'worker:' . $userId,
+            ]);
+
+            return response()->json(['data' => $this->taskPayload($resume, (int) $userId, true)]);
         }
 
         $query = PlannerTask::query()
@@ -64,21 +78,64 @@ class PlannerAgentController extends Controller
             'agent_locked_by' => 'worker:' . $userId,
         ]);
 
-        return response()->json([
-            'data' => [
-                'id' => $task->id,
-                'uuid' => $task->uuid,
-                'title' => $task->title,
-                'description' => $task->description,   // Encryptable entschlüsselt beim Zugriff
-                'dod' => $task->dod,
-                'due_date' => optional($task->due_date)->toIso8601String(),
-                'story_points' => $task->story_points?->value,
-                'project_id' => $task->project_id,
-                'type' => 'task',
-                // Kontext-Thread (Rückfragen/Antworten), falls der Worker Mitglied ist.
-                'thread' => $this->contextThread($task, (int) $userId),
-            ],
-        ]);
+        return response()->json(['data' => $this->taskPayload($task, (int) $userId)]);
+    }
+
+    /**
+     * Einheitliches Task-Payload für Claim + Resume. Bei $resume=true weiß der Worker,
+     * dass er die gemerkte Claude-Session fortsetzt (die Antwort steckt im `thread`).
+     * agent_branch bleibt null — der Backoffice-Worker hat keinen Git-Branch.
+     *
+     * @return array<string, mixed>
+     */
+    protected function taskPayload(PlannerTask $task, int $userId, bool $resume = false): array
+    {
+        return [
+            'id' => $task->id,
+            'uuid' => $task->uuid,
+            'title' => $task->title,
+            'description' => $task->description,   // Encryptable entschlüsselt beim Zugriff
+            'dod' => $task->dod,
+            'due_date' => optional($task->due_date)->toIso8601String(),
+            'story_points' => $task->story_points?->value,
+            'project_id' => $task->project_id,
+            'type' => 'task',
+            // Kontext-Thread (Rückfragen/Antworten), falls der Worker Mitglied ist.
+            'thread' => $this->contextThread($task, $userId),
+            // Resume-Signal: gemerkte Session → Worker setzt fort statt neu.
+            'resume' => $resume,
+            'agent_session_id' => $resume ? $task->agent_session_id : null,
+            'agent_branch' => null,
+        ];
+    }
+
+    /**
+     * Eine wartende (agent_waiting_at) Task dieses Workers, die seit dem Warten eine
+     * Antwort im Kontext-Thread von jemand anderem bekommen hat — in Board-Reihenfolge.
+     */
+    protected function resumableTask(int $userId): ?PlannerTask
+    {
+        return PlannerTask::query()
+            ->assignedTo($userId)
+            ->where('lifecycle_state', \Platform\Planner\Enums\TaskLifecycleState::ACTIVE->value)
+            ->whereNotNull('agent_waiting_at')
+            ->whereExists(function ($q) use ($userId) {
+                $q->select(DB::raw(1))
+                    ->from('terminal_messages as tm')
+                    ->join('terminal_channels as tc', 'tm.channel_id', '=', 'tc.id')
+                    ->whereColumn('tc.context_id', 'planner_tasks.id')
+                    ->where('tc.context_type', PlannerTask::class)
+                    ->where('tm.user_id', '!=', $userId)
+                    ->whereColumn('tm.created_at', '>', 'planner_tasks.agent_waiting_at');
+            })
+            ->leftJoin('planner_project_slots', 'planner_tasks.project_slot_id', '=', 'planner_project_slots.id')
+            ->orderByRaw('planner_project_slots.order IS NULL')
+            ->orderBy('planner_project_slots.order')
+            ->orderBy('planner_tasks.project_slot_order')
+            ->orderBy('planner_tasks.order')
+            ->orderBy('planner_tasks.agent_waiting_at')
+            ->select('planner_tasks.*')
+            ->first();
     }
 
     /**
@@ -124,7 +181,7 @@ class PlannerAgentController extends Controller
             'totals' => [
                 'tasks' => $open()->count(),
                 'ready' => PlannerTask::query()->where('user_in_charge_id', $userId)->agentClaimable()->count(),
-                'rueckfragen' => $open()->where('agent_summary', 'like', 'RÜCKFRAGE:%')->count(),
+                'rueckfragen' => $open()->whereNotNull('agent_waiting_at')->count(),
                 'oldest' => $open()->min('created_at'),
             ],
             'next_up' => $nextUp,
@@ -164,6 +221,60 @@ class PlannerAgentController extends Controller
                 'body' => $m->body_plain,
                 'at' => optional($m->created_at)->toIso8601String(),
             ])->values()->all();
+    }
+
+    /**
+     * Self-Assigned Task aus einer kontextlosen Nachricht anlegen (Gate: new_task).
+     * Der Worker macht sich selbst zum Verantwortlichen und dokumentiert die Herkunft —
+     * damit ist die Arbeit auditierbar (Zeit bucht später auf DIESEN Task). Kein Lauf
+     * abseits eines dokumentierten Tasks.
+     *
+     * POST /api/planner/agent/tasks  { title, description?, origin? }
+     */
+    public function createTask(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string|max:10000',
+            'origin' => 'nullable|string|max:500',
+        ]);
+
+        $user = $request->user();
+        $teamId = (int) ($user->current_team_id ?? 0);
+        if ($teamId < 1) {
+            return response()->json(['message' => 'No team context for worker'], 422);
+        }
+
+        // Herkunft in die Beschreibung — nichts lebt nur im Chat.
+        $description = trim((string) ($data['description'] ?? ''));
+        if (! empty($data['origin'])) {
+            $description = trim($description."\n\nHerkunft: ".$data['origin']);
+        }
+
+        // Persönlicher Task (kein Projekt), oben in der eigenen Liste.
+        $order = (PlannerTask::where('user_in_charge_id', $user->id)
+            ->whereNull('project_id')->min('order') ?? 0) - 1;
+
+        $task = PlannerTask::create([
+            'title' => $data['title'],
+            'description' => $description !== '' ? $description : null,
+            'user_id' => $user->id,
+            'user_in_charge_id' => $user->id,   // self-assigned
+            'team_id' => $teamId,
+            'project_id' => null,               // persönlich
+            'lifecycle_state' => TaskLifecycleState::ACTIVE->value,
+            'order' => $order,
+            'agent_summary' => 'Vom Worker aus einer Nachricht angelegt.',
+        ]);
+
+        $task->logActivity('Worker hat diese Aufgabe aus einer eingehenden Nachricht angelegt.'
+            .(! empty($data['origin']) ? "\n\n".$data['origin'] : ''), [
+                'source' => 'agent', 'status' => 'created',
+            ]);
+
+        Log::info('[Planner Agent] Self-Task aus Nachricht angelegt', ['task_id' => $task->id, 'user_id' => $user->id]);
+
+        return response()->json(['data' => ['id' => $task->id, 'uuid' => $task->uuid]], 201);
     }
 
     /** Task als erledigt melden + Notiz des Workers. */
@@ -243,14 +354,18 @@ class PlannerAgentController extends Controller
         if (! $task) {
             return response()->json(['message' => 'Task not found'], 404);
         }
-        $data = $request->validate(['question' => 'required|string|max:5000']);
+        $data = $request->validate([
+            'question' => 'required|string|max:5000',
+            'branch' => 'nullable|string|max:255',
+            'session_id' => 'nullable|string|max:255',
+        ]);
 
         $this->postToContextThread($task, (int) $request->user()->id, $data['question']);
 
-        // Task parken (agentDefer setzt user_in_charge_id zurück auf den Ersteller,
-        // bleibt aber ACTIVE). Rückweg: der Ersteller setzt den Verantwortlichen
-        // wieder auf den Worker → next-task zieht sie samt Thread erneut.
-        $task->agentDefer($data['question']);
+        // Auf Antwort warten statt zurück-delegieren: Owner bleibt der Worker, Warten-
+        // Zustand + Session merken. Der Resume-First-Pass in next-task holt die Task
+        // erneut (samt Thread), sobald der Ersteller antwortet.
+        $task->agentWait($data['question'], $data['session_id'] ?? null);
 
         Log::info('[Planner Agent] Rückfrage in Context-Thread', ['task_id' => $task->id, 'creator_id' => (int) $task->user_id]);
 
@@ -299,18 +414,22 @@ class PlannerAgentController extends Controller
         );
     }
 
-    /** Rückfrage: zurück an den Delegierer, Frage anhängen. */
+    /** Rückfrage: auf Antwort warten (Owner bleibt Worker, Session gemerkt). */
     public function defer(Request $request, int $id): JsonResponse
     {
         $task = $this->ownedTask($request, $id);
         if (! $task) {
             return response()->json(['message' => 'Task not found'], 404);
         }
-        $data = $request->validate(['question' => 'required|string|max:10000']);
-        $task->agentDefer($data['question']);
-        Log::info('[Planner Agent] Task deferred (Rückfrage)', ['task_id' => $task->id]);
+        $data = $request->validate([
+            'question' => 'required|string|max:10000',
+            'branch' => 'nullable|string|max:255',
+            'session_id' => 'nullable|string|max:255',
+        ]);
+        $task->agentWait($data['question'], $data['session_id'] ?? null);
+        Log::info('[Planner Agent] Task waiting for answer (Rückfrage)', ['task_id' => $task->id]);
 
-        return response()->json(['message' => 'Task deferred to delegator', 'data' => ['id' => $task->id]]);
+        return response()->json(['message' => 'Task waiting for answer', 'data' => ['id' => $task->id]]);
     }
 
     /** Fehlgeschlagen: Notiz, Lock lösen (bleibt aktiv). */

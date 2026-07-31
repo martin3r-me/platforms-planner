@@ -61,6 +61,8 @@ class PlannerTask extends Model implements HasKeyResultAncestors, HasDisplayName
         'agent_locked_by',
         'agent_completed_at',
         'agent_summary',
+        'agent_waiting_at',
+        'agent_session_id',
     ];
 
     protected $casts = [
@@ -74,6 +76,7 @@ class PlannerTask extends Model implements HasKeyResultAncestors, HasDisplayName
         'lifecycle_state_reason' => 'string',
         'agent_locked_at' => 'datetime',
         'agent_completed_at' => 'datetime',
+        'agent_waiting_at' => 'datetime',
         // Verschlüsselte Felder (description, dod) werden automatisch vom Encryptable Trait
         // in initializeEncryptable() hinzugefügt basierend auf $encryptable Array
     ];
@@ -291,11 +294,12 @@ class PlannerTask extends Model implements HasKeyResultAncestors, HasDisplayName
         return $query->where('user_in_charge_id', $userId);
     }
 
-    /** Vom Agent holbar: aktiv und nicht (frisch) gesperrt. */
+    /** Vom Agent holbar: aktiv, nicht (frisch) gesperrt, nicht auf Antwort wartend. */
     public function scopeAgentClaimable(Builder $query): Builder
     {
         return $query
             ->where('lifecycle_state', \Platform\Planner\Enums\TaskLifecycleState::ACTIVE->value)
+            ->whereNull('agent_waiting_at')
             ->where(function ($q) {
                 $q->whereNull('agent_locked_at')
                   ->orWhere('agent_locked_at', '<', now()->subMinutes(30));
@@ -318,22 +322,30 @@ class PlannerTask extends Model implements HasKeyResultAncestors, HasDisplayName
             'agent_completed_at' => now(),
             'agent_locked_at' => null,
             'agent_locked_by' => null,
+            'agent_waiting_at' => null,
+            'agent_session_id' => null,
         ]);
         $this->logActivity("Worker hat diese Aufgabe erledigt." . ($summary ? "\n\n{$summary}" : ''), [
             'source' => 'agent', 'status' => 'completed',
         ]);
     }
 
-    /** Rückfrage: zurück an den Delegierer (Ersteller), Frage anhängen — bleibt aktiv. */
-    public function agentDefer(string $question): void
+    /**
+     * Rückfrage: auf Antwort warten statt zurück-delegieren. Owner (user_in_charge_id)
+     * bleibt der Worker; die Task geht in den Warten-Zustand (agent_waiting_at) und der
+     * Claim überspringt sie, bis eine Antwort im Kontext-Thread steht. Die Claude-Session
+     * wird gemerkt → die Antwort setzt sie per --resume fort (kein Ping-Pong).
+     */
+    public function agentWait(string $question, ?string $sessionId = null): void
     {
         $this->update([
-            'user_in_charge_id' => $this->user_id, // zurück an den, der delegiert hat
+            'agent_waiting_at' => now(),
+            'agent_session_id' => $sessionId ?? $this->agent_session_id,
             'agent_summary' => 'RÜCKFRAGE: ' . $question,
             'agent_locked_at' => null,
             'agent_locked_by' => null,
         ]);
-        $this->logActivity("Worker hat eine Rückfrage gestellt und die Aufgabe zurückgegeben.\n\nFrage: {$question}", [
+        $this->logActivity("Worker hat eine Rückfrage gestellt und wartet auf Antwort.\n\nFrage: {$question}", [
             'source' => 'agent', 'status' => 'deferred',
         ]);
     }
