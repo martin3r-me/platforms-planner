@@ -99,6 +99,8 @@ class PlannerAgentController extends Controller
             'due_date' => optional($task->due_date)->toIso8601String(),
             'story_points' => $task->story_points?->value,
             'project_id' => $task->project_id,
+            // Projekt-Gedächtnis: wiederverwendbare Lektionen aus früheren Tasks dieses Projekts.
+            'project_lessons' => $task->project_id ? optional($task->project)->agent_lessons : null,
             'type' => 'task',
             // Kontext-Thread (Rückfragen/Antworten), falls der Worker Mitglied ist.
             'thread' => $this->contextThread($task, $userId),
@@ -284,8 +286,22 @@ class PlannerAgentController extends Controller
         if (! $task) {
             return response()->json(['message' => 'Task not found'], 404);
         }
-        $data = $request->validate(['summary' => 'nullable|string|max:10000']);
+        $data = $request->validate([
+            'summary' => 'nullable|string|max:10000',
+            'lesson' => 'nullable|string|max:2000',
+        ]);
         $task->agentComplete($data['summary'] ?? null);
+
+        // Projekt-Gedächtnis: eine wiederverwendbare Lektion ans Projekt anhängen (nur Projekt-
+        // Tasks). Kappen, damit es nicht wuchert (jüngstes behalten).
+        $lesson = trim((string) ($data['lesson'] ?? ''));
+        if ($lesson !== '' && $task->project_id && ($project = $task->project)) {
+            $merged = trim((string) $project->agent_lessons."\n- ".$lesson);
+            if (mb_strlen($merged) > 8000) {
+                $merged = '…'.mb_substr($merged, -7999);
+            }
+            $project->update(['agent_lessons' => $merged]);
+        }
 
         // Erledigt-Meldung: existiert schon ein Rückfrage-Thread → dort (Kreis schließen),
         // sonst DM an den Ersteller. Für „fertig" lohnt kein neuer Thread.

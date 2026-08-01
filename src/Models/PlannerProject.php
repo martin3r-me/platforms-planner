@@ -42,6 +42,7 @@ class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayN
         'uuid',
         'name',
         'description',
+        'agent_lessons',
         'order',
         'customer_cost_center',
         'user_id',
