@@ -97,6 +97,7 @@ class ProjectSettingsModal extends Component
             // NICHT über eine gebundene Property. Eine Rule für 'project.status'
             // würde Livewire erlauben, das (gelöschte) Legacy-Feld zu hydrieren
             // → "Unknown column 'status'" beim Speichern.
+            'project.require_triage' => 'boolean',
             // Billing-Felder direkt am Projekt
             'project.billing_method' => 'nullable|in:time_and_material,fixed_price,retainer',
             'project.hourly_rate' => 'nullable|numeric|min:0',

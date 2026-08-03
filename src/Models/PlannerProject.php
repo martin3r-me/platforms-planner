@@ -43,6 +43,7 @@ class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayN
         'name',
         'description',
         'agent_lessons',
+        'require_triage',
         'order',
         'customer_cost_center',
         'user_id',
@@ -72,6 +73,7 @@ class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayN
         'budget_amount' => 'decimal:2',
         'is_public' => 'boolean',
         'public_token_expires_at' => 'datetime',
+        'require_triage' => 'boolean',
     ];
 
     protected $appends = ['title'];

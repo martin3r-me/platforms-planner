@@ -29,15 +29,11 @@ class PlannerAgentController extends Controller
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
-        // Opt-in-Gate: verlangt der Worker eine vorgeschaltete Triage, zieht er nur bereits
-        // triagierte Tasks (triage_done_at gesetzt). Default aus → unverändertes Verhalten.
-        $requireTriage = $request->boolean('require_triage');
-
         // Resume-First: hat eine wartende Task dieses Workers eine Antwort im Thread
         // bekommen? Dann DIESE zuerst — die geparkte Session wird fortgesetzt (die Antwort
-        // steckt im mitgelieferten Thread), statt neue Arbeit zu ziehen. Bei require_triage
-        // nur bereits triagierte (eine offene Triage-Rückfrage holt der Triage-Claim).
-        if (($resume = $this->resumableTask((int) $userId, $requireTriage))) {
+        // steckt im mitgelieferten Thread), statt neue Arbeit zu ziehen. Die Triage-Pflicht
+        // ist eine Eigenschaft des Projekts (siehe requiresTriageDone).
+        if (($resume = $this->resumableTask((int) $userId))) {
             $resume->update([
                 'agent_waiting_at' => null,
                 'agent_locked_at' => now(),
@@ -50,7 +46,7 @@ class PlannerAgentController extends Controller
         $query = PlannerTask::query()
             ->assignedTo($userId)
             ->agentClaimable()
-            ->when($requireTriage, fn ($q) => $q->triaged());
+            ->where(fn ($q) => $this->requiresTriageDone($q));
 
         // Story-Points-Filter (Worker sendet sein Limit aus den Settings).
         $maxPoints = $request->input('max_story_points');
@@ -115,7 +111,8 @@ class PlannerAgentController extends Controller
         $query = PlannerTask::query()
             ->assignedTo($userId)
             ->agentClaimable()
-            ->untriaged();
+            ->untriaged()
+            ->whereHas('project', fn ($p) => $p->where('require_triage', true));
 
         $maxPoints = $request->input('max_story_points');
         if ($maxPoints !== null) {
@@ -160,6 +157,7 @@ class PlannerAgentController extends Controller
             ->assignedTo($userId)
             ->where('lifecycle_state', \Platform\Planner\Enums\TaskLifecycleState::ACTIVE->value)
             ->untriaged()
+            ->whereHas('project', fn ($p) => $p->where('require_triage', true))
             ->whereNotNull('agent_waiting_at')
             ->whereExists(function ($q) use ($userId) {
                 $q->select(DB::raw(1))
@@ -267,15 +265,15 @@ class PlannerAgentController extends Controller
      * Eine wartende (agent_waiting_at) Task dieses Workers, die seit dem Warten eine
      * Antwort im Kontext-Thread von jemand anderem bekommen hat — in Board-Reihenfolge.
      */
-    protected function resumableTask(int $userId, bool $requireTriage = false): ?PlannerTask
+    protected function resumableTask(int $userId): ?PlannerTask
     {
         return PlannerTask::query()
             ->assignedTo($userId)
             ->where('lifecycle_state', \Platform\Planner\Enums\TaskLifecycleState::ACTIVE->value)
             ->whereNotNull('agent_waiting_at')
-            // Bei require_triage sind offene Triage-Rückfragen (noch nicht triagiert) Sache
-            // des Triage-Claims — die Ausführung setzt erst nach der Freigabe fort.
-            ->when($requireTriage, fn ($q) => $q->triaged())
+            // Projekte mit Triage-Pflicht: offene Triage-Rückfragen (noch nicht triagiert) sind
+            // Sache des Triage-Claims — die Ausführung setzt erst nach der Freigabe fort.
+            ->where(fn ($q) => $this->requiresTriageDone($q))
             ->whereExists(function ($q) use ($userId) {
                 $q->select(DB::raw(1))
                     ->from('terminal_messages as tm')
@@ -627,6 +625,19 @@ class PlannerAgentController extends Controller
         $task->agentUnlock();
 
         return response()->json(['message' => 'Task unlocked', 'data' => ['id' => $task->id]]);
+    }
+
+    /**
+     * Ausführbarkeits-Gate: eine Task darf ausgeführt werden, wenn ihr Projekt KEINE Triage
+     * verlangt (oder keins hat) ODER sie bereits triagiert ist (triage_done_at). Die Pflicht
+     * ist eine Eigenschaft der Quelle (Projekt), nicht des Workers. Als verschachtelte
+     * where-Gruppe gedacht (`->where(fn($q) => $this->requiresTriageDone($q))`).
+     */
+    protected function requiresTriageDone($query)
+    {
+        return $query
+            ->whereDoesntHave('project', fn ($p) => $p->where('require_triage', true))
+            ->orWhereNotNull('planner_tasks.triage_done_at');
     }
 
     /** Task nur, wenn sie dem Worker gehört (oder er sie gerade gelockt hat). */

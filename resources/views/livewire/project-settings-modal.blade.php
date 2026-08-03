@@ -100,6 +100,14 @@
                             placeholder="z. B. 480 für 8 Stunden"
                             :errorKey="'plannedMinutes'"
                         />
+                        <label class="flex items-start gap-2.5 cursor-pointer rounded border border-[var(--nx-border)] p-2.5 hover:bg-[var(--nx-bg)] transition-colors">
+                            <input type="checkbox" wire:model="project.require_triage"
+                                   class="mt-0.5 h-4 w-4 rounded border-[var(--nx-border)]">
+                            <span>
+                                <span class="block text-[12px] font-medium text-[var(--nx-text)]">✅ Triage-Pflicht</span>
+                                <span class="block text-[11px] text-[var(--nx-muted)]">Tasks dieses Projekts werden erst nach einem Reife-Check (Story-Points + Inhalt) durch die Triage-Rolle bearbeitet. Für sauber gepflegte Projekte aus lassen.</span>
+                            </span>
+                        </label>
                     @else
                         <dl class="space-y-1.5 text-[12px]">
                             <div class="flex items-baseline justify-between gap-3 py-1.5 px-2.5 rounded bg-[var(--nx-bg)]">
