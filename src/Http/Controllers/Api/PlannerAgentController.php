@@ -114,16 +114,8 @@ class PlannerAgentController extends Controller
             ->untriaged()
             ->whereHas('project', fn ($p) => $p->where('require_triage', true));
 
-        $maxPoints = $request->input('max_story_points');
-        if ($maxPoints !== null) {
-            $allowed = collect(TaskStoryPoints::cases())
-                ->filter(fn ($sp) => $sp->points() <= (int) $maxPoints)
-                ->pluck('value')->all();
-            // Ungeschätzte (null) IMMER zulassen — Story-Points zu setzen ist Teil der Triage.
-            $query->where(function ($q) use ($allowed) {
-                $q->whereNull('story_points')->orWhereIn('story_points', $allowed);
-            });
-        }
+        // KEIN Story-Points-Filter: die Triage SCHÄTZT die Größe — sie darf große Tasks nicht
+        // überspringen. Das max_story_points-Limit ist ein Execute-Konzept, kein Triage-Konzept.
 
         $task = $query
             ->leftJoin('planner_project_slots', 'planner_tasks.project_slot_id', '=', 'planner_project_slots.id')
