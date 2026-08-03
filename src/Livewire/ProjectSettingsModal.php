@@ -92,7 +92,11 @@ class ProjectSettingsModal extends Component
             'plannedMinutes' => 'nullable|integer|min:0',
             'project.project_type' => 'nullable|in:internal,customer,event,cooking',
             'project.kind' => 'nullable|in:run,project',
-            'project.status' => 'nullable|in:aktiv,passiv,inaktiv',
+            // Lebenszyklus wird ausschließlich über die Transition-Buttons
+            // (completeProject/discardProject/…) und den LifecycleService gesetzt,
+            // NICHT über eine gebundene Property. Eine Rule für 'project.status'
+            // würde Livewire erlauben, das (gelöschte) Legacy-Feld zu hydrieren
+            // → "Unknown column 'status'" beim Speichern.
             // Billing-Felder direkt am Projekt
             'project.billing_method' => 'nullable|in:time_and_material,fixed_price,retainer',
             'project.hourly_rate' => 'nullable|numeric|min:0',
