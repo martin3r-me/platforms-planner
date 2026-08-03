@@ -7,8 +7,11 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Platform\Planner\Enums\ProjectKind;
+use Platform\Planner\Enums\ProjectLifecycleState;
 use Platform\Planner\Enums\TaskLifecycleState;
 use Platform\Planner\Enums\TaskStoryPoints;
+use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerTask;
 
 /**
@@ -630,6 +633,62 @@ class PlannerAgentController extends Controller
         return $query
             ->whereDoesntHave('project', fn ($p) => $p->where('require_triage', true))
             ->orWhereNotNull('planner_tasks.triage_done_at');
+    }
+
+    /**
+     * Assistenz-Behälter (find-or-create): ein RUN-Projekt „Assistenz · <Chef>", das dem WORKER
+     * gehört (der Ausführende = VSM System 1; der Chef ist die Dimension, nicht der Eigentümer).
+     * Team = ein von Worker + Chef geteiltes Team (bevorzugt das aktuelle Team des Workers), damit
+     * es sauber aufrollt. Der Assistent stempelt seine Laufzeit auf dieses Projekt.
+     *
+     * POST /api/planner/agent/assistant-project  { served_user_id }
+     */
+    public function assistantProject(Request $request): JsonResponse
+    {
+        $worker = $request->user();
+        if (! $worker) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+        $data = $request->validate(['served_user_id' => 'required|integer|min:1']);
+        $chef = \Platform\Core\Models\User::find((int) $data['served_user_id']);
+        if (! $chef) {
+            return response()->json(['message' => 'Chef not found'], 404);
+        }
+
+        // Geteiltes Team (Worker ∩ Chef), bevorzugt das aktuelle Team des Workers.
+        $workerTeams = $worker->teams()->pluck('teams.id')->all();
+        $chefTeams = $chef->teams()->pluck('teams.id')->all();
+        $shared = array_values(array_intersect($workerTeams, $chefTeams));
+        $teamId = in_array($worker->current_team_id, $shared, true)
+            ? (int) $worker->current_team_id
+            : (int) ($shared[0] ?? $worker->current_team_id);
+        if (! $teamId) {
+            return response()->json(['message' => 'No shared team for worker and chef'], 422);
+        }
+
+        $name = 'Assistenz · '.($chef->name ?: ('User #'.$chef->id));
+
+        // Idempotent: dem Worker gehörendes RUN-Projekt gleichen Namens im Team wiederverwenden.
+        $project = PlannerProject::query()
+            ->where('user_id', $worker->id)
+            ->where('team_id', $teamId)
+            ->where('kind', ProjectKind::RUN->value)
+            ->where('name', $name)
+            ->first();
+
+        if (! $project) {
+            $project = new PlannerProject();
+            $project->name = $name;
+            $project->user_id = (int) $worker->id;        // Eigentümer = der Worker (S1)
+            $project->team_id = $teamId;
+            $project->kind = ProjectKind::RUN;
+            $project->lifecycle_state = ProjectLifecycleState::ACTIVE;
+            $project->order = (int) PlannerProject::where('team_id', $teamId)->max('order') + 1;
+            $project->save();
+            Log::info('[Planner Agent] Assistenz-RUN-Projekt angelegt', ['project_id' => $project->id, 'chef_id' => $chef->id]);
+        }
+
+        return response()->json(['data' => ['id' => $project->id, 'name' => $project->name, 'team_id' => $teamId]]);
     }
 
     /** Task nur, wenn sie dem Worker gehört (oder er sie gerade gelockt hat). */

@@ -35,6 +35,7 @@ Route::prefix('agent')->group(function () {
     Route::get('/pipeline', [PlannerAgentController::class, 'pipeline'])->name('planner.api.agent.pipeline');
     Route::post('/next-task', [PlannerAgentController::class, 'nextTask'])->name('planner.api.agent.next-task');
     Route::post('/next-untriaged-task', [PlannerAgentController::class, 'nextUntriagedTask'])->name('planner.api.agent.next-untriaged-task');
+    Route::post('/assistant-project', [PlannerAgentController::class, 'assistantProject'])->name('planner.api.agent.assistant-project');
     Route::post('/tasks/{id}/triage', [PlannerAgentController::class, 'triageTask'])->name('planner.api.agent.triage');
     Route::post('/tasks', [PlannerAgentController::class, 'createTask'])->name('planner.api.agent.create-task');
     Route::post('/tasks/{id}/complete', [PlannerAgentController::class, 'complete'])->name('planner.api.agent.complete');
