@@ -373,8 +373,8 @@ class MyTasks extends Component
 
         $order = $lowestOrder - 1;
 
-        // Konvertiere 0 zu null für INBOX
-        $taskGroupId = ($taskGroupId === 0 || $taskGroupId === '0') ? null : $taskGroupId;
+        // Konvertiere 0/leere ID zu null für INBOX (leerer String kommt aus dem Blade)
+        $taskGroupId = ($taskGroupId === 0 || $taskGroupId === '0' || $taskGroupId === '' || $taskGroupId === null) ? null : (int) $taskGroupId;
 
         $newTask = PlannerTask::create([
             'user_id' => Auth::id(),

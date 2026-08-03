@@ -194,8 +194,8 @@ class DelegatedTasks extends Component
     {
         $user = Auth::user();
 
-        // Konvertiere 0 zu null für INBOX
-        $taskGroupId = ($taskGroupId === 0 || $taskGroupId === '0') ? null : $taskGroupId;
+        // Konvertiere 0/leere ID zu null für INBOX (leerer String kommt aus dem Blade)
+        $taskGroupId = ($taskGroupId === 0 || $taskGroupId === '0' || $taskGroupId === '' || $taskGroupId === null) ? null : (int) $taskGroupId;
 
         // Für delegierte Aufgaben: delegated_group_order verwenden
         // Wenn in Gruppe: Order innerhalb der Gruppe

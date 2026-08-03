@@ -546,6 +546,10 @@ class Project extends Component
 
         $user = Auth::user();
 
+        // Backlog rendert im Blade als leere ID ('') → zu null normalisieren,
+        // sonst wirft MySQL "Incorrect integer value: '' for project_slot_id".
+        $projectSlotId = ($projectSlotId === '' || $projectSlotId === null) ? null : (int) $projectSlotId;
+
         $lowestOrder = PlannerTask::where('user_id', $user->id)
             ->where('team_id', $user->currentTeam->id)
             ->min('order') ?? 0;
