@@ -63,6 +63,7 @@ class PlannerTask extends Model implements HasKeyResultAncestors, HasDisplayName
         'agent_summary',
         'agent_waiting_at',
         'agent_session_id',
+        'triage_done_at',
     ];
 
     protected $casts = [
@@ -77,6 +78,7 @@ class PlannerTask extends Model implements HasKeyResultAncestors, HasDisplayName
         'agent_locked_at' => 'datetime',
         'agent_completed_at' => 'datetime',
         'agent_waiting_at' => 'datetime',
+        'triage_done_at' => 'datetime',
         // Verschlüsselte Felder (description, dod) werden automatisch vom Encryptable Trait
         // in initializeEncryptable() hinzugefügt basierend auf $encryptable Array
     ];
@@ -309,6 +311,18 @@ class PlannerTask extends Model implements HasKeyResultAncestors, HasDisplayName
     public function isAgentLocked(): bool
     {
         return $this->agent_locked_at !== null && $this->agent_locked_at >= now()->subMinutes(30);
+    }
+
+    /** Noch nicht auf Reife geprüft (Triage-Stufe steht aus). */
+    public function scopeUntriaged(Builder $query): Builder
+    {
+        return $query->whereNull('triage_done_at');
+    }
+
+    /** Bereits triagiert = für die Ausführung freigegeben. */
+    public function scopeTriaged(Builder $query): Builder
+    {
+        return $query->whereNotNull('triage_done_at');
     }
 
     /** Task auf erledigt setzen + Notiz des Workers hinterlegen. */

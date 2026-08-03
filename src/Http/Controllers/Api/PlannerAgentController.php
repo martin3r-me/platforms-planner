@@ -29,10 +29,15 @@ class PlannerAgentController extends Controller
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
+        // Opt-in-Gate: verlangt der Worker eine vorgeschaltete Triage, zieht er nur bereits
+        // triagierte Tasks (triage_done_at gesetzt). Default aus → unverändertes Verhalten.
+        $requireTriage = $request->boolean('require_triage');
+
         // Resume-First: hat eine wartende Task dieses Workers eine Antwort im Thread
         // bekommen? Dann DIESE zuerst — die geparkte Session wird fortgesetzt (die Antwort
-        // steckt im mitgelieferten Thread), statt neue Arbeit zu ziehen.
-        if (($resume = $this->resumableTask((int) $userId))) {
+        // steckt im mitgelieferten Thread), statt neue Arbeit zu ziehen. Bei require_triage
+        // nur bereits triagierte (eine offene Triage-Rückfrage holt der Triage-Claim).
+        if (($resume = $this->resumableTask((int) $userId, $requireTriage))) {
             $resume->update([
                 'agent_waiting_at' => null,
                 'agent_locked_at' => now(),
@@ -44,7 +49,8 @@ class PlannerAgentController extends Controller
 
         $query = PlannerTask::query()
             ->assignedTo($userId)
-            ->agentClaimable();
+            ->agentClaimable()
+            ->when($requireTriage, fn ($q) => $q->triaged());
 
         // Story-Points-Filter (Worker sendet sein Limit aus den Settings).
         $maxPoints = $request->input('max_story_points');
@@ -82,6 +88,152 @@ class PlannerAgentController extends Controller
     }
 
     /**
+     * Triage-Claim: nächste NOCH UNGEPRÜFTE Task (triage_done_at NULL) des Workers — für die
+     * Reife-Prüfung (Story-Points + Inhalt) vor der Ausführung. Reihenfolge/Lock wie nextTask,
+     * nur auf ungeprüft gefiltert. Resume-First holt eine beantwortete Triage-Rückfrage zuerst.
+     *
+     * POST /api/planner/agent/next-untriaged-task
+     */
+    public function nextUntriagedTask(Request $request): JsonResponse
+    {
+        $userId = $request->user()?->id;
+        if (! $userId) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        // Resume-First: eine beantwortete Triage-Rückfrage (noch ungeprüft) zuerst.
+        if (($resume = $this->resumableUntriagedTask((int) $userId))) {
+            $resume->update([
+                'agent_waiting_at' => null,
+                'agent_locked_at' => now(),
+                'agent_locked_by' => 'triage:' . $userId,
+            ]);
+
+            return response()->json(['data' => $this->taskPayload($resume, (int) $userId, true)]);
+        }
+
+        $query = PlannerTask::query()
+            ->assignedTo($userId)
+            ->agentClaimable()
+            ->untriaged();
+
+        $maxPoints = $request->input('max_story_points');
+        if ($maxPoints !== null) {
+            $allowed = collect(TaskStoryPoints::cases())
+                ->filter(fn ($sp) => $sp->points() <= (int) $maxPoints)
+                ->pluck('value')->all();
+            // Ungeschätzte (null) IMMER zulassen — Story-Points zu setzen ist Teil der Triage.
+            $query->where(function ($q) use ($allowed) {
+                $q->whereNull('story_points')->orWhereIn('story_points', $allowed);
+            });
+        }
+
+        $task = $query
+            ->leftJoin('planner_project_slots', 'planner_tasks.project_slot_id', '=', 'planner_project_slots.id')
+            ->orderByRaw('planner_project_slots.order IS NULL')
+            ->orderBy('planner_project_slots.order')
+            ->orderBy('planner_tasks.project_slot_order')
+            ->orderBy('planner_tasks.order')
+            ->orderBy('planner_tasks.created_at')
+            ->select('planner_tasks.*')
+            ->first();
+
+        if (! $task) {
+            return response()->json(null, 204);
+        }
+
+        $task->update([
+            'agent_locked_at' => now(),
+            'agent_locked_by' => 'triage:' . $userId,
+        ]);
+
+        return response()->json(['data' => $this->taskPayload($task, (int) $userId)]);
+    }
+
+    /**
+     * Eine noch UNGEPRÜFTE (triage_done_at NULL) wartende Task dieses Workers, die seit dem
+     * Warten eine Antwort im Kontext-Thread bekommen hat — fürs Fortsetzen des Reife-Checks.
+     */
+    protected function resumableUntriagedTask(int $userId): ?PlannerTask
+    {
+        return PlannerTask::query()
+            ->assignedTo($userId)
+            ->where('lifecycle_state', \Platform\Planner\Enums\TaskLifecycleState::ACTIVE->value)
+            ->untriaged()
+            ->whereNotNull('agent_waiting_at')
+            ->whereExists(function ($q) use ($userId) {
+                $q->select(DB::raw(1))
+                    ->from('terminal_messages as tm')
+                    ->join('terminal_channels as tc', 'tm.channel_id', '=', 'tc.id')
+                    ->whereColumn('tc.context_id', 'planner_tasks.id')
+                    ->where('tc.context_type', PlannerTask::class)
+                    ->where('tm.user_id', '!=', $userId)
+                    ->whereColumn('tm.created_at', '>', 'planner_tasks.agent_waiting_at');
+            })
+            ->leftJoin('planner_project_slots', 'planner_tasks.project_slot_id', '=', 'planner_project_slots.id')
+            ->orderByRaw('planner_project_slots.order IS NULL')
+            ->orderBy('planner_project_slots.order')
+            ->orderBy('planner_tasks.agent_waiting_at')
+            ->select('planner_tasks.*')
+            ->first();
+    }
+
+    /**
+     * Triage-Entscheidung committen. ready=true → Task für die Ausführung freigeben
+     * (triage_done_at setzen, optional Story-Points korrigieren, Lock lösen). ready=false →
+     * Rückfrage in den Context-Thread + Warten-Zustand (wie ask); triage_done_at bleibt leer,
+     * bis der Reife-Check nach der Antwort erneut läuft und freigibt.
+     *
+     * POST /api/planner/agent/tasks/{id}/triage  { ready, story_points?, question?, session_id? }
+     */
+    public function triageTask(Request $request, int $id): JsonResponse
+    {
+        $task = $this->ownedTask($request, $id);
+        if (! $task) {
+            return response()->json(['message' => 'Task not found'], 404);
+        }
+        $data = $request->validate([
+            'ready' => 'required|boolean',
+            'story_points' => 'nullable|string|max:8',
+            'question' => 'nullable|string|max:5000',
+            'session_id' => 'nullable|string|max:255',
+        ]);
+
+        $spValue = strtolower(trim((string) ($data['story_points'] ?? '')));
+        $allowedSp = collect(TaskStoryPoints::cases())->map(fn ($s) => $s->value)->all();
+        $storyPoints = in_array($spValue, $allowedSp, true) ? $spValue : null;
+
+        if ($data['ready']) {
+            $task->update([
+                'triage_done_at' => now(),
+                'story_points' => $storyPoints ?? $task->story_points?->value,
+                'agent_waiting_at' => null,
+                'agent_session_id' => null,
+                'agent_locked_at' => null,
+                'agent_locked_by' => null,
+            ]);
+            Log::info('[Planner Agent] Task triaged (ready)', ['task_id' => $task->id]);
+
+            return response()->json(['message' => 'Task triaged', 'data' => [
+                'id' => $task->id,
+                'triage_done_at' => $task->triage_done_at?->toIso8601String(),
+                'story_points' => $task->story_points?->value,
+            ]]);
+        }
+
+        // Nicht reif → Rückfrage stellen (wie ask): Thread + Warten-Zustand, ungeprüft lassen.
+        $question = trim((string) ($data['question'] ?? ''));
+        if ($question === '') {
+            return response()->json(['message' => 'Question required when not ready'], 422);
+        }
+        $this->postToContextThread($task, (int) $request->user()->id, $question);
+        $task->agentWait($question, $data['session_id'] ?? null);
+        Log::info('[Planner Agent] Task triage question', ['task_id' => $task->id]);
+
+        return response()->json(['message' => 'Triage question posted', 'data' => ['id' => $task->id]]);
+    }
+
+    /**
      * Einheitliches Task-Payload für Claim + Resume. Bei $resume=true weiß der Worker,
      * dass er die gemerkte Claude-Session fortsetzt (die Antwort steckt im `thread`).
      * agent_branch bleibt null — der Backoffice-Worker hat keinen Git-Branch.
@@ -115,12 +267,15 @@ class PlannerAgentController extends Controller
      * Eine wartende (agent_waiting_at) Task dieses Workers, die seit dem Warten eine
      * Antwort im Kontext-Thread von jemand anderem bekommen hat — in Board-Reihenfolge.
      */
-    protected function resumableTask(int $userId): ?PlannerTask
+    protected function resumableTask(int $userId, bool $requireTriage = false): ?PlannerTask
     {
         return PlannerTask::query()
             ->assignedTo($userId)
             ->where('lifecycle_state', \Platform\Planner\Enums\TaskLifecycleState::ACTIVE->value)
             ->whereNotNull('agent_waiting_at')
+            // Bei require_triage sind offene Triage-Rückfragen (noch nicht triagiert) Sache
+            // des Triage-Claims — die Ausführung setzt erst nach der Freigabe fort.
+            ->when($requireTriage, fn ($q) => $q->triaged())
             ->whereExists(function ($q) use ($userId) {
                 $q->select(DB::raw(1))
                     ->from('terminal_messages as tm')
