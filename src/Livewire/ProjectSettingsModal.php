@@ -6,7 +6,6 @@ use Livewire\Component;
 use Platform\Planner\Models\PlannerProject;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\On;
-use Platform\Planner\Enums\ProjectType;
 use Platform\Planner\Enums\ProjectKind;
 use Platform\Planner\Enums\ProjectLifecycleState;
 use Platform\Planner\Exceptions\InvalidLifecycleTransitionException;
@@ -21,8 +20,6 @@ class ProjectSettingsModal extends Component
     public $project;
     public $teamUsers = [];
     public $roles = [];
-    public $originalProjectType = null;
-    public $projectType = null;
     public $billingMethodOptions = [];
 
     // Entity-Links (read-only Anzeige)
@@ -47,12 +44,6 @@ class ProjectSettingsModal extends Component
 
         // Event für RecurringTasksTab senden
         $this->dispatch('project-loaded', $projectId);
-
-        $this->originalProjectType = is_string($this->project->project_type)
-            ? $this->project->project_type
-            : ($this->project->project_type?->value ?? null);
-
-        $this->projectType = $this->originalProjectType;
 
         // Keine Projekt-Mitgliedschaft/Rollen mehr (Zugriff = Graph).
         $this->teamUsers = [];
@@ -90,7 +81,7 @@ class ProjectSettingsModal extends Component
             'project.name' => 'required|string|max:255',
             'project.description' => 'nullable|string',
             'plannedMinutes' => 'nullable|integer|min:0',
-            'project.project_type' => 'nullable|in:internal,customer,event,cooking',
+            'project.project_type' => 'nullable|in:internal,event,cooking',
             'project.kind' => 'nullable|in:run,project',
             // Lebenszyklus wird ausschließlich über die Transition-Buttons
             // (completeProject/discardProject/…) und den LifecycleService gesetzt,
@@ -112,14 +103,6 @@ class ProjectSettingsModal extends Component
 
         // Policy-Berechtigung prüfen
         $this->authorize('update', $this->project);
-
-        // Kunde -> Intern verhindern (irreversibel)
-        $currentType = is_string($this->project->project_type)
-            ? $this->project->project_type
-            : ($this->project->project_type?->value ?? null);
-        if ($this->originalProjectType === 'customer' && $currentType === 'internal') {
-            $this->project->project_type = ProjectType::CUSTOMER;
-        }
 
         $this->project->save();
 
@@ -150,10 +133,6 @@ class ProjectSettingsModal extends Component
                 ->where('is_active', true)
                 ->update(['is_active' => false]);
         }
-
-        $this->originalProjectType = is_string($this->project->project_type)
-            ? $this->project->project_type
-            : ($this->project->project_type?->value ?? null);
 
         $this->dispatch('updateSidebar');
         $this->dispatch('updateProject');
@@ -228,19 +207,6 @@ class ProjectSettingsModal extends Component
             'noticable_type' => get_class($this->project),
             'noticable_id'   => $this->project->getKey(),
         ]);
-    }
-
-    public function setProjectType(string $type): void
-    {
-        $current = is_string($this->project->project_type)
-            ? $this->project->project_type
-            : ($this->project->project_type?->value ?? null);
-        if ($current === 'customer' && $type === 'internal') {
-            // Nicht zurückwechseln erlaubt
-            return;
-        }
-        $this->project->project_type = $type;
-        $this->projectType = $type;
     }
 
     // ── Public Sharing ──────────────────────────────────────────────

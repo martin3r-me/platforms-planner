@@ -391,5 +391,4 @@
     {{-- Modals --}}
     <livewire:planner.project-settings-modal/>
     <livewire:planner.project-slot-settings-modal/>
-    <livewire:planner.customer-project-settings-modal/>
 </x-ui-page>

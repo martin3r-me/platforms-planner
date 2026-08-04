@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
@@ -150,14 +149,6 @@ class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayN
     public function team(): BelongsTo
     {
         return $this->belongsTo(\Platform\Core\Models\Team::class);
-    }
-
-    /**
-     * @deprecated Verwende billing-Felder direkt am PlannerProject + entityLinks() statt CRM-Verknüpfung.
-     */
-    public function customerProject(): HasOne
-    {
-        return $this->hasOne(\Platform\Planner\Models\PlannerCustomerProject::class, 'project_id');
     }
 
     /**

@@ -28,7 +28,7 @@ class UpdateProjectTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'PUT /projects/{id} - Aktualisiert ein bestehendes Projekt. REST-Parameter: id (required, integer) - Projekt-ID. name (optional, string) - Projektname. description (optional, string) - Beschreibung. project_type (optional, string) - Typ: internal, customer, event, cooking. owner_user_id (optional, integer) - Owner des Projekts. members (optional, array) - Array von User-IDs als Mitglieder.';
+        return 'PUT /projects/{id} - Aktualisiert ein bestehendes Projekt. REST-Parameter: id (required, integer) - Projekt-ID. name (optional, string) - Projektname. description (optional, string) - Beschreibung. project_type (optional, string) - Typ: internal, event, cooking. owner_user_id (optional, integer) - Owner des Projekts. members (optional, array) - Array von User-IDs als Mitglieder.';
     }
 
     public function getSchema(): array
@@ -50,8 +50,8 @@ class UpdateProjectTool implements ToolContract
                 ],
                 'project_type' => [
                     'type' => 'string',
-                    'description' => 'Optional: Neuer Projekttyp. Mögliche Werte: "internal", "customer", "event", "cooking". Frage nach, wenn der Nutzer den Typ ändern möchte.',
-                    'enum' => ['internal', 'customer', 'event', 'cooking']
+                    'description' => 'Optional: Neuer Projekttyp. Mögliche Werte: "internal", "event", "cooking". Frage nach, wenn der Nutzer den Typ ändern möchte.',
+                    'enum' => ['internal', 'event', 'cooking']
                 ],
                 'kind' => [
                     'type' => 'string',

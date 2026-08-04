@@ -47,8 +47,8 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
                     // Legacy-Parameter (für Backwards-Kompatibilität)
                     'project_type' => [
                         'type' => 'string',
-                        'description' => 'Optional: Filter nach Projekttyp (Legacy - nutze stattdessen filters mit field="project_type" und op="eq"). Mögliche Werte: "internal", "customer", "event", "cooking".',
-                        'enum' => ['internal', 'customer', 'event', 'cooking']
+                        'description' => 'Optional: Filter nach Projekttyp (Legacy - nutze stattdessen filters mit field="project_type" und op="eq"). Mögliche Werte: "internal", "event", "cooking".',
+                        'enum' => ['internal', 'event', 'cooking']
                     ],
                     'name_search' => [
                         'type' => 'string',

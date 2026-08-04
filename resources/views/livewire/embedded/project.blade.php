@@ -222,7 +222,6 @@
     {{-- Modals für embedded Projekt-View --}}
     <livewire:planner.project-settings-modal/>
     <livewire:planner.project-slot-settings-modal/>
-    <livewire:planner.customer-project-settings-modal/>
 </div>
 
     @push('scripts')

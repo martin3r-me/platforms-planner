@@ -124,33 +124,6 @@
                     @endcan
                 </section>
 
-                {{-- Projekttyp --}}
-                @php $ptype = ($project->project_type?->value ?? $project->project_type); @endphp
-                <section class="space-y-2">
-                    <h4 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] m-0">Projekttyp</h4>
-                    <div class="inline-flex rounded-md border border-[color:var(--nx-line)] overflow-hidden w-full">
-                        <button
-                            type="button"
-                            wire:click="setProjectType('internal')"
-                            class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 h-8 text-xs font-medium transition-colors {{ $projectType === 'internal' ? 'bg-[var(--nx-accent)] text-white' : 'bg-transparent text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}"
-                        >
-                            @svg('heroicon-o-building-office', 'w-3.5 h-3.5')
-                            Intern
-                        </button>
-                        <button
-                            type="button"
-                            wire:click="setProjectType('customer')"
-                            class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 h-8 text-xs font-medium border-l border-[color:var(--nx-line)] transition-colors {{ $projectType === 'customer' ? 'bg-[var(--nx-accent)] text-white' : 'bg-transparent text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}"
-                        >
-                            @svg('heroicon-o-briefcase', 'w-3.5 h-3.5')
-                            Kunde
-                        </button>
-                    </div>
-                    @if($ptype === 'customer')
-                        <p class="text-[10px] text-[var(--nx-muted)] m-0">Hinweis: Der Kunden-Typ ist nicht zurücksetzbar.</p>
-                    @endif
-                </section>
-
                 {{-- Wesensart (kind) --}}
                 @php $kindVal = ($project->kind?->value ?? $project->kind); @endphp
                 <section class="space-y-2">

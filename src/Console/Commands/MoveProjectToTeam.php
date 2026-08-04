@@ -6,7 +6,6 @@ use Illuminate\Console\Command;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectSlot;
 use Platform\Planner\Models\PlannerTask;
-use Platform\Planner\Models\PlannerCustomerProject;
 use Platform\Core\Models\Team;
 
 class MoveProjectToTeam extends Command
@@ -36,7 +35,7 @@ class MoveProjectToTeam extends Command
         $force = $this->option('force');
 
         // Projekt laden
-        $project = PlannerProject::withStale()->with(['projectSlots', 'tasks', 'customerProject'])->find($projectId);
+        $project = PlannerProject::withStale()->with(['projectSlots', 'tasks'])->find($projectId);
         
         if (!$project) {
             $this->error("❌ Projekt mit ID {$projectId} nicht gefunden!");
@@ -62,15 +61,11 @@ class MoveProjectToTeam extends Command
         // Statistiken sammeln
         $projectSlotsCount = $project->projectSlots->count();
         $tasksCount = $project->tasks->count();
-        $hasCustomerProject = $project->customerProject !== null;
 
         $this->info("📈 Zu aktualisierende Datensätze:");
         $this->info("  - 1 Projekt");
         $this->info("  - {$projectSlotsCount} Project Slots");
         $this->info("  - {$tasksCount} Tasks");
-        if ($hasCustomerProject) {
-            $this->info("  - 1 Customer Project");
-        }
         $this->newLine();
 
         // Bestätigung
@@ -137,18 +132,6 @@ class MoveProjectToTeam extends Command
                 $this->info("  ✅ {$tasksCount} Tasks aktualisiert");
             } else {
                 $this->info("  🔍 Würde {$tasksCount} Tasks aktualisieren");
-            }
-        }
-
-        // 4. Customer Project aktualisieren (falls vorhanden)
-        if ($hasCustomerProject) {
-            $this->info("💼 Aktualisiere Customer Project...");
-            if (!$isDryRun) {
-                $project->customerProject->team_id = $teamId;
-                $project->customerProject->save();
-                $this->info("  ✅ Customer Project team_id aktualisiert");
-            } else {
-                $this->info("  🔍 Würde Customer Project team_id auf {$teamId} setzen");
             }
         }
 

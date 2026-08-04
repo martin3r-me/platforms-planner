@@ -21,7 +21,7 @@ use Illuminate\Auth\Access\AuthorizationException;
  * WICHTIG: Wenn der Nutzer nicht alle Informationen angibt, frage nach:
  * - Projektname (erforderlich)
  * - Beschreibung (optional, aber empfohlen)
- * - Projekttyp (internal, customer, event, cooking)
+ * - Projekttyp (internal, event, cooking)
  * - Projekt-Owner (falls nicht der aktuelle Nutzer)
  * - Weitere Projektmitglieder mit Rollen (optional)
  * 
@@ -36,7 +36,7 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract, ToolMet
 
     public function getDescription(): string
     {
-        return 'POST /projects - Erstellt ein neues Projekt. REST-Parameter: name (required, string) - Projektname. team_id (optional, integer) - wenn nicht angegeben, wird aktuelles Team verwendet. description (optional, string) - Beschreibung. project_type (optional, string) - Typ: internal, customer, event, cooking. owner_user_id (optional, integer) - Ersteller/Owner des Projekts (Default: aktueller Nutzer).';
+        return 'POST /projects - Erstellt ein neues Projekt. REST-Parameter: name (required, string) - Projektname. team_id (optional, integer) - wenn nicht angegeben, wird aktuelles Team verwendet. description (optional, string) - Beschreibung. project_type (optional, string) - Typ: internal, event, cooking. owner_user_id (optional, integer) - Ersteller/Owner des Projekts (Default: aktueller Nutzer).';
     }
 
     public function getSchema(): array
@@ -58,7 +58,7 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract, ToolMet
                 ],
                 'project_type' => [
                     'type' => 'string',
-                    'description' => 'Typ des Projekts. Mögliche Werte: "internal" (internes Projekt), "customer" (Kundenprojekt), "event" (Event-Projekt), "cooking" (Kochprojekt). Standard: "internal". Frage nach, wenn unklar ist.'
+                    'description' => 'Typ des Projekts. Mögliche Werte: "internal" (internes Projekt), "event" (Event-Projekt), "cooking" (Kochprojekt). Standard: "internal". Frage nach, wenn unklar ist.'
                 ],
                 'kind' => [
                     'type' => 'string',
