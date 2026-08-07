@@ -325,6 +325,183 @@ class PlannerTask extends Model implements HasKeyResultAncestors, HasDisplayName
         return $query->whereNotNull('triage_done_at');
     }
 
+    // ── Abhängigkeiten (Finish-to-Start) ────────────────────────────────────
+    // Zwei Werkzeuge, zwei Granularitäten: die Task-Kante (blocked_by, quer über
+    // Slots/Projekte) und das Slot-Gate (Phasen-Sequenz, blocked_until_previous_done
+    // am Slot). Beide sperren NUR die Ausführung (notBlocked) — die Triage darf
+    // vorlaufen. Terminal (erledigt/verworfen) gibt einen Blocker frei.
+
+    /** Vorgänger: Tasks, die zuerst terminal sein müssen, bevor dieser läuft. */
+    public function blockers()
+    {
+        return $this->belongsToMany(
+            self::class,
+            'planner_task_dependencies',
+            'blocked_task_id',
+            'blocker_task_id'
+        )->withTimestamps();
+    }
+
+    /** Nachfolger: Tasks, die auf DIESEN warten. */
+    public function blocking()
+    {
+        return $this->belongsToMany(
+            self::class,
+            'planner_task_dependencies',
+            'blocker_task_id',
+            'blocked_task_id'
+        )->withTimestamps();
+    }
+
+    /** Terminal-Zustände, die einen Blocker (Task oder Slot-Gate) freigeben. */
+    protected static function terminalStates(): array
+    {
+        return [
+            \Platform\Planner\Enums\TaskLifecycleState::COMPLETED->value,
+            \Platform\Planner\Enums\TaskLifecycleState::DISCARDED->value,
+        ];
+    }
+
+    /** Ausführbar bzgl. Abhängigkeiten: kein offener Task-Blocker UND Slot-Gate erfüllt. */
+    public function scopeNotBlocked(Builder $query): Builder
+    {
+        return $query->notBlockedByTasks()->notBlockedBySlotGate();
+    }
+
+    /** Kein als Vorgänger verknüpfter Task ist noch offen (nicht terminal). */
+    public function scopeNotBlockedByTasks(Builder $query): Builder
+    {
+        // Soft-gelöschte Blocker fallen durch den SoftDeletes-Scope der Relation
+        // automatisch raus und blockieren damit nicht.
+        return $query->whereDoesntHave('blockers', function ($q) {
+            $q->whereNotIn('lifecycle_state', self::terminalStates());
+        });
+    }
+
+    /**
+     * Slot-Gate erfüllt: der Task ist in keinem gegateten Slot ODER alle Tasks in
+     * Slots mit kleinerer `order` (selbes Projekt) sind terminal. Ohne Slot
+     * (project_slot_id NULL) greift das Gate nie.
+     */
+    public function scopeNotBlockedBySlotGate(Builder $query): Builder
+    {
+        $terminal = self::terminalStates();
+
+        // Query-Builder statt Raw-SQL: das Grammar quotet `order` je Treiber korrekt
+        // (Postgres "order" / MySQL `order`) und bindet den Boolean dialekt-sicher.
+        return $query->whereNotExists(function ($gate) use ($terminal) {
+            $gate->selectRaw('1')
+                ->from('planner_project_slots as gs')
+                ->whereColumn('gs.id', 'planner_tasks.project_slot_id')
+                ->where('gs.blocked_until_previous_done', true)
+                ->whereExists(function ($earlier) use ($terminal) {
+                    $earlier->selectRaw('1')
+                        ->from('planner_tasks as pt')
+                        ->join('planner_project_slots as ps', 'ps.id', '=', 'pt.project_slot_id')
+                        ->whereColumn('pt.project_id', 'planner_tasks.project_id')
+                        ->whereNull('pt.deleted_at')
+                        ->whereNotIn('pt.lifecycle_state', $terminal)
+                        ->whereColumn('ps.order', '<', 'gs.order');
+                });
+        });
+    }
+
+    /** Noch offene (nicht terminale) Vorgänger dieses Tasks. */
+    public function openBlockers()
+    {
+        return $this->blockers()->whereNotIn('lifecycle_state', self::terminalStates());
+    }
+
+    /** Ist dieser Task aktuell durch eine Task-Kante blockiert? */
+    public function isBlockedByTasks(): bool
+    {
+        return $this->openBlockers()->exists();
+    }
+
+    /** Ist dieser Task aktuell durch das Slot-Gate zurückgehalten? */
+    public function isSlotGateBlocked(): bool
+    {
+        return $this->projectSlot?->isGateBlocked() ?? false;
+    }
+
+    /** Für UI: blockiert (Task-Kante ODER Slot-Gate)? */
+    public function isBlocked(): bool
+    {
+        return $this->isBlockedByTasks() || $this->isSlotGateBlocked();
+    }
+
+    /**
+     * Anzahl offener Vorgänger fürs Board-Badge — N+1-sicher: nutzt einen per
+     * withCount('openBlockers') vorbereiteten Count bzw. eine bereits geladene
+     * blockers-Relation. Ist nichts vorbereitet, wird NICHT nachgeladen (der
+     * Board-Render bleibt query-frei) → 0.
+     */
+    public function getOpenBlockerCountAttribute(): int
+    {
+        if (array_key_exists('open_blockers_count', $this->attributes)) {
+            return (int) $this->attributes['open_blockers_count'];
+        }
+        if ($this->relationLoaded('blockers')) {
+            return $this->getRelation('blockers')
+                ->reject(fn ($b) => $b->lifecycle_state?->isTerminal())
+                ->count();
+        }
+
+        return 0;
+    }
+
+    /**
+     * Würde eine Kante blocker → blocked einen Zyklus erzeugen? Wahr, wenn der
+     * Vorgänger (blocker) bereits transitiv vom abhängigen Task (blocked) abhängt.
+     */
+    public static function wouldCreateDependencyCycle(int $blockerId, int $blockedId): bool
+    {
+        if ($blockerId === $blockedId) {
+            return true;
+        }
+
+        $visited = [];
+        $stack = [$blockerId];
+        while ($stack) {
+            $current = array_pop($stack);
+            if (isset($visited[$current])) {
+                continue;
+            }
+            $visited[$current] = true;
+
+            // Vorgänger von $current = Tasks, von denen $current abhängt.
+            $parents = \Illuminate\Support\Facades\DB::table('planner_task_dependencies')
+                ->where('blocked_task_id', $current)
+                ->pluck('blocker_task_id');
+            foreach ($parents as $parent) {
+                if ((int) $parent === $blockedId) {
+                    return true;
+                }
+                $stack[] = (int) $parent;
+            }
+        }
+
+        return false;
+    }
+
+    /** Vorgänger verknüpfen (mit Selbst-/Zyklus-Schutz). */
+    public function addBlocker(self $blocker): void
+    {
+        if ($blocker->id === $this->id) {
+            throw new \InvalidArgumentException('Eine Aufgabe kann nicht von sich selbst abhängen.');
+        }
+        if (self::wouldCreateDependencyCycle($blocker->id, $this->id)) {
+            throw new \InvalidArgumentException('Diese Abhängigkeit würde einen Zyklus erzeugen.');
+        }
+        $this->blockers()->syncWithoutDetaching([$blocker->id]);
+    }
+
+    /** Vorgänger-Verknüpfung lösen. */
+    public function removeBlocker(self $blocker): void
+    {
+        $this->blockers()->detach($blocker->id);
+    }
+
     /** Task auf erledigt setzen + Notiz des Workers hinterlegen. */
     public function agentComplete(?string $summary = null): void
     {

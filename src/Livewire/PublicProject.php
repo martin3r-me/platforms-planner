@@ -34,7 +34,7 @@ class PublicProject extends Component
     public function render()
     {
         // === 1. BACKLOG ===
-        $backlogTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])
+        $backlogTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])->withCount('openBlockers')
             ->where('project_id', $this->project->id)
             ->whereNull('project_slot_id')
             ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
@@ -56,7 +56,7 @@ class PublicProject extends Component
 
         // === 2. PROJECT-SLOTS ===
         $slots = PlannerProjectSlot::with(['tasks' => function ($q) {
-                $q->with(['tags', 'contextColors', 'userInCharge', 'project'])
+                $q->with(['tags', 'contextColors', 'userInCharge', 'project'])->withCount('openBlockers')
                   ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
                   ->whereNotNull('project_slot_id')
                   ->orderBy('project_slot_order');
@@ -84,7 +84,7 @@ class PublicProject extends Component
             });
 
         // === 3. ERLEDIGTE AUFGABEN ===
-        $doneTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])
+        $doneTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])->withCount('openBlockers')
             ->where('project_id', $this->project->id)
             ->where('lifecycle_state', TaskLifecycleState::COMPLETED->value)
             ->orderByDesc('lifecycle_state_changed_at')

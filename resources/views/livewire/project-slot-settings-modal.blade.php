@@ -63,6 +63,23 @@
             </div>
 
             <div class="pt-4 border-t border-[color:var(--nx-line)]">
+                <label class="flex items-start gap-3 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        wire:model="projectSlot.blocked_until_previous_done"
+                        class="mt-0.5 h-4 w-4 rounded border-[color:var(--nx-line)] text-[var(--nx-accent)] focus:ring-[var(--nx-accent)]/30"
+                    />
+                    <span class="min-w-0">
+                        <span class="block text-sm font-medium text-[var(--nx-text)]">Erst nach vorherigen Spalten</span>
+                        <span class="block text-[11px] text-[var(--nx-muted)] mt-0.5">
+                            Aufgaben dieser Spalte werden vom Agenten erst geholt, wenn alle Aufgaben in
+                            links davorliegenden Spalten erledigt oder verworfen sind (Phasen-Sequenz).
+                        </span>
+                    </span>
+                </label>
+            </div>
+
+            <div class="pt-4 border-t border-[color:var(--nx-line)]">
                 <x-nx-button variant="danger" size="sm" wire:click="deleteProjectSlot" wire:confirm="Wirklich löschen?">Spalte löschen</x-nx-button>
             </div>
         </div>

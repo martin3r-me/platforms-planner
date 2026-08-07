@@ -306,6 +306,7 @@ class PlannerServiceProvider extends ServiceProvider
             $registry->register(new \Platform\Planner\Tools\BulkUpdateTasksTool());
             $registry->register(new \Platform\Planner\Tools\DeleteTaskTool());
             $registry->register(new \Platform\Planner\Tools\TransferTaskTool());
+            $registry->register(new \Platform\Planner\Tools\SetTaskDependencyTool());
 
             // Canvas-Tools
             $registry->register(new \Platform\Planner\Tools\Canvas\CanvasOverviewTool());

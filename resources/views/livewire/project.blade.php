@@ -261,8 +261,17 @@
             @foreach($middleColumns as $column)
                 @php $tone = $columnTones[$column->id] ?? 'indigo'; @endphp
                 <x-nx-kanban-column :title="($column->label ?? $column->name ?? 'Spalte')" :sortable-id="$column->id" :scrollable="true" :tone="$tone" :count="$column->tasks->count()">
-                    @can('update', $project)
-                        <x-slot name="headerActions">
+                    {{-- headerActions immer setzen: Gate-Icon für alle sichtbar, Edit-Buttons nur für Editoren --}}
+                    <x-slot name="headerActions">
+                        @if($column->gated)
+                            <span
+                                title="{{ $column->gate_blocked ? 'Gesperrt — wartet auf vorherige Spalten' : 'Erst nach vorherigen Spalten (Sequenz)' }}"
+                                class="{{ $column->gate_blocked ? 'text-[color:var(--nx-warning)]' : 'text-[color:var(--nx-faint)]' }}"
+                            >
+                                @svg('heroicon-o-lock-closed', 'w-4 h-4')
+                            </span>
+                        @endif
+                        @can('update', $project)
                             <button
                                 wire:click="createTask('{{ $column->id }}')"
                                 class="text-[color:var(--nx-faint)] hover:text-[color:var(--nx-text)] transition-colors"
@@ -277,8 +286,16 @@
                             >
                                 @svg('heroicon-o-cog-6-tooth', 'w-4 h-4')
                             </button>
-                        </x-slot>
-                    @endcan
+                        @endcan
+                    </x-slot>
+
+                    {{-- Gate aktiv: Hinweis, warum der Agent hier (noch) nichts zieht --}}
+                    @if($column->gate_blocked)
+                        <div class="mb-2 flex items-center gap-1.5 rounded-lg bg-[color:var(--nx-warning)]/10 px-2.5 py-1.5 text-[11px] text-[color:var(--nx-warning)]">
+                            @svg('heroicon-o-lock-closed', 'w-3.5 h-3.5 flex-shrink-0')
+                            <span>Wartet auf vorherige Spalten</span>
+                        </div>
+                    @endif
 
                     @forelse($column->tasks as $task)
                         @include('planner::livewire.task-preview-card', ['task' => $task, 'cardFrom' => 'project'])

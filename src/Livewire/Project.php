@@ -347,6 +347,7 @@ class Project extends Component
 
         // === 1. BACKLOG ===
         $backlogTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])
+            ->withCount('openBlockers') // für das 🔒-Badge (N+1-sicher, ein Query fürs ganze Board)
             ->where('project_id', $this->project->id)
             ->whereNull('project_slot_id')
             ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
@@ -369,6 +370,7 @@ class Project extends Component
         // === 2. PROJECT-SLOTS ===
         $slots = PlannerProjectSlot::with(['tasks' => function ($q) {
                 $q->with(['tags', 'contextColors', 'userInCharge', 'project'])
+                  ->withCount('openBlockers') // für das 🔒-Badge (N+1-sicher)
                   ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
                   ->whereNotNull('project_slot_id') // Explizit: Nur Tasks mit project_slot_id (nicht NULL)
                   ->orderBy('project_slot_order');
@@ -387,6 +389,11 @@ class Project extends Component
                     'label' => $slot->name,
                     'color' => $slot->color,
                     'isBacklog' => false,
+                    // Slot-Gate: ist die Spalte auf „erst nach vorherigen" gestellt (gated)
+                    // und wird sie aktuell zurückgehalten (frühere Spalte noch offen)?
+                    // Nur gegatete Slots fragen die DB (isGateBlocked) — wenige, pro Spalte.
+                    'gated' => (bool) $slot->blocked_until_previous_done,
+                    'gate_blocked' => $slot->blocked_until_previous_done ? $slot->isGateBlocked() : false,
                     'tasks' => $tasks,
                     'open_count' => $tasks->count(),
                     'open_points' => $tasks->sum(

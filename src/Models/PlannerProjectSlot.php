@@ -18,12 +18,14 @@ class PlannerProjectSlot extends Model
         'name',
         'color',
         'order',
+        'blocked_until_previous_done',
         'user_id',
         'team_id',
     ];
 
     protected $casts = [
         'uuid' => 'string',
+        'blocked_until_previous_done' => 'boolean',
     ];
 
     protected static function booted(): void
@@ -51,6 +53,29 @@ class PlannerProjectSlot extends Model
     public function tasks(): HasMany
     {
         return $this->hasMany(PlannerTask::class, 'project_slot_id');
+    }
+
+    /**
+     * Gate offen? Ein gegateter Slot hält seine Tasks zurück, solange ein
+     * früherer Slot (kleinere `order`, selbes Projekt) noch offene Tasks hat.
+     * Für UI-Badges gedacht; die Claim-Sperre lebt in PlannerTask::notBlocked.
+     */
+    public function isGateBlocked(): bool
+    {
+        if (! $this->blocked_until_previous_done) {
+            return false;
+        }
+
+        $terminal = [
+            \Platform\Planner\Enums\TaskLifecycleState::COMPLETED->value,
+            \Platform\Planner\Enums\TaskLifecycleState::DISCARDED->value,
+        ];
+
+        return PlannerTask::query()
+            ->where('project_id', $this->project_id)
+            ->whereNotIn('lifecycle_state', $terminal)
+            ->whereHas('projectSlot', fn ($s) => $s->where('order', '<', $this->order))
+            ->exists();
     }
 
     public function user(): BelongsTo

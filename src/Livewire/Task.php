@@ -11,6 +11,7 @@ use Platform\Core\Models\ContextFile;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectSlot;
+use Platform\Planner\Enums\TaskLifecycleState;
 
 
 class Task extends Component
@@ -40,6 +41,7 @@ class Task extends Component
     public array $projectMoveOptions = [];
     public array $projectSlotOptions = [];
     public ?string $referrer = null;
+    public string $blockerSearch = ''; // Suchtext für die Vorgänger-Auswahl (Abhängigkeiten)
 
 	protected $rules = [
         'task.title' => 'required|string|max:255',
@@ -1291,5 +1293,129 @@ class Task extends Component
             'percentage' => $total > 0 ? round(($checked / $total) * 100) : 0,
             'isComplete' => $total > 0 && $checked === $total,
         ];
+    }
+
+    // ── Abhängigkeiten (blockiert-von) ──────────────────────────────────────
+    // Projekt-intern: die Vorgänger-Auswahl bietet nur Aufgaben desselben Projekts
+    // (bzw. persönliche Aufgaben desselben Inhabers). Projektübergreifende Kanten
+    // bleiben dem LLM-Tool (SetTaskDependencyTool) vorbehalten.
+
+    /** Verknüpfte Vorgänger dieses Tasks (mit Zustand für die Anzeige). */
+    #[Computed]
+    public function blockers()
+    {
+        if (! $this->task) {
+            return collect();
+        }
+
+        return $this->task->blockers()
+            ->get(['planner_tasks.id', 'planner_tasks.title', 'planner_tasks.lifecycle_state'])
+            ->map(fn ($b) => [
+                'id' => $b->id,
+                'title' => $b->title,
+                'label' => $b->lifecycle_state?->label() ?? 'Offen',
+                'open' => $b->lifecycle_state === TaskLifecycleState::ACTIVE,
+            ])
+            ->values();
+    }
+
+    /** Ist dieser Task aktuell durch das Slot-Gate zurückgehalten (frühere Spalte offen)? */
+    #[Computed]
+    public function slotGateBlocked(): bool
+    {
+        return $this->task ? $this->task->isSlotGateBlocked() : false;
+    }
+
+    /** Auswahlkandidaten für einen neuen Vorgänger — projekt-intern, ohne Zyklen. */
+    #[Computed]
+    public function blockerCandidates()
+    {
+        if (! $this->task) {
+            return collect();
+        }
+
+        $search = trim($this->blockerSearch);
+
+        $query = PlannerTask::query()
+            ->whereKeyNot($this->task->id)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
+            ->visibleTo(Auth::user());
+
+        // Projekt-intern (oder persönlich → eigene persönliche Aufgaben).
+        if ($this->task->project_id) {
+            $query->where('project_id', $this->task->project_id);
+        } else {
+            $query->whereNull('project_id')
+                ->where('user_in_charge_id', $this->task->user_in_charge_id);
+        }
+
+        // Bereits verknüpfte Vorgänger nicht erneut anbieten.
+        $existing = $this->task->blockers()->pluck('planner_tasks.id')->all();
+        if (! empty($existing)) {
+            $query->whereNotIn('planner_tasks.id', $existing);
+        }
+
+        if ($search !== '') {
+            $query->whereRaw('LOWER(title) LIKE ?', ['%' . mb_strtolower($search) . '%']);
+        }
+
+        return $query->orderBy('title')
+            ->limit(20)
+            ->get(['planner_tasks.id', 'planner_tasks.title'])
+            // Kandidaten aussortieren, die einen Zyklus erzeugen würden.
+            ->reject(fn ($t) => PlannerTask::wouldCreateDependencyCycle($t->id, $this->task->id))
+            ->take(10)
+            ->values();
+    }
+
+    /** Einen Vorgänger verknüpfen (projekt-intern, mit Selbst-/Zyklus-Schutz). */
+    public function addBlocker(int $blockerId): void
+    {
+        if (! $this->task) {
+            return;
+        }
+        $this->authorize('update', $this->task);
+
+        $blocker = PlannerTask::query()->visibleTo(Auth::user())->whereKey($blockerId)->first();
+        if (! $blocker) {
+            $this->dispatch('notify', ['type' => 'error', 'message' => 'Aufgabe wurde nicht gefunden.']);
+            return;
+        }
+
+        // UI-Regel: nur Aufgaben desselben Projekts (projekt-intern).
+        if ($this->task->project_id && $blocker->project_id !== $this->task->project_id) {
+            $this->dispatch('notify', ['type' => 'error', 'message' => 'Nur Aufgaben desselben Projekts können verknüpft werden.']);
+            return;
+        }
+
+        try {
+            $this->task->addBlocker($blocker);
+        } catch (\InvalidArgumentException $e) {
+            $this->dispatch('notify', ['type' => 'error', 'message' => $e->getMessage()]);
+            return;
+        }
+
+        $this->blockerSearch = '';
+        unset($this->blockers, $this->blockerCandidates, $this->slotGateBlocked);
+
+        $this->dispatch('notify', ['type' => 'success', 'message' => 'Abhängigkeit hinzugefügt.']);
+    }
+
+    /** Eine Vorgänger-Verknüpfung lösen. */
+    public function removeBlocker(int $blockerId): void
+    {
+        if (! $this->task) {
+            return;
+        }
+        $this->authorize('update', $this->task);
+
+        $blocker = PlannerTask::find($blockerId);
+        if ($blocker) {
+            $this->task->removeBlocker($blocker);
+        }
+
+        unset($this->blockers, $this->blockerCandidates, $this->slotGateBlocked);
+
+        $this->dispatch('notify', ['type' => 'success', 'message' => 'Abhängigkeit entfernt.']);
     }
 }

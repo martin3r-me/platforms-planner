@@ -90,12 +90,21 @@
         @endif
     </div>
 
-    {{-- Meta line: due · sp · tag · dod · spacer · postpone · frog · avatar --}}
+    {{-- Meta line: blocked · due · sp · tag · dod · spacer · postpone · frog · avatar --}}
     @php
-        $hasMeta = $duePhrase || $spValue || $firstTag || $dodProgress || ($task->postpone_count ?? 0) > 0 || ($isFrog && $isDone) || $userInCharge;
+        $openBlockers = $task->open_blocker_count; // N+1-sicher: nur wenn withCount('openBlockers') vorbereitet ist
+        $hasMeta = $openBlockers > 0 || $duePhrase || $spValue || $firstTag || $dodProgress || ($task->postpone_count ?? 0) > 0 || ($isFrog && $isDone) || $userInCharge;
     @endphp
     @if($hasMeta)
         <div class="mt-2 flex items-center gap-1.5 text-[10px] text-[color:var(--nx-muted)] leading-none pl-3">
+            @if($openBlockers > 0)
+                <span class="inline-flex items-center gap-0.5 flex-shrink-0 text-[color:var(--nx-warning)] font-medium"
+                    title="Blockiert — wartet auf {{ $openBlockers }} Vorgänger">
+                    @svg('heroicon-o-lock-closed', 'w-3 h-3')
+                    <span class="tabular-nums">{{ $openBlockers }}</span>
+                </span>
+            @endif
+
             @if($duePhrase)
                 <span
                     class="inline-flex items-center gap-0.5 flex-shrink-0 {{ $isOverdue ? 'text-[color:var(--nx-danger)] font-medium' : '' }}"

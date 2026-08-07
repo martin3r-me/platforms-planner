@@ -46,6 +46,9 @@ class PlannerAgentController extends Controller
         $query = PlannerTask::query()
             ->assignedTo($userId)
             ->agentClaimable()
+            // Ausführungs-Gate: offene Vorgänger-Tasks / nicht abgearbeitete frühere
+            // Slots halten die Task zurück (die Triage darf trotzdem vorlaufen).
+            ->notBlocked()
             ->where(fn ($q) => $this->requiresTriageDone($q));
 
         // Story-Points-Filter (Worker sendet sein Limit aus den Settings).
@@ -266,6 +269,9 @@ class PlannerAgentController extends Controller
             // Projekte mit Triage-Pflicht: offene Triage-Rückfragen (noch nicht triagiert) sind
             // Sache des Triage-Claims — die Ausführung setzt erst nach der Freigabe fort.
             ->where(fn ($q) => $this->requiresTriageDone($q))
+            // Auch eine beantwortete Ausführungs-Rückfrage bleibt zurückgehalten, solange ein
+            // Vorgänger offen ist — sie setzt fort, sobald die Blockade gelöst ist.
+            ->notBlocked()
             ->whereExists(function ($q) use ($userId) {
                 $q->select(DB::raw(1))
                     ->from('terminal_messages as tm')
@@ -305,6 +311,7 @@ class PlannerAgentController extends Controller
         $nextUp = PlannerTask::query()
             ->where('user_in_charge_id', $userId)
             ->agentClaimable()
+            ->notBlocked()
             ->with('project:id,name')
             ->leftJoin('planner_project_slots', 'planner_tasks.project_slot_id', '=', 'planner_project_slots.id')
             ->orderByRaw('planner_project_slots.order IS NULL')
@@ -327,7 +334,7 @@ class PlannerAgentController extends Controller
         return response()->json(['data' => [
             'totals' => [
                 'tasks' => $open()->count(),
-                'ready' => PlannerTask::query()->where('user_in_charge_id', $userId)->agentClaimable()->count(),
+                'ready' => PlannerTask::query()->where('user_in_charge_id', $userId)->agentClaimable()->notBlocked()->count(),
                 'rueckfragen' => $open()->whereNotNull('agent_waiting_at')->count(),
                 'oldest' => $open()->min('created_at'),
             ],

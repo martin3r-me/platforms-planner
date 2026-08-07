@@ -60,7 +60,7 @@ class DelegatedTasks extends Component
         // === 0. FÄLLIGE/ÜBERFÄLLIGE DELEGIERTE AUFGABEN ===
         $tomorrow = now()->addDay()->endOfDay();
         
-        $dueTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])
+        $dueTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])->withCount('openBlockers')
             ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->whereNotNull('due_date')
             ->where(function ($q) use ($tomorrow) {
@@ -85,7 +85,7 @@ class DelegatedTasks extends Component
         ];
 
         // === 1. INBOX ===
-        $inboxTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])
+        $inboxTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])->withCount('openBlockers')
             ->whereNull('delegated_group_id')
             ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->where('user_id', $userId) // Vom aktuellen User erstellt
@@ -108,7 +108,7 @@ class DelegatedTasks extends Component
         // Für delegierte Aufgaben: Separate DelegatedTaskGroups verwenden
         // WICHTIG: Alle Gruppen anzeigen, auch leere, damit User Aufgaben hinzufügen kann
         $grouped = PlannerDelegatedTaskGroup::with(['tasks' => function ($q) use ($userId) {
-            $q->with(['tags', 'contextColors', 'userInCharge', 'project'])
+            $q->with(['tags', 'contextColors', 'userInCharge', 'project'])->withCount('openBlockers')
               ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
               ->where('user_id', $userId) // Vom aktuellen User erstellt
               ->whereNotNull('user_in_charge_id') // Hat einen Verantwortlichen
@@ -128,7 +128,7 @@ class DelegatedTasks extends Component
         ]);
 
         // === 3. ERLEDIGT ===
-        $doneTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])
+        $doneTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])->withCount('openBlockers')
             ->where('lifecycle_state', TaskLifecycleState::COMPLETED->value)
             ->where('user_id', $userId) // Vom aktuellen User erstellt
             ->whereNotNull('user_in_charge_id') // Hat einen Verantwortlichen

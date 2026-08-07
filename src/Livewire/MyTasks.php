@@ -66,7 +66,7 @@ class MyTasks extends Component
         // === 0. FÄLLIGE/ÜBERFÄLLIGE AUFGABEN ===
         $tomorrow = now()->addDay()->endOfDay();
         
-        $dueTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])
+        $dueTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])->withCount('openBlockers')
             ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->whereNotNull('due_date')
             ->where(function ($q) use ($tomorrow) {
@@ -98,7 +98,7 @@ class MyTasks extends Component
         ];
 
         // === 1. INBOX ===
-        $inboxTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])
+        $inboxTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])->withCount('openBlockers')
             ->whereNull('task_group_id')
             ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
             ->where(function ($q) use ($userId) {
@@ -126,7 +126,7 @@ class MyTasks extends Component
 
         // === 2. GRUPPEN ===
         $grouped = PlannerTaskGroup::with(['tasks' => function ($q) use ($userId) {
-            $q->with(['tags', 'contextColors', 'userInCharge', 'project'])
+            $q->with(['tags', 'contextColors', 'userInCharge', 'project'])->withCount('openBlockers')
               ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
               ->where(function ($q) use ($userId) {
                   $q->where(function ($q) use ($userId) {
@@ -153,7 +153,7 @@ class MyTasks extends Component
         ]);
 
         // === 3. ERLEDIGT ===
-        $doneTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])
+        $doneTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])->withCount('openBlockers')
             ->where('lifecycle_state', TaskLifecycleState::COMPLETED->value)
             ->where(function ($q) use ($userId) {
                 $q->where(function ($q) use ($userId) {

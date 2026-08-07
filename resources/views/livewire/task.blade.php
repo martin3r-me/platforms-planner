@@ -420,6 +420,70 @@
                 </div>
             </section>
 
+            {{-- ABHÄNGIGKEITEN (blockiert-von) --}}
+            <section class="rounded-xl bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)] overflow-hidden">
+                <div class="px-5 py-3 border-b border-[var(--nx-line-strong)]/30 flex items-center gap-2">
+                    @svg('heroicon-o-lock-closed', 'w-4 h-4 text-[var(--nx-muted)]')
+                    <h2 class="text-[11px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] m-0">Abhängigkeiten</h2>
+                    @php $openBlockers = collect($this->blockers)->where('open', true)->count(); @endphp
+                    @if($openBlockers > 0 || $this->slotGateBlocked)
+                        <span class="ml-auto inline-flex items-center gap-1 rounded-full bg-[var(--nx-warning)]/15 px-2 py-0.5 text-[11px] font-medium text-[var(--nx-warning)]">
+                            🔒 blockiert
+                        </span>
+                    @endif
+                </div>
+                <div class="p-5 space-y-4">
+                    {{-- Slot-Gate-Hinweis --}}
+                    @if($this->slotGateBlocked)
+                        <div class="text-[12px] text-[var(--nx-muted)] rounded-lg bg-[color:var(--nx-hover)] px-3 py-2">
+                            Diese Spalte ist auf „Erst nach vorherigen Spalten" gestellt — die Aufgabe wird erst
+                            ausführbar, wenn alle Aufgaben in davorliegenden Spalten erledigt/verworfen sind.
+                        </div>
+                    @endif
+
+                    {{-- Liste der Vorgänger --}}
+                    @forelse($this->blockers as $b)
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full flex-shrink-0 {{ $b['open'] ? 'bg-[var(--nx-warning)]' : 'bg-[var(--nx-success)]' }}"></span>
+                            <a href="{{ route('planner.tasks.show', $b['id']) }}" wire:navigate class="min-w-0 flex-1 truncate text-sm text-[color:var(--nx-text)] hover:underline">
+                                {{ $b['title'] }}
+                            </a>
+                            <span class="text-[11px] text-[var(--nx-muted)]">{{ $b['label'] }}</span>
+                            <button type="button" wire:click="removeBlocker({{ $b['id'] }})"
+                                title="Abhängigkeit entfernen"
+                                class="text-[var(--nx-muted)] hover:text-[var(--nx-danger)] transition-colors">
+                                @svg('heroicon-o-x-mark', 'w-4 h-4')
+                            </button>
+                        </div>
+                    @empty
+                        <p class="text-[12px] text-[var(--nx-muted)] m-0">Keine Vorgänger. Diese Aufgabe wartet auf nichts.</p>
+                    @endforelse
+
+                    {{-- Vorgänger hinzufügen (projekt-intern) --}}
+                    <div class="pt-1">
+                        <x-nx-input-text
+                            name="blockerSearch"
+                            label=""
+                            wire:model.live.debounce.300ms="blockerSearch"
+                            placeholder="Vorgänger suchen (nur dieses Projekt)…"
+                        />
+                        @if(trim($this->blockerSearch) !== '')
+                            <div class="mt-2 rounded-lg border border-[color:var(--nx-line)] divide-y divide-[color:var(--nx-line)] overflow-hidden">
+                                @forelse($this->blockerCandidates as $c)
+                                    <button type="button" wire:click="addBlocker({{ $c->id }})"
+                                        class="w-full text-left px-3 py-2 text-sm text-[color:var(--nx-text)] hover:bg-[color:var(--nx-hover)] transition-colors flex items-center gap-2">
+                                        @svg('heroicon-o-plus', 'w-3.5 h-3.5 text-[var(--nx-muted)] flex-shrink-0')
+                                        <span class="truncate">{{ $c->title }}</span>
+                                    </button>
+                                @empty
+                                    <p class="px-3 py-2 text-[12px] text-[var(--nx-muted)] m-0">Keine passenden Aufgaben.</p>
+                                @endforelse
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </section>
+
             {{-- EXTRA FIELDS --}}
             <x-core-extra-fields-section
                 :definitions="$this->extraFieldDefinitions"
