@@ -96,7 +96,7 @@ class ListProjectMetricsTool implements ToolContract, ToolMetadataContract
 
             $projects = PlannerProject::withStale()
                 ->where('team_id', $teamId)
-                ->get(['id', 'name', 'done', 'user_id', 'created_at']);
+                ->get(['id', 'name', 'lifecycle_state', 'user_id', 'created_at']);
 
             // Policy: nur Projekte, die der User sehen darf (wie UI)
             $projects = $projects->filter(fn($p) => Gate::forUser($context->user)->allows('view', $p))->values();

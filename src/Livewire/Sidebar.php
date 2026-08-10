@@ -65,6 +65,31 @@ class Sidebar extends Component
         return redirect()->route('planner.projects.show', ['plannerProject' => $project->id]);
     }
 
+    /**
+     * Team-Familie im Scope: Root-Team + alle (rekursiven) Kind-Teams. So sieht
+     * ein User in einem Kind-Team auch die im (root-verankerten) Org-Baum
+     * hängenden Projekte der Familie. Spiegelt ProjectsPresentation::relevantTeamIds().
+     */
+    protected function relevantTeamIds($user): array
+    {
+        $current = $user?->currentTeam;
+        if (!$current) {
+            return [];
+        }
+
+        $root = $current->getRootTeam();
+        $ids = [$root->id];
+        $walker = function ($team) use (&$walker, &$ids) {
+            foreach ($team->childTeams()->get() as $child) {
+                $ids[] = $child->id;
+                $walker($child);
+            }
+        };
+        $walker($root);
+
+        return array_values(array_unique($ids));
+    }
+
     public function render()
     {
         $user = auth()->user();
@@ -78,10 +103,15 @@ class Sidebar extends Component
             ]);
         }
 
+        // Team-Scope = ganze Familie (Root-Team + alle Kind-Teams). Der Org-Baum
+        // ist am Root-Team verankert; ein User in einem Kind-Team muss die im Baum
+        // hängenden Projekte der Familie sehen — sonst bleibt die Sidebar leer.
+        $teamIds = $this->relevantTeamIds($user);
+
         // 1. Projekte laden (gleicher User-Filter wie bisher)
         $projectsWithUserTasks = Project::query()
             ->with(['contextColors'])
-            ->where('team_id', $teamId)
+            ->whereIn('team_id', $teamIds)
             ->where(function ($query) use ($user) {
                 $query->whereHas('projectSlots.tasks', function ($q) use ($user) {
                     $q->where('user_in_charge_id', $user->id)
@@ -100,7 +130,7 @@ class Sidebar extends Component
         // Ohne diesen Filter tauchen Projekte auf, die beim Klick einen 403 werfen.
         $allProjects = Project::query()
             ->with(['contextColors'])
-            ->where('team_id', $teamId)
+            ->whereIn('team_id', $teamIds)
             ->viewableBy($user)
             ->orderBy('name')
             ->get();
