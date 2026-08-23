@@ -427,6 +427,89 @@ class PlannerAgentController extends Controller
         return response()->json(['data' => ['id' => $task->id, 'uuid' => $task->uuid]], 201);
     }
 
+    /**
+     * WIEDERKEHRENDE Aufgabe (Vorlage) anlegen — der autonome Worker richtet sich seine Routinen
+     * selbst ein (z. B. „woechentlich montags DRIP-Umsaetze kategorisieren"). Self-assigned, sofern
+     * user_in_charge_id nicht gesetzt. Team = Projekt-Team oder aktuelles Team des Workers. Die
+     * Vorlage erzeugt (per Cron) die eigentlichen Tasks. Deterministisch via REST — Pendant zum
+     * MCP-Tool planner.recurring_tasks.POST (gemeinsamer StoreRecurringTask-Service).
+     *
+     * POST /api/planner/agent/recurring-tasks
+     */
+    public function createRecurringTask(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+        $data = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string|max:10000',
+            'recurrence_type' => 'required|string|in:daily,weekly,monthly,yearly',
+            'recurrence_interval' => 'nullable|integer|min:1|max:365',
+            'next_due_date' => 'required|date',
+            'recurrence_end_date' => 'nullable|date',
+            'weekday_mask' => 'nullable|integer|min:0|max:127',
+            'project_id' => 'nullable|integer',
+            'project_slot_id' => 'nullable|integer',
+            'user_in_charge_id' => 'nullable|integer',
+            'story_points' => 'nullable|string|max:8',
+            'planned_minutes' => 'nullable|integer|min:1|max:100000',
+            'lead_time_days' => 'nullable|integer|min:0|max:365',
+            'skip_weekends' => 'nullable|boolean',
+            'max_occurrences' => 'nullable|integer|min:1',
+        ]);
+
+        $teamId = (int) ($user->current_team_id ?? 0);
+        $project = null;
+        if (! empty($data['project_id'])) {
+            $project = PlannerProject::find($data['project_id']);
+            if (! $project) {
+                return response()->json(['message' => 'Project not found'], 404);
+            }
+            $teamId = (int) $project->team_id;
+        }
+        if ($teamId < 1) {
+            return response()->json(['message' => 'No team context for worker'], 422);
+        }
+
+        // Story points normalisieren (leer/ungueltig → null, damit der Enum-Cast nie knallt).
+        $sp = strtolower(trim((string) ($data['story_points'] ?? '')));
+        $allowedSp = collect(TaskStoryPoints::cases())->map(fn ($s) => $s->value)->all();
+        $storyPoints = in_array($sp, $allowedSp, true) ? $sp : null;
+
+        $recurring = app(\Platform\Planner\Services\StoreRecurringTask::class)->store([
+            'user_id' => $user->id,
+            'user_in_charge_id' => $data['user_in_charge_id'] ?? $user->id,
+            'team_id' => $teamId,
+            'title' => $data['title'],
+            'description' => $data['description'] ?? null,
+            'recurrence_type' => $data['recurrence_type'],
+            'recurrence_interval' => $data['recurrence_interval'] ?? 1,
+            'next_due_date' => $data['next_due_date'],
+            'recurrence_end_date' => $data['recurrence_end_date'] ?? null,
+            'weekday_mask' => $data['weekday_mask'] ?? null,
+            'project_id' => $project?->id,
+            'project_slot_id' => $data['project_slot_id'] ?? null,
+            'story_points' => $storyPoints,
+            'planned_minutes' => $data['planned_minutes'] ?? null,
+            'lead_time_days' => $data['lead_time_days'] ?? null,
+            'skip_weekends' => $data['skip_weekends'] ?? null,
+            'max_occurrences' => $data['max_occurrences'] ?? null,
+        ]);
+
+        Log::info('[Planner Agent] Recurring task angelegt', ['id' => $recurring->id, 'user_id' => $user->id]);
+
+        return response()->json(['data' => [
+            'id' => $recurring->id,
+            'uuid' => $recurring->uuid,
+            'title' => $recurring->title,
+            'recurrence_type' => $recurring->recurrence_type,
+            'recurrence_interval' => $recurring->recurrence_interval,
+            'next_due_date' => optional($recurring->next_due_date)->toIso8601String(),
+        ]], 201);
+    }
+
     /** Task als erledigt melden + Notiz des Workers. */
     public function complete(Request $request, int $id): JsonResponse
     {
