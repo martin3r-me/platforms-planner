@@ -90,9 +90,11 @@ class DeleteProjectSlotTool implements ToolContract
             $projectId = $project->id;
 
             // Aufgaben in Backlog verschieben (project_slot_id auf null setzen)
+            // project_slot_order ist NOT NULL in der DB; Backlog-Aufgaben nutzen 0 statt null
+            // (gleiche Konvention wie beim Slot-Wechsel via planner.tasks.PUT).
             $slot->tasks()->update([
                 'project_slot_id' => null,
-                'project_slot_order' => null,
+                'project_slot_order' => 0,
             ]);
 
             // Slot löschen
@@ -106,6 +108,9 @@ class DeleteProjectSlotTool implements ToolContract
                 'moved_tasks_count' => $tasksCount,
                 'message' => "Slot '{$slotName}' wurde gelöscht. {$tasksCount} Aufgabe(n) wurden in das Projekt-Backlog verschoben."
             ]);
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Nie rohe SQLSTATE-/Verbindungsdetails (Host, DB-Name, Query) an den Client durchreichen.
+            return ToolResult::error('EXECUTION_ERROR', 'Fehler beim Löschen des Slots: Es ist ein interner Datenbankfehler aufgetreten.');
         } catch (\Throwable $e) {
             return ToolResult::error('EXECUTION_ERROR', 'Fehler beim Löschen des Slots: ' . $e->getMessage());
         }
