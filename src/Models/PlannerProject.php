@@ -31,6 +31,7 @@ use Platform\Planner\Enums\CustomerBillingMethod;
 
 /**
  * @ai.description Projekt bündelt Aufgaben (Tasks) und Sprints. Dient als Container für Planung, Ressourcen und Fortschritt eines Vorhabens im Team.
+ * @property-read string $title Berechneter Anzeigename: "<KIND-PREFIX> · <name>".
  */
 class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayName, AgendaRenderable, HasChildContextRelations
 {

@@ -330,6 +330,7 @@ class PlannerServiceProvider extends ServiceProvider
 
             // Project-Snapshots (Tages-Health-Snapshot pro Projekt)
             $registry->register(new \Platform\Planner\Tools\GetProjectSnapshotTool());
+            $registry->register(new \Platform\Planner\Tools\CreateProjectSnapshotTool());
             $registry->register(new \Platform\Planner\Tools\GetProjectSnapshotTrendTool());
             $registry->register(new \Platform\Planner\Tools\ListProjectSnapshotsSummaryTool());
 
