@@ -356,23 +356,22 @@ class UpdateTaskTool implements ToolContract
             }
 
             // Projekt ändern
+            // WICHTIG: array_key_exists (nicht isset!) verwenden, da explizites null
+            // ("mache Aufgabe persönlich") sonst mit "Key fehlt" verwechselt wird
+            // und der ganze Block stillschweigend übersprungen wird.
             $projectChanged = false;
             if (array_key_exists('project_id', $arguments)) {
-                if ($arguments['project_id'] === '') {
+                $rawProjectId = $arguments['project_id'];
+                if ($rawProjectId === '') {
                     // leere Strings ignorieren (Bulk-Overwrites vermeiden)
-                    $arguments['project_id'] = null;
-                    // aber NICHT als "clear" behandeln: wir setzen keinen updateData key
-                }
-            }
-            if (isset($arguments['project_id'])) {
-                if (empty($arguments['project_id']) || $arguments['project_id'] === 0) {
+                } elseif ($rawProjectId === null || $rawProjectId === 0 || $rawProjectId === '0') {
                     // Persönliche Aufgabe machen
                     $updateData['project_id'] = null;
                     $updateData['project_slot_id'] = null; // Slot muss auch entfernt werden
                     $projectChanged = true;
                 } else {
                     // Neues Projekt prüfen
-                    $newProject = PlannerProject::withStale()->find($arguments['project_id']);
+                    $newProject = PlannerProject::withStale()->find($rawProjectId);
                     if (!$newProject) {
                         return ToolResult::error('PROJECT_NOT_FOUND', 'Das angegebene Projekt wurde nicht gefunden. Nutze "planner.projects.GET" um alle verfügbaren Projekte zu sehen.');
                     }
@@ -391,23 +390,21 @@ class UpdateTaskTool implements ToolContract
             }
 
             // Slot ändern (Verschieben zwischen Slots)
+            // Gleiches Prinzip wie oben: array_key_exists statt isset, damit
+            // project_slot_id=null (→ Backlog) nicht als "nicht gesetzt" gilt.
             $slotChanged = false;
             if (array_key_exists('project_slot_id', $arguments)) {
-                if ($arguments['project_slot_id'] === '') {
+                $rawSlotId = $arguments['project_slot_id'];
+                if ($rawSlotId === '') {
                     // leere Strings ignorieren (Bulk-Overwrites vermeiden)
-                    $arguments['project_slot_id'] = null;
-                    // aber NICHT als "clear" behandeln: wir setzen keinen updateData key
-                }
-            }
-            if (isset($arguments['project_slot_id'])) {
-                if (empty($arguments['project_slot_id']) || $arguments['project_slot_id'] === 0) {
+                } elseif ($rawSlotId === null || $rawSlotId === 0 || $rawSlotId === '0') {
                     // Aus Slot ins Backlog verschieben
                     $updateData['project_slot_id'] = null;
                     $updateData['project_slot_order'] = 0; // Backlog-Aufgaben haben project_slot_order = 0 (nicht null!)
                     $slotChanged = true;
                 } else {
                     // Neuen Slot prüfen
-                    $newSlot = PlannerProjectSlot::find($arguments['project_slot_id']);
+                    $newSlot = PlannerProjectSlot::find($rawSlotId);
                     if (!$newSlot) {
                         return ToolResult::error('SLOT_NOT_FOUND', 'Der angegebene Slot wurde nicht gefunden. Nutze "planner.project_slots.GET" um alle verfügbaren Slots zu sehen.');
                     }
@@ -419,7 +416,7 @@ class UpdateTaskTool implements ToolContract
                     }
 
                     $updateData['project_slot_id'] = $newSlot->id;
-                    
+
                     // Order im neuen Slot berechnen (neue Aufgabe kommt an den Anfang: min - 1)
                     $minOrder = PlannerTask::where('project_slot_id', $newSlot->id)
                         ->min('project_slot_order');
@@ -429,7 +426,7 @@ class UpdateTaskTool implements ToolContract
             }
 
             // Wenn Projekt geändert wurde, aber Slot nicht explizit gesetzt, Slot entfernen
-            if ($projectChanged && !isset($arguments['project_slot_id'])) {
+            if ($projectChanged && !array_key_exists('project_slot_id', $arguments)) {
                 $updateData['project_slot_id'] = null;
                 $updateData['project_slot_order'] = 0; // Backlog-Aufgaben haben project_slot_order = 0 (nicht null!)
             }
