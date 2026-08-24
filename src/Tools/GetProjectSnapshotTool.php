@@ -10,12 +10,11 @@ use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectSnapshot;
-use Platform\Planner\Services\ProjectSnapshotService;
 
 /**
  * GET den letzten Snapshot eines Projekts inkl. Sub-Daten (slots/frogs/people).
  * Optional taken_on=YYYY-MM-DD um einen historischen Snapshot zu holen.
- * Optional fresh=true erzwingt einen neuen Snapshot (manueller Trigger).
+ * Rein lesend — zum Erzwingen eines neuen Snapshots siehe planner.project_snapshots.POST.
  */
 class GetProjectSnapshotTool implements ToolContract, ToolMetadataContract
 {
@@ -26,7 +25,7 @@ class GetProjectSnapshotTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'GET /project-snapshots - Holt den juengsten Snapshot eines Projekts (oder einen historischen via taken_on) inkl. Health-Ampel, Score, Confidence, Sub-Daten (Slot-Breakdown, Top-5-Froesche, Person-Workload). Optional fresh=true erzwingt einen neuen Snapshot (manueller Trigger).';
+        return 'GET /project-snapshots - Holt den juengsten Snapshot eines Projekts (oder einen historischen via taken_on) inkl. Health-Ampel, Score, Confidence, Sub-Daten (Slot-Breakdown, Top-5-Froesche, Person-Workload). Rein lesend, kein Nebeneffekt. Um einen neuen Snapshot zu erzwingen, nutze planner.project_snapshots.POST.';
     }
 
     public function getSchema(): array
@@ -41,10 +40,6 @@ class GetProjectSnapshotTool implements ToolContract, ToolMetadataContract
                 'taken_on' => [
                     'type' => 'string',
                     'description' => 'Optional: historischer Stichtag im Format YYYY-MM-DD. Default: juengster Snapshot.',
-                ],
-                'fresh' => [
-                    'type' => 'boolean',
-                    'description' => 'Optional: wenn true wird ein neuer Snapshot erstellt (Trigger=manual) und zurueckgegeben.',
                 ],
             ],
             'required' => ['project_id'],
@@ -72,21 +67,17 @@ class GetProjectSnapshotTool implements ToolContract, ToolMetadataContract
                 return ToolResult::error('ACCESS_DENIED', 'Kein Lesezugriff auf das Projekt.');
             }
 
-            if (!empty($arguments['fresh'])) {
-                $snapshot = app(ProjectSnapshotService::class)->snapshot($project, 'manual');
-            } else {
-                $query = PlannerProjectSnapshot::where('project_id', $project->id);
-                if (!empty($arguments['taken_on'])) {
-                    $query->whereDate('taken_on', $arguments['taken_on']);
-                }
-                $snapshot = $query->orderByDesc('taken_on')->first();
+            $query = PlannerProjectSnapshot::where('project_id', $project->id);
+            if (!empty($arguments['taken_on'])) {
+                $query->whereDate('taken_on', $arguments['taken_on']);
             }
+            $snapshot = $query->orderByDesc('taken_on')->first();
 
             if (!$snapshot) {
                 return ToolResult::success([
                     'project_id' => $project->id,
                     'snapshot' => null,
-                    'message' => 'Noch kein Snapshot vorhanden. Setze fresh=true um den ersten zu erstellen.',
+                    'message' => 'Noch kein Snapshot vorhanden. Nutze planner.project_snapshots.POST um den ersten zu erstellen.',
                 ]);
             }
 
@@ -207,11 +198,11 @@ class GetProjectSnapshotTool implements ToolContract, ToolMetadataContract
         return [
             'category' => 'query',
             'tags' => ['planner', 'project', 'snapshot', 'health', 'get'],
-            'read_only' => false, // fresh=true erstellt einen neuen Snapshot
+            'read_only' => true,
             'requires_auth' => true,
             'requires_team' => false,
             'risk_level' => 'safe',
-            'idempotent' => true, // max 1 Snapshot/Tag/Projekt — fresh=true ueberschreibt deterministisch
+            'idempotent' => true,
         ];
     }
 }
