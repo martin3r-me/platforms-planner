@@ -34,7 +34,7 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
 
     public function getDescription(): string
     {
-        return 'POST /tasks - Erstellt eine neue Aufgabe. REST-Parameter: title (required, string) - Titel der Aufgabe. project_id (optional, integer) - Projekt-ID. project_slot_id (optional, integer) - Slot-ID. description (optional, string) - Beschreibung. dod_items (optional, array) - Definition of Done als Array von {text, checked} Items. due_date (optional, date) - Fälligkeitsdatum. user_in_charge_id (optional, integer) - verantwortlicher User. WICHTIG: user_id wird automatisch auf den aktuellen User gesetzt.';
+        return 'POST /tasks - Erstellt eine neue Aufgabe. REST-Parameter: title (required, string) - Titel der Aufgabe. project_id (optional, integer) - Projekt-ID. project_slot_id (optional, integer) - Slot-ID. description (optional, string) - Beschreibung. dod_items (optional, array) - Definition of Done als Array von {text, checked} Items. due_date (optional, date) - Fälligkeitsdatum. user_in_charge_id (optional, integer) - verantwortlicher User. WICHTIG: user_id wird automatisch auf den aktuellen User gesetzt. WICHTIG: user_in_charge_id wird ebenfalls automatisch auf den aktuellen User gesetzt, wenn nicht angegeben (auch ein explizit übergebenes user_in_charge_id=null unterdrückt das nicht — es gibt aktuell keine Möglichkeit, die Aufgabe ohne Verantwortlichen anzulegen).';
     }
 
     public function getSchema(): array
@@ -80,7 +80,7 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
                 ],
                 'user_in_charge_id' => [
                     'type' => 'integer',
-                    'description' => 'Optional: ID des Users, der für die Aufgabe zuständig ist. Wenn nicht angegeben, wird der aktuelle User verwendet. Nutze "core.users.list" um Users zu finden.'
+                    'description' => 'Optional: ID des Users, der für die Aufgabe zuständig ist. Wenn nicht angegeben (oder explizit null), wird der aktuelle User verwendet. Nutze "core.users.list" um Users zu finden.'
                 ],
                 'planned_minutes' => [
                     'type' => 'integer',
@@ -197,7 +197,8 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
                 return ToolResult::error('MISSING_TEAM', 'Kein Team gefunden. Persönliche Aufgaben benötigen ein Team im Kontext.');
             }
 
-            // User in Charge bestimmen
+            // User in Charge bestimmen — ?? fängt auch ein explizit übergebenes null ab,
+            // d.h. "keinen Verantwortlichen setzen" ist über die API aktuell nicht möglich.
             $userInChargeId = $arguments['user_in_charge_id'] ?? $context->user->id;
 
             // Order berechnen (neue Aufgabe kommt an den Anfang)
