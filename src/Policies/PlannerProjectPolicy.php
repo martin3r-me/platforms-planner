@@ -28,6 +28,15 @@ class PlannerProjectPolicy extends RolePolicy
         return $this->graphAllows($user, $project, 'manage');
     }
 
+    /**
+     * Hard-Delete/Purge (unwiderruflich) — gleiche Schwelle wie delete() (Owner/Admin),
+     * separat benannt, damit die Absicht (Purge statt Soft-Delete) im Code sichtbar bleibt.
+     */
+    public function forceDelete(User $user, $project): bool
+    {
+        return $this->graphAllows($user, $project, 'manage');
+    }
+
     public function create(User $user): bool
     {
         // Jedes Team-Mitglied kann Projekte erstellen (wird sein Ersteller).

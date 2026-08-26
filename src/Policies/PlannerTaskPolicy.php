@@ -87,6 +87,27 @@ class PlannerTaskPolicy extends BasePolicy
     }
 
     /**
+     * Hard-Delete/Purge (unwiderruflich) — gleiche Schwelle wie delete() (Owner/Admin).
+     */
+    public function forceDelete(User $user, $task): bool
+    {
+        if ($this->isOwner($user, $task)) {
+            return true;
+        }
+
+        if (!$task->project_id) {
+            return false;
+        }
+
+        $project = $task->project;
+        if (!$project) {
+            return false;
+        }
+
+        return $this->canAdminProject($user, $project);
+    }
+
+    /**
      * Darf der User diese Aufgabe erstellen?
      */
     public function create(User $user, ?PlannerProject $project = null): bool
