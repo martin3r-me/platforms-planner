@@ -9,6 +9,8 @@ use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Tools\Concerns\HasStandardizedWriteOperations;
 use Platform\Planner\Models\PlannerProjectCanvasEntry;
 use Platform\Planner\Tools\Canvas\Concerns\ResolvesCanvasTeam;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Auth\Access\AuthorizationException;
 
 class DeleteEntryTool implements ToolContract, ToolMetadataContract
 {
@@ -22,7 +24,7 @@ class DeleteEntryTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'DELETE /planner/canvas/entries/{id} - Loescht einen Entry (Soft-Delete). ERFORDERLICH: entry_id.';
+        return 'DELETE /planner/canvas/entries/{id} - Loescht einen Entry (Standard: Soft-Delete). ERFORDERLICH: entry_id. Mit force=true wird unwiderruflich hart gelöscht (Purge) — nur für Owner/Admin des zugehörigen Projekts, erfordert confirm=true.';
     }
 
     public function getSchema(): array
@@ -36,6 +38,14 @@ class DeleteEntryTool implements ToolContract, ToolMetadataContract
                 'entry_id' => [
                     'type' => 'integer',
                     'description' => 'ID des Entry (ERFORDERLICH).',
+                ],
+                'force' => [
+                    'type' => 'boolean',
+                    'description' => 'Optional: Hard-Delete/Purge statt Soft-Delete. Löscht den Entry unwiderruflich (kein Restore möglich). Nur für Owner/Admin des Projekts. Erfordert zwingend confirm=true.',
+                ],
+                'confirm' => [
+                    'type' => 'boolean',
+                    'description' => 'Bei force=true IMMER erforderlich: explizite Bestätigung der unwiderruflichen Löschung.',
                 ],
             ],
             'required' => ['entry_id'],
@@ -56,18 +66,55 @@ class DeleteEntryTool implements ToolContract, ToolMetadataContract
                 return ToolResult::error('VALIDATION_ERROR', 'entry_id ist erforderlich.');
             }
 
-            $entry = PlannerProjectCanvasEntry::query()
-                ->whereHas('block.canvas', fn ($q) => $q->where('team_id', $teamId))
-                ->find($entryId);
+            $force = (bool) ($arguments['force'] ?? false);
+
+            $query = PlannerProjectCanvasEntry::query()
+                ->whereHas('block.canvas', fn ($q) => $q->where('team_id', $teamId));
+            if ($force) {
+                // Bei force=true auch bereits soft-gelöschte Entries finden — genau diese sind
+                // der Hauptfall für Purge.
+                $query->withTrashed();
+            }
+            $entry = $query->find($entryId);
 
             if (!$entry) {
                 return ToolResult::error('NOT_FOUND', 'Entry nicht gefunden (oder kein Zugriff).');
+            }
+
+            if ($force) {
+                // Hard-Delete/Purge: nur Owner/Admin des zugehörigen Projekts (gleiche Schwelle
+                // wie planner.projects.DELETE force=true), da Entry/Canvas keine eigene Policy hat.
+                $project = $entry->block?->canvas?->project;
+                if (!$project) {
+                    return ToolResult::error('PROJECT_NOT_FOUND', 'Das zugehörige Projekt wurde nicht gefunden.');
+                }
+                try {
+                    Gate::forUser($context->user)->authorize('forceDelete', $project);
+                } catch (AuthorizationException $e) {
+                    return ToolResult::error('ACCESS_DENIED', 'Du darfst diesen Entry nicht unwiderruflich löschen (nur Owner/Admin des Projekts).');
+                }
+
+                if (!($arguments['confirm'] ?? false)) {
+                    return ToolResult::error('CONFIRMATION_REQUIRED', 'Hard-Delete/Purge des Entry ist UNWIDERRUFLICH und nicht wiederherstellbar. Bitte bestätige explizit mit \'confirm: true\'.');
+                }
+
+                if (method_exists($entry, 'logActivity')) {
+                    $entry->logActivity("Entry hart gelöscht (Purge, force=true) durch {$context->user->name}.");
+                }
+                $entry->forceDelete();
+
+                return ToolResult::success([
+                    'id' => $entryId,
+                    'force' => true,
+                    'message' => 'Entry wurde UNWIDERRUFLICH aus der Datenbank gelöscht (Purge).',
+                ]);
             }
 
             $entry->delete();
 
             return ToolResult::success([
                 'id' => $entryId,
+                'force' => false,
                 'message' => 'Entry geloescht (Soft-Delete).',
             ]);
         } catch (\Throwable $e) {
