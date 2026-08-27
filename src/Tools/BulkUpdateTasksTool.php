@@ -23,12 +23,11 @@ class BulkUpdateTasksTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'PUT /planner/tasks/bulk - Aktualisiert mehrere Tasks in einem Request. '
-            . 'Zwei Modi: (1) task_ids + data: gleiche Änderung für mehrere Tasks '
-            . '(z.B. {"task_ids": [2,3,4], "data": {"project_id": 5}}). '
-            . '(2) updates: individuelle Änderungen pro Task '
-            . '(z.B. {"updates": [{"task_id": 2, "title": "..."}, {"task_id": 3, "title": "..."}]}). '
-            . 'Genau einer der beiden Modi muss verwendet werden.';
+        // NOTE: OpenAI tool descriptions are truncated to ~150 chars in OpenAiService.
+        // Keep the critical contract early: body must be {tasks:[{task_id,...}]} (wie bulk.POST).
+        return 'PUT /planner/tasks/bulk - Body: {tasks:[{task_id,title?,...}]} (analog zu bulk.POST, individuelle Änderungen pro Task). '
+            . 'Alternativ: {task_ids:[2,3,4], data:{...}} für dieselbe Änderung an mehreren Tasks. '
+            . '"updates" ist ein Alias für "tasks" (identisches Schema). Genau einer der beiden Modi muss verwendet werden.';
     }
 
     public function getSchema(): array
@@ -103,44 +102,57 @@ class BulkUpdateTasksTool implements ToolContract, ToolMetadataContract
             'is_done' => ['type' => 'boolean'],
         ];
 
+        // Schema für ein einzelnes Update-Item (Modus 2), identisch für "tasks" und "updates".
+        $updateItemSchema = [
+            'type' => 'array',
+            'items' => [
+                'type' => 'object',
+                'properties' => array_merge(
+                    ['task_id' => ['type' => 'integer']],
+                    $taskFields
+                ),
+                'required' => ['task_id'],
+            ],
+        ];
+
         return [
             'type' => 'object',
             'description' => 'Zwei Modi verfügbar (genau einer muss gewählt werden): '
-                . 'Modus 1 (task_ids + data): Gleiche Änderung für mehrere Tasks. '
-                . 'Beispiel: {"task_ids": [2, 3, 4], "data": {"project_id": 5, "project_slot_id": 5}}. '
-                . 'Modus 2 (updates): Individuelle Änderungen pro Task. '
-                . 'Beispiel: {"updates": [{"task_id": 2, "title": "Neu"}, {"task_id": 3, "is_done": true}]}.',
+                . 'Modus 1 (tasks, wie bulk.POST): Individuelle Änderungen pro Task. '
+                . 'Beispiel: {"tasks": [{"task_id": 2, "title": "Neu"}, {"task_id": 3, "is_done": true}]}. '
+                . '"updates" ist ein gleichwertiger Alias für "tasks". '
+                . 'Modus 2 (task_ids + data): Gleiche Änderung für mehrere Tasks. '
+                . 'Beispiel: {"task_ids": [2, 3, 4], "data": {"project_id": 5, "project_slot_id": 5}}.',
             'properties' => [
                 'atomic' => [
                     'type' => 'boolean',
                     'description' => 'Optional: Wenn true, werden alle Updates in einer DB-Transaktion ausgeführt (bei einem Fehler wird alles zurückgerollt, keine Teil-Updates durchgeführt). Standard: true.',
                 ],
 
-                // Modus 1: task_ids + data (gleiche Änderung für mehrere Tasks)
+                // Modus 1: tasks (analog zu bulk.POST) bzw. sein Alias "updates"
+                'tasks' => array_merge($updateItemSchema, [
+                    'description' => 'Modus 1: Liste von individuellen Updates, analog zu bulk.POST. Jedes Element entspricht den Parametern von planner.tasks.PUT. Kann NICHT zusammen mit "task_ids"/"data" verwendet werden.',
+                ]),
+                'updates' => array_merge($updateItemSchema, [
+                    'description' => 'Alias für "tasks" (identisches Schema). Kann NICHT zusammen mit "tasks" verwendet werden.',
+                ]),
+
+                // Modus 2: task_ids + data (gleiche Änderung für mehrere Tasks)
                 'task_ids' => [
                     'type' => 'array',
-                    'description' => 'Modus 1: Liste von Task-IDs, die alle die gleiche Änderung erhalten. Muss zusammen mit "data" verwendet werden. Kann NICHT zusammen mit "updates" verwendet werden.',
+                    'description' => 'Modus 2: Liste von Task-IDs, die alle die gleiche Änderung erhalten. Muss zusammen mit "data" verwendet werden. Kann NICHT zusammen mit "tasks"/"updates" verwendet werden.',
                     'items' => ['type' => 'integer'],
                 ],
                 'data' => [
                     'type' => 'object',
-                    'description' => 'Modus 1: Die Änderungen, die auf alle task_ids angewendet werden. Entspricht den Feldern von planner.tasks.PUT (ohne task_id). Muss zusammen mit "task_ids" verwendet werden.',
+                    'description' => 'Modus 2: Die Änderungen, die auf alle task_ids angewendet werden. Entspricht den Feldern von planner.tasks.PUT (ohne task_id). Muss zusammen mit "task_ids" verwendet werden.',
                     'properties' => $taskFields,
                 ],
-
-                // Modus 2: updates (individuelle Änderungen pro Task)
-                'updates' => [
-                    'type' => 'array',
-                    'description' => 'Modus 2: Liste von individuellen Updates. Jedes Element entspricht den Parametern von planner.tasks.PUT. Kann NICHT zusammen mit "task_ids"/"data" verwendet werden.',
-                    'items' => [
-                        'type' => 'object',
-                        'properties' => array_merge(
-                            ['task_id' => ['type' => 'integer']],
-                            $taskFields
-                        ),
-                        'required' => ['task_id'],
-                    ],
-                ],
+            ],
+            'anyOf' => [
+                ['required' => ['tasks']],
+                ['required' => ['updates']],
+                ['required' => ['task_ids', 'data']],
             ],
         ];
     }
@@ -152,15 +164,25 @@ class BulkUpdateTasksTool implements ToolContract, ToolMetadataContract
                 return ToolResult::error('AUTH_ERROR', 'Kein User im Kontext gefunden.');
             }
 
+            $hasTasks = isset($arguments['tasks']);
             $hasUpdates = isset($arguments['updates']);
             $hasTaskIds = isset($arguments['task_ids']);
             $hasData = isset($arguments['data']);
 
-            // Validierung: Genau ein Modus muss verwendet werden
-            if ($hasUpdates && ($hasTaskIds || $hasData)) {
+            if ($hasTasks && $hasUpdates) {
                 return ToolResult::error(
                     'INVALID_ARGUMENT',
-                    'Entweder "updates" (Modus 2) ODER "task_ids" + "data" (Modus 1) verwenden, nicht beides gleichzeitig.'
+                    '"tasks" und "updates" sind Aliase für denselben Modus - nur eines von beiden verwenden.'
+                );
+            }
+
+            $hasUpdatesMode = $hasTasks || $hasUpdates;
+
+            // Validierung: Genau ein Modus muss verwendet werden
+            if ($hasUpdatesMode && ($hasTaskIds || $hasData)) {
+                return ToolResult::error(
+                    'INVALID_ARGUMENT',
+                    'Entweder "tasks"/"updates" (Modus 1) ODER "task_ids" + "data" (Modus 2) verwenden, nicht beides gleichzeitig.'
                 );
             }
 
@@ -178,10 +200,10 @@ class BulkUpdateTasksTool implements ToolContract, ToolMetadataContract
                 );
             }
 
-            if (!$hasUpdates && !$hasTaskIds) {
+            if (!$hasUpdatesMode && !$hasTaskIds) {
                 return ToolResult::error(
                     'INVALID_ARGUMENT',
-                    'Entweder "task_ids" + "data" (gleiche Änderung für mehrere Tasks) oder "updates" (individuelle Änderungen pro Task) muss angegeben werden.'
+                    'Entweder "tasks" bzw. "updates" (individuelle Änderungen pro Task) oder "task_ids" + "data" (gleiche Änderung für mehrere Tasks) muss angegeben werden.'
                 );
             }
 
@@ -206,10 +228,10 @@ class BulkUpdateTasksTool implements ToolContract, ToolMetadataContract
                     $updates[] = array_merge(['task_id' => (int)$taskId], $data);
                 }
             } else {
-                // Modus 2: updates-Array direkt verwenden
-                $updates = $arguments['updates'] ?? null;
+                // Modus 1: tasks (bevorzugt, wie bulk.POST) bzw. sein Alias "updates" direkt verwenden
+                $updates = $arguments['tasks'] ?? $arguments['updates'] ?? null;
                 if (!is_array($updates) || empty($updates)) {
-                    return ToolResult::error('INVALID_ARGUMENT', 'updates muss ein nicht-leeres Array sein.');
+                    return ToolResult::error('INVALID_ARGUMENT', '"tasks" (bzw. "updates") muss ein nicht-leeres Array sein.');
                 }
             }
 
