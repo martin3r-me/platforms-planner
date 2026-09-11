@@ -125,7 +125,7 @@ class ListTasksTool implements ToolContract
 
             // Standard-Operationen anwenden
             $this->applyStandardFilters($query, $arguments, [
-                'project_id', 'project_slot_id', 'user_in_charge_id', 'is_done',
+                'id', 'project_id', 'project_slot_id', 'user_in_charge_id', 'is_done',
                 'title', 'description', 'due_date', 'created_at', 'updated_at', 'last_viewed_at',
                 // numeric effort/estimate field (used as proxy for points)
                 'planned_minutes',
@@ -164,11 +164,15 @@ class ListTasksTool implements ToolContract
             } elseif ($userInChargeId === null && !$hasUserFilterInStandard) {
                 // Wenn NICHT angegeben: Standard-Verhalten
                 $hasProjectFilter = !empty($arguments['project_id']) || $this->hasFilterForField($arguments['filters'] ?? [], 'project_id');
-                if (!$hasProjectFilter) {
-                    // Kein Projekt-Filter: Zeige nur Aufgaben des aktuellen Users (Standard)
+                // Explizite ID-Abfrage (z.B. Einzel-Task-Lookup) darf nicht durch die
+                // "nur eigene Aufgaben"-Standardeinschränkung stillschweigend leerlaufen —
+                // Sichtbarkeit wird bereits durch visibleTo()/Gate weiter unten geprüft.
+                $hasIdFilter = $this->hasFilterForField($arguments['filters'] ?? [], 'id');
+                if (!$hasProjectFilter && !$hasIdFilter) {
+                    // Kein Projekt-/ID-Filter: Zeige nur Aufgaben des aktuellen Users (Standard)
                     $query->where('user_in_charge_id', $context->user->id);
                 }
-                // Wenn Projekt-Filter vorhanden: Zeige ALLE Aufgaben des Projekts (kein User-Filter)
+                // Wenn Projekt- oder ID-Filter vorhanden: Zeige alle sichtbaren Treffer (kein User-Filter)
             }
             
             // Legacy: is_done (für Backwards-Kompatibilität) — mappt auf lifecycle_state.
