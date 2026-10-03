@@ -119,7 +119,7 @@ class ListProjectsTool implements ToolContract, ToolMetadataContract
 
             // Standard-Operationen anwenden
             $this->applyStandardFilters($query, $arguments, [
-                'project_type', 'kind', 'lifecycle_state', 'name', 'description', 'created_at', 'updated_at', 'last_viewed_at'
+                'id', 'project_type', 'kind', 'lifecycle_state', 'name', 'description', 'created_at', 'updated_at', 'last_viewed_at'
             ]);
             
             // Legacy: project_type (für Backwards-Kompatibilität)
