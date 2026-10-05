@@ -15,8 +15,10 @@ use Platform\Core\Routing\ModuleRouter;
 
 // Optional: Models und Policies absichern
 use Platform\Planner\Models\PlannerTask;
+use Platform\Planner\Models\PlannerRecurringTask;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Policies\PlannerTaskPolicy;
+use Platform\Planner\Policies\PlannerRecurringTaskPolicy;
 use Platform\Planner\Policies\PlannerProjectPolicy;
 
 use RecursiveDirectoryIterator;
@@ -307,6 +309,9 @@ class PlannerServiceProvider extends ServiceProvider
             $registry->register(new \Platform\Planner\Tools\DeleteTaskTool());
             $registry->register(new \Platform\Planner\Tools\TransferTaskTool());
             $registry->register(new \Platform\Planner\Tools\CreateRecurringTaskTool());
+            $registry->register(new \Platform\Planner\Tools\ListRecurringTasksTool());
+            $registry->register(new \Platform\Planner\Tools\UpdateRecurringTaskTool());
+            $registry->register(new \Platform\Planner\Tools\DeleteRecurringTaskTool());
 
             // Canvas-Tools
             $registry->register(new \Platform\Planner\Tools\Canvas\CanvasOverviewTool());
@@ -610,6 +615,7 @@ class PlannerServiceProvider extends ServiceProvider
         $policies = [
             PlannerTask::class => PlannerTaskPolicy::class,
             PlannerProject::class => PlannerProjectPolicy::class,
+            PlannerRecurringTask::class => PlannerRecurringTaskPolicy::class,
         ];
 
         foreach ($policies as $model => $policy) {
