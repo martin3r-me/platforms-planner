@@ -65,7 +65,10 @@ class ProjectsCleanup extends Component
         // Team-Scope wie bei den Engagement-Optionen: Root + alle Child-Teams.
         // Aufräumer sitzen ggf. in einem Sub-Team, die Projekte hängen aber am
         // Root-Team — sonst waeren sie hier unsichtbar.
-        return PlannerProject::query()
+        // withStale(): Die Aufraeum-Station MUSS auch Projekte zeigen, die
+        // laenger als der StalenessScope-Threshold (180d) nicht besucht wurden —
+        // das sind ja genau die "verwaisten", um die es hier geht.
+        return PlannerProject::withStale()
             ->whereIn('team_id', $this->relevantTeamIds())
             ->visibleTo($user)
             ->with(['user:id,name']);
@@ -411,7 +414,7 @@ class ProjectsCleanup extends Component
 
     public function askDeleteSingle(int $projectId): void
     {
-        $project = PlannerProject::query()
+        $project = PlannerProject::withStale()
             ->where('team_id', Auth::user()->currentTeam->id)
             ->find($projectId);
         if (! $project) return;
@@ -445,7 +448,7 @@ class ProjectsCleanup extends Component
      */
     protected function performDelete(int $projectId): bool
     {
-        $project = PlannerProject::query()
+        $project = PlannerProject::withStale()
             ->whereIn('team_id', $this->relevantTeamIds())
             ->find($projectId);
         if (! $project) {
@@ -577,7 +580,7 @@ class ProjectsCleanup extends Component
     protected function applyLifecycle(string $verb): array
     {
         $lifecycle = app(LifecycleService::class);
-        $projects = PlannerProject::query()
+        $projects = PlannerProject::withStale()
             ->whereIn('team_id', $this->relevantTeamIds())
             ->whereIn('id', $this->selectedIds)
             ->get();
@@ -596,7 +599,7 @@ class ProjectsCleanup extends Component
 
     protected function loadOwnProject(int $projectId): ?PlannerProject
     {
-        return PlannerProject::query()
+        return PlannerProject::withStale()
             ->whereIn('team_id', $this->relevantTeamIds())
             ->find($projectId);
     }
