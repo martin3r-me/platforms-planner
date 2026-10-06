@@ -42,6 +42,9 @@ class ProjectsCleanup extends Component
     /** name|score_asc|last_view_desc|tasks_desc|forgotten_desc */
     public string $sort = 'name';
 
+    /** Papierkorb-Modus: zeigt soft-geloeschte Projekte zur Wiederherstellung. */
+    public bool $showTrashed = false;
+
     // ── Bulk-Selection ──────────────────────────────────────────
     /** @var int[] */
     public array $selectedIds = [];
@@ -65,6 +68,18 @@ class ProjectsCleanup extends Component
         // Team-Scope wie bei den Engagement-Optionen: Root + alle Child-Teams.
         // Aufräumer sitzen ggf. in einem Sub-Team, die Projekte hängen aber am
         // Root-Team — sonst waeren sie hier unsichtbar.
+        // Papierkorb: soft-geloeschte Projekte zur Wiederherstellung.
+        // Bewusst OHNE visibleTo() — performDelete() entfernt die Entity-Links
+        // VOR dem Soft-Delete, daher haengen getrashte Projekte an keiner Entity
+        // mehr und waeren ueber den Org-Graphen nur fuer ihren Ersteller sichtbar.
+        // Das Recovery-Cockpit ist bewusst team-scoped (Steuerungs-Rolle).
+        if ($this->showTrashed) {
+            return PlannerProject::onlyTrashed()
+                ->withStale()
+                ->whereIn('team_id', $this->relevantTeamIds())
+                ->with(['user:id,name']);
+        }
+
         // withStale(): Die Aufraeum-Station MUSS auch Projekte zeigen, die
         // laenger als der StalenessScope-Threshold (180d) nicht besucht wurden —
         // das sind ja genau die "verwaisten", um die es hier geht.
@@ -253,8 +268,9 @@ class ProjectsCleanup extends Component
         $projects = $this->projectsQuery()->get();
 
         // Default: only ACTIVE projects. Use lifecycleFilter to opt into
-        // dormant/completed/discarded views.
-        if ($this->lifecycleFilter !== 'all') {
+        // dormant/completed/discarded views. Im Papierkorb irrelevant —
+        // dort zaehlt der deleted_at-Status, nicht der Lebenszyklus.
+        if ($this->lifecycleFilter !== 'all' && ! $this->showTrashed) {
             $projects = $projects->filter(
                 fn ($p) => ($p->lifecycle_state?->value ?? 'aktiv') === $this->lifecycleFilter
             );
@@ -602,6 +618,51 @@ class ProjectsCleanup extends Component
         return PlannerProject::withStale()
             ->whereIn('team_id', $this->relevantTeamIds())
             ->find($projectId);
+    }
+
+    // ── Papierkorb / Wiederherstellung ──────────────────────────
+
+    public function toggleTrashed(): void
+    {
+        $this->showTrashed = ! $this->showTrashed;
+        $this->selectedIds = [];
+        unset($this->rows);
+    }
+
+    protected function loadTrashedProject(int $projectId): ?PlannerProject
+    {
+        return PlannerProject::onlyTrashed()
+            ->withStale()
+            ->whereIn('team_id', $this->relevantTeamIds())
+            ->find($projectId);
+    }
+
+    public function restore(int $projectId): void
+    {
+        $project = $this->loadTrashedProject($projectId);
+        if (! $project) return;
+        // Der restoring()-Hook im Modell holt soft-geloeschte Tasks + Canvases
+        // automatisch mit zurueck. Entity-/Dimension-Links wurden beim Loeschen
+        // entfernt und kommen NICHT zurueck — ggf. manuell neu verknuepfen.
+        $project->restore();
+        unset($this->rows);
+        session()->flash('cleanup_message', "'{$project->name}' wiederhergestellt (Aufgaben & Canvases inklusive). Entity-Verknüpfung ggf. neu setzen.");
+    }
+
+    public function bulkRestore(): void
+    {
+        if (empty($this->selectedIds)) return;
+        $count = 0;
+        foreach ($this->selectedIds as $id) {
+            $project = $this->loadTrashedProject((int) $id);
+            if ($project) {
+                $project->restore();
+                $count++;
+            }
+        }
+        $this->selectedIds = [];
+        unset($this->rows);
+        session()->flash('cleanup_message', "{$count} Projekt(e) wiederhergestellt.");
     }
 
     // ── Entity-Zuweisung ────────────────────────────────────────

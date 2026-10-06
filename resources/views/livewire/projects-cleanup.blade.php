@@ -39,6 +39,15 @@
                 </span>
             </div>
 
+            {{-- Papierkorb-Umschalter: soft-gelöschte Projekte wiederherstellen --}}
+            <button
+                wire:click="toggleTrashed"
+                title="Papierkorb — gelöschte Projekte ansehen & wiederherstellen"
+                class="inline-flex items-center gap-1.5 h-7 px-2.5 text-[11px] font-medium rounded-md border transition-colors {{ $showTrashed ? 'bg-[var(--nx-danger)]/10 text-[color:var(--nx-danger)] border-[var(--nx-danger)]/30' : 'text-[color:var(--nx-muted)] border-[color:var(--nx-line-strong)] hover:text-[color:var(--nx-text)] hover:bg-[color:var(--nx-hover)]' }}">
+                @svg('heroicon-o-trash', 'w-3.5 h-3.5')
+                {{ $showTrashed ? 'Papierkorb aktiv' : 'Papierkorb' }}
+            </button>
+
             {{-- Aufräum-Signal als EIN Badge rechts (Projekt-Standard) --}}
             <x-nx-badge :variant="$pflegeVariant" title="{{ $totalRows }} Projekte im Scope · {{ $kpiCleanupCandidates }} Aufräum-Kandidaten (>30d ohne Aktivität)">
                 @svg('heroicon-o-archive-box-x-mark', 'w-3 h-3')
@@ -261,11 +270,30 @@
             @endif
         </div>
 
+        {{-- Papierkorb-Hinweis --}}
+        @if($showTrashed)
+            <div class="border-b border-[var(--nx-danger)]/20 bg-[var(--nx-danger)]/5 px-6 py-2 flex items-center gap-2 text-[11px] text-[color:var(--nx-danger)] flex-shrink-0">
+                @svg('heroicon-o-trash', 'w-4 h-4 flex-shrink-0')
+                <span><strong>Papierkorb</strong> — soft-gelöschte Projekte. „Wiederherstellen" holt Projekt + Aufgaben + Canvases zurück (Entity-Verknüpfung ggf. neu setzen).</span>
+                <button wire:click="toggleTrashed" class="ml-auto underline hover:no-underline whitespace-nowrap">zurück zur Pflege</button>
+            </div>
+        @endif
+
         {{-- Bulk-Toolbar --}}
         @if($selectedCount > 0)
             <div class="border-b border-[color:var(--nx-line)] bg-[var(--nx-accent)]/5 px-6 py-2 flex items-center gap-3 flex-shrink-0">
                 <button wire:click="clearSelection" class="text-[11px] text-[var(--nx-muted)] hover:text-[var(--nx-text)] underline">Auswahl zurücksetzen</button>
                 <div class="ml-auto flex items-center gap-2">
+                    @if($showTrashed)
+                    <button
+                        wire:click="bulkRestore"
+                        class="inline-flex items-center gap-1 rounded-md border border-[var(--nx-success)]/30 bg-[var(--nx-success)]/10 text-[color:var(--nx-success)] px-2.5 py-1 text-[11px] font-medium hover:bg-[var(--nx-success)]/10"
+                        title="Ausgewählte Projekte wiederherstellen"
+                    >
+                        @svg('heroicon-o-arrow-uturn-left', 'w-3.5 h-3.5')
+                        Wiederherstellen
+                    </button>
+                    @else
                     <button
                         wire:click="bulkComplete"
                         class="inline-flex items-center gap-1 rounded-md border border-[var(--nx-info)]/30 bg-[var(--nx-info)]/10 text-[color:var(--nx-info)] px-2.5 py-1 text-[11px] font-medium hover:bg-[var(--nx-info)]/10"
@@ -289,6 +317,7 @@
                         @svg('heroicon-o-trash', 'w-3.5 h-3.5')
                         Löschen
                     </button>
+                    @endif
                 </div>
             </div>
         @endif
@@ -357,9 +386,15 @@
 
                             {{-- Projekt-Titel --}}
                             <div class="min-w-0">
-                                <a href="{{ route('planner.projects.show', $row['id']) }}" target="_blank" class="font-semibold text-[var(--nx-text)] hover:text-[var(--nx-accent)] truncate block" title="{{ $row['name'] }}">
-                                    {{ $row['name'] }}
-                                </a>
+                                @if($showTrashed)
+                                    <span class="font-semibold text-[var(--nx-text)] truncate block" title="{{ $row['name'] }} (gelöscht)">
+                                        {{ $row['name'] }}
+                                    </span>
+                                @else
+                                    <a href="{{ route('planner.projects.show', $row['id']) }}" target="_blank" class="font-semibold text-[var(--nx-text)] hover:text-[var(--nx-accent)] truncate block" title="{{ $row['name'] }}">
+                                        {{ $row['name'] }}
+                                    </a>
+                                @endif
                                 <div class="flex items-center gap-1 mt-0.5 text-[10px] text-[var(--nx-muted)]">
                                     @if($row['kind'])
                                         <span class="uppercase tracking-wider px-1 py-0.5 rounded bg-[var(--nx-bg)]">{{ $row['kind'] }}</span>
@@ -470,6 +505,17 @@
 
                             {{-- Aktionen — zustandsabhängig --}}
                             <div class="flex items-center gap-0.5 justify-end">
+                                @if($showTrashed)
+                                <button
+                                    type="button"
+                                    wire:click="restore({{ $row['id'] }})"
+                                    class="inline-flex items-center gap-1 rounded-md border border-[var(--nx-success)]/30 bg-[var(--nx-success)]/10 text-[color:var(--nx-success)] px-2.5 py-1 text-[11px] font-medium hover:bg-[var(--nx-success)]/10"
+                                    title="Projekt + Aufgaben + Canvases wiederherstellen"
+                                >
+                                    @svg('heroicon-o-arrow-uturn-left', 'w-3.5 h-3.5')
+                                    Wiederherstellen
+                                </button>
+                                @else
                                 <button
                                     type="button"
                                     wire:click="openEntityModal({{ $row['id'] }})"
@@ -529,6 +575,7 @@
                                 >
                                     @svg('heroicon-o-trash', 'w-4 h-4')
                                 </button>
+                                @endif
                             </div>
                         </div>
                     @empty
@@ -536,8 +583,13 @@
                             <div class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[var(--nx-bg)] mb-3">
                                 @svg('heroicon-o-magnifying-glass', 'w-7 h-7 text-[var(--nx-muted)]')
                             </div>
-                            <h3 class="text-base font-semibold text-[var(--nx-text)] m-0 mb-1">Keine Projekte passen zu deinen Filtern</h3>
-                            <p class="text-sm text-[var(--nx-muted)] m-0">Lockere die Filter links, um mehr zu sehen.</p>
+                            @if($showTrashed)
+                                <h3 class="text-base font-semibold text-[var(--nx-text)] m-0 mb-1">Papierkorb ist leer</h3>
+                                <p class="text-sm text-[var(--nx-muted)] m-0">Keine soft-gelöschten Projekte in diesem Team.</p>
+                            @else
+                                <h3 class="text-base font-semibold text-[var(--nx-text)] m-0 mb-1">Keine Projekte passen zu deinen Filtern</h3>
+                                <p class="text-sm text-[var(--nx-muted)] m-0">Lockere die Filter links, um mehr zu sehen.</p>
+                            @endif
                         </div>
                     @endforelse
 
