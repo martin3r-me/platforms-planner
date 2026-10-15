@@ -87,12 +87,13 @@ class PlannerServiceProvider extends ServiceProvider
                     ->runInBackground()
                     ->appendOutputTo(storage_path('logs/planner-snapshots.log'));
 
-                // Lifecycle-Tick: aktive Projekte ohne Aktivitaet > 45d auf ruhend
-                $schedule->command('planner:lifecycle:tick')
-                    ->dailyAt('02:30')
-                    ->withoutOverlapping()
-                    ->runInBackground()
-                    ->appendOutputTo(storage_path('logs/planner-lifecycle.log'));
+                // NICHT mehr geplant (Produktentscheidung 15.10.2026): Der
+                // Lifecycle-Tick kippte aktive Projekte nach 45d Inaktivitaet
+                // automatisch auf "ruhend" und liess sie so aus der Sicht
+                // verschwinden. Es soll nichts mehr automatisch passieren —
+                // Vernachlaessigung wird in der UI sichtbar gemacht und dort
+                // MANUELL verworfen. Der Command 'planner:lifecycle:tick'
+                // bleibt fuer manuelle/experimentelle Nutzung erhalten.
             });
         }
     }

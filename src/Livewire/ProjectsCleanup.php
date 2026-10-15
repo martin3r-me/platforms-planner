@@ -13,7 +13,6 @@ use Platform\Organization\Models\OrganizationTimeEntry;
 use Platform\Organization\Services\DimensionLinkService;
 use Platform\Organization\Services\EntityDimensionBridge;
 use Platform\Planner\Models\PlannerProject;
-use Platform\Planner\Models\PlannerProjectCanvas;
 use Platform\Planner\Models\PlannerProjectSnapshot;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Enums\ProjectLifecycleState;
@@ -54,13 +53,6 @@ class ProjectsCleanup extends Component
     public ?int $newEntityId = null;
     public string $entitySearch = '';
 
-    // ── Modal: Bulk-Delete-Bestaetigung ─────────────────────────
-    public bool $confirmingBulkDelete = false;
-
-    // ── Modal: Single-Delete-Bestaetigung ───────────────────────
-    public ?int $deletingProjectId = null;
-    public ?string $deletingProjectName = null;
-
     protected function projectsQuery()
     {
         $user = Auth::user();
@@ -68,11 +60,11 @@ class ProjectsCleanup extends Component
         // Team-Scope wie bei den Engagement-Optionen: Root + alle Child-Teams.
         // Aufräumer sitzen ggf. in einem Sub-Team, die Projekte hängen aber am
         // Root-Team — sonst waeren sie hier unsichtbar.
-        // Papierkorb: soft-geloeschte Projekte zur Wiederherstellung.
-        // Bewusst OHNE visibleTo() — performDelete() entfernt die Entity-Links
-        // VOR dem Soft-Delete, daher haengen getrashte Projekte an keiner Entity
-        // mehr und waeren ueber den Org-Graphen nur fuer ihren Ersteller sichtbar.
-        // Das Recovery-Cockpit ist bewusst team-scoped (Steuerungs-Rolle).
+        // Papierkorb: soft-geloeschte Projekte (Alt-Faelle) zur Wiederherstellung.
+        // Bewusst OHNE visibleTo() — der fruehere harte Delete entfernte die
+        // Entity-Links VOR dem Soft-Delete, daher haengen diese getrashten
+        // Projekte an keiner Entity mehr und waeren ueber den Org-Graphen nur
+        // fuer ihren Ersteller sichtbar. Team-scoped (Steuerungs-Rolle).
         if ($this->showTrashed) {
             return PlannerProject::onlyTrashed()
                 ->withStale()
@@ -400,116 +392,10 @@ class ProjectsCleanup extends Component
     }
 
     // ── Bulk-Aktionen ───────────────────────────────────────────
-
-    public function askBulkDelete(): void
-    {
-        if (empty($this->selectedIds)) return;
-        $this->confirmingBulkDelete = true;
-    }
-
-    public function cancelBulkDelete(): void
-    {
-        $this->confirmingBulkDelete = false;
-    }
-
-    public function confirmBulkDelete(): void
-    {
-        $count = 0;
-        foreach ($this->selectedIds as $id) {
-            if ($this->performDelete((int) $id)) {
-                $count++;
-            }
-        }
-        $this->selectedIds = [];
-        $this->confirmingBulkDelete = false;
-        unset($this->rows);
-        session()->flash('cleanup_message', "{$count} Projekt(e) inkl. Aufgaben, Slots, Canvases, Entity-Links und Zeiteintraegen gelöscht.");
-    }
-
-    // ── Einzel-Loeschen ─────────────────────────────────────────
-
-    public function askDeleteSingle(int $projectId): void
-    {
-        $project = PlannerProject::withStale()
-            ->where('team_id', Auth::user()->currentTeam->id)
-            ->find($projectId);
-        if (! $project) return;
-        $this->deletingProjectId = $projectId;
-        $this->deletingProjectName = $project->name;
-    }
-
-    public function cancelDeleteSingle(): void
-    {
-        $this->deletingProjectId = null;
-        $this->deletingProjectName = null;
-    }
-
-    public function confirmDeleteSingle(): void
-    {
-        if (! $this->deletingProjectId) return;
-        $ok = $this->performDelete((int) $this->deletingProjectId);
-        $name = $this->deletingProjectName;
-        $this->deletingProjectId = null;
-        $this->deletingProjectName = null;
-        unset($this->rows);
-        session()->flash('cleanup_message', $ok
-            ? "Projekt '{$name}' inkl. Aufgaben, Slots, Canvases, Entity-Links und Zeiteintraegen gelöscht."
-            : "Projekt konnte nicht gelöscht werden.");
-    }
-
-    /**
-     * Raeumt ein Projekt komplett auf: Dimension-Links, Canvas + Blocks +
-     * Entries, Time-Entries (an Projekt und an dessen Tasks), Slots + Tasks
-     * (per Cascade des Projekt-Deletes). Rueckgabe: true bei Erfolg.
-     */
-    protected function performDelete(int $projectId): bool
-    {
-        $project = PlannerProject::withStale()
-            ->whereIn('team_id', $this->relevantTeamIds())
-            ->find($projectId);
-        if (! $project) {
-            return false;
-        }
-
-        $linkableType = DimensionLinkService::resolveContextType(PlannerProject::class);
-        $taskAlias = DimensionLinkService::resolveContextType(PlannerTask::class);
-
-        // 1) Dimension-Links entfernen (per Bridge, damit Cache konsistent bleibt)
-        $links = EntityDimensionBridge::linksForLinkables([$linkableType], [$projectId], false);
-        foreach ($links as $link) {
-            if ($link->entity_id) {
-                EntityDimensionBridge::deleteLink((int) $link->entity_id, $linkableType, $projectId);
-            }
-        }
-        EntityDimensionBridge::flush();
-
-        // 2) Task-IDs zur weiteren Aufraeumarbeit einsammeln
-        $taskIds = DB::table('planner_tasks')
-            ->where('project_id', $projectId)
-            ->whereNull('deleted_at')
-            ->pluck('id')
-            ->all();
-
-        // 3) Time-Entries loeschen — sowohl direkt am Projekt als auch an den Tasks
-        OrganizationTimeEntry::query()
-            ->whereIn('context_type', [$linkableType, PlannerProject::class])
-            ->where('context_id', $projectId)
-            ->delete();
-        if (! empty($taskIds)) {
-            OrganizationTimeEntry::query()
-                ->whereIn('context_type', [$taskAlias, PlannerTask::class])
-                ->whereIn('context_id', $taskIds)
-                ->delete();
-        }
-
-        // 4) Planner-Canvas loeschen (Cascade auf Blocks/Entries erwartet)
-        PlannerProjectCanvas::where('project_id', $projectId)->delete();
-
-        // 5) Projekt loeschen — Slots + Tasks folgen per Cascade
-        $project->delete();
-
-        return true;
-    }
+    //
+    // Harter Delete wurde bewusst entfernt (Produktentscheidung 15.10.2026):
+    // Projekte werden nie mehr geloescht, nur noch manuell VERWORFEN (discard,
+    // reversibel, behaelt Links/Zeiten/Canvas). Siehe bulkDiscard()/discard().
 
     public function bulkComplete(): void
     {

@@ -310,13 +310,6 @@
                         @svg('heroicon-o-archive-box-x-mark', 'w-3.5 h-3.5')
                         Verwerfen
                     </button>
-                    <button
-                        wire:click="askBulkDelete"
-                        class="inline-flex items-center gap-1 rounded-md border border-[var(--nx-danger)]/30 bg-[var(--nx-danger)]/10 text-[color:var(--nx-danger)] px-2.5 py-1 text-[11px] font-medium hover:bg-[var(--nx-danger)]/10"
-                    >
-                        @svg('heroicon-o-trash', 'w-3.5 h-3.5')
-                        Löschen
-                    </button>
                     @endif
                 </div>
             </div>
@@ -567,14 +560,6 @@
                                    title="Detail öffnen">
                                     @svg('heroicon-o-arrow-top-right-on-square', 'w-4 h-4')
                                 </a>
-                                <button
-                                    type="button"
-                                    wire:click="askDeleteSingle({{ $row['id'] }})"
-                                    class="p-1.5 rounded hover:bg-[var(--nx-danger)]/10 text-[color:var(--nx-danger)]"
-                                    title="Projekt komplett löschen (inkl. Aufgaben, Canvas, Entity-Links, Zeit-Einträge)"
-                                >
-                                    @svg('heroicon-o-trash', 'w-4 h-4')
-                                </button>
                                 @endif
                             </div>
                         </div>
@@ -636,53 +621,6 @@
                             @disabled(!$newEntityId)
                             class="rounded-md bg-[var(--nx-accent)] text-white px-3 py-1.5 text-xs font-medium disabled:opacity-50">
                         Speichern
-                    </button>
-                </div>
-            </div>
-        </div>
-    @endif
-
-    {{-- Single-Delete-Confirm-Modal --}}
-    @if($deletingProjectId)
-        <div class="fixed inset-0 z-50 bg-[rgba(15,15,15,0.45)] flex items-center justify-center p-4">
-            <div class="bg-[color:var(--nx-surface)] rounded-xl border border-[var(--nx-danger)]/30 shadow-[var(--nx-shadow-pop)] w-full max-w-md p-4 space-y-3">
-                <h3 class="text-sm font-semibold text-[color:var(--nx-danger)] m-0 flex items-center gap-2">
-                    @svg('heroicon-o-trash', 'w-4 h-4')
-                    Projekt löschen?
-                </h3>
-                <p class="text-sm text-[var(--nx-text)] m-0">
-                    <span class="font-semibold">{{ $deletingProjectName }}</span>
-                </p>
-                <p class="text-xs text-[var(--nx-muted)] m-0">
-                    Entfernt komplett: Entity-/Dimension-Links, Planner-Canvas, Slots, Aufgaben und alle darauf gebuchten Zeit-Einträge. Das Projekt selbst wird soft-gelöscht.
-                </p>
-                <div class="flex justify-end gap-2 pt-2 border-t border-[color:var(--nx-line)]">
-                    <button wire:click="cancelDeleteSingle" class="text-xs text-[var(--nx-muted)] hover:text-[var(--nx-text)] px-3 py-1.5">Abbrechen</button>
-                    <button wire:click="confirmDeleteSingle"
-                            class="rounded-md bg-[color:var(--nx-danger)] text-white px-3 py-1.5 text-xs font-medium hover:bg-[color:var(--nx-danger)]">
-                        Ja, löschen
-                    </button>
-                </div>
-            </div>
-        </div>
-    @endif
-
-    {{-- Bulk-Delete-Confirm-Modal --}}
-    @if($confirmingBulkDelete)
-        <div class="fixed inset-0 z-50 bg-[rgba(15,15,15,0.45)] flex items-center justify-center p-4">
-            <div class="bg-[color:var(--nx-surface)] rounded-xl border border-[var(--nx-danger)]/30 shadow-[var(--nx-shadow-pop)] w-full max-w-md p-4 space-y-3">
-                <h3 class="text-sm font-semibold text-[color:var(--nx-danger)] m-0 flex items-center gap-2">
-                    @svg('heroicon-o-trash', 'w-4 h-4')
-                    {{ count($selectedIds) }} Projekte komplett löschen?
-                </h3>
-                <p class="text-xs text-[var(--nx-muted)] m-0">
-                    Entfernt bei jedem Projekt: Entity-/Dimension-Links, Planner-Canvas, Slots, Aufgaben und alle darauf gebuchten Zeit-Einträge. Das Projekt selbst wird soft-gelöscht (in DB wiederherstellbar).
-                </p>
-                <div class="flex justify-end gap-2 pt-2 border-t border-[color:var(--nx-line)]">
-                    <button wire:click="cancelBulkDelete" class="text-xs text-[var(--nx-muted)] hover:text-[var(--nx-text)] px-3 py-1.5">Abbrechen</button>
-                    <button wire:click="confirmBulkDelete"
-                            class="rounded-md bg-[color:var(--nx-danger)] text-white px-3 py-1.5 text-xs font-medium hover:bg-[color:var(--nx-danger)]">
-                        Ja, löschen
                     </button>
                 </div>
             </div>

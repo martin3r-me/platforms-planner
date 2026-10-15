@@ -123,14 +123,23 @@ class Dashboard extends Component
             ->count();
 
         // === MEINE PROJEKTE ===
-        // Projekte in denen ich offene Aufgaben habe ODER Mitglied bin
+        // Sichtbar bleiben (Produktentscheidung 15.10.2026 — nichts verschwindet
+        // automatisch): Projekte, in denen ich jemals eine Aufgabe habe/hatte
+        // (offen ODER erledigt) ODER die mir gehoeren. Ein Projekt faellt NICHT
+        // mehr aus der Seitenleiste, nur weil meine Aufgaben darin erledigt sind.
         $myProjectIds = collect()
             ->merge(
-                PlannerTask::where('team_id', $team->id)
+                PlannerTask::withStale()
+                    ->where('team_id', $team->id)
                     ->where('user_in_charge_id', $user->id)
-                    ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
                     ->whereNotNull('project_id')
                     ->pluck('project_id')
+            )
+            ->merge(
+                PlannerProject::withStale()
+                    ->where('team_id', $team->id)
+                    ->where('user_id', $user->id)
+                    ->pluck('id')
             )
             ->unique()
             ->values();

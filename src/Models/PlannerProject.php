@@ -39,6 +39,18 @@ class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayN
 
     protected int $stalenessThresholdDays = 180;
 
+    /**
+     * Auto-Hide via StalenessScope ist fuer Projekte DEAKTIVIERT: Projekte
+     * sollen nie automatisch aus Queries verschwinden (Produktentscheidung
+     * 15.10.2026 — nichts verschwindet/passiert automatisch). last_viewed_at
+     * bleibt erhalten (nur noch zum Sortieren der "Vernachlaessigt"-Ansicht);
+     * withStale()/onlyStale() bleiben als No-op-kompatible Macros nutzbar.
+     */
+    public function isStalenessAutoHideDisabled(): bool
+    {
+        return true;
+    }
+
     protected $fillable = [
         'uuid',
         'name',
