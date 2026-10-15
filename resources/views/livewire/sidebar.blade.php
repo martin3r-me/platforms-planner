@@ -14,32 +14,46 @@
         Planner
     </div>
 
-    {{-- Abschnitt: Allgemein (kompakt) --}}
+    {{-- Nav-Sektionen (kompakt) --}}
     @php
-        $navItems = [
+        // Allgemein = persoenliches Tagesgeschaeft.
+        $generalItems = [
             ['route' => 'planner.dashboard',        'icon' => 'heroicon-o-home',                     'label' => 'Dashboard'],
             ['route' => 'planner.my-tasks',         'icon' => 'heroicon-o-clipboard-document-check', 'label' => 'Meine Aufgaben'],
             ['route' => 'planner.delegated-tasks',  'icon' => 'heroicon-o-user-group',               'label' => 'Delegierte Aufgaben'],
             ['route' => 'planner.completed-tasks',  'icon' => 'heroicon-o-check-circle',             'label' => 'Erledigte Aufgaben'],
             ['route' => 'planner.frog-tasks',       'icon' => 'heroicon-o-exclamation-triangle',     'label' => 'Frösche'],
-            // Konsolidiert (5→3): Pflege = Hygiene+Cleanup (Meins/Team), Portfolio-Health = Health-Index+Ops (Analyse/Wand)
+        ];
+        // Steuerung = Portfolio-/Masse-Werkzeuge (nicht das Tagesgeschaeft).
+        // Pflege = Hygiene+Cleanup (Meins/Team), Portfolio-Health = Health-Index+Ops (Analyse/Wand).
+        $steuerungItems = [
             ['route' => 'planner.hygiene',          'icon' => 'heroicon-o-shield-check',             'label' => 'Pflege',           'active' => ['planner.hygiene', 'planner.projects.cleanup']],
             ['route' => 'planner.health-index',     'icon' => 'heroicon-o-heart',                    'label' => 'Portfolio-Health', 'active' => ['planner.health-index', 'planner.ops']],
         ];
+        $navSections = [
+            'Allgemein' => $generalItems,
+            'Steuerung' => $steuerungItems,
+        ];
     @endphp
-    <div x-show="!collapsed" class="px-2 pb-2">
-        <div class="text-[10px] uppercase tracking-wider text-[var(--nx-muted)] px-1 py-1">Allgemein</div>
+    <div x-show="!collapsed" class="px-2 pb-2 space-y-2">
+        @foreach($navSections as $sectionLabel => $items)
+            <div>
+                <div class="text-[10px] uppercase tracking-wider text-[var(--nx-muted)] px-1 py-1">{{ $sectionLabel }}</div>
+                <nav class="flex flex-col">
+                    @foreach($items as $item)
+                        @php $isActive = request()->routeIs(...($item['active'] ?? [$item['route']])); @endphp
+                        <a href="{{ route($item['route']) }}" wire:navigate
+                           class="flex items-center gap-2 px-2 py-1 rounded text-xs transition {{ $isActive ? 'bg-[color:var(--nx-accent)] text-[var(--nx-on-accent)]' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
+                            @svg($item['icon'], 'w-3.5 h-3.5 opacity-80 flex-shrink-0')
+                            <span class="truncate">{{ $item['label'] }}</span>
+                        </a>
+                    @endforeach
+                </nav>
+            </div>
+        @endforeach
         <nav class="flex flex-col">
-            @foreach($navItems as $item)
-                @php $isActive = request()->routeIs(...($item['active'] ?? [$item['route']])); @endphp
-                <a href="{{ route($item['route']) }}" wire:navigate
-                   class="flex items-center gap-2 px-2 py-1 rounded text-xs transition {{ $isActive ? 'bg-[color:var(--nx-accent)] text-[var(--nx-on-accent)]' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
-                    @svg($item['icon'], 'w-3.5 h-3.5 opacity-80 flex-shrink-0')
-                    <span class="truncate">{{ $item['label'] }}</span>
-                </a>
-            @endforeach
             <button type="button" wire:click="createProject"
-                    class="flex items-center gap-2 px-2 py-1 mt-1 rounded text-xs text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition text-left">
+                    class="flex items-center gap-2 px-2 py-1 rounded text-xs text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition text-left">
                 @svg('heroicon-o-plus-circle', 'w-3.5 h-3.5 opacity-80 flex-shrink-0')
                 <span class="truncate">Neues Projekt</span>
             </button>
@@ -64,7 +78,8 @@
             <a href="{{ route('planner.frog-tasks') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.frog-tasks') ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)]' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
                 @svg('heroicon-o-exclamation-triangle', 'w-5 h-5')
             </a>
-            {{-- Pflege · Portfolio-Health --}}
+            {{-- Steuerung --}}
+            <div class="my-0.5 border-t border-[var(--nx-line)] opacity-60"></div>
             <a href="{{ route('planner.hygiene') }}" wire:navigate title="Pflege" class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.hygiene', 'planner.projects.cleanup') ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)]' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
                 @svg('heroicon-o-shield-check', 'w-5 h-5')
             </a>
