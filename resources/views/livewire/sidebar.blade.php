@@ -25,7 +25,6 @@
             // Konsolidiert (5→3): Pflege = Hygiene+Cleanup (Meins/Team), Portfolio-Health = Health-Index+Ops (Analyse/Wand)
             ['route' => 'planner.hygiene',          'icon' => 'heroicon-o-shield-check',             'label' => 'Pflege',           'active' => ['planner.hygiene', 'planner.projects.cleanup']],
             ['route' => 'planner.health-index',     'icon' => 'heroicon-o-heart',                    'label' => 'Portfolio-Health', 'active' => ['planner.health-index', 'planner.ops']],
-            ['route' => 'planner.projects.presentation', 'icon' => 'heroicon-o-presentation-chart-line', 'label' => 'Präsentation'],
         ];
     @endphp
     <div x-show="!collapsed" class="px-2 pb-2">
@@ -65,15 +64,12 @@
             <a href="{{ route('planner.frog-tasks') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.frog-tasks') ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)]' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
                 @svg('heroicon-o-exclamation-triangle', 'w-5 h-5')
             </a>
-            {{-- Konsolidiert (5→3): Pflege · Portfolio-Health · Präsentation --}}
+            {{-- Pflege · Portfolio-Health --}}
             <a href="{{ route('planner.hygiene') }}" wire:navigate title="Pflege" class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.hygiene', 'planner.projects.cleanup') ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)]' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
                 @svg('heroicon-o-shield-check', 'w-5 h-5')
             </a>
             <a href="{{ route('planner.health-index') }}" wire:navigate title="Portfolio-Health" class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.health-index', 'planner.ops') ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)]' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
                 @svg('heroicon-o-heart', 'w-5 h-5')
-            </a>
-            <a href="{{ route('planner.projects.presentation') }}" wire:navigate title="Präsentation" class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.projects.presentation') ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)]' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
-                @svg('heroicon-o-presentation-chart-line', 'w-5 h-5')
             </a>
         </div>
     </div>

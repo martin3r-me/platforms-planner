@@ -68,7 +68,7 @@ class Sidebar extends Component
     /**
      * Team-Familie im Scope: Root-Team + alle (rekursiven) Kind-Teams. So sieht
      * ein User in einem Kind-Team auch die im (root-verankerten) Org-Baum
-     * hängenden Projekte der Familie. Spiegelt ProjectsPresentation::relevantTeamIds().
+     * hängenden Projekte der Familie.
      */
     protected function relevantTeamIds($user): array
     {
