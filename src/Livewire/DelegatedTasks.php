@@ -67,9 +67,7 @@ class DelegatedTasks extends Component
                 // Überfällig (in der Vergangenheit), heute oder morgen fällig
                 $q->where('due_date', '<=', $tomorrow);
             })
-            ->where('user_id', $userId) // Vom aktuellen User erstellt
-            ->whereNotNull('user_in_charge_id') // Hat einen Verantwortlichen
-            ->where('user_in_charge_id', '!=', $userId) // Aber nicht der aktuelle User
+            ->delegatedByMe($userId)
             ->orderBy('due_date')
             ->get();
 
@@ -88,9 +86,7 @@ class DelegatedTasks extends Component
         $inboxTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])
             ->whereNull('delegated_group_id')
             ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
-            ->where('user_id', $userId) // Vom aktuellen User erstellt
-            ->whereNotNull('user_in_charge_id') // Hat einen Verantwortlichen
-            ->where('user_in_charge_id', '!=', $userId) // Aber nicht der aktuelle User
+            ->delegatedByMe($userId)
             ->orderBy('delegated_group_order')
             ->get();
 
@@ -110,9 +106,7 @@ class DelegatedTasks extends Component
         $grouped = PlannerDelegatedTaskGroup::with(['tasks' => function ($q) use ($userId) {
             $q->with(['tags', 'contextColors', 'userInCharge', 'project'])
               ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
-              ->where('user_id', $userId) // Vom aktuellen User erstellt
-              ->whereNotNull('user_in_charge_id') // Hat einen Verantwortlichen
-              ->where('user_in_charge_id', '!=', $userId) // Aber nicht der aktuelle User
+              ->delegatedByMe($userId)
               ->orderBy('delegated_group_order');
         }])
         ->where('user_id', $userId)
@@ -130,9 +124,7 @@ class DelegatedTasks extends Component
         // === 3. ERLEDIGT ===
         $doneTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])
             ->where('lifecycle_state', TaskLifecycleState::COMPLETED->value)
-            ->where('user_id', $userId) // Vom aktuellen User erstellt
-            ->whereNotNull('user_in_charge_id') // Hat einen Verantwortlichen
-            ->where('user_in_charge_id', '!=', $userId) // Aber nicht der aktuelle User
+            ->delegatedByMe($userId)
             ->orderByDesc('lifecycle_state_changed_at') // Neueste zuerst (zuletzt erledigt)
             ->orderByDesc('updated_at') // Fallback für Tasks ohne done_at
             ->get();
@@ -153,18 +145,14 @@ class DelegatedTasks extends Component
         $createdPoints = PlannerTask::query()
             ->withTrashed()
             ->whereDate('created_at', '>=', $startOfMonth)
-            ->where('user_id', $userId) // Vom aktuellen User erstellt
-            ->whereNotNull('user_in_charge_id') // Hat einen Verantwortlichen
-            ->where('user_in_charge_id', '!=', $userId) // Aber nicht der aktuelle User
+            ->delegatedByMe($userId)
             ->get()
             ->sum(fn ($task) => $task->story_points instanceof \App\Enums\StoryPoints ? $task->story_points->points() : 1);
 
         $donePoints = PlannerTask::query()
             ->withTrashed()
             ->whereDate('lifecycle_state_changed_at', '>=', $startOfMonth)
-            ->where('user_id', $userId) // Vom aktuellen User erstellt
-            ->whereNotNull('user_in_charge_id') // Hat einen Verantwortlichen
-            ->where('user_in_charge_id', '!=', $userId) // Aber nicht der aktuelle User
+            ->delegatedByMe($userId)
             ->get()
             ->sum(fn ($task) => $task->story_points instanceof \App\Enums\StoryPoints ? $task->story_points->points() : 1);
 
@@ -207,10 +195,8 @@ class DelegatedTasks extends Component
                 ->min('delegated_group_order') ?? 0;
         } else {
             // In Inbox: niedrigste Order in delegierter Inbox
-            $lowestOrder = PlannerTask::where('user_id', Auth::id())
+            $lowestOrder = PlannerTask::delegatedByMe(Auth::id())
                 ->whereNull('delegated_group_id')
-                ->whereNotNull('user_in_charge_id')
-                ->where('user_in_charge_id', '!=', Auth::id())
                 ->min('delegated_group_order') ?? 0;
         }
 

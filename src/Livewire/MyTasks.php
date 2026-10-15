@@ -73,16 +73,7 @@ class MyTasks extends Component
                 // Überfällig (in der Vergangenheit), heute oder morgen fällig
                 $q->where('due_date', '<=', $tomorrow);
             })
-            ->where(function ($q) use ($userId) {
-                $q->where(function ($q) use ($userId) {
-                    $q->whereNull('project_id')
-                      ->where('user_id', $userId); // private Aufgabe
-                })->orWhere(function ($q) use ($userId) {
-                    $q->whereNotNull('project_id')
-                      ->where('user_in_charge_id', $userId)
-                      ->whereNotNull('project_slot_id'); // nur Projektaufgaben mit Project-Slot (nicht Backlog)
-                });
-            })
+            ->forMyBoard($userId)
             ->orderBy('due_date')
             ->get();
 
@@ -101,16 +92,7 @@ class MyTasks extends Component
         $inboxTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])
             ->whereNull('task_group_id')
             ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
-            ->where(function ($q) use ($userId) {
-                $q->where(function ($q) use ($userId) {
-                    $q->whereNull('project_id')
-                      ->where('user_id', $userId); // private Aufgabe
-                })->orWhere(function ($q) use ($userId) {
-                    $q->whereNotNull('project_id')
-                      ->where('user_in_charge_id', $userId)
-                      ->whereNotNull('project_slot_id'); // nur Projektaufgaben mit Project-Slot (nicht Backlog)
-                });
-            })
+            ->forMyBoard($userId)
             ->orderBy('order')
             ->get();
 
@@ -128,16 +110,7 @@ class MyTasks extends Component
         $grouped = PlannerTaskGroup::with(['tasks' => function ($q) use ($userId) {
             $q->with(['tags', 'contextColors', 'userInCharge', 'project'])
               ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
-              ->where(function ($q) use ($userId) {
-                  $q->where(function ($q) use ($userId) {
-                      $q->whereNull('project_id')
-                        ->where('user_id', $userId);
-                  })->orWhere(function ($q) use ($userId) {
-                      $q->whereNotNull('project_id')
-                        ->where('user_in_charge_id', $userId)
-                        ->whereNotNull('project_slot_id'); // nur Projektaufgaben mit Project-Slot (nicht Backlog)
-                  });
-              })
+              ->forMyBoard($userId)
               ->orderBy('order');
         }])
         ->where('user_id', $userId)
@@ -155,16 +128,7 @@ class MyTasks extends Component
         // === 3. ERLEDIGT ===
         $doneTasks = PlannerTask::with(['tags', 'contextColors', 'userInCharge', 'project'])
             ->where('lifecycle_state', TaskLifecycleState::COMPLETED->value)
-            ->where(function ($q) use ($userId) {
-                $q->where(function ($q) use ($userId) {
-                    $q->whereNull('project_id')
-                      ->where('user_id', $userId);
-                })->orWhere(function ($q) use ($userId) {
-                    $q->whereNotNull('project_id')
-                      ->where('user_in_charge_id', $userId)
-                      ->whereNotNull('project_slot_id'); // nur Projektaufgaben mit Project-Slot (nicht Backlog)
-                });
-            })
+            ->forMyBoard($userId)
             ->orderByDesc('lifecycle_state_changed_at') // Neueste zuerst (zuletzt erledigt)
             ->orderByDesc('updated_at') // Fallback für Tasks ohne done_at
             ->get();
@@ -214,16 +178,7 @@ class MyTasks extends Component
         // === VERFÜGBARE TAGS & FARBEN FÜR FILTER-UI ===
         $allUserTasks = PlannerTask::with(['tags', 'contextColors'])
             ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
-            ->where(function ($q) use ($userId) {
-                $q->where(function ($q) use ($userId) {
-                    $q->whereNull('project_id')
-                      ->where('user_id', $userId);
-                })->orWhere(function ($q) use ($userId) {
-                    $q->whereNotNull('project_id')
-                      ->where('user_in_charge_id', $userId)
-                      ->whereNotNull('project_slot_id');
-                });
-            })
+            ->forMyBoard($userId)
             ->get();
 
         $availableFilterTags = $allUserTasks->flatMap(fn ($t) => $t->contextTags)
@@ -246,32 +201,14 @@ class MyTasks extends Component
         $createdPoints = PlannerTask::query()
             ->withTrashed()
             ->whereDate('created_at', '>=', $startOfMonth)
-            ->where(function ($q) use ($userId) {
-                $q->where(function ($q) use ($userId) {
-                    $q->whereNull('project_id')
-                      ->where('user_id', $userId);
-                })->orWhere(function ($q) use ($userId) {
-                    $q->whereNotNull('project_id')
-                      ->where('user_in_charge_id', $userId)
-                      ->whereNotNull('sprint_slot_id');
-                });
-            })
+            ->forMyBoard($userId, 'sprint_slot_id')
             ->get()
             ->sum(fn ($task) => $task->story_points instanceof \App\Enums\StoryPoints ? $task->story_points->points() : 1);
 
         $donePoints = PlannerTask::query()
             ->withTrashed()
             ->whereDate('lifecycle_state_changed_at', '>=', $startOfMonth)
-            ->where(function ($q) use ($userId) {
-                $q->where(function ($q) use ($userId) {
-                    $q->whereNull('project_id')
-                      ->where('user_id', $userId);
-                })->orWhere(function ($q) use ($userId) {
-                    $q->whereNotNull('project_id')
-                      ->where('user_in_charge_id', $userId)
-                      ->whereNotNull('sprint_slot_id');
-                });
-            })
+            ->forMyBoard($userId, 'sprint_slot_id')
             ->get()
             ->sum(fn ($task) => $task->story_points instanceof \App\Enums\StoryPoints ? $task->story_points->points() : 1);
 

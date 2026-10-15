@@ -4,6 +4,7 @@ namespace Platform\Planner\Models;
 
 use Platform\Planner\Enums\TaskPriority;
 use Platform\Planner\Enums\TaskStoryPoints;
+use Platform\Planner\Models\Concerns\ScopesTaskAccess;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -28,7 +29,7 @@ use Platform\Core\Contracts\AgendaRenderable;
  */
 class PlannerTask extends Model implements HasKeyResultAncestors, HasDisplayName, InheritsExtraFields, AgendaRenderable
 {
-    use HasFactory, SoftDeletes, LogsActivity, HasTimeEntries, HasPlannedTime, HasTags, HasColors, Encryptable, HasExtraFields, TracksLastViewed;
+    use HasFactory, SoftDeletes, LogsActivity, HasTimeEntries, HasPlannedTime, HasTags, HasColors, Encryptable, HasExtraFields, TracksLastViewed, ScopesTaskAccess;
 
     protected int $stalenessThresholdDays = 120;
 
