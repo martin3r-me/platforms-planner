@@ -41,8 +41,10 @@
     <x-slot name="actionbar">
         <x-ui-page-actionbar :breadcrumbs="[
             ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
-            ['label' => 'Meine Aufgaben'],
+            ['label' => 'Aufgaben'],
         ]">
+            @include('planner::livewire.partials.tasks-tabs')
+
             {{-- Kennzahlen als EIN Badge rechts (Projekt-Standard) --}}
             <x-nx-badge title="offen {{ $headerOpenCount }} · überfällig {{ $headerOverdueCount }} · Frösche {{ $frogCount }}{{ $openPoints > 0 ? ' · ' . $openPoints . ' SP' : '' }}">
                 <span class="inline-flex items-center gap-1 text-[color:var(--nx-text)]">
@@ -128,19 +130,6 @@
                     </section>
                 @endif
 
-                {{-- FROSCH-FOKUS --}}
-                @if($frogCount > 0)
-                    <section class="p-3 rounded-lg border bg-[var(--nx-success)]/5 border-[var(--nx-success)]/30 shadow-[var(--nx-shadow-card)]">
-                        <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-success)] mb-1.5">🐸 Frosch-Fokus</h3>
-                        <p class="text-[11px] text-[var(--nx-text)] leading-relaxed m-0">
-                            <span class="font-semibold tabular-nums">{{ $frogCount }}</span> Frosch{{ $frogCount === 1 ? '' : 'e' }} wartet auf dich — die wichtigsten Brocken zuerst.
-                        </p>
-                        <a href="{{ route('planner.frog-tasks') }}" wire:navigate class="inline-flex items-center gap-1 mt-2 text-[10px] font-medium text-[var(--nx-success)] hover:underline">
-                            Frösche öffnen
-                            @svg('heroicon-o-arrow-right', 'w-3 h-3')
-                        </a>
-                    </section>
-                @endif
 
                 {{-- IN ERINNERUNGEN ABONNIEREN (CalDAV) --}}
                 <section class="p-3 rounded-lg bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)]">

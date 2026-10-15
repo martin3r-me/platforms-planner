@@ -16,8 +16,10 @@
     <x-slot name="actionbar">
         <x-ui-page-actionbar :breadcrumbs="[
             ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
-            ['label' => 'Erledigte Aufgaben'],
+            ['label' => 'Aufgaben'],
         ]">
+            @include('planner::livewire.partials.tasks-tabs')
+
             {{-- Bilanz als EIN Badge rechts (Projekt-Standard) --}}
             <x-nx-badge variant="success" title="{{ $totalCount }} erledigt{{ $totalPoints > 0 ? ' · ' . $totalPoints . ' SP' : '' }}{{ $totalCount > 0 ? ' · ⌀ ' . number_format($totalCount / max(1, $daysFilter), 1, ',', '.') . '/Tag' : '' }}">
                 @svg('heroicon-o-check-circle', 'w-3 h-3')

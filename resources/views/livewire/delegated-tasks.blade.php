@@ -45,8 +45,10 @@
     <x-slot name="actionbar">
         <x-ui-page-actionbar :breadcrumbs="[
             ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
-            ['label' => 'Delegierte Aufgaben'],
+            ['label' => 'Aufgaben'],
         ]">
+            @include('planner::livewire.partials.tasks-tabs')
+
             {{-- Kennzahlen als EIN Badge rechts (Projekt-Standard) --}}
             <x-nx-badge title="offen {{ $headerOpenCount }} · überfällig {{ $headerOverdueCount }} · Frösche {{ $frogCount }}{{ $openPoints > 0 ? ' · ' . $openPoints . ' SP' : '' }}">
                 <span class="inline-flex items-center gap-1 text-[color:var(--nx-text)]">

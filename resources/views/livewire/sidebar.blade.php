@@ -19,10 +19,8 @@
         // Allgemein = persoenliches Tagesgeschaeft.
         $generalItems = [
             ['route' => 'planner.dashboard',        'icon' => 'heroicon-o-home',                     'label' => 'Dashboard'],
-            ['route' => 'planner.my-tasks',         'icon' => 'heroicon-o-clipboard-document-check', 'label' => 'Meine Aufgaben'],
-            ['route' => 'planner.delegated-tasks',  'icon' => 'heroicon-o-user-group',               'label' => 'Delegierte Aufgaben'],
-            ['route' => 'planner.completed-tasks',  'icon' => 'heroicon-o-check-circle',             'label' => 'Erledigte Aufgaben'],
-            ['route' => 'planner.frog-tasks',       'icon' => 'heroicon-o-exclamation-triangle',     'label' => 'Frösche'],
+            // Aufgaben = ein Einstieg; Meine/Delegiert/Erledigt sind Tabs auf der Seite.
+            ['route' => 'planner.my-tasks',         'icon' => 'heroicon-o-clipboard-document-check', 'label' => 'Aufgaben', 'active' => ['planner.my-tasks', 'planner.delegated-tasks', 'planner.completed-tasks']],
         ];
         // Steuerung = Portfolio-/Masse-Werkzeuge (nicht das Tagesgeschaeft).
         // Pflege = Hygiene+Cleanup (Meins/Team), Portfolio-Health = Health-Index+Ops (Analyse/Wand).
@@ -66,17 +64,8 @@
             <a href="{{ route('planner.dashboard') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.dashboard') ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)]' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
                 @svg('heroicon-o-home', 'w-5 h-5')
             </a>
-            <a href="{{ route('planner.my-tasks') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.my-tasks') ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)]' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
+            <a href="{{ route('planner.my-tasks') }}" wire:navigate title="Aufgaben" class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.my-tasks', 'planner.delegated-tasks', 'planner.completed-tasks') ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)]' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
                 @svg('heroicon-o-clipboard-document-check', 'w-5 h-5')
-            </a>
-            <a href="{{ route('planner.delegated-tasks') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.delegated-tasks') ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)]' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
-                @svg('heroicon-o-user-group', 'w-5 h-5')
-            </a>
-            <a href="{{ route('planner.completed-tasks') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.completed-tasks') ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)]' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
-                @svg('heroicon-o-check-circle', 'w-5 h-5')
-            </a>
-            <a href="{{ route('planner.frog-tasks') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.frog-tasks') ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)]' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
-                @svg('heroicon-o-exclamation-triangle', 'w-5 h-5')
             </a>
             {{-- Steuerung --}}
             <div class="my-0.5 border-t border-[var(--nx-line)] opacity-60"></div>

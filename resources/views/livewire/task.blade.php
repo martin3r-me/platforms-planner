@@ -26,7 +26,6 @@
         @php
             $breadcrumbSource = match($referrer ?? null) {
                 'project' => $task->project ? ['label' => $task->project->name, 'href' => route('planner.projects.show', ['plannerProject' => $task->project->id])] : ['label' => 'Meine Aufgaben', 'href' => route('planner.my-tasks')],
-                'frog' => ['label' => 'Frösche', 'href' => route('planner.frog-tasks')],
                 'hygiene' => ['label' => 'Hygiene', 'href' => route('planner.hygiene')],
                 'completed' => ['label' => 'Erledigte Aufgaben', 'href' => route('planner.completed-tasks')],
                 'delegated' => ['label' => 'Delegierte Aufgaben', 'href' => route('planner.delegated-tasks')],
