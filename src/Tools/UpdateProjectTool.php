@@ -28,7 +28,7 @@ class UpdateProjectTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'PUT /projects/{id} - Aktualisiert ein bestehendes Projekt. REST-Parameter: id (required, integer) - Projekt-ID. name (optional, string) - Projektname. description (optional, string) - Beschreibung. project_type (optional, string) - Typ: internal, customer, event, cooking. owner_user_id (optional, integer) - Owner des Projekts. members (optional, array) - Array von User-IDs als Mitglieder.';
+        return 'PUT /projects/{id} - Aktualisiert ein bestehendes Projekt. REST-Parameter: id (required, integer) - Projekt-ID. name (optional, string) - Projektname. description (optional, string) - Beschreibung. project_type (optional, string) - Typ: internal, customer, event, cooking. owner_user_id (optional, integer) - Owner des Projekts. Hinweis: Es gibt keine Projekt-Mitgliederliste mehr; die Antwortfeld \'members\' enthaelt nur den Owner. Sichtbarkeit/Zugriff laeuft ueber das Organisations-Graph-Berechtigungsmodell (Entity-Links), nicht ueber diesen Parameter.';
     }
 
     public function getSchema(): array
