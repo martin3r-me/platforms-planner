@@ -158,13 +158,13 @@ class PlannerTask extends Model implements HasKeyResultAncestors, HasDisplayName
         if (! $assignee || ! $actor || (int) $assignee === (int) $actor) {
             return; // keine Zuweisung, kein Actor, oder Selbst-Zuweisung
         }
-        if (! class_exists(\Platform\Inbox\Inbox::class)) {
-            return; // Inbox nicht installiert → loose
+        if (! class_exists(\Platform\Core\Inbox\Inbox::class)) {
+            return; // Inbox-Kern nicht verfügbar → loose
         }
 
         try {
             $assigner = Auth::user();
-            \Platform\Inbox\Inbox::deliver([
+            \Platform\Core\Inbox\Inbox::deliver([
                 'user_id'           => (int) $assignee,
                 'team_id'           => (int) $task->team_id,
                 'channel'           => 'task',
