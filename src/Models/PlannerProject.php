@@ -10,13 +10,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Symfony\Component\Uid\UuidV7;
 use Illuminate\Support\Facades\Log;
 use Platform\Organization\Traits\HasTimeEntries;
 use Platform\Organization\Traits\HasPlannedTime;
 use Platform\Organization\Traits\HasPlannedPeriod;
-use Platform\Organization\Traits\HasOrganizationContexts;
 use Platform\Core\Traits\HasColors;
 use Platform\Core\Traits\HasTags;
 use Platform\Core\Traits\HasExtraFields;
@@ -35,7 +33,7 @@ use Platform\Planner\Enums\CustomerBillingMethod;
  */
 class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayName, AgendaRenderable, HasChildContextRelations
 {
-    use SoftDeletes, HasTimeEntries, HasPlannedTime, HasPlannedPeriod, HasOrganizationContexts, HasColors, HasTags, HasExtraFields, HasEntityLinks, LogsActivity, TracksLastViewed;
+    use SoftDeletes, HasTimeEntries, HasPlannedTime, HasPlannedPeriod, HasColors, HasTags, HasExtraFields, HasEntityLinks, LogsActivity, TracksLastViewed;
 
     protected int $stalenessThresholdDays = 180;
 
@@ -179,15 +177,6 @@ class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayN
     public function billingItems(): HasMany
     {
         return $this->hasMany(PlannerProjectBillingItem::class, 'project_id');
-    }
-
-    /**
-     * @deprecated Use EntityDimensionBridge::linksForLinkables() instead.
-     * Kept for rollback compatibility — callers should migrate to EntityDimensionBridge.
-     */
-    public function entityLinks(): MorphMany
-    {
-        return $this->morphMany(\Platform\Organization\Models\OrganizationEntityLink::class, 'linkable');
     }
 
     /**
