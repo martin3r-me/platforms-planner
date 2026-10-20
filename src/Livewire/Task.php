@@ -290,24 +290,6 @@ class Task extends Component
         // Files-Tab im Terminal aktivieren
         $this->dispatch('terminal:app:files');
 
-        // Playground-Kontext setzen - ermöglicht LLM den Task-Kontext zu kennen
-        \Log::info('[Playground] Task dispatching playground event', ['task_id' => $this->task->id, 'title' => $this->task->title]);
-        $this->dispatch('playground', [
-            'type' => 'Task',
-            'model' => get_class($this->task),
-            'modelId' => $this->task->id,
-            'title' => $this->task->title,
-            'description' => $this->task->description ?? '',
-            'url' => route('planner.tasks.show', $this->task),
-            'source' => 'planner.task.view',
-            'meta' => [
-                'priority' => $this->task->priority,
-                'due_date' => $this->task->due_date?->toIso8601String(),
-                'story_points' => $this->task->story_points,
-                'lifecycle_state' => $this->task->lifecycle_state?->value,
-                'project' => $this->task->project?->name,
-            ],
-        ]);
     }
 
     public function updatedDueDateInput($value)
