@@ -3,8 +3,10 @@
 namespace Platform\Planner\Organization;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Platform\Organization\Contracts\EntityLinkProvider;
+use Platform\Organization\Contracts\HasContextParent;
 use Platform\Organization\Contracts\HasMetricDefinitions;
 use Platform\Organization\Contracts\HasPersonMetrics;
 use Platform\Planner\Enums\ProjectLifecycleState;
@@ -12,7 +14,7 @@ use Platform\Planner\Enums\TaskLifecycleState;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerTask;
 
-class PlannerEntityLinkProvider implements EntityLinkProvider, HasMetricDefinitions, HasPersonMetrics
+class PlannerEntityLinkProvider implements EntityLinkProvider, HasContextParent, HasMetricDefinitions, HasPersonMetrics
 {
     public function morphAliases(): array
     {
@@ -265,5 +267,15 @@ class PlannerEntityLinkProvider implements EntityLinkProvider, HasMetricDefiniti
             'story_points_total' => ['label' => 'Story Points gesamt', 'group' => 'persons', 'direction' => 'neutral', 'unit' => 'points'],
             'story_points_done'  => ['label' => 'Story Points erledigt', 'group' => 'persons', 'direction' => 'up', 'unit' => 'points'],
         ];
+    }
+
+    /**
+     * Task ohne eigene Verortung erbt vom Projekt.
+     */
+    public function contextParent(string $morphAlias, Model $object): ?array
+    {
+        return $morphAlias === 'planner_task' && $object->project_id
+            ? ['project', (int) $object->project_id]
+            : null;
     }
 }
