@@ -32,7 +32,7 @@ use Platform\Planner\Models\PlannerTask;
  *    fuer Bewegungen seit Snapshot
  *  - Top-N-Detail-Listen (Slots/Froesche/Personen): aus Snapshot-Sub-Tabellen
  *  - Canvas: live aus PlannerProjectCanvas + Blocks + Entries
- *  - Organisation: via entityLinks → Verknuepfung zu Organization-Entities
+ *  - Organisation: via EntityDimensionBridge (DimensionLinks) → Verknuepfung zu Organization-Entities
  */
 class PlannerProjectSubjectCollector implements SubjectCollectorInterface
 {
@@ -75,7 +75,7 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
         ?\DateTimeInterface $since = null,
     ): Subject {
         if (! $project instanceof PlannerProject) {
-            $project = PlannerProject::with(['user:id,name', 'entityLinks.entity:id,name'])
+            $project = PlannerProject::with(['user:id,name'])
                 ->findOrFail($project);
         }
 
@@ -851,8 +851,13 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
     /** @return Edge[] */
     protected function edgesOrgAnchors(PlannerProject $project): array
     {
+        if (! class_exists(\Platform\Organization\Services\EntityDimensionBridge::class)) {
+            return [];
+        }
+
         $edges = [];
-        foreach ($project->entityLinks ?? [] as $link) {
+        $links = \Platform\Organization\Services\EntityDimensionBridge::linksForLinkables(['project'], [$project->id]);
+        foreach ($links as $link) {
             if (! $link->entity) {
                 continue;
             }
