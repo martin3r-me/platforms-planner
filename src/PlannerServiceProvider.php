@@ -174,7 +174,7 @@ class PlannerServiceProvider extends ServiceProvider
         if (
             config()->has('planner.routing') &&
             config()->has('planner.navigation') &&
-            Schema::hasTable('modules')
+            PlatformCore::modulesTableExists()
         ) {
             PlatformCore::registerModule([
                 'key'        => 'planner',
