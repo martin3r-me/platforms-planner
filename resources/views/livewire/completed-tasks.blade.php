@@ -78,7 +78,7 @@
                                     class="w-full text-left px-2 py-1 rounded text-[11px] transition-colors flex items-center gap-2 {{ $userFilter == $user->id ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)] font-medium' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}"
                                 >
                                     @if($user->avatar)
-                                        <img src="{{ $user->avatar }}" alt="" class="w-4 h-4 rounded-full object-cover flex-shrink-0">
+                                        <img src="{{ method_exists($user, 'avatarUrl') ? $user->avatarUrl() : $user->avatar }}" loading="lazy" alt="" class="w-4 h-4 rounded-full object-cover flex-shrink-0">
                                     @else
                                         <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[var(--nx-text)] text-white text-[8px] font-semibold flex-shrink-0">{{ $initial }}</span>
                                     @endif
@@ -197,7 +197,7 @@
 
                                         @if($uic)
                                             @if($uic->avatar)
-                                                <img src="{{ $uic->avatar }}" alt="" class="w-6 h-6 rounded-full object-cover flex-shrink-0">
+                                                <img src="{{ method_exists($uic, 'avatarUrl') ? $uic->avatarUrl() : $uic->avatar }}" loading="lazy" alt="" class="w-6 h-6 rounded-full object-cover flex-shrink-0">
                                             @else
                                                 <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[var(--nx-text)] text-white text-[10px] font-semibold flex-shrink-0">{{ $uicInitial }}</span>
                                             @endif

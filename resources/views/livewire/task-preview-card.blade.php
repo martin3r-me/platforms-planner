@@ -155,7 +155,7 @@
             @if($userInCharge)
                 <span class="flex-shrink-0 ml-0.5" title="{{ $userInCharge->name ?? $userInCharge->email }}">
                     @if($userInCharge->avatar)
-                        <img src="{{ $userInCharge->avatar }}" alt="" class="w-4 h-4 rounded-[4px] object-cover">
+                        <img src="{{ method_exists($userInCharge, 'avatarUrl') ? $userInCharge->avatarUrl() : $userInCharge->avatar }}" loading="lazy" alt="" class="w-4 h-4 rounded-[4px] object-cover">
                     @else
                         <span class="inline-flex items-center justify-center w-4 h-4 rounded-[4px] bg-[color:var(--nx-accent-soft)] text-[color:var(--nx-text)] text-[9px] font-semibold">{{ $initials }}</span>
                     @endif
