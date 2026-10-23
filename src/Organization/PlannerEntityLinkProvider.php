@@ -278,4 +278,28 @@ class PlannerEntityLinkProvider implements EntityLinkProvider, HasContextParent,
             ? ['project', (int) $object->project_id]
             : null;
     }
+
+    /**
+     * Beteiligte für ein Gespräch im Kontext (Parlan) — organization fragt per method_exists
+     * (Vertrag HasContextParticipants). Projekt: Ersteller + Zuständige offener Aufgaben;
+     * Aufgabe: Ersteller + Zuständiger. Sichtbarkeit prüft organization.
+     *
+     * @return list<int>
+     */
+    public function contextParticipants(string $morphAlias, Model $object): array
+    {
+        if ($morphAlias === 'project') {
+            $ids = PlannerTask::query()->where('project_id', $object->id)
+                ->whereNotNull('user_in_charge_id')
+                ->where(fn ($q) => $q->whereNull('lifecycle_state')->orWhere('lifecycle_state', '!=', TaskLifecycleState::COMPLETED->value))
+                ->distinct()->limit(25)->pluck('user_in_charge_id')->all();
+
+            return array_values(array_unique(array_filter(array_merge([(int) $object->user_id], array_map('intval', $ids)))));
+        }
+        if ($morphAlias === 'planner_task') {
+            return array_values(array_unique(array_filter([(int) $object->user_id, (int) $object->user_in_charge_id])));
+        }
+
+        return [];
+    }
 }
