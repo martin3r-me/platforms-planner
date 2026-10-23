@@ -3,6 +3,8 @@
 namespace Platform\Planner\Livewire;
 
 use Livewire\Component;
+use Illuminate\Database\Eloquent\Model;
+use Platform\Core\Livewire\Concerns\HasPageContext;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Computed;
@@ -15,7 +17,7 @@ use Platform\Planner\Models\PlannerProjectSlot;
 
 class Task extends Component
 {
-    use WithExtraFields;
+    use WithExtraFields, HasPageContext;
 	public $task;
     public $description; // Separate Property für entschlüsselte description
     public $dod; // Separate Property für entschlüsselte dod (JSON-Format: Array von {text, checked})
@@ -231,65 +233,28 @@ class Task extends Component
         return "{$userName} hat die Aufgabe {$translatedName}";
     }
 
-    public function rendered()
+    protected function pageContext(): ?Model
     {
-        // Wenn Task gelöscht wurde, nichts tun (wird nach Redirect nicht mehr aufgerufen)
-        if (!$this->task) {
-            return;
+        // Nach dem Löschen (Redirect) gibt es keinen Task mehr → Kontext zurücksetzen
+        return $this->task;
+    }
+
+    protected function pageContextOptions(): array
+    {
+        if (! $this->task) {
+            return ['source' => 'planner.task.view'];
         }
 
-        // Extra-Fields-Kontext setzen (zeigt auf Projekt für Definitionen)
-        if ($this->task->project) {
-            $this->dispatch('extrafields', [
-                'context_type' => get_class($this->task->project),
-                'context_id' => $this->task->project->id,
-            ]);
-        }
-
-        $this->dispatch('comms', [
-            'model' => get_class($this->task),                                // z. B. 'Platform\Planner\Models\PlannerTask'
-            'modelId' => $this->task->id,
-            'subject' => $this->task->title,
-            'description' => $this->task->description ?? '',
-            'url' => route('planner.tasks.show', $this->task),                // absolute URL zum Task
-            'source' => 'planner.task.view',                                 // eindeutiger Quell-Identifier (frei wählbar)
-            'recipients' => [$this->task->user_in_charge_id],                // falls vorhanden, sonst leer
-            'capabilities' => [
-                'manage_channels' => false,
-                'threads' => true,
-            ],
+        return [
+            'url' => route('planner.tasks.show', $this->task),
+            'source' => 'planner.task.view',
+            'recipients' => array_filter([$this->task->user_in_charge_id]),
             'meta' => [
                 'priority' => $this->task->priority,
                 'due_date' => $this->task->due_date,
                 'story_points' => $this->task->story_points,
             ],
-        ]);
-
-        $this->dispatch('terminal:app:activity');
-        $this->dispatch('terminal:app:files');
-
-        // Organization-Kontext setzen - nur Zeiten erlauben, keine Entity-Verknüpfung, keine Dimensionen
-        $this->dispatch('organization', [
-            'context_type' => get_class($this->task),
-            'context_id' => $this->task->id,
-            'linked_contexts' => $this->task->project ? [['type' => get_class($this->task->project), 'id' => $this->task->project->id]] : [],
-            'allow_time_entry' => true,
-            'allow_entities' => false,
-            'allow_dimensions' => false,
-        ]);
-
-        // KeyResult-Kontext setzen - ermöglicht Verknüpfung von KeyResults mit dieser Task
-        $this->dispatch('keyresult', [
-            'context_type' => get_class($this->task),
-            'context_id' => $this->task->id,
-        ]);
-
-        // Tags-Tab im Terminal aktivieren
-        $this->dispatch('terminal:app:tags');
-
-        // Files-Tab im Terminal aktivieren
-        $this->dispatch('terminal:app:files');
-
+        ];
     }
 
     public function updatedDueDateInput($value)

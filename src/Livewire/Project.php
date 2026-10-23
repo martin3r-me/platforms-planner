@@ -3,6 +3,8 @@
 namespace Platform\Planner\Livewire;
 
 use Livewire\Component;
+use Illuminate\Database\Eloquent\Model;
+use Platform\Core\Livewire\Concerns\HasPageContext;
 use Illuminate\Support\Facades\Auth;
 use Platform\Core\Models\DavSubscription;
 use Platform\Planner\Models\PlannerProject;
@@ -18,7 +20,7 @@ use Platform\Planner\Services\ProjectCanvasAnalysisService;
 
 class Project extends Component
 {
-    use QuickTogglesDone;
+    use QuickTogglesDone, HasPageContext;
 
     public PlannerProject $project;
     public $sprint; // Aktueller Sprint des Projekts
@@ -59,54 +61,24 @@ class Project extends Component
         // Sprints werden nicht mehr geladen - nur Project-Slots
     }
 
-    public function rendered()
+    protected function pageContext(): ?Model
     {
-        $this->dispatch('comms', [
-            'model' => get_class($this->project),
-            'modelId' => $this->project->id,
+        return $this->project;
+    }
+
+    protected function pageContextOptions(): array
+    {
+        return [
+            // Name statt Anzeigename („RUN · …"), sonst benennt sich der Terminal-Kanal um
             'subject' => $this->project->name,
-            'description' => $this->project->description ?? '',
             'url' => route('planner.projects.show', $this->project),
             'source' => 'planner.project.view',
-            'recipients' => [],
-            'capabilities' => [
-                'manage_channels' => true,
-                'threads' => false,
-            ],
+            'capabilities' => ['manage_channels' => true, 'threads' => false],
             'meta' => [
                 'project_type' => $this->project->project_type,
                 'created_at' => $this->project->created_at,
             ],
-        ]);
-
-        $this->dispatch('terminal:app:activity');
-        $this->dispatch('terminal:app:files');
-
-        // Organization-Kontext setzen - beides erlauben: Zeiten + Entity-Verknüpfung + Dimensionen
-        $this->dispatch('organization', [
-            'context_type' => get_class($this->project),
-            'context_id' => $this->project->id,
-            'allow_time_entry' => true,
-            'allow_entities' => true,
-            'allow_dimensions' => true,
-            // Verfügbare Relations für Children-Cascade (z.B. Tasks mit/ohne Slots)
-            'include_children_relations' => ['tasks', 'projectSlots.tasks'],
-        ]);
-
-        // KeyResult-Kontext setzen - ermöglicht Verknüpfung von KeyResults mit diesem Project
-        $this->dispatch('keyresult', [
-            'context_type' => get_class($this->project),
-            'context_id' => $this->project->id,
-        ]);
-
-        // Tags-Tab im Terminal aktivieren
-        $this->dispatch('terminal:app:tags');
-
-        // Extra-Fields-Kontext setzen (für Modal-Definitionen)
-        $this->dispatch('extrafields', [
-            'context_type' => get_class($this->project),
-            'context_id' => $this->project->id,
-        ]);
+        ];
     }
 
     /**
