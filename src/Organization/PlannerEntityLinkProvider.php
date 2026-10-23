@@ -302,4 +302,22 @@ class PlannerEntityLinkProvider implements EntityLinkProvider, HasContextParent,
 
         return [];
     }
+
+    /**
+     * Ist das Objekt erledigt? Dann ruht sein Gespräch in Parlan (rooms/0.3) — es kommt zurück,
+     * sobald jemand schreibt oder das Objekt wieder aufgeht. null = kein Planner-Objekt.
+     */
+    public function contextDone(string $morphAlias, Model $object): ?bool
+    {
+        if ($morphAlias === 'project') {
+            return in_array($object->lifecycle_state, [
+                ProjectLifecycleState::COMPLETED, ProjectLifecycleState::DISCARDED, ProjectLifecycleState::DORMANT,
+            ], true);
+        }
+        if ($morphAlias === 'planner_task') {
+            return in_array($object->lifecycle_state, [TaskLifecycleState::COMPLETED, TaskLifecycleState::DISCARDED], true);
+        }
+
+        return null;
+    }
 }
