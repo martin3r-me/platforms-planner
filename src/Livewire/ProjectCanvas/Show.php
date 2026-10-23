@@ -5,6 +5,8 @@ namespace Platform\Planner\Livewire\ProjectCanvas;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use Illuminate\Database\Eloquent\Model;
+use Platform\Core\Livewire\Concerns\HasPageContext;
 use Illuminate\Support\Facades\Auth;
 use Platform\Planner\Events\ProjectCanvasWorkshopNoteChanged;
 use Platform\Planner\Models\PlannerProject;
@@ -16,7 +18,7 @@ use Platform\Core\Services\ContextFileService;
 
 class Show extends Component
 {
-    use WithFileUploads;
+    use WithFileUploads, HasPageContext;
 
     public PlannerProject $project;
     public PlannerProjectCanvas $canvas;
@@ -90,18 +92,19 @@ class Show extends Component
         ]);
     }
 
-    public function rendered(): void
+    protected function pageContext(): ?Model
     {
-        $this->dispatch('comms', [
-            'model' => get_class($this->canvas),
-            'modelId' => $this->canvas->id,
-            'subject' => $this->canvas->name,
+        return $this->canvas;
+    }
+
+    protected function pageContextOptions(): array
+    {
+        return [
             'description' => 'Project Canvas',
             'url' => route('planner.projects.canvas.show', [$this->project, $this->canvas]),
             'source' => 'planner.projects.canvas.show',
-            'recipients' => [],
             'meta' => ['view_type' => 'show'],
-        ]);
+        ];
     }
 
     public function createPublicLink(): void
