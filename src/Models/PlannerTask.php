@@ -348,8 +348,8 @@ class PlannerTask extends Model implements HasKeyResultAncestors, HasDisplayName
     /**
      * Rückfrage: auf Antwort warten statt zurück-delegieren. Owner (user_in_charge_id)
      * bleibt der Worker; die Task geht in den Warten-Zustand (agent_waiting_at) und der
-     * Claim überspringt sie, bis eine Antwort im Kontext-Thread steht. Die Claude-Session
-     * wird gemerkt → die Antwort setzt sie per --resume fort (kein Ping-Pong).
+     * Claim überspringt sie, bis ein Mensch das Warten auflöst. Die Claude-Session wird
+     * gemerkt (agent_session_id).
      */
     public function agentWait(string $question, ?string $sessionId = null): void
     {

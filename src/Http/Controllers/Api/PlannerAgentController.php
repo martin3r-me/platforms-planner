@@ -5,7 +5,6 @@ namespace Platform\Planner\Http\Controllers\Api;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Platform\Planner\Enums\ProjectKind;
 use Platform\Planner\Enums\ProjectLifecycleState;
@@ -30,20 +29,6 @@ class PlannerAgentController extends Controller
         $userId = $request->user()?->id;
         if (! $userId) {
             return response()->json(['message' => 'Unauthenticated'], 401);
-        }
-
-        // Resume-First: hat eine wartende Task dieses Workers eine Antwort im Thread
-        // bekommen? Dann DIESE zuerst — die geparkte Session wird fortgesetzt (die Antwort
-        // steckt im mitgelieferten Thread), statt neue Arbeit zu ziehen. Die Triage-Pflicht
-        // ist eine Eigenschaft des Projekts (siehe requiresTriageDone).
-        if (($resume = $this->resumableTask((int) $userId))) {
-            $resume->update([
-                'agent_waiting_at' => null,
-                'agent_locked_at' => now(),
-                'agent_locked_by' => 'worker:' . $userId,
-            ]);
-
-            return response()->json(['data' => $this->taskPayload($resume, (int) $userId, true)]);
         }
 
         $query = PlannerTask::query()
@@ -100,17 +85,6 @@ class PlannerAgentController extends Controller
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
-        // Resume-First: eine beantwortete Triage-Rückfrage (noch ungeprüft) zuerst.
-        if (($resume = $this->resumableUntriagedTask((int) $userId))) {
-            $resume->update([
-                'agent_waiting_at' => null,
-                'agent_locked_at' => now(),
-                'agent_locked_by' => 'triage:' . $userId,
-            ]);
-
-            return response()->json(['data' => $this->taskPayload($resume, (int) $userId, true)]);
-        }
-
         $query = PlannerTask::query()
             ->assignedTo($userId)
             ->agentClaimable()
@@ -143,39 +117,10 @@ class PlannerAgentController extends Controller
     }
 
     /**
-     * Eine noch UNGEPRÜFTE (triage_done_at NULL) wartende Task dieses Workers, die seit dem
-     * Warten eine Antwort im Kontext-Thread bekommen hat — fürs Fortsetzen des Reife-Checks.
-     */
-    protected function resumableUntriagedTask(int $userId): ?PlannerTask
-    {
-        return PlannerTask::query()
-            ->assignedTo($userId)
-            ->where('lifecycle_state', \Platform\Planner\Enums\TaskLifecycleState::ACTIVE->value)
-            ->untriaged()
-            ->whereHas('project', fn ($p) => $p->where('require_triage', true))
-            ->whereNotNull('agent_waiting_at')
-            ->whereExists(function ($q) use ($userId) {
-                $q->select(DB::raw(1))
-                    ->from('terminal_messages as tm')
-                    ->join('terminal_channels as tc', 'tm.channel_id', '=', 'tc.id')
-                    ->whereColumn('tc.context_id', 'planner_tasks.id')
-                    ->where('tc.context_type', PlannerTask::class)
-                    ->where('tm.user_id', '!=', $userId)
-                    ->whereColumn('tm.created_at', '>', 'planner_tasks.agent_waiting_at');
-            })
-            ->leftJoin('planner_project_slots', 'planner_tasks.project_slot_id', '=', 'planner_project_slots.id')
-            ->orderByRaw('planner_project_slots.order IS NULL')
-            ->orderBy('planner_project_slots.order')
-            ->orderBy('planner_tasks.agent_waiting_at')
-            ->select('planner_tasks.*')
-            ->first();
-    }
-
-    /**
      * Triage-Entscheidung committen. ready=true → Task für die Ausführung freigeben
      * (triage_done_at setzen, optional Story-Points korrigieren, Lock lösen). ready=false →
-     * Rückfrage in den Context-Thread + Warten-Zustand (wie ask); triage_done_at bleibt leer,
-     * bis der Reife-Check nach der Antwort erneut läuft und freigibt.
+     * Rückfrage am Datensatz festhalten + Warten-Zustand; triage_done_at bleibt leer. Ohne
+     * Chat gibt es keinen automatischen Resume mehr — das Warten löst ein Mensch auf.
      *
      * POST /api/planner/agent/tasks/{id}/triage  { ready, story_points?, question?, session_id? }
      */
@@ -214,21 +159,21 @@ class PlannerAgentController extends Controller
             ]]);
         }
 
-        // Nicht reif → Rückfrage stellen (wie ask): Thread + Warten-Zustand, ungeprüft lassen.
+        // Nicht reif → Rückfrage am Task festhalten (agent_summary + Activity-Log), ungeprüft
+        // lassen. Kein Chat mehr — die Antwort kommt nicht über einen Thread zurück.
         $question = trim((string) ($data['question'] ?? ''));
         if ($question === '') {
             return response()->json(['message' => 'Question required when not ready'], 422);
         }
-        $this->postToContextThread($task, (int) $request->user()->id, $question);
         $task->agentWait($question, $data['session_id'] ?? null);
         Log::info('[Planner Agent] Task triage question', ['task_id' => $task->id]);
 
-        return response()->json(['message' => 'Triage question posted', 'data' => ['id' => $task->id]]);
+        return response()->json(['message' => 'Triage question recorded', 'data' => ['id' => $task->id]]);
     }
 
     /**
      * Einheitliches Task-Payload für Claim + Resume. Bei $resume=true weiß der Worker,
-     * dass er die gemerkte Claude-Session fortsetzt (die Antwort steckt im `thread`).
+     * dass er die gemerkte Claude-Session fortsetzt.
      * agent_branch bleibt null — der Backoffice-Worker hat keinen Git-Branch.
      *
      * @return array<string, mixed>
@@ -247,45 +192,11 @@ class PlannerAgentController extends Controller
             // Projekt-Gedächtnis: wiederverwendbare Lektionen aus früheren Tasks dieses Projekts.
             'project_lessons' => $task->project_id ? optional($task->project)->agent_lessons : null,
             'type' => 'task',
-            // Kontext-Thread (Rückfragen/Antworten), falls der Worker Mitglied ist.
-            'thread' => $this->contextThread($task, $userId),
             // Resume-Signal: gemerkte Session → Worker setzt fort statt neu.
             'resume' => $resume,
             'agent_session_id' => $resume ? $task->agent_session_id : null,
             'agent_branch' => null,
         ];
-    }
-
-    /**
-     * Eine wartende (agent_waiting_at) Task dieses Workers, die seit dem Warten eine
-     * Antwort im Kontext-Thread von jemand anderem bekommen hat — in Board-Reihenfolge.
-     */
-    protected function resumableTask(int $userId): ?PlannerTask
-    {
-        return PlannerTask::query()
-            ->assignedTo($userId)
-            ->where('lifecycle_state', \Platform\Planner\Enums\TaskLifecycleState::ACTIVE->value)
-            ->whereNotNull('agent_waiting_at')
-            // Projekte mit Triage-Pflicht: offene Triage-Rückfragen (noch nicht triagiert) sind
-            // Sache des Triage-Claims — die Ausführung setzt erst nach der Freigabe fort.
-            ->where(fn ($q) => $this->requiresTriageDone($q))
-            ->whereExists(function ($q) use ($userId) {
-                $q->select(DB::raw(1))
-                    ->from('terminal_messages as tm')
-                    ->join('terminal_channels as tc', 'tm.channel_id', '=', 'tc.id')
-                    ->whereColumn('tc.context_id', 'planner_tasks.id')
-                    ->where('tc.context_type', PlannerTask::class)
-                    ->where('tm.user_id', '!=', $userId)
-                    ->whereColumn('tm.created_at', '>', 'planner_tasks.agent_waiting_at');
-            })
-            ->leftJoin('planner_project_slots', 'planner_tasks.project_slot_id', '=', 'planner_project_slots.id')
-            ->orderByRaw('planner_project_slots.order IS NULL')
-            ->orderBy('planner_project_slots.order')
-            ->orderBy('planner_tasks.project_slot_order')
-            ->orderBy('planner_tasks.order')
-            ->orderBy('planner_tasks.agent_waiting_at')
-            ->select('planner_tasks.*')
-            ->first();
     }
 
     /**
@@ -337,40 +248,6 @@ class PlannerAgentController extends Controller
             'next_up' => $nextUp,
             'packages' => [], // Backoffice: keine Dev-Packages.
         ]]);
-    }
-
-    /**
-     * Nachrichten des Context-Threads dieser Task — nur wenn der Worker Mitglied ist.
-     * Liefert den bisherigen Rückfrage-/Antwort-Verlauf als Kontext fürs nächste Claimen.
-     *
-     * @return array<int, array{user_id:int, author:string, body:?string, at:?string}>|null
-     */
-    protected function contextThread(PlannerTask $task, int $workerId): ?array
-    {
-        $channel = \Platform\Core\Models\TerminalChannel::forTeam((int) $task->team_id)
-            ->forContext(PlannerTask::class, $task->id)
-            ->first();
-        if (! $channel) {
-            return null;
-        }
-
-        $isMember = \Platform\Core\Models\TerminalChannelMember::where('channel_id', $channel->id)
-            ->where('user_id', $workerId)->exists();
-        if (! $isMember) {
-            return null;
-        }
-
-        return $channel->messages()
-            ->with('user:id,name')
-            ->orderBy('id')
-            ->limit(80)
-            ->get()
-            ->map(fn ($m) => [
-                'user_id' => (int) $m->user_id,
-                'author' => $m->user?->name ?? ('User #'.$m->user_id),
-                'body' => $m->body_plain,
-                'at' => optional($m->created_at)->toIso8601String(),
-            ])->values()->all();
     }
 
     /**
@@ -534,12 +411,6 @@ class PlannerAgentController extends Controller
             $project->update(['agent_lessons' => $merged]);
         }
 
-        // Erledigt-Meldung: existiert schon ein Rückfrage-Thread → dort (Kreis schließen),
-        // sonst DM an den Ersteller. Für „fertig" lohnt kein neuer Thread.
-        $summary = trim((string) ($data['summary'] ?? ''));
-        $body = '✅ Erledigt: '.($task->title ?: 'Aufgabe').($summary !== '' ? "\n\n".$summary : '');
-        $this->announceCompletion($task, (int) $request->user()->id, $body);
-
         Log::info('[Planner Agent] Task completed', ['task_id' => $task->id]);
 
         return response()->json(['message' => 'Task completed', 'data' => ['id' => $task->id, 'lifecycle_state' => 'erledigt']]);
@@ -585,80 +456,6 @@ class PlannerAgentController extends Controller
         Log::info('[Planner Agent] Time logged', ['task_id' => $task->id, 'minutes' => (int) $data['minutes'], 'entry_id' => $entry->id]);
 
         return response()->json(['message' => 'Time logged', 'data' => ['id' => $entry->id, 'minutes' => $entry->minutes, 'task_id' => $task->id]]);
-    }
-
-    /**
-     * Rückfrage stellen: die Frage in den Context-Thread der Task posten (Thread
-     * anlegen, falls keiner da) — Absender = Worker, IMMER den Ersteller (user_id)
-     * erwähnen und als Mitglied sicherstellen. Danach die Task parken (agentDefer),
-     * sie wartet damit auf die Antwort des Erstellers.
-     *
-     * POST /api/planner/agent/tasks/{id}/ask  { question }
-     */
-    public function ask(Request $request, int $id): JsonResponse
-    {
-        $task = $this->ownedTask($request, $id);
-        if (! $task) {
-            return response()->json(['message' => 'Task not found'], 404);
-        }
-        $data = $request->validate([
-            'question' => 'required|string|max:5000',
-            'branch' => 'nullable|string|max:255',
-            'session_id' => 'nullable|string|max:255',
-        ]);
-
-        $this->postToContextThread($task, (int) $request->user()->id, $data['question']);
-
-        // Auf Antwort warten statt zurück-delegieren: Owner bleibt der Worker, Warten-
-        // Zustand + Session merken. Der Resume-First-Pass in next-task holt die Task
-        // erneut (samt Thread), sobald der Ersteller antwortet.
-        $task->agentWait($data['question'], $data['session_id'] ?? null);
-
-        Log::info('[Planner Agent] Rückfrage in Context-Thread', ['task_id' => $task->id, 'creator_id' => (int) $task->user_id]);
-
-        return response()->json(['message' => 'Question posted to context thread', 'data' => ['id' => $task->id]]);
-    }
-
-    /**
-     * Erfolgsmeldung zustellen: existiert schon ein Kontext-Thread (es lief eine
-     * Rückfrage) → dort rein, um den Kreis zu schließen. Sonst als DM an den
-     * Ersteller — für ein einmaliges „fertig" lohnt kein neuer Thread.
-     */
-    protected function announceCompletion(PlannerTask $task, int $senderId, string $body): void
-    {
-        $hasThread = \Platform\Core\Models\TerminalChannel::forTeam((int) $task->team_id)
-            ->forContext(PlannerTask::class, $task->id)
-            ->exists();
-
-        if ($hasThread) {
-            $this->postToContextThread($task, $senderId, $body);
-
-            return;
-        }
-
-        app(\Platform\Core\Services\PostDirectMessage::class)
-            ->post((int) $task->team_id, $senderId, (int) $task->user_id, $body);
-    }
-
-    /**
-     * Postet eine Nachricht in den Context-Thread der Task (Thread anlegen, falls
-     * keiner da) — Absender = Worker, IMMER den Ersteller (user_id) erwähnen und
-     * als Mitglied sicherstellen.
-     */
-    protected function postToContextThread(PlannerTask $task, int $senderId, string $body): void
-    {
-        $recipients = array_values(array_filter([(int) $task->user_id]));  // Ersteller = Empfänger
-
-        app(\Platform\Core\Services\PostContextMessage::class)->post(
-            teamId: (int) $task->team_id,
-            contextType: PlannerTask::class,
-            contextId: $task->id,
-            contextName: $task->title ?: 'Aufgabe',
-            senderId: $senderId,
-            body: $body,
-            memberIds: $recipients,
-            mentionUserIds: $recipients,   // immer erwähnen
-        );
     }
 
     /** Rückfrage: auf Antwort warten (Owner bleibt Worker, Session gemerkt). */
