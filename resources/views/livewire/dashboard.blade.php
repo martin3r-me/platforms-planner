@@ -84,32 +84,6 @@
         </x-ui-page-sidebar>
     </x-slot>
 
-    <x-slot name="activity">
-        <x-ui-page-sidebar title="Heute" icon="heroicon-o-bolt" width="w-72" :defaultOpen="false" storeKey="activityOpen" side="right">
-            <div class="p-4 space-y-5">
-                <section>
-                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] mb-2">Meine Zahlen</h3>
-                    <dl class="space-y-1.5 text-[11px]">
-                        <div class="flex items-baseline justify-between gap-3">
-                            <dt class="text-[var(--nx-muted)]">Stunden diesen Monat</dt>
-                            <dd class="text-[var(--nx-text)] font-medium tabular-nums m-0">{{ number_format($myMonthlyMinutes / 60, 1, ',', '.') }} h</dd>
-                        </div>
-                    </dl>
-                </section>
-
-                <section>
-                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] mb-2">Springe zu</h3>
-                    <ul class="space-y-0.5 text-[11px]">
-                        <li><a href="{{ route('planner.my-tasks') }}" wire:navigate class="flex items-center gap-2 px-2 py-1.5 rounded-md text-[var(--nx-text)] hover:bg-[var(--nx-bg)]">@svg('heroicon-o-clipboard-document-check', 'w-3.5 h-3.5 opacity-60') Meine Aufgaben</a></li>
-                        <li><a href="{{ route('planner.delegated-tasks') }}" wire:navigate class="flex items-center gap-2 px-2 py-1.5 rounded-md text-[var(--nx-text)] hover:bg-[var(--nx-bg)]">@svg('heroicon-o-user-group', 'w-3.5 h-3.5 opacity-60') Delegiert</a></li>
-                        <li><a href="{{ route('planner.completed-tasks') }}" wire:navigate class="flex items-center gap-2 px-2 py-1.5 rounded-md text-[var(--nx-text)] hover:bg-[var(--nx-bg)]">@svg('heroicon-o-check-circle', 'w-3.5 h-3.5 opacity-60') Erledigt</a></li>
-                        <li><a href="{{ route('planner.hygiene') }}" wire:navigate class="flex items-center gap-2 px-2 py-1.5 rounded-md text-[var(--nx-text)] hover:bg-[var(--nx-bg)]">@svg('heroicon-o-shield-check', 'w-3.5 h-3.5 opacity-60') Hygiene</a></li>
-                    </ul>
-                </section>
-            </div>
-        </x-ui-page-sidebar>
-    </x-slot>
-
     <x-ui-page-container width="contained">
 
         {{-- Greeting --}}
@@ -128,6 +102,9 @@
                         — <span class="text-[color:var(--nx-warning)] font-medium tabular-nums">{{ $myDueTodayCount }}</span> heute fällig
                     @endif
                     .
+                @endif
+                @if($myMonthlyMinutes > 0)
+                    <span class="whitespace-nowrap">Diesen Monat <span class="font-medium text-[var(--nx-text)] tabular-nums">{{ number_format($myMonthlyMinutes / 60, 1, ',', '.') }} h</span> erfasst.</span>
                 @endif
             </p>
         </div>

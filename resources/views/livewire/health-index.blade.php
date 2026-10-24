@@ -154,11 +154,36 @@
         </x-ui-page-sidebar>
     </x-slot>
 
-    {{-- ════════ RIGHT SIDEBAR: Bewegung ════════ --}}
-    <x-slot name="activity">
-        <x-ui-page-sidebar title="Bewegung" icon="heroicon-o-bolt" width="w-80" :defaultOpen="true" storeKey="activityOpen" side="right">
-            <div class="p-4 space-y-4 bg-[var(--nx-bg)]">
+    {{-- ════════ MAIN BODY ════════ --}}
+    <div class="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
 
+        {{-- Projekt-Liste --}}
+        <div class="flex-1 overflow-y-auto px-4 py-3 bg-[var(--nx-bg)]">
+            {{-- Ampel-Verteilung (Portfolio-Puls) --}}
+            <div class="mb-3 rounded-xl border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] shadow-[var(--nx-shadow-card)] p-4 space-y-2">
+                <div class="h-3 w-full bg-[color:var(--nx-line)] rounded-full overflow-hidden flex">
+                    @foreach(['red', 'yellow', 'green', 'gray'] as $c)
+                        @php $w = round(($byColor[$c] / $distTotal) * 100, 2); $t = $tone($c); @endphp
+                        @if($byColor[$c] > 0)
+                            <div class="{{ $t['fill'] }} h-full" style="width: {{ $w }}%" title="{{ $t['label'] }}: {{ $byColor[$c] }} ({{ round($w) }}%)"></div>
+                        @endif
+                    @endforeach
+                </div>
+                @php $missingTotal = array_sum($missingLayers); @endphp
+                @if($missingTotal > 0)
+                    <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-[var(--nx-muted)]">
+                        <span class="font-semibold uppercase tracking-wider">Datenpflege fehlt:</span>
+                        @foreach($missingLayers as $key => $count)
+                            @if($count > 0)
+                                <span><span class="font-medium text-[var(--nx-text)] tabular-nums">{{ $count }}</span> × {{ $missingLabel[$key] }}</span>
+                            @endif
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+
+            {{-- Bewegung gegenüber dem Vortag --}}
+            <div class="mb-3 grid grid-cols-1 md:grid-cols-3 gap-3">
                 {{-- SCOPE-INFO --}}
                 <section class="p-3 rounded-lg bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)]">
                     <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] mb-2">Scope</h3>
@@ -232,36 +257,6 @@
                         @svg('heroicon-o-pause-circle', 'w-6 h-6 mx-auto mb-1 text-[var(--nx-muted)] opacity-50')
                         <p class="text-[11px] text-[var(--nx-muted)] m-0">Keine Bewegung gegenüber dem Vortag.</p>
                     </section>
-                @endif
-            </div>
-        </x-ui-page-sidebar>
-    </x-slot>
-
-    {{-- ════════ MAIN BODY ════════ --}}
-    <div class="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
-
-        {{-- Projekt-Liste --}}
-        <div class="flex-1 overflow-y-auto px-4 py-3 bg-[var(--nx-bg)]">
-            {{-- Ampel-Verteilung (Portfolio-Puls) --}}
-            <div class="mb-3 rounded-xl border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] shadow-[var(--nx-shadow-card)] p-4 space-y-2">
-                <div class="h-3 w-full bg-[color:var(--nx-line)] rounded-full overflow-hidden flex">
-                    @foreach(['red', 'yellow', 'green', 'gray'] as $c)
-                        @php $w = round(($byColor[$c] / $distTotal) * 100, 2); $t = $tone($c); @endphp
-                        @if($byColor[$c] > 0)
-                            <div class="{{ $t['fill'] }} h-full" style="width: {{ $w }}%" title="{{ $t['label'] }}: {{ $byColor[$c] }} ({{ round($w) }}%)"></div>
-                        @endif
-                    @endforeach
-                </div>
-                @php $missingTotal = array_sum($missingLayers); @endphp
-                @if($missingTotal > 0)
-                    <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-[var(--nx-muted)]">
-                        <span class="font-semibold uppercase tracking-wider">Datenpflege fehlt:</span>
-                        @foreach($missingLayers as $key => $count)
-                            @if($count > 0)
-                                <span><span class="font-medium text-[var(--nx-text)] tabular-nums">{{ $count }}</span> × {{ $missingLabel[$key] }}</span>
-                            @endif
-                        @endforeach
-                    </div>
                 @endif
             </div>
 

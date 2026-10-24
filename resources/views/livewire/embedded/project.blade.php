@@ -200,23 +200,6 @@
         </x-slot>
 
         {{-- Rechte Sidebar --}}
-        <x-slot name="activity">
-            <x-ui-page-sidebar title="Aktivitäten" width="w-80" :defaultOpen="false" storeKey="activityOpen" side="right">
-                <div class="p-4 space-y-4">
-                    <div class="text-sm text-[var(--nx-muted)]">Letzte Aktivitäten</div>
-                    <div class="space-y-3 text-sm">
-                        <div class="p-2 rounded border border-[var(--nx-line)]/60 bg-[var(--nx-bg)]">
-                            <div class="font-medium text-[var(--nx-text)] truncate">Projekt geöffnet</div>
-                            <div class="text-[var(--nx-muted)]">Gerade eben</div>
-                        </div>
-                        <div class="p-2 rounded border border-[var(--nx-line)]/60 bg-[var(--nx-bg)]">
-                            <div class="font-medium text-[var(--nx-text)] truncate">Teams Tab erstellt</div>
-                            <div class="text-[var(--nx-muted)]">Vor 5 Minuten</div>
-                        </div>
-                    </div>
-                </div>
-            </x-ui-page-sidebar>
-        </x-slot>
     </x-ui-page>
 
     {{-- Modals für embedded Projekt-View --}}

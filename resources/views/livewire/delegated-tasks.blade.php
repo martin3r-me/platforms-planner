@@ -153,22 +153,6 @@
         </x-ui-page-sidebar>
     </x-slot>
 
-    <x-slot name="activity">
-        <x-ui-page-sidebar title="Aktivitäten" icon="heroicon-o-bolt" width="w-80" :defaultOpen="false" storeKey="activityOpen" side="right">
-            <div class="p-4 space-y-3">
-                <div class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)]">Letzte Aktivitäten</div>
-                @forelse(($activities ?? []) as $activity)
-                    <div class="p-2.5 rounded-lg border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] shadow-[var(--nx-shadow-card)]">
-                        <div class="text-[11px] font-medium text-[var(--nx-text)] truncate">{{ $activity['title'] ?? 'Aktivität' }}</div>
-                        <div class="text-[10px] text-[var(--nx-muted)] mt-0.5">{{ $activity['time'] ?? '' }}</div>
-                    </div>
-                @empty
-                    <p class="text-[11px] text-[var(--nx-muted)]">Noch keine Aktivität</p>
-                @endforelse
-            </div>
-        </x-ui-page-sidebar>
-    </x-slot>
-
     <div class="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
 
         {{-- Board --}}

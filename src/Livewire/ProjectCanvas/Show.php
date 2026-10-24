@@ -2,7 +2,6 @@
 
 namespace Platform\Planner\Livewire\ProjectCanvas;
 
-use Livewire\Attributes\Computed;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Illuminate\Database\Eloquent\Model;
@@ -460,79 +459,6 @@ class Show extends Component
         $this->broadcastNoteChange('deleted', $noteId);
     }
 
-    // ─── Activities ────────────────────────────────────────
-
-    #[Computed]
-    public function activities()
-    {
-        if (!$this->canvas) {
-            return collect();
-        }
-
-        return $this->canvas->activities()
-            ->with('user')
-            ->limit(10)
-            ->get()
-            ->map(function ($activity) {
-                return [
-                    'id' => $activity->id,
-                    'title' => $this->formatActivityTitle($activity),
-                    'time' => $activity->created_at->diffForHumans(),
-                    'user' => $activity->user?->name ?? 'System',
-                    'type' => $activity->activity_type,
-                    'name' => $activity->name,
-                ];
-            });
-    }
-
-    private function formatActivityTitle($activity): string
-    {
-        $userName = $activity->user?->name ?? 'System';
-        $activityName = $activity->name;
-
-        $translations = [
-            'created' => 'erstellt',
-            'updated' => 'aktualisiert',
-            'deleted' => 'geloescht',
-            'manual' => 'hat eine Nachricht hinzugefuegt',
-        ];
-
-        $translatedName = $translations[$activityName] ?? $activityName;
-
-        if ($activity->message) {
-            return "{$userName}: {$activity->message}";
-        }
-
-        if ($activity->properties && !empty($activity->properties)) {
-            $props = $activity->properties;
-            $changedFields = [];
-
-            if (isset($props['old']) || isset($props['new'])) {
-                $changedFields = array_keys($props['new'] ?? $props['old'] ?? []);
-            } else {
-                $changedFields = array_keys($props);
-            }
-
-            if (!empty($changedFields)) {
-                $fieldNames = array_map(function ($field) {
-                    $map = [
-                        'name' => 'Name',
-                        'description' => 'Beschreibung',
-                        'status' => 'Status',
-                        'is_public' => 'Oeffentlich',
-                        'public_token' => 'Public Token',
-                    ];
-                    return $map[$field] ?? $field;
-                }, $changedFields);
-
-                $fields = implode(', ', $fieldNames);
-                return "{$userName} hat {$fields} {$translatedName}";
-            }
-        }
-
-        return "{$userName} hat das Canvas {$translatedName}";
-    }
-
     // ─── Render ────────────────────────────────────────────
 
     public function render()
@@ -585,7 +511,6 @@ class Show extends Component
             'blockDefs' => $blockDefs,
             'comments' => $comments,
             'allComments' => $allComments,
-            'activities' => $this->activities,
             'workshopNotes' => $workshopNotes,
         ])->layout('platform::layouts.app');
     }

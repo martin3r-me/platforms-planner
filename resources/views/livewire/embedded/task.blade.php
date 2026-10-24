@@ -49,17 +49,6 @@
         </x-ui-page-sidebar>
     </x-slot>
 
-    <x-slot name="activity">
-        <x-ui-page-sidebar title="Aktivitäten" width="w-80" :defaultOpen="false" side="right" storeKey="activityOpen">
-            <div class="p-4 space-y-2 text-sm">
-                <div class="p-2 rounded border border-[var(--nx-line)]/60 bg-[var(--nx-bg)]">
-                    <div class="font-medium text-[var(--nx-text)] truncate">Aufgabe geöffnet</div>
-                    <div class="text-[var(--nx-muted)]">Gerade eben</div>
-                </div>
-            </div>
-        </x-ui-page-sidebar>
-        </x-slot>
-
     <div class="p-4 space-y-4">
             <div class="bg-[color:var(--nx-surface)] rounded-lg border p-4">
             <div class="text-sm text-[var(--nx-muted)] mb-2">Task-ID: {{ $task->id }}</div>

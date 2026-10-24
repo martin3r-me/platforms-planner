@@ -644,44 +644,4 @@
     </x-slot>
 
     {{-- Right Sidebar: Aktivitaeten --}}
-    <x-slot name="activity">
-        <x-ui-page-sidebar title="Aktivitaeten" width="w-80" :defaultOpen="false" storeKey="activityOpen" side="right">
-            <div class="p-6">
-                <h3 class="text-[11px] font-medium text-[color:var(--nx-muted)] uppercase tracking-wide mb-4">Letzte Aktivitaeten</h3>
-                <div class="space-y-3">
-                    @forelse(($activities ?? []) as $activity)
-                        <div class="p-3 rounded-xl border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] hover:shadow-[var(--nx-shadow-card)] transition-shadow">
-                            <div class="flex items-start justify-between gap-2 mb-1">
-                                <div class="flex-1 min-w-0">
-                                    <div class="text-[13px] font-medium text-[var(--nx-text)] leading-snug">
-                                        {{ $activity['title'] ?? 'Aktivitaet' }}
-                                    </div>
-                                </div>
-                                @if(($activity['type'] ?? null) === 'system')
-                                    <div class="flex-shrink-0">
-                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[color:var(--nx-line)] border border-[color:var(--nx-line)] text-xs text-[color:var(--nx-muted)]">
-                                            @svg('heroicon-o-cog', 'w-3 h-3')
-                                            System
-                                        </span>
-                                    </div>
-                                @endif
-                            </div>
-                            <div class="flex items-center gap-2 text-xs text-[color:var(--nx-muted)]">
-                                @svg('heroicon-o-clock', 'w-3 h-3')
-                                <span>{{ $activity['time'] ?? '' }}</span>
-                            </div>
-                        </div>
-                    @empty
-                        <div class="py-8 text-center">
-                            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[var(--nx-accent)]/10 mb-3">
-                                @svg('heroicon-o-clock', 'w-6 h-6 text-[var(--nx-accent)]')
-                            </div>
-                            <p class="text-[13px] text-[color:var(--nx-muted)]">Noch keine Aktivitaeten</p>
-                            <p class="text-xs text-[color:var(--nx-muted)] mt-1">Aenderungen werden hier angezeigt</p>
-                        </div>
-                    @endforelse
-                </div>
-            </div>
-        </x-ui-page-sidebar>
-    </x-slot>
 </x-ui-page>

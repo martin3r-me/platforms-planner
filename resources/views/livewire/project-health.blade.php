@@ -217,70 +217,6 @@
         </x-ui-page-sidebar>
     </x-slot>
 
-    {{-- ════════ RIGHT SIDEBAR: Bewegung ════════ --}}
-    <x-slot name="activity">
-        <x-ui-page-sidebar title="Bewegung" icon="heroicon-o-bolt" width="w-72" :defaultOpen="true" storeKey="activityOpen" side="right">
-            <div class="p-4 space-y-4">
-                @if($latest)
-                    {{-- Deltas zum Vortag --}}
-                    <section class="space-y-2">
-                        <div class="text-[10px] uppercase tracking-wider text-[var(--nx-muted)] font-semibold">Veraenderung zum Vortag</div>
-
-                        @php
-                            $deltas = [
-                                ['label' => 'Health-Score', 'value' => $latest->delta_health_score, 'unit' => ''],
-                                ['label' => 'Canvas-Score', 'value' => $latest->delta_canvas_score, 'unit' => ''],
-                                ['label' => 'Tasks erledigt', 'value' => $latest->delta_tasks_done, 'unit' => ''],
-                            ];
-                        @endphp
-
-                        @foreach($deltas as $d)
-                            @php
-                                $v = $d['value'];
-                                $isUp = $v !== null && $v > 0;
-                                $isDown = $v !== null && $v < 0;
-                                $color = $v === null ? 'text-[color:var(--nx-muted)]' : ($isUp ? 'text-[color:var(--nx-success)]' : ($isDown ? 'text-[color:var(--nx-danger)]' : 'text-[color:var(--nx-muted)]'));
-                                $arrow = $v === null ? '–' : ($isUp ? '↑' : ($isDown ? '↓' : '·'));
-                            @endphp
-                            <div class="flex items-center justify-between text-xs py-1 border-b border-[color:var(--nx-line)] last:border-b-0">
-                                <span class="text-[var(--nx-muted)]">{{ $d['label'] }}</span>
-                                <span class="tabular-nums {{ $color }} font-medium">{{ $arrow }} {{ $v !== null ? abs($v) : '–' }}{{ $d['unit'] }}</span>
-                            </div>
-                        @endforeach
-                    </section>
-
-                    {{-- Trend Last 7 Snapshots --}}
-                    @if($trend->count() > 1)
-                        <section class="space-y-2">
-                            <div class="text-[10px] uppercase tracking-wider text-[var(--nx-muted)] font-semibold">Letzte Snapshots</div>
-                            <ul class="space-y-1">
-                                @foreach($trend->take(-7)->reverse() as $point)
-                                    @php $pt = $tone($point->health_color); @endphp
-                                    <li class="flex items-center justify-between text-xs py-1">
-                                        <span class="flex items-center gap-2">
-                                            <span class="w-1.5 h-1.5 rounded-full {{ $pt['dot'] }}"></span>
-                                            <span class="text-[var(--nx-muted)] tabular-nums text-[11px]">{{ $point->taken_on?->format('d.m.') }}</span>
-                                        </span>
-                                        <span class="tabular-nums font-medium {{ $pt['fg'] }}">{{ $point->health_score ?? '–' }}</span>
-                                    </li>
-                                @endforeach
-                            </ul>
-                        </section>
-                    @endif
-
-                    {{-- Last Movement --}}
-                    @if($latest->last_movement_at)
-                        <section class="rounded-lg bg-[var(--nx-bg)] p-3">
-                            <div class="text-[10px] uppercase tracking-wider text-[var(--nx-muted)] font-semibold mb-1">Letzte Aktivitaet</div>
-                            <div class="text-[12px] text-[var(--nx-text)]">{{ $latest->last_movement_at->diffForHumans() }}</div>
-                            <div class="text-[10px] text-[var(--nx-muted)] mt-0.5">{{ $latest->last_movement_at->format('d.m.Y H:i') }}</div>
-                        </section>
-                    @endif
-                @endif
-            </div>
-        </x-ui-page-sidebar>
-    </x-slot>
-
     {{-- ════════ MAIN BODY ════════ --}}
     <div class="flex-1 min-h-0 overflow-y-auto bg-[var(--nx-bg)]">
         <div class="max-w-6xl mx-auto p-6 space-y-5">
@@ -503,6 +439,66 @@
                     @endif
                 </div>
             @endforeach
+        </section>
+
+        {{-- BEWEGUNG: Veraenderung zum Vortag, letzte Snapshots, letzte Aktivitaet --}}
+        <section class="rounded-xl border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] p-4 shadow-[var(--nx-shadow-card)]">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {{-- Deltas zum Vortag --}}
+                <section class="space-y-2">
+                    <div class="text-[10px] uppercase tracking-wider text-[var(--nx-muted)] font-semibold">Veraenderung zum Vortag</div>
+
+                    @php
+                        $deltas = [
+                            ['label' => 'Health-Score', 'value' => $latest->delta_health_score, 'unit' => ''],
+                            ['label' => 'Canvas-Score', 'value' => $latest->delta_canvas_score, 'unit' => ''],
+                            ['label' => 'Tasks erledigt', 'value' => $latest->delta_tasks_done, 'unit' => ''],
+                        ];
+                    @endphp
+
+                    @foreach($deltas as $d)
+                        @php
+                            $v = $d['value'];
+                            $isUp = $v !== null && $v > 0;
+                            $isDown = $v !== null && $v < 0;
+                            $color = $v === null ? 'text-[color:var(--nx-muted)]' : ($isUp ? 'text-[color:var(--nx-success)]' : ($isDown ? 'text-[color:var(--nx-danger)]' : 'text-[color:var(--nx-muted)]'));
+                            $arrow = $v === null ? '–' : ($isUp ? '↑' : ($isDown ? '↓' : '·'));
+                        @endphp
+                        <div class="flex items-center justify-between text-xs py-1 border-b border-[color:var(--nx-line)] last:border-b-0">
+                            <span class="text-[var(--nx-muted)]">{{ $d['label'] }}</span>
+                            <span class="tabular-nums {{ $color }} font-medium">{{ $arrow }} {{ $v !== null ? abs($v) : '–' }}{{ $d['unit'] }}</span>
+                        </div>
+                    @endforeach
+                </section>
+
+                {{-- Trend Last 7 Snapshots --}}
+                @if($trend->count() > 1)
+                    <section class="space-y-2">
+                        <div class="text-[10px] uppercase tracking-wider text-[var(--nx-muted)] font-semibold">Letzte Snapshots</div>
+                        <ul class="space-y-1">
+                            @foreach($trend->take(-7)->reverse() as $point)
+                                @php $pt = $tone($point->health_color); @endphp
+                                <li class="flex items-center justify-between text-xs py-1">
+                                    <span class="flex items-center gap-2">
+                                        <span class="w-1.5 h-1.5 rounded-full {{ $pt['dot'] }}"></span>
+                                        <span class="text-[var(--nx-muted)] tabular-nums text-[11px]">{{ $point->taken_on?->format('d.m.') }}</span>
+                                    </span>
+                                    <span class="tabular-nums font-medium {{ $pt['fg'] }}">{{ $point->health_score ?? '–' }}</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </section>
+                @endif
+
+                {{-- Last Movement --}}
+                @if($latest->last_movement_at)
+                    <section class="rounded-lg bg-[var(--nx-bg)] p-3">
+                        <div class="text-[10px] uppercase tracking-wider text-[var(--nx-muted)] font-semibold mb-1">Letzte Aktivitaet</div>
+                        <div class="text-[12px] text-[var(--nx-text)]">{{ $latest->last_movement_at->diffForHumans() }}</div>
+                        <div class="text-[10px] text-[var(--nx-muted)] mt-0.5">{{ $latest->last_movement_at->format('d.m.Y H:i') }}</div>
+                    </section>
+                @endif
+            </div>
         </section>
 
         {{-- FROGS + WORKLOAD --}}
