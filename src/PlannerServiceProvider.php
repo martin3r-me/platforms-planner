@@ -110,8 +110,12 @@ class PlannerServiceProvider extends ServiceProvider
 
         // EntityLinkProvider registrieren (loose Kopplung mit Organization-Modul)
         try {
-            resolve(\Platform\Organization\Services\EntityLinkRegistry::class)
-                ->register(new \Platform\Planner\Organization\PlannerEntityLinkProvider());
+            $registry = resolve(\Platform\Organization\Services\EntityLinkRegistry::class);
+            $registry->register(new \Platform\Planner\Organization\PlannerEntityLinkProvider());
+            // Kundenansicht für geteilte Knoten (Kunden-Tor) — nur, wenn organization sie schon kennt
+            if (method_exists($registry, 'registerShareView')) {
+                $registry->registerShareView(new \Platform\Planner\Organization\PlannerShareView());
+            }
         } catch (\Throwable $e) {
             // Organization-Modul nicht geladen
         }
