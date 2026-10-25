@@ -25,8 +25,9 @@ class PlannerShareView implements ProvidesShareView
     public function shareTypes(): array
     {
         return [
-            'project' => ['label' => 'Projekte', 'singular' => 'Projekt', 'icon' => 'folder', 'featured' => true, 'slug' => 'projekt'],
-            'planner_task' => ['label' => 'Aufgaben', 'singular' => 'Aufgabe', 'icon' => 'clipboard-document-check', 'featured' => false, 'slug' => 'aufgabe'],
+            'project' => ['label' => 'Projekte', 'singular' => 'Projekt', 'icon' => 'folder', 'featured' => true, 'slug' => 'projekt', 'group' => 'arbeit', 'order' => 10],
+            // Einzelne Aufgaben am Knoten: nur als Liste, ohne eigene Detailseite
+            'planner_task' => ['label' => 'Aufgaben', 'singular' => 'Aufgabe', 'icon' => 'clipboard-document-check', 'featured' => false, 'slug' => 'aufgabe', 'group' => 'arbeit', 'detail' => false, 'order' => 20],
         ];
     }
 
