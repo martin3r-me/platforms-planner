@@ -1,7 +1,7 @@
 {{-- Kunden-Tor · Canvases eines Projekts — der inhaltliche Stand. Karte je Canvas mit Vorschau der gefüllten Felder,
      Füllstand und „geändert seit Ihrem letzten Besuch"; Klick → Unterseite canvas-{id}. Daten: $canvases, $link(sub). --}}
-<div class="mx-auto max-w-[1120px] px-4 py-6 sm:px-8">
-    <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
+<div class="gp-wrap py-6">
+    <div class="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-3">
         @foreach ($canvases as $c)
             @php
                 $fill = $c['blocks_total'] ? (int) round($c['blocks_filled'] / $c['blocks_total'] * 100) : 0;

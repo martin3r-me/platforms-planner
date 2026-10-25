@@ -9,7 +9,7 @@
     @endif
 </div>
 @if (! empty($changes))
-    <div class="mb-6 max-w-3xl rounded-[12px] border border-[rgba(25,113,194,.25)] bg-[rgba(25,113,194,.05)] p-4">
+    <div class="mb-6 max-w-5xl rounded-[12px] border border-[rgba(25,113,194,.25)] bg-[rgba(25,113,194,.05)] p-4">
         <div class="flex items-center gap-2 text-sm font-semibold">
             <span class="h-2 w-2 rounded-full bg-[color:var(--nx-info)]"></span>
             {{ $sinceIsVisit ? 'Neu oder geändert seit Ihrem letzten Besuch' : 'Neu oder geändert in den letzten 7 Tagen' }}

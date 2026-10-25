@@ -11,7 +11,7 @@
      @keydown.escape.window="task = null">
 
     {{-- Ansicht umschalten --}}
-    <div class="mx-auto flex max-w-[1120px] items-center justify-between gap-3 px-4 pt-5 sm:px-8">
+    <div class="gp-wrap flex items-center justify-between gap-3 pt-5">
         <span class="text-xs text-[color:var(--nx-faint)]">Klicken Sie auf eine Aufgabe für Details.</span>
         <div class="inline-flex rounded-[8px] bg-[color:var(--nx-bg)] p-0.5 text-xs">
             @foreach (['board' => ['Board', 'heroicon-o-view-columns'], 'list' => ['Liste', 'heroicon-o-list-bullet']] as $v => [$vLabel, $vIcon])
@@ -89,7 +89,7 @@
     </div>
 
     {{-- Liste --}}
-    <div x-show="view === 'list'" style="display: none" class="mx-auto max-w-[1120px] space-y-6 px-4 pb-8 pt-4 sm:px-8">
+    <div x-show="view === 'list'" style="display: none" class="gp-wrap space-y-6 pb-8 pt-4">
         @foreach ($columns as $col)
             @if (count($col['tasks']))
                 <section wire:key="lcol-{{ $col['key'] }}">
