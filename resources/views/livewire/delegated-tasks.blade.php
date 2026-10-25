@@ -278,41 +278,7 @@
                             @endforelse
                         </x-nx-kanban-column>
                     @else
-                        <button
-                            x-data="{ isList: localStorage.getItem('kanbanView') === 'list' }"
-                            x-init="this.isList = localStorage.getItem('kanbanView') === 'list'"
-                            @storage-change.window="isList = localStorage.getItem('kanbanView') === 'list'"
-                            type="button"
-                            wire:click="toggleShowDoneColumn"
-                            :class="isList
-                                ? 'group/done sticky bottom-0 z-20 w-full flex flex-row items-center justify-start gap-3 py-3 px-4 pr-14 bg-[color:var(--nx-surface)] border-t border-[rgba(47,158,68,0.25)] hover:bg-[rgba(47,158,68,0.08)] transition-colors cursor-pointer'
-                                : 'group/done sticky right-0 z-10 flex-shrink-0 h-full flex flex-col items-center justify-between py-4 px-2 bg-[color:var(--nx-surface)] border-l border-[color:var(--nx-line)] hover:bg-[color:var(--nx-hover)] transition-colors cursor-pointer'"
-                            :style="!isList ? 'width: 2.75rem; min-width: 2.75rem;' : ''"
-                            title="Erledigte anzeigen ({{ $done->tasks->count() }})"
-                        >
-                            <span x-show="!isList">
-                                @svg('heroicon-o-chevron-double-left', 'w-4 h-4 text-[var(--nx-success)] mt-1')
-                            </span>
-                            <span x-show="isList">
-                                @svg('heroicon-o-chevron-double-up', 'w-4 h-4 text-[var(--nx-success)]')
-                            </span>
-                            <span
-                                class="text-[10px] font-bold uppercase tracking-wider text-[var(--nx-success)]"
-                                :class="!isList ? 'flex-1 my-2' : ''"
-                                :style="!isList ? 'writing-mode: vertical-rl; transform: rotate(180deg);' : ''"
-                            >
-                                {{ $done->label ?? 'Erledigt' }}
-                            </span>
-                            <span
-                                class="inline-flex items-center justify-center min-w-[1.5rem] h-5 px-1 text-[10px] font-semibold rounded-full tabular-nums"
-                                style="background-color: color-mix(in srgb, var(--nx-success) 18%, transparent); color: var(--nx-success)"
-                            >
-                                {{ $done->tasks->count() }}
-                            </span>
-                            <span x-show="isList" class="text-[11px] text-[var(--nx-muted)] ml-auto mr-2">
-                                Klick zum Anzeigen
-                            </span>
-                        </button>
+                        <x-nx-kanban-collapsed :title="($done->label ?? 'Erledigt')" :count="$done->tasks->count()" wire:click="toggleShowDoneColumn" />
                     @endif
                 @endif
             </x-nx-kanban-container>
