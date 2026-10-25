@@ -213,6 +213,7 @@ class PlannerShareView implements ProvidesShareView
 
         $tasks = PlannerTask::where('project_id', $model->id)
             ->where('lifecycle_state', '!=', TaskLifecycleState::DISCARDED->value)
+            ->with(['userInCharge', 'teamTags'])
             ->orderBy('project_slot_order')
             ->get();
         [$done, $open] = $tasks->partition(fn ($t) => $t->lifecycle_state === TaskLifecycleState::COMPLETED);
@@ -365,6 +366,19 @@ class PlannerShareView implements ProvidesShareView
         $isDone = $task->lifecycle_state === TaskLifecycleState::COMPLETED;
         $due = $task->due_date;
         $dod = $task->has_dod ? $task->dod_progress : null;
+        $overdue = $due && ! $isDone && $due->isPast() && ! $due->isToday();
+        // Farbband links wie im Planner: überfällig › erledigt › Frosch › Priorität › Farbe
+        $edge = match (true) {
+            $overdue => 'var(--nx-danger)',
+            $isDone, (bool) $task->is_frog => 'var(--nx-success)',
+            (bool) $task->priority => $task->priority->color(),
+            (bool) $task->color => $task->color,
+            default => 'var(--nx-line-strong)',
+        };
+        // Nur Team-Tags — persönliche Tags bleiben privat
+        $tags = $task->relationLoaded('teamTags') ? $task->teamTags : collect();
+        $person = $task->userInCharge;
+        $personName = $person ? (trim((string) ($person->fullname ?? '')) ?: $person->name) : null;
 
         return [
             'id' => $task->id,
@@ -374,7 +388,14 @@ class PlannerShareView implements ProvidesShareView
             'description' => $task->description ?: null,
             'due' => $due?->copy()->locale('de')->isoFormat('D. MMM YYYY'),
             'due_phrase' => $due ? $this->duePhrase($due) : null,
-            'overdue' => $due && ! $isDone && $due->isPast() && ! $due->isToday(),
+            'overdue' => $overdue,
+            'edge' => $edge,
+            'priority' => $task->priority?->label(),
+            'tag' => ($t = $tags->first()) ? ['label' => $t->label, 'color' => $t->color ?: '#94a3b8'] : null,
+            'tags_more' => max(0, $tags->count() - 1),
+            'tags' => $tags->pluck('label')->values()->all(),
+            'person' => $personName,
+            'person_initials' => $personName ? mb_strtoupper(mb_substr($personName, 0, 1)) : null,
             'done_at' => $isDone ? $task->lifecycle_state_changed_at?->copy()->locale('de')->isoFormat('D. MMM YYYY') : null,
             'dod' => $dod ? ['checked' => $dod['checked'], 'total' => $dod['total'], 'pct' => (int) $dod['percentage']] : null,
             'dod_items' => $task->dod_items,

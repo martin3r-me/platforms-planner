@@ -1,13 +1,27 @@
 {{--
     Kunden-Tor · Projekt-Board (nur lesen). Zwei Ansichten: Board wie intern (nx-Kanban: getönte
-    Slots, weiße Karten mit Farbband) und Liste (nach Spalten gruppiert, mobil Standard).
+    Slots in voller Höhe, weiße Karten mit Farbband, Erledigt als Streifen rechts) und Liste
+    (nach Spalten gruppiert, mobil Standard).
     Klick auf eine Aufgabe öffnet das Detail-Blatt rechts. Daten: $columns (PlannerShareView::boardColumns).
 --}}
 <div x-data="{
         task: null,
         view: (() => { try { return localStorage.getItem('gate-board-view') } catch (e) { return null } })() || (window.innerWidth < 768 ? 'list' : 'board'),
-        setView(v) { this.view = v; try { localStorage.setItem('gate-board-view', v) } catch (e) {} },
+        showDone: (() => { try { return localStorage.getItem('gate-board-done') === '1' } catch (e) { return false } })(),
+        setView(v) { this.view = v; try { localStorage.setItem('gate-board-view', v) } catch (e) {} this.$nextTick(() => this.fit()) },
+        setDone(v) {
+            this.showDone = v; try { localStorage.setItem('gate-board-done', v ? '1' : '0') } catch (e) {}
+            if (v) this.$nextTick(() => this.$refs.board.scrollTo({ left: this.$refs.board.scrollWidth, behavior: 'smooth' }));
+        },
+        ro: null,
+        destroy() { this.ro && this.ro.disconnect() },
+        fit() {
+            const b = this.$refs.board; if (! b || ! b.offsetParent) return;
+            b.style.setProperty('--gp-board-h', Math.max(420, window.innerHeight - (b.getBoundingClientRect().top + window.scrollY)) + 'px');
+        },
      }"
+     x-init="ro = new ResizeObserver(() => fit()); ro.observe($refs.board); ro.observe(document.body); $watch('task', v => document.documentElement.classList.toggle('gp-lock', !! v))"
+     @resize.window.debounce.100ms="fit()"
      @keydown.escape.window="task = null">
 
     {{-- Ansicht umschalten --}}
@@ -24,68 +38,24 @@
         </div>
     </div>
 
-    {{-- Board --}}
-    <div x-show="view === 'board'" class="gp-bleed flex gap-4 overflow-x-auto pb-8 pt-4">
-        @foreach ($columns as $col)
-            @php
-                $slotBg = "color-mix(in srgb, var(--nx-tone-{$col['tone']}) 6%, #ffffff)";
-                $pillBg = "color-mix(in srgb, var(--nx-tone-{$col['tone']}) 16%, #ffffff)";
-            @endphp
-            <div class="flex shrink-0 flex-col self-start rounded-[10px] p-1.5" style="width: 17.5rem; min-width: 17.5rem; background-color: {{ $slotBg }}" wire:key="col-{{ $col['key'] }}">
-                <div @class(['flex items-center gap-1.5 px-1.5 py-1.5', 'opacity-80' => $col['muted']])>
-                    <span class="inline-flex min-w-0 items-center gap-1.5 rounded-[6px] px-2 py-0.5" style="background-color: {{ $pillBg }}">
-                        <span class="h-2 w-2 shrink-0 rounded-full" style="background-color: var(--nx-tone-{{ $col['tone'] }})"></span>
-                        <span class="truncate text-xs font-medium">{{ $col['title'] }}</span>
-                    </span>
-                    <span class="text-xs text-[color:var(--nx-faint)]">{{ $col['total'] ?? count($col['tasks']) }}</span>
-                </div>
-
-                <div class="space-y-2 px-0.5 pb-1 pt-1">
-                    @forelse ($col['tasks'] as $t)
-                        @php
-                            $edge = match (true) {
-                                $t['overdue'] => 'var(--nx-danger)',
-                                $t['done'] => 'var(--nx-success)',
-                                default => 'var(--nx-line-strong)',
-                            };
-                        @endphp
-                        <button type="button" @click="task = @js($t)" wire:key="card-{{ $t['id'] }}"
-                                @class(['relative block w-full rounded-[8px] border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] py-2.5 pl-5 pr-3 text-left shadow-[var(--nx-shadow-card)] transition-shadow hover:shadow-[0_2px_8px_rgba(15,15,15,.08),0_1px_2px_rgba(15,15,15,.05)]', 'opacity-60' => $t['done']])>
-                            <span class="absolute bottom-2.5 left-1.5 top-2.5 w-[3px] rounded-full" style="background-color: {{ $edge }}"></span>
-                            <span @class(['block text-[13px] font-semibold leading-snug', 'line-through text-[color:var(--nx-muted)]' => $t['done']])>{{ $t['title'] }}</span>
-                            @if (($t['due_phrase'] && ! $t['done']) || $t['dod'] || $t['description'] || $t['done_at'])
-                                <span class="mt-2 flex items-center gap-2 text-[10px] leading-none text-[color:var(--nx-muted)]">
-                                    @if ($t['due_phrase'] && ! $t['done'])
-                                        <span @class(['inline-flex items-center gap-0.5', 'font-medium text-[color:var(--nx-danger)]' => $t['overdue']])>
-                                            @svg('heroicon-o-clock', 'w-3 h-3 opacity-60') {{ $t['due_phrase'] }}
-                                        </span>
-                                    @elseif ($t['done_at'])
-                                        <span class="inline-flex items-center gap-0.5">@svg('heroicon-o-check', 'w-3 h-3 opacity-60') {{ $t['done_at'] }}</span>
-                                    @endif
-                                    @if ($t['dod'])
-                                        <span class="inline-flex items-center gap-1">
-                                            <span class="inline-block h-1 w-6 overflow-hidden rounded-full bg-[color:var(--nx-line)]">
-                                                <span class="block h-full rounded-full {{ $t['dod']['pct'] >= 100 ? 'bg-[color:var(--nx-success)]' : 'bg-[color:var(--nx-accent)]' }}" style="width: {{ $t['dod']['pct'] }}%"></span>
-                                            </span>
-                                            <span class="tabular-nums">{{ $t['dod']['checked'] }}/{{ $t['dod']['total'] }}</span>
-                                        </span>
-                                    @endif
-                                    <span class="flex-1"></span>
-                                    @if ($t['description'])
-                                        @svg('heroicon-o-bars-3-bottom-left', 'w-3 h-3 opacity-60')
-                                    @endif
-                                </span>
-                            @endif
-                        </button>
-                    @empty
-                        <div class="rounded-[8px] border border-dashed border-[color:var(--nx-line-strong)] px-2 py-4 text-center text-[11px] text-[color:var(--nx-faint)]">Keine Aufgaben</div>
-                    @endforelse
-                    @if (($col['total'] ?? 0) > count($col['tasks']))
-                        <div class="px-2 py-1 text-center text-[11px] text-[color:var(--nx-faint)]">+ {{ $col['total'] - count($col['tasks']) }} ältere im Verlauf</div>
-                    @endif
-                </div>
-            </div>
+    {{-- Board — Aufbau wie im Planner (x-nx-kanban-*): Spalten in voller Höhe, jede scrollt für sich --}}
+    @php
+        $doneCol = collect($columns)->firstWhere('key', 'done');
+        $boardCols = collect($columns)->reject(fn ($c) => $c['key'] === 'done');
+    @endphp
+    <div x-show="view === 'board'" x-ref="board" class="gp-board gp-bleed">
+        @foreach ($boardCols as $col)
+            @include('planner::share._board-column', ['col' => $col])
         @endforeach
+
+        @if ($doneCol)
+            <div class="contents" x-show="showDone" style="display: none">@include('planner::share._board-column', ['col' => $doneCol, 'collapsible' => true])</div>
+            <button type="button" x-show="! showDone" class="gp-col-strip" @click="setDone(true)" title="Erledigte anzeigen ({{ $doneCol['total'] ?? count($doneCol['tasks']) }})">
+                @svg('heroicon-o-chevron-double-left', 'w-4 h-4 mt-1')
+                <span class="gp-vert">Erledigt</span>
+                <span class="inline-flex h-5 min-w-[1.5rem] items-center justify-center rounded-full bg-[rgba(47,158,68,0.16)] px-1 text-[10px] font-semibold tabular-nums">{{ $doneCol['total'] ?? count($doneCol['tasks']) }}</span>
+            </button>
+        @endif
     </div>
 
     {{-- Liste --}}
@@ -108,6 +78,9 @@
                                     <span class="h-4 w-4 shrink-0 rounded-full border-[1.5px] border-[color:var(--nx-line-strong)]"></span>
                                 @endif
                                 <span @class(['min-w-0 flex-1 truncate text-sm', 'text-[color:var(--nx-muted)] line-through' => $t['done']])>{{ $t['title'] }}</span>
+                                @if ($t['person'])
+                                    <span class="hidden shrink-0 text-xs text-[color:var(--nx-faint)] md:inline">{{ $t['person'] }}</span>
+                                @endif
                                 @if ($t['dod'])
                                     <span class="hidden shrink-0 text-[11px] tabular-nums text-[color:var(--nx-faint)] sm:inline">{{ $t['dod']['checked'] }}/{{ $t['dod']['total'] }}</span>
                                 @endif
@@ -152,6 +125,18 @@
                                     <span x-text="task.done ? 'Erledigt' : 'Offen'"></span>
                                 </span>
                             </dd>
+                        </div>
+                        <div class="flex gap-3" x-show="task.person">
+                            <dt class="w-24 shrink-0 text-[color:var(--nx-faint)]">Zuständig</dt>
+                            <dd x-text="task.person"></dd>
+                        </div>
+                        <div class="flex gap-3" x-show="task.priority">
+                            <dt class="w-24 shrink-0 text-[color:var(--nx-faint)]">Priorität</dt>
+                            <dd x-text="task.priority"></dd>
+                        </div>
+                        <div class="flex gap-3" x-show="task.tags && task.tags.length">
+                            <dt class="w-24 shrink-0 text-[color:var(--nx-faint)]">Schlagworte</dt>
+                            <dd x-text="(task.tags || []).join(', ')"></dd>
                         </div>
                         <div class="flex gap-3" x-show="task.done_at">
                             <dt class="w-24 shrink-0 text-[color:var(--nx-faint)]">Erledigt am</dt>
