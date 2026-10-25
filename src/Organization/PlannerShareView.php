@@ -10,14 +10,15 @@ use Platform\Planner\Enums\ProjectLifecycleState;
 use Platform\Planner\Enums\TaskLifecycleState;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectCanvas;
+use Platform\Planner\Models\PlannerProjectCanvasEntry;
 use Platform\Planner\Models\PlannerProjectSlot;
 use Platform\Planner\Models\PlannerTask;
 
 /**
  * Kundenansicht für geteilte Knoten (Kunden-Tor): Projekte mit Fortschritt,
- * zuletzt erledigten und nächsten Schritten; Detailseite mit Board, Verlauf und
- * Canvases. Bewusst ohne Interna — keine Zeiten, Budgets, Verantwortlichen,
- * Story Points oder verworfenen Aufgaben; private Canvases bleiben intern.
+ * zuletzt erledigten und nächsten Schritten, Archiv und Aktivitätsstrom;
+ * Detailseite mit Canvases (Zustand), Board und Verlauf. Zeiten ergänzt organization.
+ * Ohne Budgets, Story Points oder verworfene Aufgaben; private Canvases bleiben intern.
  */
 class PlannerShareView implements ProvidesShareView
 {
@@ -70,6 +71,9 @@ class PlannerShareView implements ProvidesShareView
                 'due' => null,
                 'updated_at' => collect([$project->updated_at, $tasks->max('updated_at')])->filter()->max(),
                 'counts' => ['open' => $open->count(), 'done' => $done->count()],
+                'started_at' => $project->created_at,
+                'state_since' => $project->lifecycle_state_changed_at,
+                'reason' => $state[0] === 'paused' ? ($project->lifecycle_state_reason ?: null) : null,
             ];
 
             if ($details) {
@@ -102,6 +106,92 @@ class PlannerShareView implements ProvidesShareView
                     'updated_at' => $t->updated_at,
                 ];
             })->values()->all();
+    }
+
+    // ── Aktivität ──────────────────────────────────────────────
+
+    /** Ereignisse der letzten 60 Tage: erledigte Schritte, neue Schritte, Canvas-Arbeit, Statuswechsel. */
+    public function shareActivity(string $alias, Collection $models, array $options): array
+    {
+        $from = now()->subDays(60);
+        $events = [];
+
+        if ($alias === 'planner_task') {
+            foreach ($models as $t) {
+                if ($t->lifecycle_state === TaskLifecycleState::COMPLETED && $t->lifecycle_state_changed_at?->gte($from)) {
+                    $events[] = ['at' => $t->lifecycle_state_changed_at, 'kind' => 'done', 'title' => $t->title, 'text' => null, 'parent_id' => $t->id];
+                }
+            }
+
+            return $events;
+        }
+        if ($alias !== 'project') {
+            return [];
+        }
+
+        $projects = $models->filter(fn ($p) => $p->lifecycle_state !== ProjectLifecycleState::DISCARDED)->keyBy('id');
+        if ($projects->isEmpty()) {
+            return [];
+        }
+
+        foreach ($projects as $p) {
+            if ($p->lifecycle_state_changed_at?->gte($from) && $p->lifecycle_state !== ProjectLifecycleState::ACTIVE) {
+                $events[] = [
+                    'at' => $p->lifecycle_state_changed_at, 'kind' => 'state',
+                    'title' => $p->lifecycle_state === ProjectLifecycleState::COMPLETED ? 'Projekt abgeschlossen' : 'Projekt pausiert',
+                    'text' => $p->lifecycle_state === ProjectLifecycleState::DORMANT ? ($p->lifecycle_state_reason ?: null) : null,
+                    'parent_id' => $p->id,
+                ];
+            }
+        }
+
+        $tasks = PlannerTask::whereIn('project_id', $projects->keys())
+            ->where('lifecycle_state', '!=', TaskLifecycleState::DISCARDED->value)
+            ->where(fn ($q) => $q->where('lifecycle_state_changed_at', '>=', $from)->orWhere('created_at', '>=', $from))
+            ->get(['id', 'project_id', 'title', 'lifecycle_state', 'lifecycle_state_changed_at', 'created_at']);
+        foreach ($tasks as $t) {
+            if ($t->lifecycle_state === TaskLifecycleState::COMPLETED && $t->lifecycle_state_changed_at?->gte($from)) {
+                $events[] = ['at' => $t->lifecycle_state_changed_at, 'kind' => 'done', 'title' => $t->title, 'text' => null, 'parent_id' => $t->project_id];
+            }
+        }
+        // Neu geplante Schritte je Projekt und Tag zusammengefasst
+        foreach ($tasks->filter(fn ($t) => $t->created_at?->gte($from))->groupBy(fn ($t) => $t->project_id . '|' . $t->created_at->format('Y-m-d')) as $group) {
+            $events[] = [
+                'at' => $group->max('created_at'), 'kind' => 'planned',
+                'title' => $group->count() === 1 ? 'Neuer Schritt: ' . $group->first()->title : $group->count() . ' neue Schritte geplant',
+                'text' => $group->count() > 1 ? $group->pluck('title')->take(4)->implode(' · ') . ($group->count() > 4 ? ' …' : '') : null,
+                'parent_id' => $group->first()->project_id,
+            ];
+        }
+
+        // Canvas-Arbeit je Canvas und Tag
+        $canvases = PlannerProjectCanvas::whereIn('project_id', $projects->keys())
+            ->where('visibility', PlannerProjectCanvas::VISIBILITY_TEAM)
+            ->where('status', '!=', PlannerProjectCanvas::STATUS_DISCARDED)
+            ->get(['id', 'project_id', 'name'])->keyBy('id');
+        if ($canvases->isNotEmpty()) {
+            $entries = PlannerProjectCanvasEntry::withTrashed()
+                ->join('planner_project_canvas_blocks as b', 'b.id', '=', 'planner_project_canvas_entries.block_id')
+                ->whereIn('b.canvas_id', $canvases->keys())
+                ->where(fn ($q) => $q->where('planner_project_canvas_entries.updated_at', '>=', $from)->orWhere('planner_project_canvas_entries.deleted_at', '>=', $from))
+                ->get(['planner_project_canvas_entries.id', 'planner_project_canvas_entries.title', 'planner_project_canvas_entries.created_at', 'planner_project_canvas_entries.updated_at', 'planner_project_canvas_entries.deleted_at', 'b.canvas_id']);
+            foreach ($entries->groupBy(fn ($e) => $e->canvas_id . '|' . ($e->deleted_at ?? $e->updated_at)->format('Y-m-d')) as $group) {
+                $canvas = $canvases[$group->first()->canvas_id];
+                $new = $group->filter(fn ($e) => ! $e->deleted_at && $e->created_at?->gte($from) && $e->created_at->diffInMinutes($e->updated_at) < 5)->count();
+                $removed = $group->filter(fn ($e) => $e->deleted_at)->count();
+                $changed = $group->count() - $new - $removed;
+                $events[] = [
+                    'at' => $group->map(fn ($e) => $e->deleted_at ?? $e->updated_at)->max(), 'kind' => 'canvas',
+                    'title' => 'Canvas „' . $canvas->name . '“ bearbeitet',
+                    'text' => collect([$new ? $new . ' neu' : null, $changed ? $changed . ' geändert' : null, $removed ? $removed . ' entfernt' : null])->filter()->implode(' · ')
+                        . ($group->whereNull('deleted_at')->pluck('title')->filter()->isNotEmpty() ? ' — ' . $group->whereNull('deleted_at')->pluck('title')->filter()->take(3)->map(fn ($t) => strip_tags((string) $t))->implode(', ') : ''),
+                    'parent_id' => $canvas->project_id,
+                    'sub' => 'canvas-' . $canvas->id,
+                ];
+            }
+        }
+
+        return $events;
     }
 
     // ── Detailseite ────────────────────────────────────────────
@@ -141,8 +231,7 @@ class PlannerShareView implements ProvidesShareView
             'state_label' => $state[1],
             'progress' => ['done' => $done->count(), 'total' => $tasks->count()],
             'facts' => array_values(array_filter([
-                ['label' => 'Offen', 'value' => (string) $open->count()],
-                ['label' => 'Erledigt', 'value' => (string) $done->count()],
+                ['label' => 'Offene Schritte', 'value' => (string) $open->count()],
                 $lastMove ? ['label' => 'Zuletzt bewegt', 'value' => $lastMove->diffInMinutes(now()) < 1 ? 'gerade eben' : $lastMove->copy()->locale('de')->diffForHumans()] : null,
             ])),
             'tabs' => [],
@@ -155,6 +244,15 @@ class PlannerShareView implements ProvidesShareView
                 return null;
             }
             $canvas->load('blocks.entries');
+            $blockDefs = collect(config('planner.canvas_block_types', []));
+            $sinceAt = $options['since'] ?? now()->subDays(7);
+            $changes = $canvas->blocks->flatMap(fn ($b) => $b->entries->filter(fn ($e) => $e->updated_at?->gt($sinceAt))
+                ->map(fn ($e) => [
+                    'block' => $b->label ?: ($blockDefs[$b->block_type]['label'] ?? $b->block_type),
+                    'title' => strip_tags((string) ($e->title ?: \Illuminate\Support\Str::limit((string) $e->content, 80))),
+                    'new' => $e->created_at?->gt($sinceAt),
+                    'at' => $e->updated_at,
+                ]))->sortByDesc(fn ($c) => $c['at']->timestamp)->values()->all();
 
             $detail['page'] = [
                 'title' => $canvas->name,
@@ -162,6 +260,9 @@ class PlannerShareView implements ProvidesShareView
                 'data' => [
                     'canvas' => $canvas,
                     'canvasData' => $canvas->toCanvasArray(),
+                    'changes' => $changes,
+                    'sinceIsVisit' => ($options['since'] ?? null) !== null,
+                    'updatedAt' => $canvas->blocks->flatMap->entries->max('updated_at') ?? $canvas->updated_at,
                     'blockDefs' => collect(config('planner.canvas_block_types', []))
                         ->map(fn ($def, $key) => array_merge($def, ['key' => $key]))
                         ->sortBy('position')->values()->all(),
@@ -173,32 +274,56 @@ class PlannerShareView implements ProvidesShareView
 
         if ($details) {
             $detail['tabs'][] = [
-                'key' => 'board', 'label' => 'Board', 'count' => $open->count(),
+                'key' => 'board', 'label' => 'Board', 'count' => $open->count(), 'order' => 30,
                 'view' => 'planner::share.board',
                 'data' => ['columns' => $this->boardColumns($model, $open, $done)],
             ];
             $detail['tabs'][] = [
-                'key' => 'verlauf', 'label' => 'Verlauf', 'count' => $done->count(),
+                'key' => 'verlauf', 'label' => 'Verlauf', 'count' => $done->count(), 'order' => 40,
                 'view' => 'planner::share.history',
                 'data' => ['weeks' => $this->historyWeeks($done)],
             ];
         }
         if ($canvases->isNotEmpty()) {
             $detail['tabs'][] = [
-                'key' => 'canvases', 'label' => 'Canvases', 'count' => $canvases->count(),
+                'key' => 'canvases', 'label' => 'Canvases', 'count' => $canvases->count(), 'order' => 10,
                 'view' => 'planner::share.canvases',
-                'data' => ['canvases' => $canvases->map(fn ($c) => [
-                    'id' => $c->id,
-                    'name' => $c->name,
-                    'description' => $c->description,
-                    'status_label' => PlannerProjectCanvas::STATUS_LABELS[$c->status] ?? $c->status,
-                    'done' => in_array($c->status, PlannerProjectCanvas::DONE_STATUSES, true),
-                    'updated_at' => $c->updated_at,
-                ])->all()],
+                'data' => ['canvases' => $this->canvasCards($canvases, $options['since'] ?? null)],
             ];
         }
 
         return $detail;
+    }
+
+    /** Canvas-Karten: Status, wie viel ausgefüllt ist, was sich seit dem letzten Besuch getan hat. */
+    protected function canvasCards(Collection $canvases, $since): array
+    {
+        $since ??= now()->subDays(7);
+        $defs = collect(config('planner.canvas_block_types', []));
+        $canvases->load('blocks.entries');
+
+        return $canvases->map(function ($c) use ($since, $defs) {
+            $entries = $c->blocks->flatMap->entries;
+            $filled = $c->blocks->filter(fn ($b) => $b->entries->isNotEmpty());
+            $last = $entries->max('updated_at') ?? $c->updated_at;
+
+            return [
+                'id' => $c->id,
+                'name' => $c->name,
+                'description' => $c->description,
+                'status_label' => PlannerProjectCanvas::STATUS_LABELS[$c->status] ?? $c->status,
+                'done' => in_array($c->status, PlannerProjectCanvas::DONE_STATUSES, true),
+                'updated_at' => $last,
+                'entries' => $entries->count(),
+                'blocks_filled' => $filled->count(),
+                'blocks_total' => max($c->blocks->count(), $defs->count() ?: $c->blocks->count()),
+                'changed' => $entries->filter(fn ($e) => $e->updated_at?->gt($since))->count(),
+                'preview' => $filled->sortBy('position')->take(3)->map(fn ($b) => [
+                    'label' => $b->label ?: ($defs[$b->block_type]['label'] ?? $b->block_type),
+                    'items' => $b->entries->sortBy('position')->take(3)->map(fn ($e) => strip_tags((string) ($e->title ?: \Illuminate\Support\Str::limit((string) $e->content, 60))))->filter()->values()->all(),
+                ])->values()->all(),
+            ];
+        })->sortByDesc(fn ($c) => optional($c['updated_at'])->timestamp ?? 0)->values()->all();
     }
 
     /** Spalten wie im Board: Backlog · Slots (Ton wie intern) · Erledigt. */
