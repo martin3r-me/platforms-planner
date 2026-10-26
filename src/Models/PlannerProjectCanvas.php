@@ -9,10 +9,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Platform\ActivityLog\Traits\LogsActivity;
+use Platform\Core\Contracts\AgendaRenderable;
 use Platform\Core\Models\User;
 use Symfony\Component\Uid\UuidV7;
 
-class PlannerProjectCanvas extends Model
+class PlannerProjectCanvas extends Model implements AgendaRenderable
 {
     use LogsActivity, SoftDeletes;
 
@@ -290,6 +291,26 @@ class PlannerProjectCanvas extends Model
                 'updated_at' => $this->updated_at?->toISOString(),
             ],
             'blocks' => $blocks,
+        ];
+    }
+
+    // Agenda (Terminal) — Nachfolger des generischen Canvas-Moduls als Agenda-Ziel
+
+    public function toAgendaItem(): array
+    {
+        return [
+            'title' => $this->name,
+            'description' => $this->description ? \Illuminate\Support\Str::limit($this->description, 120) : null,
+            'icon' => '🎨',
+            'color' => null,
+            'status' => self::STATUS_LABELS[$this->status] ?? $this->status,
+            'status_color' => match ($this->status) {
+                self::STATUS_COMPLETED => 'green',
+                self::STATUS_DISCARDED => 'gray',
+                default => 'blue',
+            },
+            'url' => route('planner.projects.canvas.show', [$this->project_id, $this->id]),
+            'meta' => ['project_id' => $this->project_id],
         ];
     }
 }
