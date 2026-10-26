@@ -49,7 +49,7 @@ class Show extends Component
         try {
             if (auth()->check() && $this->canvas) {
                 $canvasId = $this->canvas->id;
-                $listeners["echo-private:canvas.workshop.{$canvasId},.note.changed"] = 'onNoteChanged';
+                $listeners["echo-private:planner.canvas.workshop.{$canvasId},.note.changed"] = 'onNoteChanged';
             }
         } catch (\Throwable $e) {
             // Fail silently

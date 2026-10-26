@@ -108,6 +108,18 @@ class PlannerServiceProvider extends ServiceProvider
             'pc_canvas' => \Platform\Planner\Models\PlannerProjectCanvas::class,
         ]);
 
+        // Eigener Workshop-Kanal fuer den Projekt-Canvas. Vorher teilte er sich
+        // 'canvas.workshop.{id}' mit dem generischen Canvas-Modul — dessen Auth-Callback
+        // in core sucht die ID in der fremden canvases-Tabelle.
+        \Illuminate\Support\Facades\Broadcast::channel('planner.canvas.workshop.{canvasId}', function ($user, $canvasId) {
+            $canvas = \Platform\Planner\Models\PlannerProjectCanvas::with('project')->find($canvasId);
+            if (! $canvas || ! $canvas->project || ! $canvas->isVisibleTo($user)) {
+                return false;
+            }
+
+            return \Illuminate\Support\Facades\Gate::forUser($user)->allows('view', $canvas->project);
+        });
+
         // EntityLinkProvider registrieren (loose Kopplung mit Organization-Modul)
         try {
             $registry = resolve(\Platform\Organization\Services\EntityLinkRegistry::class);

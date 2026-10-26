@@ -21,7 +21,7 @@ class ProjectCanvasWorkshopNoteChanged implements ShouldBroadcastNow
 
     public function broadcastOn(): array
     {
-        return [new PrivateChannel("canvas.workshop.{$this->canvasId}")];
+        return [new PrivateChannel("planner.canvas.workshop.{$this->canvasId}")];
     }
 
     public function broadcastAs(): string
