@@ -15,11 +15,13 @@ use Platform\Core\Verbalization\Identity;
 use Platform\Core\Verbalization\Recipe\CollectionRecipe;
 use Platform\Core\Verbalization\Subject;
 use Platform\Core\Verbalization\SubjectCollector\SubjectCollectorInterface;
+use Platform\Planner\Enums\LogbookEntryType;
 use Platform\Planner\Enums\ProjectKind;
 use Platform\Planner\Enums\ProjectLifecycleState;
 use Platform\Planner\Enums\TaskLifecycleState;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectCanvas;
+use Platform\Planner\Models\PlannerProjectLogbookEntry;
 use Platform\Planner\Models\PlannerProjectSnapshot;
 use Platform\Planner\Models\PlannerTask;
 
@@ -54,6 +56,7 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
         'frogs' => ['enabled' => true, 'top_n' => 3],
         'people' => ['enabled' => true, 'top_n' => 3],
         'canvas' => ['enabled' => true, 'max_highlights' => 6, 'max_entry_chars' => 140],
+        'logbook' => ['enabled' => true, 'top_n' => 5],
         'budget' => true,
         'termine' => true,
         'confidence' => true,
@@ -117,6 +120,7 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
                 $limit('canvas', 'max_highlights', 6),
                 $limit('canvas', 'max_entry_chars', 140),
             ) : [],
+            $isOn('logbook') ? $this->factsLogbook($project, $limit('logbook', 'top_n', 5)) : [],
             $isOn('budget') ? $this->factsBudget($project, $snapshot) : [],
             $isOn('termine') ? $this->factsTermine($snapshot) : [],
             $isOn('confidence') ? $this->factsConfidence($snapshot) : [],
@@ -494,7 +498,7 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
     {
         $canvas = PlannerProjectCanvas::with(['blocks.entries'])
             ->where('project_id', $project->id)
-            ->where('status', '!=', 'closed')
+            ->where('status', '!=', PlannerProjectCanvas::STATUS_DISCARDED)
             ->latest('id')
             ->first();
         if (! $canvas) {
@@ -637,7 +641,7 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
     {
         $canvas = PlannerProjectCanvas::with(['blocks.entries'])
             ->where('project_id', $project->id)
-            ->where('status', '!=', 'closed')
+            ->where('status', '!=', PlannerProjectCanvas::STATUS_DISCARDED)
             ->latest('id')
             ->first();
 
@@ -653,7 +657,7 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
         if ($totalBlocks > 0) {
             $facts[] = new Fact(
                 FactPriority::QUALIFYING,
-                "Canvas '{$canvas->title}': {$filledBlocks} von {$totalBlocks} Bloecken befuellt.",
+                "Canvas '{$canvas->name}': {$filledBlocks} von {$totalBlocks} Bloecken befuellt.",
                 'canvas.completeness',
             );
         }
@@ -692,6 +696,37 @@ class PlannerProjectSubjectCollector implements SubjectCollectorInterface
                 FactPriority::CORE,
                 "Canvas-Highlights: " . implode(' | ', $highlights),
                 'canvas.entries.top',
+            );
+        }
+
+        return $facts;
+    }
+
+    /**
+     * Juengste Logbuch-Eintraege (nur aktuelle, nicht ersetzte) — liefert der Prosa das
+     * "warum" hinter dem Zustand. Risiken sind CORE, weil sie handlungsrelevant sind.
+     *
+     * @return Fact[]
+     */
+    protected function factsLogbook(PlannerProject $project, ?int $topN = 5): array
+    {
+        $entries = PlannerProjectLogbookEntry::forProject($project->id)
+            ->current()
+            ->orderByDesc('occurred_on')
+            ->orderByDesc('id')
+            ->limit(max(1, (int) ($topN ?? 5)))
+            ->get();
+
+        $facts = [];
+        foreach ($entries as $entry) {
+            $text = "{$entry->type->label()} ({$entry->occurred_on->format('d.m.Y')}): {$entry->title}";
+            if ($entry->rationale) {
+                $text .= ' — Begruendung: ' . mb_strimwidth($entry->rationale, 0, 240, '...');
+            }
+            $facts[] = new Fact(
+                $entry->type === LogbookEntryType::RISK ? FactPriority::CORE : FactPriority::QUALIFYING,
+                $text . '.',
+                'logbook.' . $entry->id,
             );
         }
 

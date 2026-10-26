@@ -30,6 +30,10 @@ Route::get('/tasks/{plannerTask}', Task::class)
 Route::get('/projects/{plannerProject}/health', \Platform\Planner\Livewire\ProjectHealth::class)
     ->name('planner.projects.health');
 
+// Projekt-Logbuch (append-only Verlauf: Entscheidungen, Meilensteine, Risiken)
+Route::get('/projects/{plannerProject}/logbook', \Platform\Planner\Livewire\ProjectLogbook::class)
+    ->name('planner.projects.logbook');
+
 // Health-Index (teamweite Snapshot-Aggregat-Sicht)
 Route::get('/health-index', \Platform\Planner\Livewire\HealthIndex::class)
     ->name('planner.health-index');

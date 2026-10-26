@@ -356,6 +356,11 @@ class PlannerServiceProvider extends ServiceProvider
             $registry->register(new \Platform\Planner\Tools\GetProjectSnapshotTrendTool());
             $registry->register(new \Platform\Planner\Tools\ListProjectSnapshotsSummaryTool());
 
+            // Projekt-Logbuch (append-only Verlauf: Entscheidung/Meilenstein/Risiko)
+            $registry->register(new \Platform\Planner\Tools\Logbook\ListLogbookEntriesTool());
+            $registry->register(new \Platform\Planner\Tools\Logbook\AppendLogbookEntryTool());
+            $registry->register(new \Platform\Planner\Tools\Logbook\DraftLogbookEntryTool());
+
             // Cross-System-Diagnose: laufen die naechtlichen Snapshot-Crons? (planner/helpdesk/dev)
             $registry->register(new \Platform\Planner\Tools\SnapshotSystemsDiagnoseTool());
         } catch (\Throwable $e) {

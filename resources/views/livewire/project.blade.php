@@ -133,6 +133,15 @@
                         @svg('heroicon-o-heart', 'w-4 h-4 text-[var(--nx-muted)]')
                         <span>Health-Sicht</span>
                     </a>
+                    <a
+                        href="{{ route('planner.projects.logbook', $project) }}"
+                        wire:navigate
+                        @click="open = false"
+                        class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition-colors"
+                    >
+                        @svg('heroicon-o-book-open', 'w-4 h-4 text-[var(--nx-muted)]')
+                        <span>Logbuch</span>
+                    </a>
                     @can('settings', $project)
                         <div class="border-t border-[color:var(--nx-line)] my-1"></div>
                         <button
