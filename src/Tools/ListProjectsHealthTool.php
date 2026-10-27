@@ -94,8 +94,10 @@ class ListProjectsHealthTool implements ToolContract, ToolMetadataContract
 
             $summary = [
                 'total_projects' => count($rows),
+                // gray = Snapshot ohne bewertbare Daten; no_snapshot = in den letzten 14 Tagen kein Snapshot
                 'health_distribution' => collect(['red', 'yellow', 'green', 'gray'])
-                    ->mapWithKeys(fn ($c) => [$c => collect($rows)->where('health.color', $c === 'gray' ? null : $c)->count()])->all(),
+                    ->mapWithKeys(fn ($c) => [$c => collect($rows)->where('health.color', $c)->count()])
+                    ->put('no_snapshot', collect($rows)->whereNull('health.taken_on')->count())->all(),
                 'kickoff_open' => collect($rows)->where('canvas.kickoff_done', false)->count(),
                 'logbook_quiet' => collect($rows)->where('logbook.quiet', true)->count(),
                 'risks_open' => collect($rows)->sum('logbook.risks_open'),
