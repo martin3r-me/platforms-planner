@@ -192,8 +192,12 @@ class PlannerRecurringTask extends Model
             'task_group_id' => $this->task_group_id,
             'recurring_task_id' => $this->id,
             'due_date' => $this->next_due_date,
-            'is_done' => $this->auto_mark_as_done,
         ]);
+
+        // auto_mark_as_done: echte Lifecycle-Transition (is_done gibt es nicht mehr)
+        if ($this->auto_mark_as_done) {
+            app(\Platform\Planner\Services\LifecycleService::class)->completeTask($task);
+        }
 
         if ($this->planned_minutes && (int) $this->planned_minutes > 0) {
             app(StorePlannedTime::class)->store([
