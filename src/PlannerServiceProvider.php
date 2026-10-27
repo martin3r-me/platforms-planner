@@ -241,6 +241,8 @@ class PlannerServiceProvider extends ServiceProvider
         // Migrations, Views, Livewire-Komponenten
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'planner');
+        // <x-planner::actionbar>, <x-planner::menu-item> — einheitliche Planner-Actionbar
+        \Illuminate\Support\Facades\Blade::anonymousComponentPath(__DIR__ . '/../resources/views/components', 'planner');
         $this->registerLivewireComponents();
 
         // CalDAV: Aufgaben als VTODO an der Core-DAV-Infrastruktur (VTODO ->

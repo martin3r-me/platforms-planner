@@ -24,137 +24,59 @@
 
     <x-slot name="actionbar">
         @php
-            $breadcrumbSource = match($referrer ?? null) {
-                'project' => $task->project ? ['label' => $task->project->name, 'href' => route('planner.projects.show', ['plannerProject' => $task->project->id])] : ['label' => 'Meine Aufgaben', 'href' => route('planner.my-tasks')],
-                'hygiene' => ['label' => 'Hygiene', 'href' => route('planner.hygiene')],
-                'completed' => ['label' => 'Erledigte Aufgaben', 'href' => route('planner.completed-tasks')],
-                'delegated' => ['label' => 'Delegierte Aufgaben', 'href' => route('planner.delegated-tasks')],
-                default => ['label' => 'Meine Aufgaben', 'href' => route('planner.my-tasks')],
+            $canMove = auth()->user()?->can('update', $task) ?? false;
+            $canDelete = auth()->user()?->can('delete', $task) ?? false;
+            $canSave = (auth()->user()?->can('update', $task) ?? false) && $this->isDirty();
+            // Ohne Projekt: Reiter der Herkunftsliste markieren
+            $taskTab = $task->project ? 'board' : match($referrer ?? null) {
+                'hygiene' => 'hygiene',
+                'completed' => 'completed',
+                'delegated' => 'delegated',
+                default => 'my-tasks',
             };
         @endphp
-        <x-ui-page-actionbar :breadcrumbs="array_filter([
-            ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
-            $breadcrumbSource,
-            ($referrer !== 'project' && $task->project) ? ['label' => $task->project->name, 'href' => route('planner.projects.show', ['plannerProject' => $task->project->id])] : null,
-            ['label' => Str::limit($task->title, 40)],
-        ])">
+        <x-planner::actionbar :project="$task->project" :active="$taskTab" :crumbs="[['label' => Str::limit($task->title, 40)]]">
+            @if($canSave || $canMove || $printingAvailable || $canDelete)
+                <x-slot:more>
+                    @if($canSave)
+                        <x-planner::menu-item icon="heroicon-o-check" wire:click="save">Speichern</x-planner::menu-item>
+                    @endif
+                    @if($canMove)
+                        <x-planner::menu-item icon="heroicon-o-arrows-right-left" wire:click="openMoveModal">Verschieben</x-planner::menu-item>
+                    @endif
+                    @if($printingAvailable)
+                        <x-planner::menu-item icon="heroicon-o-printer" wire:click="printTask()">Drucken</x-planner::menu-item>
+                    @endif
+                    @if($canDelete)
+                        @if($canSave || $canMove || $printingAvailable)<div class="my-1 border-t border-[color:var(--nx-line)]"></div>@endif
+                        <x-planner::menu-item icon="heroicon-o-trash" danger wire:click="deleteTask" wire:confirm="Wirklich löschen?">Löschen</x-planner::menu-item>
+                    @endif
+                </x-slot:more>
+            @endif
+        </x-planner::actionbar>
+    </x-slot>
+
+    <x-ui-page-container width="contained" padding="px-3 sm:px-6 py-4 sm:py-6" spacing="space-y-4" background="bg-[color:var(--nx-bg)]">
+
+            {{-- Ungespeicherte Änderungen (Fallback — die meisten Felder speichern automatisch) --}}
             @can('update', $task)
                 @if($this->isDirty())
-                    <x-nx-button variant="primary" size="sm" wire:click="save">
-                        @svg('heroicon-o-check', 'w-4 h-4')
-                        <span>Speichern</span>
-                    </x-nx-button>
+                    <div class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--nx-warning)]/30 bg-[var(--nx-warning)]/10 px-3 py-2 text-xs text-[var(--nx-text)]">
+                        <span class="inline-flex items-center gap-1.5">@svg('heroicon-o-exclamation-circle', 'w-4 h-4 text-[color:var(--nx-warning)]') Ungespeicherte Änderungen</span>
+                        <x-nx-button variant="primary" size="sm" wire:click="save">
+                            @svg('heroicon-o-check', 'w-4 h-4')
+                            <span>Speichern</span>
+                        </x-nx-button>
+                    </div>
                 @endif
             @endcan
-
-            {{-- Overflow-Menü mit selteneren Aktionen --}}
-            @php
-                $canMove = auth()->user()?->can('update', $task) ?? false;
-                $hasOverflow = $printingAvailable || $canMove;
-            @endphp
-            @if($hasOverflow)
-                <div x-data="{ open: false }" class="relative">
-                    <button
-                        type="button"
-                        @click="open = !open"
-                        class="inline-flex items-center justify-center w-8 h-7 rounded-md text-[var(--nx-muted)] hover:text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition-colors"
-                        title="Mehr"
-                    >
-                        @svg('heroicon-o-ellipsis-horizontal', 'w-4 h-4')
-                    </button>
-                    <div
-                        x-show="open"
-                        x-cloak
-                        x-transition.opacity.duration.100ms
-                        @click.outside="open = false"
-                        @keydown.escape.window="open = false"
-                        class="absolute top-full right-0 mt-1 w-48 bg-[color:var(--nx-surface)] border border-[var(--nx-line-strong)] rounded-lg shadow-[var(--nx-shadow-pop)] z-30 py-1"
-                    >
-                        @if($canMove)
-                            <button
-                                type="button"
-                                wire:click="openMoveModal"
-                                @click="open = false"
-                                class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition-colors"
-                            >
-                                @svg('heroicon-o-arrows-right-left', 'w-4 h-4 text-[var(--nx-muted)]')
-                                <span>Verschieben</span>
-                            </button>
-                        @endif
-                        @if($printingAvailable)
-                            <button
-                                type="button"
-                                wire:click="printTask()"
-                                @click="open = false"
-                                class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition-colors"
-                            >
-                                @svg('heroicon-o-printer', 'w-4 h-4 text-[var(--nx-muted)]')
-                                <span>Drucken</span>
-                            </button>
-                        @endif
-                    </div>
-                </div>
-            @endif
-
-            @can('delete', $task)
-                <x-nx-button variant="danger" size="sm" wire:click="deleteTask" wire:confirm="Wirklich löschen?">
-                    @svg('heroicon-o-trash', 'w-4 h-4')
-                    <span>Löschen</span>
-                </x-nx-button>
-            @endcan
-        </x-ui-page-actionbar>
-    </x-slot>
-
-
-    {{-- Linke Page-Sidebar: Task-Zustand / Meta (read-only) --}}
-    <x-slot name="sidebar">
-        <x-ui-page-sidebar title="Zustand" icon="heroicon-o-information-circle" width="w-72" :defaultOpen="true">
-            <div class="p-4 space-y-4 bg-[var(--nx-bg)]">
-                <section class="rounded-lg bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)] p-3">
-                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] mb-2.5">Zustand</h3>
-                    <dl class="space-y-2 text-[11px] m-0">
-                        <div class="flex items-baseline justify-between gap-3">
-                            <dt class="inline-flex items-center gap-1.5 text-[var(--nx-muted)]">@svg('heroicon-o-clock', 'w-3.5 h-3.5 opacity-70') Angelegt</dt>
-                            <dd class="m-0 tabular-nums text-[var(--nx-text)]">{{ $task->created_at->format('d.m.Y') }}</dd>
-                        </div>
-                        @if(($task->postpone_count ?? 0) > 0)
-                            <div class="flex items-baseline justify-between gap-3">
-                                <dt class="inline-flex items-center gap-1.5 text-[var(--nx-muted)]">@svg('heroicon-o-arrow-path', 'w-3.5 h-3.5 opacity-70') Verschoben</dt>
-                                <dd class="m-0 tabular-nums text-[var(--nx-text)]">{{ $task->postpone_count }}×</dd>
-                            </div>
-                        @endif
-                        @if($task->original_due_date)
-                            <div class="flex items-baseline justify-between gap-3">
-                                <dt class="inline-flex items-center gap-1.5 text-[var(--nx-muted)]">@svg('heroicon-o-calendar', 'w-3.5 h-3.5 opacity-70') Ursprünglich</dt>
-                                <dd class="m-0 tabular-nums text-[var(--nx-text)]">{{ $task->original_due_date->format('d.m.Y') }}</dd>
-                            </div>
-                        @endif
-                        @if($task->team)
-                            <div class="flex items-baseline justify-between gap-3">
-                                <dt class="inline-flex items-center gap-1.5 text-[var(--nx-muted)]">@svg('heroicon-o-user-group', 'w-3.5 h-3.5 opacity-70') Team</dt>
-                                <dd class="m-0 truncate text-[var(--nx-text)]">{{ $task->team->name }}</dd>
-                            </div>
-                        @endif
-                        @if($this->contextFileCount > 0)
-                            <div class="flex items-baseline justify-between gap-3">
-                                <dt class="inline-flex items-center gap-1.5 text-[var(--nx-muted)]">@svg('heroicon-o-paper-clip', 'w-3.5 h-3.5 opacity-70') Anhänge</dt>
-                                <dd class="m-0 tabular-nums text-[var(--nx-text)]">{{ $this->contextFileCount }}</dd>
-                            </div>
-                        @endif
-                    </dl>
-                </section>
-            </div>
-        </x-ui-page-sidebar>
-    </x-slot>
-
-    <x-ui-page-container width="contained" spacing="space-y-4" background="bg-[color:var(--nx-bg)]">
 
             {{-- HERO --}}
             <div class="relative rounded-xl bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)] overflow-hidden">
                 <div class="absolute top-3 bottom-3 left-2 w-[3px] rounded-full" style="background-color: {{ $edgeColor }};"></div>
 
-                <div class="p-5 pl-7">
-                    <div class="flex items-start gap-4">
+                <div class="p-4 pl-6 sm:p-5 sm:pl-7">
+                    <div class="flex items-start gap-3 sm:gap-4">
                         {{-- Done checkbox --}}
                         <button
                             type="button"
@@ -202,6 +124,23 @@
                                 @if($spValue)
                                     <span class="text-[var(--nx-line-strong)]">·</span>
                                     <span class="tabular-nums">{{ $spValue }} SP</span>
+                                @endif
+                            </div>
+
+                            {{-- Zustand (früher Seitenleiste) --}}
+                            <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-[var(--nx-muted)] mt-1.5">
+                                <span class="inline-flex items-center gap-1" title="Angelegt">@svg('heroicon-o-clock', 'w-3.5 h-3.5 opacity-70') Angelegt <span class="tabular-nums text-[var(--nx-text)]">{{ $task->created_at->format('d.m.Y') }}</span></span>
+                                @if(($task->postpone_count ?? 0) > 0)
+                                    <span class="inline-flex items-center gap-1" title="Verschoben">@svg('heroicon-o-arrow-path', 'w-3.5 h-3.5 opacity-70') Verschoben <span class="tabular-nums text-[var(--nx-text)]">{{ $task->postpone_count }}×</span></span>
+                                @endif
+                                @if($task->original_due_date)
+                                    <span class="inline-flex items-center gap-1" title="Ursprünglich fällig">@svg('heroicon-o-calendar', 'w-3.5 h-3.5 opacity-70') Ursprünglich <span class="tabular-nums text-[var(--nx-text)]">{{ $task->original_due_date->format('d.m.Y') }}</span></span>
+                                @endif
+                                @if($task->team)
+                                    <span class="inline-flex items-center gap-1 min-w-0" title="Team">@svg('heroicon-o-user-group', 'w-3.5 h-3.5 opacity-70') <span class="truncate text-[var(--nx-text)]">{{ $task->team->name }}</span></span>
+                                @endif
+                                @if($this->contextFileCount > 0)
+                                    <span class="inline-flex items-center gap-1" title="Anhänge">@svg('heroicon-o-paper-clip', 'w-3.5 h-3.5 opacity-70') <span class="tabular-nums text-[var(--nx-text)]">{{ $this->contextFileCount }}</span> Anhänge</span>
                                 @endif
                             </div>
 

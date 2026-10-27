@@ -26,139 +26,67 @@
     </x-slot>
 
     <x-slot name="actionbar">
-        <x-ui-page-actionbar :breadcrumbs="[
-            ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
-            ['label' => 'Health-Index'],
-        ]">
-            {{-- Modus-Umschalter: Analyse (aktiv) ⟷ Wand --}}
-            <div class="inline-flex rounded-md border border-[color:var(--nx-line-strong)] overflow-hidden">
-                <span class="inline-flex items-center gap-1.5 h-7 px-2.5 text-[11px] font-medium bg-[color:var(--nx-accent)] text-[color:var(--nx-on-accent)]">
-                    @svg('heroicon-o-table-cells', 'w-3.5 h-3.5')
-                    Analyse
-                </span>
-                <a href="{{ route('planner.ops') }}" wire:navigate
-                   title="Wand-Modus (Vollbild-Monitor)"
-                   class="inline-flex items-center gap-1.5 h-7 px-2.5 text-[11px] font-medium text-[color:var(--nx-muted)] hover:text-[color:var(--nx-text)] hover:bg-[color:var(--nx-hover)] border-l border-[color:var(--nx-line-strong)] transition-colors">
-                    @svg('heroicon-o-presentation-chart-line', 'w-3.5 h-3.5')
-                    Wand
-                </a>
-            </div>
-
-            {{-- Ampel-Verteilung als EIN Badge rechts (Projekt-Standard), health-getönt --}}
-            <x-nx-badge :variant="$idxVariant" title="Brennt {{ $byColor['red'] ?? 0 }} · Achtung {{ $byColor['yellow'] ?? 0 }} · Stabil {{ $byColor['green'] ?? 0 }} · Keine Daten {{ $byColor['gray'] ?? 0 }}">
-                <span class="inline-flex items-center gap-1 text-[color:var(--nx-danger)]"><span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-danger)]"></span><span class="tabular-nums">{{ $byColor['red'] ?? 0 }}</span></span>
-                <span class="inline-flex items-center gap-1 text-[color:var(--nx-warning)]"><span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-warning)]"></span><span class="tabular-nums">{{ $byColor['yellow'] ?? 0 }}</span></span>
-                <span class="inline-flex items-center gap-1 text-[color:var(--nx-success)]"><span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-success)]"></span><span class="tabular-nums">{{ $byColor['green'] ?? 0 }}</span></span>
-                @if(($byColor['gray'] ?? 0) > 0)
-                    <span class="inline-flex items-center gap-1 text-[var(--nx-muted)]"><span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-muted)]"></span><span class="tabular-nums">{{ $byColor['gray'] }}</span></span>
-                @endif
-            </x-nx-badge>
-        </x-ui-page-actionbar>
-    </x-slot>
-
-    {{-- ════════ LEFT SIDEBAR: Filter ════════ --}}
-    <x-slot name="sidebar">
-        <x-ui-page-sidebar title="Filter" icon="heroicon-o-funnel" width="w-72" :defaultOpen="true">
-            <div class="p-4 space-y-4 bg-[var(--nx-bg)]">
-
-                {{-- ÜBER --}}
-                <section class="p-3 rounded-lg bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)]">
-                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] mb-2">Über</h3>
-                    <p class="text-[11px] text-[var(--nx-text)] leading-relaxed m-0">
-                        Teamweite Health-Sicht aller Projekte. Daten aus dem jüngsten nächtlichen Snapshot.
-                    </p>
-                    @if($lastTakenOn)
-                        <p class="text-[10px] text-[var(--nx-muted)] mt-1 m-0">Stand: {{ $lastTakenOn->format('d.m.Y') }}</p>
+        <x-planner::actionbar
+            :filters-active="($colorFilter !== 'all' ? 1 : 0) + ($axisFilter !== 'all' ? 1 : 0) + ($lifecycleFilter !== 'aktiv' ? 1 : 0) + ($sort !== 'worst' ? 1 : 0)">
+            <x-slot:meta>
+                {{-- Ampel-Verteilung als EIN Badge rechts (Projekt-Standard), health-getönt --}}
+                <x-nx-badge :variant="$idxVariant" title="Brennt {{ $byColor['red'] ?? 0 }} · Achtung {{ $byColor['yellow'] ?? 0 }} · Stabil {{ $byColor['green'] ?? 0 }} · Keine Daten {{ $byColor['gray'] ?? 0 }}">
+                    <span class="inline-flex items-center gap-1 text-[color:var(--nx-danger)]"><span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-danger)]"></span><span class="tabular-nums">{{ $byColor['red'] ?? 0 }}</span></span>
+                    <span class="inline-flex items-center gap-1 text-[color:var(--nx-warning)]"><span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-warning)]"></span><span class="tabular-nums">{{ $byColor['yellow'] ?? 0 }}</span></span>
+                    <span class="inline-flex items-center gap-1 text-[color:var(--nx-success)]"><span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-success)]"></span><span class="tabular-nums">{{ $byColor['green'] ?? 0 }}</span></span>
+                    @if(($byColor['gray'] ?? 0) > 0)
+                        <span class="inline-flex items-center gap-1 text-[var(--nx-muted)]"><span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-muted)]"></span><span class="tabular-nums">{{ $byColor['gray'] }}</span></span>
                     @endif
-                </section>
+                </x-nx-badge>
+            </x-slot:meta>
 
-                {{-- AMPEL-FILTER --}}
-                <section class="p-3 rounded-lg bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)]">
-                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] mb-2">Ampel</h3>
-                    <div class="space-y-1">
-                        <button wire:click="$set('colorFilter', 'all')"
-                                class="w-full flex items-center justify-between px-2 py-1.5 rounded text-[12px] transition-colors {{ $colorFilter === 'all' ? 'bg-[var(--nx-text)] text-white' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
-                            <span>Alle</span>
-                            <span class="tabular-nums opacity-70 text-[11px]">{{ array_sum($byColor) }}</span>
-                        </button>
-                        @foreach(['red', 'yellow', 'green', 'gray'] as $c)
-                            @php $t = $tone($c); @endphp
-                            <button wire:click="$set('colorFilter', '{{ $c }}')"
-                                    class="w-full flex items-center justify-between px-2 py-1.5 rounded text-[12px] transition-colors {{ $colorFilter === $c ? $t['bg'].' '.$t['fg'].' border '.$t['border'] : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
-                                <span class="inline-flex items-center gap-2">
-                                    <span class="w-2 h-2 rounded-full {{ $t['dot'] }}"></span>
-                                    <span>{{ $t['label'] }}</span>
-                                </span>
-                                <span class="tabular-nums opacity-70 text-[11px]">{{ $byColor[$c] ?? 0 }}</span>
-                            </button>
-                        @endforeach
-                    </div>
-                </section>
+            <x-slot:filters>
+                <x-planner::filter-group label="Ampel">
+                    <x-planner::chip :active="$colorFilter === 'all'" :count="array_sum($byColor)" wire:click="$set('colorFilter', 'all')">Alle</x-planner::chip>
+                    @foreach(['red', 'yellow', 'green', 'gray'] as $c)
+                        @php $t = $tone($c); @endphp
+                        <x-planner::chip :active="$colorFilter === $c" :dot="$t['dot']" :count="$byColor[$c] ?? 0" wire:click="$set('colorFilter', '{{ $c }}')">{{ $t['label'] }}</x-planner::chip>
+                    @endforeach
+                </x-planner::filter-group>
 
-                {{-- ACHSEN-FILTER --}}
-                <section class="p-3 rounded-lg bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)]">
-                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] mb-2">Schwächste Achse</h3>
-                    <div class="space-y-1">
-                        <button wire:click="$set('axisFilter', 'all')"
-                                class="w-full text-left px-2 py-1 rounded text-[11px] transition-colors {{ $axisFilter === 'all' ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)] font-medium' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
-                            Alle
-                        </button>
-                        @foreach($axisLabels as $axisKey => $axisName)
-                            <button wire:click="$set('axisFilter', '{{ $axisKey }}')"
-                                    class="w-full flex items-center justify-between px-2 py-1 rounded text-[11px] transition-colors {{ $axisFilter === $axisKey ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)] font-medium' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
-                                <span>{{ $axisName }}</span>
-                                <span class="tabular-nums opacity-60">{{ $byAxis[$axisKey] ?? 0 }}</span>
-                            </button>
-                        @endforeach
-                    </div>
-                </section>
+                <x-planner::filter-group label="Schwächste Achse">
+                    <x-planner::chip :active="$axisFilter === 'all'" wire:click="$set('axisFilter', 'all')">Alle</x-planner::chip>
+                    @foreach($axisLabels as $axisKey => $axisName)
+                        <x-planner::chip :active="$axisFilter === $axisKey" :count="$byAxis[$axisKey] ?? 0" wire:click="$set('axisFilter', '{{ $axisKey }}')">{{ $axisName }}</x-planner::chip>
+                    @endforeach
+                </x-planner::filter-group>
 
-                {{-- LEBENSZYKLUS --}}
-                <section class="p-3 rounded-lg bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)]">
-                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] mb-2">Lebenszyklus</h3>
-                    <div class="flex flex-wrap gap-1.5">
-                        @foreach([
-                            'all' => 'Alle',
-                            'aktiv' => 'Aktiv',
-                            'ruhend' => 'Ruhend',
-                            'abgeschlossen' => 'Abgeschlossen',
-                            'verworfen' => 'Verworfen',
-                        ] as $key => $label)
-                            <button wire:click="$set('lifecycleFilter', '{{ $key }}')"
-                                    class="px-2.5 py-1 text-[11px] rounded-full font-medium transition-colors {{ $lifecycleFilter === $key ? 'bg-[var(--nx-text)] text-white' : 'bg-[var(--nx-bg)] text-[var(--nx-text)] hover:bg-[var(--nx-line)]' }}">
-                                {{ $label }}
-                            </button>
-                        @endforeach
-                    </div>
-                </section>
+                <x-planner::filter-group label="Lebenszyklus">
+                    @foreach(['all' => 'Alle', 'aktiv' => 'Aktiv', 'ruhend' => 'Ruhend', 'abgeschlossen' => 'Abgeschlossen', 'verworfen' => 'Verworfen'] as $key => $label)
+                        <x-planner::chip :active="$lifecycleFilter === $key" wire:click="$set('lifecycleFilter', '{{ $key }}')">{{ $label }}</x-planner::chip>
+                    @endforeach
+                </x-planner::filter-group>
 
-                {{-- SORTIERUNG --}}
-                <section class="p-3 rounded-lg bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)]">
-                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] mb-2">Sortierung</h3>
-                    <div class="space-y-1">
-                        @foreach([
-                            'worst' => 'Schlimmste zuerst',
-                            'best' => 'Beste zuerst',
-                            'confidence' => 'Geringste Confidence zuerst',
-                            'movement' => 'Letzte Bewegung zuerst',
-                            'name' => 'Name (A→Z)',
-                        ] as $key => $label)
-                            <button wire:click="$set('sort', '{{ $key }}')"
-                                    class="w-full text-left px-2 py-1 rounded text-[11px] transition-colors {{ $sort === $key ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)] font-medium' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
-                                {{ $label }}
-                            </button>
-                        @endforeach
-                    </div>
-                </section>
-            </div>
-        </x-ui-page-sidebar>
+                <x-planner::filter-group label="Sortierung">
+                    @foreach(['worst' => 'Schlimmste zuerst', 'best' => 'Beste zuerst', 'confidence' => 'Geringste Confidence zuerst', 'movement' => 'Letzte Bewegung zuerst', 'name' => 'Name (A→Z)'] as $key => $label)
+                        <x-planner::chip :active="$sort === $key" wire:click="$set('sort', '{{ $key }}')">{{ $label }}</x-planner::chip>
+                    @endforeach
+                </x-planner::filter-group>
+            </x-slot:filters>
+
+            <x-slot:more>
+                <x-planner::menu-item icon="heroicon-o-presentation-chart-line" :href="route('planner.ops')">Wand-Modus (Vollbild-Monitor)</x-planner::menu-item>
+            </x-slot:more>
+        </x-planner::actionbar>
     </x-slot>
 
     {{-- ════════ MAIN BODY ════════ --}}
     <div class="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
 
         {{-- Projekt-Liste --}}
-        <div class="flex-1 overflow-y-auto px-4 py-3 bg-[var(--nx-bg)]">
+        <div class="flex-1 overflow-y-auto px-3 sm:px-6 py-3 sm:py-4 bg-[var(--nx-bg)]">
+            <p class="mb-3 text-xs text-[var(--nx-muted)]">
+                Teamweite Health-Sicht aller Projekte — Daten aus dem jüngsten nächtlichen Snapshot.
+                @if($lastTakenOn)
+                    Stand <span class="font-medium text-[var(--nx-text)] tabular-nums">{{ $lastTakenOn->format('d.m.Y') }}</span>.
+                @endif
+            </p>
+
             {{-- Ampel-Verteilung (Portfolio-Puls) --}}
             <div class="mb-3 rounded-xl border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] shadow-[var(--nx-shadow-card)] p-4 space-y-2">
                 <div class="h-3 w-full bg-[color:var(--nx-line)] rounded-full overflow-hidden flex">

@@ -18,115 +18,82 @@
     </x-slot>
 
     <x-slot name="actionbar">
-        <x-ui-page-actionbar :breadcrumbs="[
-            ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
-            ['label' => 'Pflege'],
-        ]">
-            {{-- Scope-Umschalter: Meins (aktiv) ⟷ Team --}}
-            <div class="inline-flex rounded-md border border-[color:var(--nx-line-strong)] overflow-hidden">
-                <span class="inline-flex items-center gap-1.5 h-7 px-2.5 text-[11px] font-medium bg-[color:var(--nx-accent)] text-[color:var(--nx-on-accent)]">
-                    @svg('heroicon-o-user', 'w-3.5 h-3.5')
-                    Meins
-                </span>
-                <a href="{{ route('planner.projects.cleanup') }}" wire:navigate
-                   title="Team-Sicht (Aufräum-Cockpit)"
-                   class="inline-flex items-center gap-1.5 h-7 px-2.5 text-[11px] font-medium text-[color:var(--nx-muted)] hover:text-[color:var(--nx-text)] hover:bg-[color:var(--nx-hover)] border-l border-[color:var(--nx-line-strong)] transition-colors">
-                    @svg('heroicon-o-user-group', 'w-3.5 h-3.5')
-                    Team
-                </a>
-            </div>
-
-            {{-- Pflege-Zustand als EIN Badge rechts (Projekt-Standard), health-getönt --}}
-            <x-nx-badge :variant="$hygieneVariant" title="{{ $hygieneTitle }}">
-                @svg('heroicon-o-shield-check', 'w-3 h-3')
-                @if($totalStale === 0)
-                    <span>sauber</span>
-                @else
-                    <span class="tabular-nums">{{ $staleProjectsCount }} Proj.</span>
-                    <span class="opacity-40" aria-hidden="true">·</span>
-                    <span class="tabular-nums">{{ $staleTasksCount }} Aufg.</span>
-                    @if($staleOverdue > 0)
+        <x-planner::actionbar
+            :filters-active="($tab !== 'stale' ? 1 : 0) + ($entityType !== 'all' ? 1 : 0) + ($tab === 'stale' && $projectFilter ? 1 : 0)">
+            <x-slot:meta>
+                {{-- Pflege-Zustand als EIN Badge rechts (Projekt-Standard), health-getönt --}}
+                <x-nx-badge :variant="$hygieneVariant" title="{{ $hygieneTitle }}">
+                    @svg('heroicon-o-shield-check', 'w-3 h-3')
+                    @if($totalStale === 0)
+                        <span>sauber</span>
+                    @else
+                        <span class="tabular-nums">{{ $staleProjectsCount }} Proj.</span>
                         <span class="opacity-40" aria-hidden="true">·</span>
-                        <span class="tabular-nums">{{ $staleOverdue }} überfällig</span>
+                        <span class="tabular-nums">{{ $staleTasksCount }} Aufg.</span>
+                        @if($staleOverdue > 0)
+                            <span class="opacity-40" aria-hidden="true">·</span>
+                            <span class="tabular-nums">{{ $staleOverdue }} überfällig</span>
+                        @endif
                     @endif
-                @endif
-            </x-nx-badge>
-        </x-ui-page-actionbar>
-    </x-slot>
+                </x-nx-badge>
+            </x-slot:meta>
 
-    <x-slot name="sidebar">
-        <x-ui-page-sidebar title="Filter" icon="heroicon-o-funnel" width="w-72" :defaultOpen="true">
-            <div class="p-4 space-y-4 bg-[var(--nx-bg)]">
+            <x-slot:filters>
+                <x-planner::filter-group label="Ansicht">
+                    <x-planner::chip :active="$tab === 'stale'" icon="heroicon-o-archive-box-x-mark" wire:click="$set('tab', 'stale')">Vergessen</x-planner::chip>
+                    <x-planner::chip :active="$tab === 'recent'" icon="heroicon-o-eye" wire:click="$set('tab', 'recent')">Kürzlich</x-planner::chip>
+                </x-planner::filter-group>
 
-                {{-- ÜBER --}}
-                <section class="p-3 rounded-lg bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)]">
-                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] mb-2">Über</h3>
-                    <p class="text-[11px] text-[var(--nx-text)] leading-relaxed m-0">
-                        Was wurde lange nicht angesehen? Projekte gelten nach <strong>{{ $projectHygieneDays }}</strong> Tagen als vernachlässigt, Aufgaben nach <strong>{{ $taskHygieneDays }}</strong>.
-                    </p>
-                </section>
+                <x-planner::filter-group label="Anzeigen">
+                    <x-planner::chip :active="$entityType === 'all'" wire:click="$set('entityType', 'all')">Alles</x-planner::chip>
+                    <x-planner::chip :active="$entityType === 'projects'" wire:click="$set('entityType', 'projects')">Projekte</x-planner::chip>
+                    <x-planner::chip :active="$entityType === 'tasks'" wire:click="$set('entityType', 'tasks')">Aufgaben</x-planner::chip>
+                </x-planner::filter-group>
 
-                {{-- ANSICHT --}}
-                <section class="p-3 rounded-lg bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)]">
-                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] mb-2">Ansicht</h3>
-                    <div class="inline-flex rounded-md border border-[color:var(--nx-line-strong)] overflow-hidden w-full">
-                        <button
-                            wire:click="$set('tab', 'stale')"
-                            class="flex-1 inline-flex items-center justify-center gap-1.5 px-2 h-7 text-[11px] transition-colors {{ $tab === 'stale' ? 'bg-[var(--nx-danger)] text-white' : 'bg-transparent text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}"
-                        >
-                            @svg('heroicon-o-archive-box-x-mark', 'w-3.5 h-3.5')
-                            Vergessen
-                        </button>
-                        <button
-                            wire:click="$set('tab', 'recent')"
-                            class="flex-1 inline-flex items-center justify-center gap-1.5 px-2 h-7 text-[11px] border-l border-[color:var(--nx-line-strong)] transition-colors {{ $tab === 'recent' ? 'bg-[var(--nx-accent)] text-white' : 'bg-transparent text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}"
-                        >
-                            @svg('heroicon-o-eye', 'w-3.5 h-3.5')
-                            Kürzlich
-                        </button>
-                    </div>
-                </section>
-
-                {{-- ENTITY-TYP --}}
-                <section class="p-3 rounded-lg bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)]">
-                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] mb-2">Anzeigen</h3>
-                    <div class="flex flex-wrap gap-1.5">
-                        <button wire:click="$set('entityType', 'all')" class="px-2.5 py-1 text-[11px] rounded-full font-medium transition-colors {{ $entityType === 'all' ? 'bg-[var(--nx-text)] text-white' : 'bg-[var(--nx-bg)] text-[var(--nx-text)] hover:bg-[var(--nx-line)]' }}">Alles</button>
-                        <button wire:click="$set('entityType', 'projects')" class="px-2.5 py-1 text-[11px] rounded-full font-medium transition-colors {{ $entityType === 'projects' ? 'bg-[var(--nx-text)] text-white' : 'bg-[var(--nx-bg)] text-[var(--nx-text)] hover:bg-[var(--nx-line)]' }}">Projekte</button>
-                        <button wire:click="$set('entityType', 'tasks')" class="px-2.5 py-1 text-[11px] rounded-full font-medium transition-colors {{ $entityType === 'tasks' ? 'bg-[var(--nx-text)] text-white' : 'bg-[var(--nx-bg)] text-[var(--nx-text)] hover:bg-[var(--nx-line)]' }}">Aufgaben</button>
-                    </div>
-                </section>
-
-                {{-- PROJEKT-FILTER (nur Stale) --}}
+                {{-- Projekt-Filter (nur Vergessen) --}}
                 @if($tab === 'stale' && $availableProjects->isNotEmpty())
-                    <section class="p-3 rounded-lg bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)]">
-                        <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] mb-2">Projekt</h3>
-                        <div class="space-y-0.5 max-h-48 overflow-y-auto">
-                            <button
-                                wire:click="$set('projectFilter', null)"
-                                class="w-full text-left px-2 py-1 rounded text-[11px] transition-colors {{ $projectFilter === null ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)] font-medium' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}"
-                            >Alle</button>
+                    <x-planner::filter-group label="Projekt" :stack="true">
+                        <div class="max-h-56 overflow-y-auto flex flex-col gap-0.5">
+                            <x-planner::chip :row="true" :active="$projectFilter === null" wire:click="$set('projectFilter', null)">Alle</x-planner::chip>
                             @foreach($availableProjects as $proj)
-                                <button
-                                    wire:click="$set('projectFilter', {{ $proj->id }})"
-                                    class="w-full text-left px-2 py-1 rounded text-[11px] transition-colors flex items-center gap-2 {{ $projectFilter == $proj->id ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)] font-medium' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}"
-                                >
-                                    <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {{ $proj->color ?? 'var(--nx-muted)' }};"></span>
-                                    <span class="truncate">{{ $proj->name }}</span>
-                                </button>
+                                <x-planner::chip :row="true" :active="$projectFilter == $proj->id" :dot="$proj->color ?? 'bg-[color:var(--nx-muted)]'" wire:click="$set('projectFilter', {{ $proj->id }})">{{ $proj->name }}</x-planner::chip>
                             @endforeach
                         </div>
-                    </section>
+                    </x-planner::filter-group>
                 @endif
-            </div>
-        </x-ui-page-sidebar>
+            </x-slot:filters>
+
+            <x-slot:more>
+                <x-planner::menu-item icon="heroicon-o-user-group" :href="route('planner.projects.cleanup')">Team-Sicht (Aufräum-Cockpit)</x-planner::menu-item>
+            </x-slot:more>
+        </x-planner::actionbar>
     </x-slot>
 
     <div class="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
 
         {{-- Content --}}
         <div class="flex-1 overflow-y-auto bg-[var(--nx-bg)]">
-            <div class="p-6 space-y-6">
+            <div class="px-3 sm:px-6 py-4 sm:py-6 space-y-6">
+
+                {{-- Kopf: Scope Meins ⟷ Team + Kurzbeschreibung --}}
+                <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                    <div class="inline-flex self-start shrink-0 rounded-md border border-[color:var(--nx-line-strong)] overflow-hidden" role="group" aria-label="Sicht">
+                        <span class="inline-flex items-center gap-1.5 h-7 px-2.5 text-[11px] font-medium bg-[color:var(--nx-accent)] text-[color:var(--nx-on-accent)]" aria-current="page">
+                            @svg('heroicon-o-user', 'w-3.5 h-3.5')
+                            Meins
+                        </span>
+                        <a href="{{ route('planner.projects.cleanup') }}" wire:navigate
+                           title="Team-Sicht (Aufräum-Cockpit)"
+                           class="inline-flex items-center gap-1.5 h-7 px-2.5 text-[11px] font-medium bg-[color:var(--nx-surface)] text-[color:var(--nx-muted)] hover:text-[color:var(--nx-text)] hover:bg-[color:var(--nx-hover)] border-l border-[color:var(--nx-line-strong)] transition-colors">
+                            @svg('heroicon-o-user-group', 'w-3.5 h-3.5')
+                            Team
+                        </a>
+                    </div>
+                    <p class="text-xs text-[var(--nx-muted)] m-0 min-w-0">
+                        Was wurde lange nicht angesehen? Projekte gelten nach <strong class="text-[var(--nx-text)]">{{ $projectHygieneDays }}</strong> Tagen als vernachlässigt, Aufgaben nach <strong class="text-[var(--nx-text)]">{{ $taskHygieneDays }}</strong>.
+                    </p>
+                </div>
+
 
                 {{-- Heute (Aktivität) --}}
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -226,7 +193,7 @@
             @if($tab === 'stale')
                 {{-- ========= VERGESSEN ========= --}}
                 @if($staleProjectsCount === 0 && $staleTasksCount === 0)
-                    <div class="bg-[color:var(--nx-surface)] rounded-xl border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)] p-12 text-center">
+                    <div class="bg-[color:var(--nx-surface)] rounded-xl border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)] p-8 sm:p-12 text-center">
                         <div class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[var(--nx-success)]/10 mb-3">
                             @svg('heroicon-o-shield-check', 'w-7 h-7 text-[var(--nx-success)]')
                         </div>
@@ -269,7 +236,7 @@
 
                                         <div class="flex-1 min-w-0">
                                             <div class="text-sm font-semibold text-[var(--nx-text)] truncate group-hover:text-[var(--nx-danger)]">{{ $project->name }}</div>
-                                            <div class="flex items-center gap-3 text-[10px] text-[var(--nx-muted)] mt-0.5">
+                                            <div class="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-[var(--nx-muted)] mt-0.5">
                                                 <span class="tabular-nums">{{ $project->open_tasks_count }} offen / {{ $project->total_tasks_count }} gesamt</span>
                                                 @if($project->open_tasks_count === 0 && $project->total_tasks_count > 0)
                                                     <span class="text-[var(--nx-success)] font-medium">Alle erledigt</span>
@@ -450,7 +417,7 @@
                 @endif
 
                 @if(($entityType === 'all' || $entityType === 'projects') && $recentProjects->isEmpty() && ($entityType === 'all' || $entityType === 'tasks') && $recentTasks->isEmpty())
-                    <div class="bg-[color:var(--nx-surface)] rounded-xl border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)] p-12 text-center">
+                    <div class="bg-[color:var(--nx-surface)] rounded-xl border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)] p-8 sm:p-12 text-center">
                         <div class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[var(--nx-bg)] mb-3">
                             @svg('heroicon-o-eye', 'w-7 h-7 text-[var(--nx-muted)]')
                         </div>

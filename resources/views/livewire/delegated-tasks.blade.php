@@ -43,117 +43,72 @@
     </x-slot>
 
     <x-slot name="actionbar">
-        <x-ui-page-actionbar :breadcrumbs="[
-            ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
-            ['label' => 'Aufgaben'],
-        ]">
-            @include('planner::livewire.partials.tasks-tabs')
-
-            {{-- Kennzahlen als EIN Badge rechts (Projekt-Standard) --}}
-            <x-nx-badge title="offen {{ $headerOpenCount }} · überfällig {{ $headerOverdueCount }} · Frösche {{ $frogCount }}{{ $openPoints > 0 ? ' · ' . $openPoints . ' SP' : '' }}">
-                <span class="inline-flex items-center gap-1 text-[color:var(--nx-text)]">
-                    <span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-info)]"></span>
-                    <span class="tabular-nums">{{ $headerOpenCount }}</span>
-                </span>
-                @if($headerOverdueCount > 0)
-                    <span class="inline-flex items-center gap-1 text-[color:var(--nx-danger)]">
-                        <span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-danger)]"></span>
-                        <span class="tabular-nums">{{ $headerOverdueCount }}</span>
+        <x-planner::actionbar active="delegated" task-action="$wire.createTask()">
+            <x-slot:meta>
+                {{-- Kennzahlen als EIN Badge rechts (Projekt-Standard) --}}
+                <x-nx-badge title="offen {{ $headerOpenCount }} · überfällig {{ $headerOverdueCount }} · Frösche {{ $frogCount }}{{ $openPoints > 0 ? ' · ' . $openPoints . ' SP' : '' }}">
+                    <span class="inline-flex items-center gap-1 text-[color:var(--nx-text)]">
+                        <span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-info)]"></span>
+                        <span class="tabular-nums">{{ $headerOpenCount }}</span>
                     </span>
-                @endif
-                @if($frogCount > 0)
-                    <span class="inline-flex items-center gap-1"><span>🐸</span><span class="tabular-nums">{{ $frogCount }}</span></span>
-                @endif
-                @if($openPoints > 0)
-                    <span class="opacity-30" aria-hidden="true">·</span>
-                    <span class="tabular-nums">{{ $openPoints }} SP</span>
-                @endif
-            </x-nx-badge>
+                    @if($headerOverdueCount > 0)
+                        <span class="inline-flex items-center gap-1 text-[color:var(--nx-danger)]">
+                            <span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-danger)]"></span>
+                            <span class="tabular-nums">{{ $headerOverdueCount }}</span>
+                        </span>
+                    @endif
+                    @if($frogCount > 0)
+                        <span class="inline-flex items-center gap-1"><span>🐸</span><span class="tabular-nums">{{ $frogCount }}</span></span>
+                    @endif
+                    @if($openPoints > 0)
+                        <span class="opacity-30" aria-hidden="true">·</span>
+                        <span class="tabular-nums">{{ $openPoints }} SP</span>
+                    @endif
+                </x-nx-badge>
+            </x-slot:meta>
 
-            {{-- Aktionen im Overflow-Menü (keine sichtbaren Buttons — Projekt-Standard) --}}
-            <div x-data="{ open: false }" class="relative">
-                <button type="button" @click="open = !open"
-                    class="inline-flex items-center justify-center w-8 h-7 rounded-md text-[var(--nx-muted)] hover:text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition-colors" title="Mehr">
-                    @svg('heroicon-o-ellipsis-horizontal', 'w-4 h-4')
-                </button>
-                <div x-show="open" x-cloak x-transition.opacity.duration.100ms @click.outside="open = false" @keydown.escape.window="open = false"
-                    class="absolute top-full right-0 mt-1 w-52 bg-[color:var(--nx-surface)] border border-[var(--nx-line-strong)] rounded-lg shadow-[var(--nx-shadow-pop)] z-30 py-1">
-                    <button type="button" wire:click="createTask()" @click="open = false"
-                        class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition-colors">
-                        @svg('heroicon-o-plus', 'w-4 h-4 text-[var(--nx-muted)]')
-                        <span>Neue Aufgabe</span>
-                    </button>
-                    <button type="button" wire:click="createTaskGroup" @click="open = false"
-                        class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition-colors">
-                        @svg('heroicon-o-square-2-stack', 'w-4 h-4 text-[var(--nx-muted)]')
-                        <span>Neue Spalte</span>
-                    </button>
-                </div>
-            </div>
-        </x-ui-page-actionbar>
-    </x-slot>
-
-    <x-slot name="sidebar">
-        <x-ui-page-sidebar title="Übersicht" icon="heroicon-o-user-group" width="w-72" :defaultOpen="true">
-            <div class="p-4 space-y-4 bg-[var(--nx-bg)]">
-
-                {{-- ÜBER --}}
-                <section class="p-3 rounded-lg bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)]">
-                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] mb-2">Über</h3>
-                    <p class="text-[11px] text-[var(--nx-text)] leading-relaxed m-0">
-                        Aufgaben, die du an andere delegiert hast — sortiert in deinen Bearbeitungsspalten.
-                    </p>
-                </section>
-
-                {{-- PRO PERSON --}}
-                @if($byPerson->isNotEmpty())
-                    <section class="p-3 rounded-lg bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)]">
-                        <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] mb-2">Pro Person</h3>
-                        <ul class="space-y-2.5">
-                            @foreach($byPerson->take(8) as $p)
-                                @php
-                                    $loadPct = round(($p['count'] / $maxPerPerson) * 100);
-                                    $loadColor = $p['overdue'] > 0 ? 'var(--nx-danger)' : ($loadPct >= 80 ? '#d97706' : 'var(--nx-accent)');
-                                    $initial = mb_strtoupper(mb_substr($p['name'], 0, 1));
-                                @endphp
-                                <li class="flex items-center gap-2 text-[11px]">
-                                    @if($p['avatar'])
-                                        <img src="{{ $p['avatar'] }}" alt="" class="w-5 h-5 rounded-full object-cover flex-shrink-0">
-                                    @else
-                                        <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[var(--nx-text)] text-white text-[9px] font-semibold flex-shrink-0">{{ $initial }}</span>
-                                    @endif
-                                    <div class="flex-1 min-w-0">
-                                        <div class="flex items-center justify-between gap-2">
-                                            <span class="truncate text-[var(--nx-text)] font-medium">{{ $p['name'] }}</span>
-                                            <span class="tabular-nums text-[var(--nx-muted)] flex-shrink-0">
-                                                {{ $p['count'] }}
-                                                @if($p['overdue'] > 0)
-                                                    <span class="text-[var(--nx-danger)] font-semibold">/{{ $p['overdue'] }}</span>
-                                                @endif
-                                            </span>
-                                        </div>
-                                        <div class="mt-1 w-full h-1 rounded-full bg-[var(--nx-line)] overflow-hidden">
-                                            <div class="h-full rounded-full transition-all" style="width: {{ $loadPct }}%; background-color: {{ $loadColor }};"></div>
-                                        </div>
-                                    </div>
-                                </li>
-                            @endforeach
-                        </ul>
-                        @if($byPerson->count() > 8)
-                            <p class="mt-2 text-[10px] text-[var(--nx-muted)] pl-1">+ {{ $byPerson->count() - 8 }} weitere</p>
-                        @endif
-                        @if($byPerson->sum('overdue') > 0)
-                            <p class="mt-2 text-[10px] text-[var(--nx-danger)] pl-1">
-                                Balkenfarbe = überfällig vorhanden / nahe am Limit
-                            </p>
-                        @endif
-                    </section>
-                @endif
-            </div>
-        </x-ui-page-sidebar>
+            <x-slot:create>
+                <x-planner::menu-item icon="heroicon-o-square-2-stack" wire:click="createTaskGroup">Gruppe</x-planner::menu-item>
+            </x-slot:create>
+        </x-planner::actionbar>
     </x-slot>
 
     <div class="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
+
+        {{-- Pro Person — kompakte Leiste (Balken = Last; rot = überfällig vorhanden) --}}
+        @if($byPerson->isNotEmpty())
+            <div class="shrink-0 flex items-center gap-2 px-3 sm:px-4 py-1.5 border-b border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] overflow-x-auto"
+                 title="Aufgaben, die du an andere delegiert hast — sortiert in deinen Bearbeitungsspalten.">
+                <span class="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] mr-1">Pro Person</span>
+                @foreach($byPerson as $p)
+                    @php
+                        $loadPct = round(($p['count'] / $maxPerPerson) * 100);
+                        $loadColor = $p['overdue'] > 0 ? 'var(--nx-danger)' : ($loadPct >= 80 ? '#d97706' : 'var(--nx-accent)');
+                        $initial = mb_strtoupper(mb_substr($p['name'], 0, 1));
+                    @endphp
+                    <div class="shrink-0 flex items-center gap-1.5 pl-1 pr-2 py-1 rounded-md bg-[var(--nx-bg)] text-[11px]"
+                         title="{{ $p['name'] }}: {{ $p['count'] }} offen{{ $p['overdue'] > 0 ? ', ' . $p['overdue'] . ' überfällig' : '' }}">
+                        @if($p['avatar'])
+                            <img src="{{ $p['avatar'] }}" alt="" class="w-5 h-5 rounded-full object-cover flex-shrink-0">
+                        @else
+                            <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[var(--nx-text)] text-white text-[9px] font-semibold flex-shrink-0">{{ $initial }}</span>
+                        @endif
+                        <div class="w-20 sm:w-24 min-w-0">
+                            <div class="flex items-center justify-between gap-1.5">
+                                <span class="truncate text-[var(--nx-text)] font-medium">{{ $p['name'] }}</span>
+                                <span class="tabular-nums text-[var(--nx-muted)] flex-shrink-0">
+                                    {{ $p['count'] }}@if($p['overdue'] > 0)<span class="text-[var(--nx-danger)] font-semibold">/{{ $p['overdue'] }}</span>@endif
+                                </span>
+                            </div>
+                            <div class="mt-0.5 w-full h-1 rounded-full bg-[var(--nx-line)] overflow-hidden">
+                                <div class="h-full rounded-full transition-all" style="width: {{ $loadPct }}%; background-color: {{ $loadColor }};"></div>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+
 
         {{-- Board --}}
         <div

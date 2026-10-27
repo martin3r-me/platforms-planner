@@ -38,33 +38,9 @@ class Sidebar extends Component
 
     public function createProject()
     {
-        $user = Auth::user();
-        $teamId = $user->currentTeam->id;
-
-        // 1. Neues Projekt anlegen
-        $project = new Project();
-        $project->name = 'Neues Projekt';
-        $project->user_id = $user->id;
-        $project->team_id = $teamId;
-        $project->order = Project::where('team_id', $teamId)->max('order') + 1;
-        $project->save();
-        // Ersteller = user_id. Kein projectUsers-OWNER-Eintrag mehr (Zugriff = Graph).
-
-        // 2. Standard-Project-Slots erzeugen: To Do, Doing, On Hold
-        $defaultSlots = ['To Do', 'Doing', 'On Hold'];
-        foreach ($defaultSlots as $index => $name) {
-            ProjectSlot::create([
-                'project_id' => $project->id,
-                'name' => $name,
-                'order' => $index + 1,
-                'user_id' => $user->id,
-                'team_id' => $teamId,
-            ]);
-        }
+        [$project, $canvas] = app(\Platform\Planner\Services\ProjectCreationService::class)->createDefault(Auth::user());
 
         // Projekt beginnt mit dem Kickoff im Canvas
-        $canvas = app(\Platform\Planner\Services\ProjectCanvasService::class)->ensureForProject($project, $user->id);
-
         return redirect()->route('planner.projects.canvas.show', [$project->id, $canvas->id]);
     }
 

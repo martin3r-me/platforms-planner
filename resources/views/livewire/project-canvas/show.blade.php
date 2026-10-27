@@ -5,78 +5,34 @@
     </x-slot>
 
     <x-slot name="actionbar">
-        <x-ui-page-actionbar :breadcrumbs="[
-            ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
-            ['label' => $project->name, 'href' => route('planner.projects.show', $project)],
-        ]">
-            <x-slot name="left">
-                @include('planner::livewire.partials.project-tabs', ['project' => $project, 'active' => 'canvas'])
-            </x-slot>
+        <x-planner::actionbar :project="$project" active="canvas" :crumbs="[['label' => $canvas->name]]">
+            <x-slot:meta>
+                @if($canvas->visibility === 'private')
+                    <x-nx-badge variant="warning" title="Nur für dich sichtbar">@svg('heroicon-o-lock-closed', 'w-3 h-3') Privat</x-nx-badge>
+                @endif
+                @if($canvas->public_token && $canvas->is_public)
+                    <x-nx-badge variant="info" title="Öffentlicher Link ist aktiv">@svg('heroicon-o-globe-alt', 'w-3 h-3') Öffentlich</x-nx-badge>
+                @endif
+            </x-slot:meta>
 
-            {{-- Rechts: Actions --}}
-            <button
-                wire:click="toggleVisibility"
-                class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-medium transition-colors {{ $canvas->visibility === 'private' ? 'bg-[var(--nx-warning)]/10 text-[color:var(--nx-warning)] hover:bg-[color:var(--nx-warning)]' : 'text-[color:var(--nx-muted)] hover:text-[var(--nx-text)] hover:bg-[var(--nx-accent)]/10' }}"
-            >
-                @svg($canvas->visibility === 'private' ? 'heroicon-o-lock-closed' : 'heroicon-o-user-group', 'w-4 h-4')
-                <span>{{ $canvas->visibility === 'private' ? 'Privat' : 'Team' }}</span>
-            </button>
-
-            <a href="{{ route('planner.projects.canvas.pdf', [$project, $canvas]) }}" target="_blank"
-               class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-medium text-[color:var(--nx-muted)] hover:text-[var(--nx-text)] hover:bg-[var(--nx-accent)]/10 transition-colors">
-                @svg('heroicon-o-arrow-down-tray', 'w-4 h-4')
-                <span>PDF</span>
-            </a>
-
-            {{-- View Mode Toggle --}}
-            <div class="flex items-center bg-[color:var(--nx-line)] rounded-full p-0.5">
-                <button
-                    wire:click="$set('viewMode', 'list')"
-                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[12px] font-medium transition-all {{ $viewMode === 'list' ? 'bg-[color:var(--nx-surface)] text-[var(--nx-text)] shadow-[var(--nx-shadow-card)]' : 'text-[color:var(--nx-muted)] hover:text-[var(--nx-text)]' }}"
-                >
-                    @svg('heroicon-o-list-bullet', 'w-3.5 h-3.5')
-                    <span>Liste</span>
-                </button>
-                <button
-                    wire:click="$set('viewMode', 'workshop')"
-                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[12px] font-medium transition-all {{ $viewMode === 'workshop' ? 'bg-[color:var(--nx-surface)] text-[var(--nx-text)] shadow-[var(--nx-shadow-card)]' : 'text-[color:var(--nx-muted)] hover:text-[var(--nx-text)]' }}"
-                >
-                    @svg('heroicon-o-square-3-stack-3d', 'w-3.5 h-3.5')
-                    <span>Workshop</span>
-                </button>
-            </div>
-
-            @if($canvas->public_token)
-                <div class="flex items-center gap-1" x-data="{ copied: false }">
-                    <button
-                        wire:click="togglePublicLink"
-                        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-medium transition-colors {{ $canvas->is_public ? 'bg-[color:var(--nx-accent)] text-[color:var(--nx-on-accent)] shadow-[var(--nx-shadow-card)] hover:bg-[var(--nx-accent-hover)]' : 'text-[color:var(--nx-muted)] hover:text-[var(--nx-text)] hover:bg-[var(--nx-accent)]/10' }}"
-                    >
-                        @svg('heroicon-o-globe-alt', 'w-4 h-4')
-                        <span>{{ $canvas->is_public ? 'Public' : 'Privat' }}</span>
-                    </button>
+            <x-slot:more>
+                <x-planner::menu-item :icon="$canvas->visibility === 'private' ? 'heroicon-o-user-group' : 'heroicon-o-lock-closed'" wire:click="toggleVisibility"
+                    title="Sichtbarkeit: aktuell {{ $canvas->visibility === 'private' ? 'Privat' : 'Team' }}">
+                    {{ $canvas->visibility === 'private' ? 'Für das Team freigeben' : 'Auf privat stellen' }}
+                </x-planner::menu-item>
+                @if($canvas->public_token)
+                    <x-planner::menu-item icon="heroicon-o-globe-alt" wire:click="togglePublicLink">
+                        {{ $canvas->is_public ? 'Öffentlichen Link deaktivieren' : 'Öffentlichen Link aktivieren' }}
+                    </x-planner::menu-item>
                     @if($canvas->is_public)
-                        <button
-                            x-on:click="navigator.clipboard.writeText('{{ $canvas->getPublicUrl() }}'); copied = true; setTimeout(() => copied = false, 2000)"
-                            class="p-1.5 rounded-full text-[color:var(--nx-muted)] hover:text-[var(--nx-text)] hover:bg-[var(--nx-accent)]/10 transition-colors"
-                        >
-                            <template x-if="!copied">
-                                @svg('heroicon-o-clipboard', 'w-4 h-4')
-                            </template>
-                            <template x-if="copied">
-                                @svg('heroicon-o-check', 'w-4 h-4 text-[color:var(--nx-success)]')
-                            </template>
-                        </button>
+                        <x-planner::menu-item icon="heroicon-o-clipboard" x-on:click="navigator.clipboard.writeText('{{ $canvas->getPublicUrl() }}')">Öffentlichen Link kopieren</x-planner::menu-item>
                     @endif
-                </div>
-            @else
-                <button wire:click="createPublicLink"
-                        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-medium text-[color:var(--nx-muted)] hover:text-[var(--nx-text)] hover:bg-[var(--nx-accent)]/10 transition-colors">
-                    @svg('heroicon-o-link', 'w-4 h-4')
-                    <span>Teilen</span>
-                </button>
-            @endif
-        </x-ui-page-actionbar>
+                @else
+                    <x-planner::menu-item icon="heroicon-o-link" wire:click="createPublicLink">Teilen (öffentlicher Link)</x-planner::menu-item>
+                @endif
+                <x-planner::menu-item icon="heroicon-o-arrow-down-tray" :href="route('planner.projects.canvas.pdf', [$project, $canvas])" :navigate="false" target="_blank">PDF herunterladen</x-planner::menu-item>
+            </x-slot:more>
+        </x-planner::actionbar>
     </x-slot>
 
     {{-- Main Content --}}
@@ -85,8 +41,8 @@
         @livewire(\Platform\Planner\Livewire\ProjectCanvas\Versions::class, ['canvasId' => $canvas->id], key('canvas-versions-' . $canvas->id))
 
         {{-- Meta-Infos --}}
-        <div class="px-4 sm:px-6 py-4 border-b border-[color:var(--nx-line)]/40 bg-[color:var(--nx-surface)]/50">
-            <div class="flex flex-wrap items-start gap-6">
+        <div class="px-3 sm:px-6 py-3 sm:py-4 border-b border-[color:var(--nx-line)]/40 bg-[color:var(--nx-surface)]/50">
+            <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
                 {{-- Status --}}
                 <div class="flex items-center gap-2">
                     <span class="text-[11px] font-medium text-[color:var(--nx-muted)] uppercase tracking-wide">Status</span>
@@ -145,7 +101,7 @@
                             default => 'bg-[var(--nx-accent)]',
                         };
                     @endphp
-                    <div class="w-24 h-2 rounded-full bg-[color:var(--nx-line)]">
+                    <div class="w-16 sm:w-24 h-2 rounded-full bg-[color:var(--nx-line)]">
                         <div class="h-2 rounded-full transition-all {{ $barColor }}"
                              style="width: {{ $analysisData['completeness_percent'] ?? 0 }}%"></div>
                     </div>
@@ -153,7 +109,7 @@
                 </div>
 
                 {{-- Stats --}}
-                <div class="flex items-center gap-3 text-xs text-[color:var(--nx-muted)]">
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[color:var(--nx-muted)]">
                     <span>{{ $analysisData['filled_blocks'] ?? 0 }}/{{ $analysisData['total_blocks'] ?? 0 }} Bloecke</span>
                     <span>{{ $analysisData['total_entries'] ?? 0 }} Eintraege</span>
                     @if(($analysisData['strategy'] ?? null) === 'completeness')
@@ -174,6 +130,32 @@
                             <span class="text-[color:var(--nx-danger)] font-medium">{{ $analysisData['overdue_milestones'] }} Ueberfaellig</span>
                         @endif
                     @endif
+                </div>
+
+                {{-- Ansicht (Liste/Workshop) + Sprung zu den Kommentaren --}}
+                <div class="flex items-center gap-2 w-full sm:w-auto sm:ml-auto">
+                    <a href="#canvas-comments"
+                       class="inline-flex items-center gap-1 text-xs text-[color:var(--nx-muted)] hover:text-[var(--nx-text)]"
+                       title="Zu den Kommentaren">
+                        @svg('heroicon-o-chat-bubble-left-right', 'w-3.5 h-3.5')
+                        <span class="tabular-nums">{{ $allComments->count() }}</span>
+                    </a>
+                    <div class="ml-auto sm:ml-0 inline-flex items-center bg-[color:var(--nx-line)] rounded-full p-0.5">
+                        <button type="button"
+                            wire:click="$set('viewMode', 'list')"
+                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium transition-all {{ $viewMode === 'list' ? 'bg-[color:var(--nx-surface)] text-[var(--nx-text)] shadow-[var(--nx-shadow-card)]' : 'text-[color:var(--nx-muted)] hover:text-[var(--nx-text)]' }}"
+                        >
+                            @svg('heroicon-o-list-bullet', 'w-3.5 h-3.5')
+                            <span>Liste</span>
+                        </button>
+                        <button type="button"
+                            wire:click="$set('viewMode', 'workshop')"
+                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium transition-all {{ $viewMode === 'workshop' ? 'bg-[color:var(--nx-surface)] text-[var(--nx-text)] shadow-[var(--nx-shadow-card)]' : 'text-[color:var(--nx-muted)] hover:text-[var(--nx-text)]' }}"
+                        >
+                            @svg('heroicon-o-square-3-stack-3d', 'w-3.5 h-3.5')
+                            <span>Workshop</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -235,7 +217,7 @@
         <div wire:key="view-list" x-data="blockNav()" x-init="init()">
             {{-- Block Navigation --}}
             <div class="sticky top-0 z-20 border-b border-[color:var(--nx-line)]/40 bg-[color:var(--nx-surface)]/95 backdrop-blur-sm">
-                <div class="px-4 sm:px-6 overflow-x-auto">
+                <div class="px-3 sm:px-6 overflow-x-auto">
                     <div class="flex items-center gap-1 py-2">
                         <span class="shrink-0 text-[11px] font-bold text-[var(--nx-accent)] uppercase tracking-wider mr-2">Project Canvas</span>
                         <span class="shrink-0 w-px h-4 bg-[color:var(--nx-line)]/40 mr-1"></span>
@@ -257,13 +239,12 @@
             </div>
 
             {{-- Blocks --}}
-            <div class="p-4 sm:p-6 space-y-6">
+            <div class="p-3 sm:p-6 space-y-6">
                 @foreach($blockDefs as $def)
                     <div id="block-{{ $def['key'] }}" class="scroll-mt-14" data-block>
                         @include('planner::livewire.project-canvas._block', ['blockKey' => $def['key'], 'blocks' => $canvasData['blocks'], 'blockDefs' => $blockDefs])
                     </div>
                 @endforeach
-                <div class="h-[60vh]"></div>
             </div>
         </div>
 
@@ -478,15 +459,18 @@
             </div>
         </div>
         @endif
-    </x-ui-page-container>
 
-    {{-- Left Sidebar: Kommentare --}}
-    <x-slot name="sidebar">
-        <x-ui-page-sidebar title="Kommentare ({{ $allComments->count() }})" width="w-80" :defaultOpen="true" storeKey="sidebarOpen">
-            <div class="p-4 space-y-4">
+        {{-- ═══ KOMMENTARE (früher Seitenleiste) ═══ --}}
+        <section id="canvas-comments" class="scroll-mt-4 border-t border-[color:var(--nx-line)] bg-[color:var(--nx-surface)]/50 px-3 sm:px-6 py-5 sm:py-6">
+            <h2 class="flex items-center gap-2 text-sm font-semibold text-[var(--nx-text)] m-0 mb-4">
+                @svg('heroicon-o-chat-bubble-left-right', 'w-4 h-4 text-[color:var(--nx-muted)]')
+                Kommentare
+                <span class="text-xs font-normal text-[color:var(--nx-muted)] tabular-nums">{{ $allComments->count() }}</span>
+            </h2>
+            <div class="max-w-3xl space-y-4">
                 {{-- Block Filter Chips --}}
-                <div class="overflow-x-auto -mx-4 px-4">
-                    <div class="flex items-center gap-1.5 flex-nowrap">
+                <div>
+                    <div class="flex flex-wrap items-center gap-1.5">
                         <button
                             wire:click="filterByBlock(null)"
                             class="shrink-0 px-2.5 py-1 rounded-full text-[10px] font-medium transition-colors whitespace-nowrap {{ !$filterBlockId ? 'bg-[color:var(--nx-accent)] text-[color:var(--nx-on-accent)]' : 'bg-[color:var(--nx-line)] text-[color:var(--nx-muted)] hover:text-[var(--nx-text)]' }}"
@@ -615,7 +599,7 @@
                                                 <button
                                                     wire:click="deleteComment({{ $reply->id }})"
                                                     wire:confirm="Antwort loeschen?"
-                                                    class="ml-auto opacity-0 group-hover/reply:opacity-100 text-[color:var(--nx-muted)] hover:text-[color:var(--nx-danger)] transition-all"
+                                                    class="ml-auto sm:opacity-0 sm:group-hover/reply:opacity-100 text-[color:var(--nx-muted)] hover:text-[color:var(--nx-danger)] transition-all"
                                                 >
                                                     @svg('heroicon-o-trash', 'w-3 h-3')
                                                 </button>
@@ -641,8 +625,7 @@
                     @endforelse
                 </div>
             </div>
-        </x-ui-page-sidebar>
-    </x-slot>
+        </section>
+    </x-ui-page-container>
 
-    {{-- Right Sidebar: Aktivitaeten --}}
 </x-ui-page>

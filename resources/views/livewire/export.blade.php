@@ -4,13 +4,11 @@
     </x-slot>
 
     <x-slot name="actionbar">
-        <x-ui-page-actionbar :breadcrumbs="[
-            ['label' => 'Projekte', 'href' => route('planner.dashboard'), 'icon' => 'clipboard-document-list'],
-            ['label' => 'Export'],
-        ]" />
+        <x-planner::actionbar />
     </x-slot>
 
-    <div class="max-w-5xl mx-auto py-8 px-4 space-y-8">
+    <div class="flex-1 min-w-0 overflow-y-auto">
+    <div class="max-w-5xl mx-auto py-4 sm:py-8 px-3 sm:px-6 space-y-8">
 
         {{-- Header --}}
         <div>
@@ -21,12 +19,12 @@
         </div>
 
         {{-- Export-Formular --}}
-        <div class="bg-[var(--nx-surface)] border border-[var(--nx-line)] rounded-xl p-6 space-y-6">
+        <div class="bg-[var(--nx-surface)] border border-[var(--nx-line)] rounded-xl p-4 sm:p-6 space-y-6">
 
             {{-- Export-Typ --}}
             <div>
                 <label class="block text-sm font-semibold text-[var(--nx-text)] mb-3">Was exportieren?</label>
-                <div class="flex gap-3">
+                <div class="flex flex-col sm:flex-row gap-3">
                     <button
                         type="button"
                         wire:click="$set('exportType', 'project')"
@@ -92,7 +90,7 @@
             {{-- Format --}}
             <div>
                 <label class="block text-sm font-semibold text-[var(--nx-text)] mb-3">Format</label>
-                <div class="flex gap-3">
+                <div class="flex flex-wrap gap-3">
                     @foreach($formats as $format)
                         <button
                             type="button"
@@ -177,5 +175,6 @@
                 <li>Weitere Formate (CSV, Excel) werden in Zukunft verfügbar sein.</li>
             </ul>
         </div>
+    </div>
     </div>
 </x-ui-page>

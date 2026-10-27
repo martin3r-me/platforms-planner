@@ -20,44 +20,6 @@
         <x-ui-page-navbar title="Pflege" icon="heroicon-o-shield-check" />
     </x-slot>
 
-    <x-slot name="actionbar">
-        <x-ui-page-actionbar :breadcrumbs="[
-            ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
-            ['label' => 'Pflege'],
-        ]">
-            {{-- Scope-Umschalter: Meins ⟷ Team (Team aktiv) --}}
-            <div class="inline-flex rounded-md border border-[color:var(--nx-line-strong)] overflow-hidden">
-                <a href="{{ route('planner.hygiene') }}" wire:navigate
-                   title="Meine Sicht (persönlich)"
-                   class="inline-flex items-center gap-1.5 h-7 px-2.5 text-[11px] font-medium text-[color:var(--nx-muted)] hover:text-[color:var(--nx-text)] hover:bg-[color:var(--nx-hover)] transition-colors">
-                    @svg('heroicon-o-user', 'w-3.5 h-3.5')
-                    Meins
-                </a>
-                <span class="inline-flex items-center gap-1.5 h-7 px-2.5 text-[11px] font-medium bg-[color:var(--nx-accent)] text-[color:var(--nx-on-accent)] border-l border-[color:var(--nx-line-strong)]">
-                    @svg('heroicon-o-user-group', 'w-3.5 h-3.5')
-                    Team
-                </span>
-            </div>
-
-            {{-- Papierkorb-Umschalter: soft-gelöschte Projekte wiederherstellen --}}
-            <button
-                wire:click="toggleTrashed"
-                title="Papierkorb — gelöschte Projekte ansehen & wiederherstellen"
-                class="inline-flex items-center gap-1.5 h-7 px-2.5 text-[11px] font-medium rounded-md border transition-colors {{ $showTrashed ? 'bg-[var(--nx-danger)]/10 text-[color:var(--nx-danger)] border-[var(--nx-danger)]/30' : 'text-[color:var(--nx-muted)] border-[color:var(--nx-line-strong)] hover:text-[color:var(--nx-text)] hover:bg-[color:var(--nx-hover)]' }}">
-                @svg('heroicon-o-trash', 'w-3.5 h-3.5')
-                {{ $showTrashed ? 'Papierkorb aktiv' : 'Papierkorb' }}
-            </button>
-
-            {{-- Aufräum-Signal als EIN Badge rechts (Projekt-Standard) --}}
-            <x-nx-badge :variant="$pflegeVariant" title="{{ $totalRows }} Projekte im Scope · {{ $kpiCleanupCandidates }} Aufräum-Kandidaten (>30d ohne Aktivität)">
-                @svg('heroicon-o-archive-box-x-mark', 'w-3 h-3')
-                <span class="tabular-nums">{{ $kpiCleanupCandidates }}</span>
-                <span class="opacity-40" aria-hidden="true">/</span>
-                <span class="tabular-nums">{{ $totalRows }}</span>
-            </x-nx-badge>
-        </x-ui-page-actionbar>
-    </x-slot>
-
     @php
         $tone = function ($color) {
             return match ($color) {
@@ -91,110 +53,114 @@
         ];
     @endphp
 
-    {{-- ════════ LEFT SIDEBAR: Filter ════════ --}}
-    <x-slot name="sidebar">
-        <x-ui-page-sidebar title="Filter" icon="heroicon-o-funnel" width="w-72" :defaultOpen="true">
-            <div class="p-4 space-y-4 bg-[var(--nx-bg)]">
+    <x-slot name="actionbar">
+        <x-planner::actionbar
+            :filters-active="($colorFilter !== 'all' ? 1 : 0) + ($lifecycleFilter !== 'aktiv' ? 1 : 0) + ($ownerFilter ? 1 : 0) + count($suspectFlags) + ($sort !== 'name' ? 1 : 0)">
+            <x-slot:meta>
+                {{-- Aufräum-Signal als EIN Badge rechts (Projekt-Standard) --}}
+                <x-nx-badge :variant="$pflegeVariant" title="{{ $totalRows }} Projekte im Scope · {{ $kpiCleanupCandidates }} Aufräum-Kandidaten (>30d ohne Aktivität)">
+                    @svg('heroicon-o-archive-box-x-mark', 'w-3 h-3')
+                    <span class="tabular-nums">{{ $kpiCleanupCandidates }}</span>
+                    <span class="opacity-40" aria-hidden="true">/</span>
+                    <span class="tabular-nums">{{ $totalRows }}</span>
+                </x-nx-badge>
+            </x-slot:meta>
 
-                {{-- ÜBER --}}
-                <section class="p-3 rounded-lg bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)]">
-                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] mb-2">Über</h3>
-                    <p class="text-[11px] text-[var(--nx-text)] leading-relaxed m-0">
-                        <strong>Team-Pflege:</strong> dichte Sicht mit Bulk-Auswahl und Inline-Aktionen — <strong>Löschen</strong>, <strong>Passiv/Inaktiv</strong>, <strong>Erledigt</strong>, <strong>Entity-Change</strong>, alles ohne Detail-Klick. Für die persönliche Sicht oben auf <strong>Meins</strong> wechseln.
-                    </p>
-                </section>
+            <x-slot:filters>
+                <x-planner::filter-group label="Ampel">
+                    @foreach(['all' => ['Alle', null], 'red' => ['Rot', 'bg-[color:var(--nx-danger)]'], 'yellow' => ['Gelb', 'bg-[color:var(--nx-warning)]'], 'gray' => ['Grau', 'bg-[color:var(--nx-muted)]'], 'green' => ['Grün', 'bg-[color:var(--nx-success)]']] as $key => [$label, $dot])
+                        <x-planner::chip :active="$colorFilter === $key" :dot="$dot" wire:click="$set('colorFilter', '{{ $key }}')">{{ $label }}</x-planner::chip>
+                    @endforeach
+                </x-planner::filter-group>
 
-                {{-- SUCHE --}}
-                <section class="p-3 rounded-lg bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)]">
-                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] mb-2">Suche</h3>
-                    <input
-                        type="text"
-                        wire:model.live.debounce.300ms="search"
-                        placeholder="Titel suchen …"
-                        class="w-full text-[12px] rounded-md border border-[color:var(--nx-line)] px-2 py-1.5 focus:border-[var(--nx-accent)] focus:ring-1 focus:ring-[var(--nx-accent)]/40 outline-none"
-                    />
-                </section>
+                <x-planner::filter-group label="Lebenszyklus">
+                    @foreach($lifecycleDefs as $key => $lc)
+                        <x-planner::chip :active="$lifecycleFilter === $key" :icon="$lc['icon']" wire:click="$set('lifecycleFilter', '{{ $key }}')">{{ $lc['label'] }}</x-planner::chip>
+                    @endforeach
+                </x-planner::filter-group>
+                <p class="-mt-2.5 text-[10px] text-[var(--nx-muted)] leading-tight">Aktiv ↔ Ruhend automatisch (45d). Abgeschlossen/Verworfen manuell.</p>
 
-                {{-- AMPEL --}}
-                <section class="p-3 rounded-lg bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)]">
-                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] mb-2">Ampel</h3>
-                    <div class="flex flex-wrap gap-1.5">
-                        @foreach(['all' => 'Alle', 'red' => '🔴 Rot', 'yellow' => '🟡 Gelb', 'gray' => '⚪ Grau', 'green' => '🟢 Grün'] as $key => $label)
-                            <button
-                                wire:click="$set('colorFilter', '{{ $key }}')"
-                                class="px-2 py-1 text-[11px] rounded-full font-medium transition-colors {{ $colorFilter === $key ? 'bg-[var(--nx-text)] text-white' : 'bg-[var(--nx-bg)] text-[var(--nx-text)] hover:bg-[var(--nx-line)]' }}"
-                            >{{ $label }}</button>
-                        @endforeach
-                    </div>
-                </section>
-
-                {{-- LEBENSZYKLUS --}}
-                <section class="p-3 rounded-lg bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)]">
-                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] mb-2">Lebenszyklus</h3>
-                    <div class="flex flex-col gap-1">
-                        @foreach($lifecycleDefs as $key => $meta)
-                            <button
-                                wire:click="$set('lifecycleFilter', '{{ $key }}')"
-                                class="inline-flex items-center gap-1.5 px-2 py-1 text-[11px] rounded-md font-medium transition-colors text-left {{ $lifecycleFilter === $key ? 'bg-[var(--nx-text)] text-white' : 'bg-[var(--nx-bg)] text-[var(--nx-text)] hover:bg-[var(--nx-line)]' }}"
-                            >
-                                @svg($meta['icon'], 'w-3 h-3 flex-shrink-0')
-                                <span>{{ $meta['label'] }}</span>
-                            </button>
-                        @endforeach
-                    </div>
-                    <p class="mt-2 text-[10px] text-[var(--nx-muted)] leading-tight">
-                        Aktiv ↔ Ruhend automatisch (45d). Abgeschlossen/Verworfen manuell.
-                    </p>
-                </section>
-
-                {{-- OWNER --}}
-                <section class="p-3 rounded-lg bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)]">
-                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] mb-2">Owner</h3>
-                    <select wire:model.live="ownerFilter" class="w-full text-[12px] rounded-md border border-[color:var(--nx-line)] px-2 py-1.5">
-                        <option value="">Alle</option>
+                <x-planner::filter-group label="Owner" :stack="true">
+                    <div class="max-h-56 overflow-y-auto flex flex-col gap-0.5">
+                        <x-planner::chip :row="true" :active="$ownerFilter === null" wire:click="$set('ownerFilter', null)">Alle</x-planner::chip>
                         @foreach($this->ownerOptions as $id => $name)
-                            <option value="{{ $id }}">{{ $name }}</option>
-                        @endforeach
-                    </select>
-                </section>
-
-                {{-- VERDÄCHTIG --}}
-                <section class="p-3 rounded-lg bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)]">
-                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] mb-2">Verdachtsflags</h3>
-                    <div class="flex flex-wrap gap-1.5">
-                        @foreach($suspectDefs as $flag => $label)
-                            @php $on = in_array($flag, $suspectFlags, true); @endphp
-                            <button
-                                type="button"
-                                wire:click="$set('suspectFlags', {{ json_encode($on ? array_values(array_diff($suspectFlags, [$flag])) : array_values(array_unique(array_merge($suspectFlags, [$flag])))) }})"
-                                class="px-2 py-1 text-[11px] rounded-full font-medium transition-colors {{ $on ? 'bg-[var(--nx-warning)]/10 text-[color:var(--nx-warning)] ring-1 ring-[var(--nx-warning)]/30' : 'bg-[var(--nx-bg)] text-[var(--nx-text)] hover:bg-[var(--nx-warning)]/10' }}"
-                            >{{ $label }}</button>
+                            <x-planner::chip :row="true" :active="$ownerFilter == $id" wire:click="$set('ownerFilter', {{ (int) $id }})">{{ $name }}</x-planner::chip>
                         @endforeach
                     </div>
-                </section>
+                </x-planner::filter-group>
 
-                {{-- SORTIERUNG --}}
-                <section class="p-3 rounded-lg bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)]">
-                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] mb-2">Sortierung</h3>
-                    <select wire:model.live="sort" class="w-full text-[12px] rounded-md border border-[color:var(--nx-line)] px-2 py-1.5">
-                        <option value="name">A–Z</option>
-                        <option value="score_asc">Score ↑ (schwach zuerst)</option>
-                        <option value="last_view_desc">Zuletzt geöffnet</option>
-                        <option value="forgotten_desc">Am längsten vergessen</option>
-                        <option value="tasks_desc">Meiste Tasks</option>
-                    </select>
-                </section>
+                <x-planner::filter-group label="Verdachtsflags">
+                    @foreach($suspectDefs as $flag => $label)
+                        @php $on = in_array($flag, $suspectFlags, true); @endphp
+                        <x-planner::chip :active="$on" wire:click="$set('suspectFlags', {{ json_encode($on ? array_values(array_diff($suspectFlags, [$flag])) : array_values(array_unique(array_merge($suspectFlags, [$flag])))) }})">{{ $label }}</x-planner::chip>
+                    @endforeach
+                </x-planner::filter-group>
 
-            </div>
-        </x-ui-page-sidebar>
+                <x-planner::filter-group label="Sortierung">
+                    @foreach(['name' => 'A–Z', 'score_asc' => 'Score ↑ (schwach zuerst)', 'last_view_desc' => 'Zuletzt geöffnet', 'forgotten_desc' => 'Am längsten vergessen', 'tasks_desc' => 'Meiste Tasks'] as $key => $label)
+                        <x-planner::chip :active="$sort === $key" wire:click="$set('sort', '{{ $key }}')">{{ $label }}</x-planner::chip>
+                    @endforeach
+                </x-planner::filter-group>
+            </x-slot:filters>
+
+            <x-slot:more>
+                <x-planner::menu-item :icon="$showTrashed ? 'heroicon-s-trash' : 'heroicon-o-trash'" wire:click="toggleTrashed"
+                    title="Papierkorb — gelöschte Projekte ansehen & wiederherstellen">
+                    {{ $showTrashed ? 'Papierkorb verlassen' : 'Papierkorb' }}
+                </x-planner::menu-item>
+                <x-planner::menu-item icon="heroicon-o-user" :href="route('planner.hygiene')">Meine Sicht (persönlich)</x-planner::menu-item>
+            </x-slot:more>
+        </x-planner::actionbar>
     </x-slot>
+
+
 
     {{-- ════════ CONTENT ════════ --}}
 
-    <div class="flex-1 flex flex-col bg-[var(--nx-bg)] min-h-0">
+    <div class="flex-1 min-w-0 flex flex-col bg-[var(--nx-bg)] min-h-0">
+
+        {{-- Kopf: Scope Meins ⟷ Team + Suche + Kurzbeschreibung --}}
+        <div class="shrink-0 border-b border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] px-3 sm:px-6 pt-3 pb-2 space-y-2">
+            <div class="flex flex-wrap items-center gap-2">
+                <div class="inline-flex shrink-0 rounded-md border border-[color:var(--nx-line-strong)] overflow-hidden" role="group" aria-label="Sicht">
+                    <a href="{{ route('planner.hygiene') }}" wire:navigate
+                       title="Meine Sicht (persönlich)"
+                       class="inline-flex items-center gap-1.5 h-7 px-2.5 text-[11px] font-medium text-[color:var(--nx-muted)] hover:text-[color:var(--nx-text)] hover:bg-[color:var(--nx-hover)] transition-colors">
+                        @svg('heroicon-o-user', 'w-3.5 h-3.5')
+                        Meins
+                    </a>
+                    <span class="inline-flex items-center gap-1.5 h-7 px-2.5 text-[11px] font-medium bg-[color:var(--nx-accent)] text-[color:var(--nx-on-accent)] border-l border-[color:var(--nx-line-strong)]" aria-current="page">
+                        @svg('heroicon-o-user-group', 'w-3.5 h-3.5')
+                        Team
+                    </span>
+                </div>
+                <div class="relative flex-1 min-w-[10rem] max-w-xs">
+                    @svg('heroicon-o-magnifying-glass', 'w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-[var(--nx-muted)] pointer-events-none')
+                    <input
+                        type="search"
+                        wire:model.live.debounce.300ms="search"
+                        placeholder="Titel suchen …"
+                        class="w-full h-7 pl-7 pr-2 text-[12px] rounded-md border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] text-[var(--nx-text)] placeholder:text-[var(--nx-muted)] focus:border-[var(--nx-accent)] focus:ring-1 focus:ring-[var(--nx-accent)]/40 outline-none"
+                    />
+                </div>
+                @if($showTrashed)
+                    <button type="button" wire:click="toggleTrashed"
+                            class="inline-flex items-center gap-1.5 h-7 px-2.5 text-[11px] font-medium rounded-md border bg-[var(--nx-danger)]/10 text-[color:var(--nx-danger)] border-[var(--nx-danger)]/30"
+                            title="Papierkorb verlassen">
+                        @svg('heroicon-o-trash', 'w-3.5 h-3.5')
+                        Papierkorb aktiv
+                        @svg('heroicon-o-x-mark', 'w-3 h-3')
+                    </button>
+                @endif
+            </div>
+            <p class="text-[11px] text-[var(--nx-muted)] m-0">
+                <strong class="text-[var(--nx-text)]">Team-Pflege:</strong> Bulk-Auswahl und Inline-Aktionen — Löschen, Passiv/Inaktiv, Erledigt, Entity-Change, ohne Detail-Klick.
+            </p>
+        </div>
+
 
         {{-- Hero KPI-Bar --}}
-        <div class="border-b border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] px-6 py-4 flex items-stretch gap-3 flex-shrink-0 overflow-x-auto">
+        <div class="border-b border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] px-3 sm:px-6 py-3 sm:py-4 flex items-stretch gap-3 flex-shrink-0 overflow-x-auto">
             {{-- Total --}}
             <div class="flex flex-col justify-between rounded-xl border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] px-4 py-2.5 min-w-[110px] shadow-[var(--nx-shadow-card)]">
                 <div class="text-[10px] uppercase tracking-wider text-[var(--nx-muted)]">Projekte</div>
@@ -272,7 +238,7 @@
 
         {{-- Papierkorb-Hinweis --}}
         @if($showTrashed)
-            <div class="border-b border-[var(--nx-danger)]/20 bg-[var(--nx-danger)]/5 px-6 py-2 flex items-center gap-2 text-[11px] text-[color:var(--nx-danger)] flex-shrink-0">
+            <div class="border-b border-[var(--nx-danger)]/20 bg-[var(--nx-danger)]/5 px-3 sm:px-6 py-2 flex flex-wrap items-center gap-2 text-[11px] text-[color:var(--nx-danger)] flex-shrink-0">
                 @svg('heroicon-o-trash', 'w-4 h-4 flex-shrink-0')
                 <span><strong>Papierkorb</strong> — soft-gelöschte Projekte. „Wiederherstellen" holt Projekt + Aufgaben + Canvases zurück (Entity-Verknüpfung ggf. neu setzen).</span>
                 <button wire:click="toggleTrashed" class="ml-auto underline hover:no-underline whitespace-nowrap">zurück zur Pflege</button>
@@ -281,7 +247,7 @@
 
         {{-- Bulk-Toolbar --}}
         @if($selectedCount > 0)
-            <div class="border-b border-[color:var(--nx-line)] bg-[var(--nx-accent)]/5 px-6 py-2 flex items-center gap-3 flex-shrink-0">
+            <div class="border-b border-[color:var(--nx-line)] bg-[var(--nx-accent)]/5 px-3 sm:px-6 py-2 flex flex-wrap items-center gap-3 flex-shrink-0">
                 <button wire:click="clearSelection" class="text-[11px] text-[var(--nx-muted)] hover:text-[var(--nx-text)] underline">Auswahl zurücksetzen</button>
                 <div class="ml-auto flex items-center gap-2">
                     @if($showTrashed)
@@ -316,9 +282,9 @@
         @endif
 
         {{-- Tabelle --}}
-        <div class="flex-1 overflow-y-auto">
-            <div class="p-6">
-                <div class="bg-[color:var(--nx-surface)] rounded-xl border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)] overflow-hidden">
+        <div class="flex-1 overflow-auto">
+            <div class="px-3 sm:px-6 py-4 sm:py-6">
+                <div class="min-w-[1320px] bg-[color:var(--nx-surface)] rounded-xl border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)] overflow-hidden">
 
                     @php
                         $gridCols = 'grid-cols-[36px_60px_1fr_140px_180px_110px_140px_80px_160px_190px]';
@@ -573,7 +539,7 @@
                                 <p class="text-sm text-[var(--nx-muted)] m-0">Keine soft-gelöschten Projekte in diesem Team.</p>
                             @else
                                 <h3 class="text-base font-semibold text-[var(--nx-text)] m-0 mb-1">Keine Projekte passen zu deinen Filtern</h3>
-                                <p class="text-sm text-[var(--nx-muted)] m-0">Lockere die Filter links, um mehr zu sehen.</p>
+                                <p class="text-sm text-[var(--nx-muted)] m-0">Lockere die Filter (Actionbar → Filter), um mehr zu sehen.</p>
                             @endif
                         </div>
                     @endforelse

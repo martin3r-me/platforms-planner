@@ -26,6 +26,10 @@ Route::get('/projects/{plannerProject}', Project::class)
 Route::get('/tasks/{plannerTask}', Task::class)
     ->name('planner.tasks.show');
 
+// Projekt-Ueberblick (Fortschritt, Verlauf, Risiken — frueher linke Sidebar des Boards)
+Route::get('/projects/{plannerProject}/overview', \Platform\Planner\Livewire\ProjectOverview::class)
+    ->name('planner.projects.overview');
+
 // Project Health (Snapshot-Detail-Sicht pro Projekt)
 Route::get('/projects/{plannerProject}/health', \Platform\Planner\Livewire\ProjectHealth::class)
     ->name('planner.projects.health');

@@ -29,103 +29,51 @@
     </x-slot>
 
     <x-slot name="actionbar">
-        <x-ui-page-actionbar :breadcrumbs="[
-            ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
-            ['label' => $project->title, 'href' => route('planner.projects.show', $project)],
-        ]">
-            <x-slot name="left">
-                @include('planner::livewire.partials.project-tabs', ['project' => $project, 'active' => 'logbook'])
-            </x-slot>
-            @if($canUpdate)
-                <x-nx-button variant="secondary" size="sm" wire:click="generateDraft" wire:loading.attr="disabled" wire:target="generateDraft" title="Faktenprosa seit dem letzten Eintrag als Ausgangspunkt">
-                    <span wire:loading.remove wire:target="generateDraft" class="inline-flex items-center gap-1.5">@svg('heroicon-o-sparkles', 'w-3.5 h-3.5') Entwurf</span>
-                    <span wire:loading wire:target="generateDraft">Sammle Fakten…</span>
-                </x-nx-button>
-                <x-nx-button variant="primary" size="sm" wire:click="openForm">
-                    @svg('heroicon-o-plus', 'w-3.5 h-3.5') Eintrag
-                </x-nx-button>
-            @endif
-
-            <div x-data="{ open: false }" class="relative">
-                <button
-                    type="button"
-                    @click="open = !open"
-                    class="inline-flex items-center justify-center w-8 h-7 rounded-md text-[var(--nx-muted)] hover:text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition-colors"
-                    title="Mehr"
-                >
-                    @svg('heroicon-o-ellipsis-horizontal', 'w-4 h-4')
-                </button>
-                <div
-                    x-show="open"
-                    x-cloak
-                    x-transition.opacity.duration.100ms
-                    @click.outside="open = false"
-                    @keydown.escape.window="open = false"
-                    class="absolute top-full right-0 mt-1 w-52 bg-[color:var(--nx-surface)] border border-[var(--nx-line-strong)] rounded-lg shadow-[var(--nx-shadow-pop)] z-30 py-1"
-                >
-                    <a href="{{ route('planner.projects.show', $project) }}" wire:navigate @click="open = false"
-                       class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition-colors">
-                        @svg('heroicon-o-clipboard-document-list', 'w-4 h-4 text-[var(--nx-muted)]')
-                        <span>Zum Board</span>
-                    </a>
-                    <a href="{{ route('planner.projects.canvas.index', $project) }}" wire:navigate @click="open = false"
-                       class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition-colors">
-                        @svg('heroicon-o-squares-2x2', 'w-4 h-4 text-[var(--nx-muted)]')
-                        <span>Project Canvas</span>
-                    </a>
-                    <a href="{{ route('planner.projects.health', $project) }}" wire:navigate @click="open = false"
-                       class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition-colors">
-                        @svg('heroicon-o-heart', 'w-4 h-4 text-[var(--nx-muted)]')
-                        <span>Health-Sicht</span>
-                    </a>
-                </div>
-            </div>
-        </x-ui-page-actionbar>
-    </x-slot>
-
-    {{-- ════════ LEFT SIDEBAR: Filter + Abgrenzung ════════ --}}
-    <x-slot name="sidebar">
-        <x-ui-page-sidebar title="Logbuch" icon="heroicon-o-book-open" width="w-72" :minWidth="240" :maxWidth="380" :defaultOpen="true" storeKey="sidebarOpen" side="left">
-            <div class="p-4 space-y-5">
-                <section class="space-y-1">
-                    <div class="text-[10px] uppercase tracking-wider text-[var(--nx-muted)] font-semibold mb-1.5">Typ</div>
-                    <button type="button" wire:click="$set('typeFilter', '')"
-                            class="w-full flex items-center justify-between px-2 py-1 rounded-md text-xs {{ $typeFilter === '' ? 'bg-[var(--nx-bg)] text-[var(--nx-text)] font-medium' : 'text-[var(--nx-muted)] hover:bg-[var(--nx-bg)]' }}">
-                        <span>Alle</span>
-                        <span class="tabular-nums">{{ $counts->sum() }}</span>
-                    </button>
+        <x-planner::actionbar :project="$project" active="logbook"
+            :filters-active="($typeFilter !== '' ? 1 : 0) + ($showSuperseded ? 1 : 0)">
+            <x-slot:filters>
+                <x-planner::filter-group label="Typ">
+                    <x-planner::chip :active="$typeFilter === ''" :count="$counts->sum()" wire:click="$set('typeFilter', '')">Alle</x-planner::chip>
                     @foreach($types as $type)
-                        <button type="button" wire:click="$set('typeFilter', '{{ $type->value }}')"
-                                class="w-full flex items-center justify-between px-2 py-1 rounded-md text-xs {{ $typeFilter === $type->value ? 'bg-[var(--nx-bg)] text-[var(--nx-text)] font-medium' : 'text-[var(--nx-muted)] hover:bg-[var(--nx-bg)]' }}">
-                            <span class="inline-flex items-center gap-1.5">@svg($type->icon(), 'w-3.5 h-3.5') {{ $type->label() }}</span>
-                            <span class="tabular-nums">{{ $counts[$type->value] ?? 0 }}</span>
-                        </button>
+                        <x-planner::chip :active="$typeFilter === $type->value" :icon="$type->icon()" :count="$counts[$type->value] ?? 0"
+                            wire:click="$set('typeFilter', '{{ $type->value }}')">{{ $type->label() }}</x-planner::chip>
                     @endforeach
-                    <label class="flex items-center gap-2 px-2 pt-2 text-xs text-[var(--nx-muted)] cursor-pointer">
-                        <input type="checkbox" wire:model.live="showSuperseded" class="rounded border-[color:var(--nx-line)]">
-                        Ersetzte Einträge zeigen
-                    </label>
-                </section>
+                </x-planner::filter-group>
+                <x-planner::filter-group label="Anzeige">
+                    <x-planner::chip :active="$showSuperseded" icon="heroicon-o-archive-box" wire:click="$toggle('showSuperseded')">Ersetzte Einträge zeigen</x-planner::chip>
+                </x-planner::filter-group>
+            </x-slot:filters>
 
-                <section class="space-y-1.5 text-xs text-[var(--nx-muted)] leading-relaxed">
-                    <div class="text-[10px] uppercase tracking-wider font-semibold">Wofür</div>
-                    <p><span class="text-[var(--nx-text)] font-medium">Canvas</span> = Zustand, wird überschrieben.</p>
-                    <p><span class="text-[var(--nx-text)] font-medium">Logbuch</span> = Verlauf: Wendepunkte und ihr Warum, nur anhängen.</p>
-                    <p><span class="text-[var(--nx-text)] font-medium">Aufgaben/Zeiten</span> = Arbeit. Hier nur verweisen, nicht wiederholen.</p>
-                    @if($lastEntryAt)
-                        <p class="pt-1">Letzter Eintrag: {{ \Illuminate\Support\Carbon::parse($lastEntryAt)->diffForHumans() }}</p>
-                    @endif
-                </section>
-            </div>
-        </x-ui-page-sidebar>
+            @if($canUpdate)
+                <x-slot:create>
+                    <div class="my-1 border-t border-[color:var(--nx-line)]"></div>
+                    <x-planner::menu-item icon="heroicon-o-pencil-square" wire:click="openForm">Neuer Eintrag</x-planner::menu-item>
+                    <x-planner::menu-item icon="heroicon-o-sparkles" wire:click="generateDraft" title="Faktenprosa seit dem letzten Eintrag als Ausgangspunkt">Entwurf aus Faktenlage</x-planner::menu-item>
+                </x-slot:create>
+            @endif
+        </x-planner::actionbar>
     </x-slot>
 
-    <x-ui-page-container width="contained" spacing="space-y-6" background="bg-[color:var(--nx-bg)]">
+    <x-ui-page-container width="contained" padding="px-3 sm:px-6 py-4 sm:py-6" spacing="space-y-5 sm:space-y-6" background="bg-[color:var(--nx-bg)]">
+
+        {{-- Abgrenzung + letzter Eintrag (früher Seitenleiste) --}}
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-[var(--nx-muted)] leading-relaxed">
+            <span><span class="text-[var(--nx-text)] font-medium">Canvas</span> = Zustand, wird überschrieben.</span>
+            <span><span class="text-[var(--nx-text)] font-medium">Logbuch</span> = Verlauf: Wendepunkte und ihr Warum, nur anhängen.</span>
+            <span><span class="text-[var(--nx-text)] font-medium">Aufgaben/Zeiten</span> = Arbeit — hier nur verweisen.</span>
+            @if($lastEntryAt)
+                <span class="sm:ml-auto inline-flex items-center gap-1">@svg('heroicon-o-clock', 'w-3.5 h-3.5') Letzter Eintrag {{ \Illuminate\Support\Carbon::parse($lastEntryAt)->diffForHumans() }}</span>
+            @endif
+        </div>
+
+        <div wire:loading.flex wire:target="generateDraft" class="items-center gap-2 rounded-lg border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] px-3 py-2 text-xs text-[var(--nx-muted)]">
+            @svg('heroicon-o-sparkles', 'w-3.5 h-3.5 animate-pulse') Sammle Fakten für den Entwurf…
+        </div>
 
         {{-- ════════ Formular (anhängen) ════════ --}}
         @if($formOpen)
             <div class="rounded-lg border border-[color:var(--nx-line-strong)] bg-[color:var(--nx-surface)] p-4 space-y-4">
-                <div class="flex items-center justify-between">
+                <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
                     <div class="text-sm font-semibold text-[var(--nx-text)]">
                         {{ $form['supersedes_entry_id'] ? 'Eintrag korrigieren (ersetzt den alten)' : 'Neuer Eintrag' }}
                     </div>
@@ -172,7 +120,7 @@
                         </div>
                     @endif
                     <div class="flex flex-wrap items-end gap-2">
-                        <div class="w-52"><x-nx-input-select name="form.new_ref_type" size="sm" wire:model="form.new_ref_type" :options="$refTypeOptions" /></div>
+                        <div class="w-full sm:w-52"><x-nx-input-select name="form.new_ref_type" size="sm" wire:model="form.new_ref_type" :options="$refTypeOptions" /></div>
                         <div class="flex-1 min-w-[10rem]"><x-nx-input-text name="form.new_ref" size="sm" wire:model="form.new_ref" wire:keydown.enter.prevent="addRef" placeholder="Referenz" /></div>
                         <x-nx-button size="sm" wire:click="addRef">Hinzufügen</x-nx-button>
                     </div>
@@ -211,7 +159,7 @@
                                 <div class="rounded-lg border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] p-3 space-y-2">
                                     <div class="flex items-start justify-between gap-3">
                                         <div class="space-y-1 min-w-0">
-                                            <div class="flex items-center gap-2 text-[11px] text-[var(--nx-muted)]">
+                                            <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-[var(--nx-muted)]">
                                                 <x-nx-badge :variant="$typeVariant[$entry->type->value] ?? 'neutral'">
                                                     @svg($entry->type->icon(), 'w-3 h-3') {{ $entry->type->label() }}
                                                 </x-nx-badge>

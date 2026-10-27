@@ -9,82 +9,11 @@
     </x-slot>
 
     <x-slot name="actionbar">
-        <x-ui-page-actionbar :breadcrumbs="[
-            ['label' => 'Dashboard', 'icon' => 'home'],
-        ]" />
+        <x-planner::actionbar active="dashboard" />
     </x-slot>
 
-    <x-slot name="sidebar">
-        <x-ui-page-sidebar title="Projekte" icon="heroicon-o-folder" width="w-80" :defaultOpen="true">
-            <div class="p-4 space-y-4">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] m-0">Meine Projekte</h3>
-                    @if($recentlyCompletedWithProgress->count() > 0)
-                        <button
-                            wire:click="toggleCompletedProjects"
-                            type="button"
-                            class="text-[10px] text-[var(--nx-muted)] hover:text-[var(--nx-text)] underline"
-                        >
-                            {{ $showCompletedProjects ? 'Ausblenden' : '+ ' . $recentlyCompletedWithProgress->count() . ' erledigt' }}
-                        </button>
-                    @endif
-                </div>
-                <div class="space-y-2">
-                    @forelse($projectsWithProgress as $project)
-                        @php
-                            $progress = $project['progress_percent'];
-                            $projectColor = $project['color'] ?? null;
-                            $progressCssColor = $progress >= 75 ? 'var(--nx-success)' : ($progress >= 40 ? 'var(--nx-accent)' : 'var(--nx-faint)');
-                            $myOpen = $project['my_open_tasks'] ?? 0;
-                        @endphp
-                        <a href="{{ route('planner.projects.show', ['plannerProject' => $project['id']]) }}" wire:navigate class="block px-3 py-2.5 rounded-lg border border-[color:var(--nx-line)] hover:border-[var(--nx-accent)]/30 hover:bg-[var(--nx-hover)] transition-all">
-                            <div class="flex items-center justify-between mb-1.5">
-                                <span class="flex items-center gap-2 text-sm font-medium text-[var(--nx-text)] truncate">
-                                    @if($projectColor)
-                                        <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background-color: {{ $projectColor }}"></span>
-                                    @endif
-                                    {{ $project['name'] }}
-                                </span>
-                                <span class="text-xs font-semibold flex-shrink-0 ml-2" style="color: {{ $progressCssColor }}">{{ $progress }}%</span>
-                            </div>
-                            <div class="h-1.5 bg-[var(--nx-line)] rounded-full overflow-hidden">
-                                <div class="h-full transition-all rounded-full" style="width: {{ $progress }}%; background-color: {{ $progressCssColor }}"></div>
-                            </div>
-                            <div class="flex items-center justify-between mt-1.5 text-[10px] text-[var(--nx-muted)]">
-                                <span class="tabular-nums">{{ $project['completed_tasks'] }}/{{ $project['total_tasks'] }} gesamt</span>
-                                @if($myOpen > 0)
-                                    <span class="inline-flex items-center gap-1 font-semibold text-[var(--nx-accent)]">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-[var(--nx-accent)]"></span>
-                                        {{ $myOpen }} für mich
-                                    </span>
-                                @endif
-                            </div>
-                        </a>
-                    @empty
-                        <div class="px-3 py-6 text-xs text-[var(--nx-muted)] text-center">
-                            Du hast aktuell keine Aufgaben in einem Projekt.
-                        </div>
-                    @endforelse
+    <x-ui-page-container width="contained" padding="px-3 sm:px-6 py-4 sm:py-6">
 
-                    @if($showCompletedProjects && $recentlyCompletedWithProgress->count() > 0)
-                        <div class="pt-3 mt-2 border-t border-[color:var(--nx-line)]">
-                            @foreach($recentlyCompletedWithProgress as $project)
-                                <a href="{{ route('planner.projects.show', ['plannerProject' => $project['id']]) }}" wire:navigate class="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-[var(--nx-bg)] transition opacity-60">
-                                    @svg('heroicon-o-check-circle', 'w-4 h-4 text-[var(--nx-success)] flex-shrink-0')
-                                    <span class="text-sm text-[var(--nx-text)] truncate">{{ $project['name'] }}</span>
-                                    @if($project['done_at'])
-                                        <span class="text-[10px] text-[var(--nx-muted)] flex-shrink-0 ml-auto">{{ $project['done_at']->format('d.m.') }}</span>
-                                    @endif
-                                </a>
-                            @endforeach
-                        </div>
-                    @endif
-                </div>
-            </div>
-        </x-ui-page-sidebar>
-    </x-slot>
-
-    <x-ui-page-container width="contained">
 
         {{-- Greeting --}}
         <div class="mb-8">
@@ -235,6 +164,75 @@
                 </a>
             </div>
         @endif
+
+
+        {{-- Meine Projekte (früher Seitenleiste) --}}
+        <section>
+            <div class="flex items-center justify-between gap-3 mb-3">
+                <h3 class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[var(--nx-text)] m-0">
+                    @svg('heroicon-o-folder', 'w-4 h-4 text-[var(--nx-muted)]')
+                    Meine Projekte
+                    <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 text-[10px] font-semibold rounded-full bg-[color:var(--nx-accent-soft)] text-[var(--nx-muted)] normal-case tracking-normal">{{ $projectsWithProgress->count() }}</span>
+                </h3>
+                @if($recentlyCompletedWithProgress->count() > 0)
+                    <button wire:click="toggleCompletedProjects" type="button"
+                            class="text-[11px] text-[var(--nx-muted)] hover:text-[var(--nx-text)] underline shrink-0">
+                        {{ $showCompletedProjects ? 'Erledigte ausblenden' : '+ ' . $recentlyCompletedWithProgress->count() . ' erledigt' }}
+                    </button>
+                @endif
+            </div>
+            <div class="grid gap-2 sm:gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                @forelse($projectsWithProgress as $project)
+                    @php
+                        $progress = $project['progress_percent'];
+                        $projectColor = $project['color'] ?? null;
+                        $progressCssColor = $progress >= 75 ? 'var(--nx-success)' : ($progress >= 40 ? 'var(--nx-accent)' : 'var(--nx-faint)');
+                        $myOpen = $project['my_open_tasks'] ?? 0;
+                    @endphp
+                    <a href="{{ route('planner.projects.show', ['plannerProject' => $project['id']]) }}" wire:navigate class="block min-w-0 px-3 py-2.5 rounded-lg border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] hover:border-[var(--nx-accent)]/30 hover:bg-[var(--nx-hover)] transition-all">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="flex items-center gap-2 min-w-0 text-sm font-medium text-[var(--nx-text)]">
+                                @if($projectColor)
+                                    <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background-color: {{ $projectColor }}"></span>
+                                @endif
+                                <span class="truncate">{{ $project['name'] }}</span>
+                            </span>
+                            <span class="text-xs font-semibold flex-shrink-0 ml-2" style="color: {{ $progressCssColor }}">{{ $progress }}%</span>
+                        </div>
+                        <div class="h-1.5 bg-[var(--nx-line)] rounded-full overflow-hidden">
+                            <div class="h-full transition-all rounded-full" style="width: {{ $progress }}%; background-color: {{ $progressCssColor }}"></div>
+                        </div>
+                        <div class="flex items-center justify-between mt-1.5 text-[10px] text-[var(--nx-muted)]">
+                            <span class="tabular-nums">{{ $project['completed_tasks'] }}/{{ $project['total_tasks'] }} gesamt</span>
+                            @if($myOpen > 0)
+                                <span class="inline-flex items-center gap-1 font-semibold text-[var(--nx-accent)]">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-[var(--nx-accent)]"></span>
+                                    {{ $myOpen }} für mich
+                                </span>
+                            @endif
+                        </div>
+                    </a>
+                @empty
+                    <div class="sm:col-span-2 xl:col-span-3 px-3 py-6 text-xs text-[var(--nx-muted)] text-center rounded-lg border border-dashed border-[color:var(--nx-line)]">
+                        Du hast aktuell keine Aufgaben in einem Projekt.
+                    </div>
+                @endforelse
+            </div>
+
+            @if($showCompletedProjects && $recentlyCompletedWithProgress->count() > 0)
+                <div class="mt-3 pt-3 border-t border-[color:var(--nx-line)] grid gap-1 sm:grid-cols-2 xl:grid-cols-3">
+                    @foreach($recentlyCompletedWithProgress as $project)
+                        <a href="{{ route('planner.projects.show', ['plannerProject' => $project['id']]) }}" wire:navigate class="flex items-center gap-2 min-w-0 px-3 py-2 rounded-md hover:bg-[var(--nx-bg)] transition opacity-60">
+                            @svg('heroicon-o-check-circle', 'w-4 h-4 text-[var(--nx-success)] flex-shrink-0')
+                            <span class="text-sm text-[var(--nx-text)] truncate">{{ $project['name'] }}</span>
+                            @if($project['done_at'])
+                                <span class="text-[10px] text-[var(--nx-muted)] flex-shrink-0 ml-auto">{{ $project['done_at']->format('d.m.') }}</span>
+                            @endif
+                        </a>
+                    @endforeach
+                </div>
+            @endif
+        </section>
 
     </x-ui-page-container>
 </x-ui-page>

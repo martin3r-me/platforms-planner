@@ -57,174 +57,81 @@
     </x-slot>
 
     <x-slot name="actionbar">
-        <x-ui-page-actionbar :breadcrumbs="[
-            ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
-            ['label' => $project->title, 'href' => route('planner.projects.show', $project)],
-        ]">
-            <x-slot name="left">
-                @include('planner::livewire.partials.project-tabs', ['project' => $project, 'active' => 'health'])
-            </x-slot>
+        <x-planner::actionbar :project="$project" active="health" :filters-active="$trendDays !== 30 ? 1 : 0">
             @if($latest)
-                {{-- Health-Zustand als EIN Badge rechts (Projekt-Standard), health-getönt --}}
-                <x-nx-badge :variant="$healthVariant" title="Health {{ $latest->health_score ?? '–' }} · {{ $latest->health_color ?? 'unbekannt' }} · Confidence {{ $latest->confidence_score }}%">
-                    @svg('heroicon-o-heart', 'w-3 h-3')
-                    <span class="tabular-nums">{{ $latest->health_score ?? '–' }}</span>
-                    @if($latest->delta_health_score !== null && $latest->delta_health_score !== 0)
-                        <span class="opacity-40" aria-hidden="true">·</span>
-                        <span class="tabular-nums">{{ $latest->delta_health_score > 0 ? '↑' : '↓' }}{{ abs($latest->delta_health_score) }}</span>
-                    @endif
-                </x-nx-badge>
+                <x-slot:meta>
+                    {{-- Health-Zustand als EIN Badge (Projekt-Standard), health-getönt --}}
+                    <x-nx-badge :variant="$healthVariant" title="Health {{ $latest->health_score ?? '–' }} · {{ $latest->health_color ?? 'unbekannt' }} · Confidence {{ $latest->confidence_score }}%">
+                        @svg('heroicon-o-heart', 'w-3 h-3')
+                        <span class="tabular-nums">{{ $latest->health_score ?? '–' }}</span>
+                        @if($latest->delta_health_score !== null && $latest->delta_health_score !== 0)
+                            <span class="opacity-40" aria-hidden="true">·</span>
+                            <span class="tabular-nums">{{ $latest->delta_health_score > 0 ? '↑' : '↓' }}{{ abs($latest->delta_health_score) }}</span>
+                        @endif
+                    </x-nx-badge>
+                </x-slot:meta>
             @endif
 
-            {{-- Overflow-Menü (Projekt-Standard) --}}
-            <div x-data="{ open: false }" class="relative">
-                <button
-                    type="button"
-                    @click="open = !open"
-                    class="inline-flex items-center justify-center w-8 h-7 rounded-md text-[var(--nx-muted)] hover:text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition-colors"
-                    title="Mehr"
-                >
-                    @svg('heroicon-o-ellipsis-horizontal', 'w-4 h-4')
-                </button>
-                <div
-                    x-show="open"
-                    x-cloak
-                    x-transition.opacity.duration.100ms
-                    @click.outside="open = false"
-                    @keydown.escape.window="open = false"
-                    class="absolute top-full right-0 mt-1 w-52 bg-[color:var(--nx-surface)] border border-[var(--nx-line-strong)] rounded-lg shadow-[var(--nx-shadow-pop)] z-30 py-1"
-                >
-                    <button
-                        type="button"
-                        wire:click="refreshSnapshot"
-                        @click="open = false"
-                        class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition-colors"
-                        title="Snapshot jetzt neu rechnen"
-                    >
-                        @svg('heroicon-o-arrow-path', 'w-4 h-4 text-[var(--nx-muted)]')
-                        <span>Neu rechnen</span>
-                    </button>
-                    <a
-                        href="{{ route('planner.projects.show', $project) }}"
-                        wire:navigate
-                        @click="open = false"
-                        class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition-colors"
-                    >
-                        @svg('heroicon-o-clipboard-document-list', 'w-4 h-4 text-[var(--nx-muted)]')
-                        <span>Zum Board</span>
-                    </a>
-                    <div class="border-t border-[color:var(--nx-line)] my-1"></div>
-                    <button
-                        type="button"
-                        @click="open = false; $dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })"
-                        class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition-colors"
-                    >
-                        @svg('heroicon-o-cog-6-tooth', 'w-4 h-4 text-[var(--nx-muted)]')
-                        <span>Einstellungen</span>
-                    </button>
-                </div>
-            </div>
-        </x-ui-page-actionbar>
-    </x-slot>
+            <x-slot:filters>
+                <x-planner::filter-group label="Trend-Zeitraum">
+                    @foreach([7, 30, 90, 180] as $opt)
+                        <x-planner::chip :active="$trendDays === $opt" wire:click="setTrendDays({{ $opt }})">{{ $opt }} Tage</x-planner::chip>
+                    @endforeach
+                </x-planner::filter-group>
+            </x-slot:filters>
 
-    {{-- ════════ LEFT SIDEBAR: Uebersicht ════════ --}}
-    <x-slot name="sidebar">
-        <x-ui-page-sidebar title="Übersicht" icon="heroicon-o-information-circle" width="w-72" :minWidth="240" :maxWidth="380" :defaultOpen="true" storeKey="sidebarOpen" side="left">
-            <div class="p-4 space-y-5">
-
-                {{-- Snapshot-Meta --}}
-                @if($latest)
-                    <section class="space-y-1.5">
-                        <div class="text-[10px] uppercase tracking-wider text-[var(--nx-muted)] font-semibold">Snapshot</div>
-                        <div class="flex items-center justify-between text-xs">
-                            <span class="text-[var(--nx-muted)]">Stand</span>
-                            <span class="text-[var(--nx-text)] font-medium tabular-nums">{{ $latest->taken_on?->format('d.m.Y') }}</span>
-                        </div>
-                        <div class="flex items-center justify-between text-xs">
-                            <span class="text-[var(--nx-muted)]">Erstellt</span>
-                            <span class="text-[var(--nx-text)] tabular-nums">{{ $latest->taken_at?->format('H:i') }}</span>
-                        </div>
-                        <div class="flex items-center justify-between text-xs">
-                            <span class="text-[var(--nx-muted)]">Trigger</span>
-                            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-[var(--nx-bg)] text-[var(--nx-text)] uppercase tracking-wider">{{ $latest->trigger }}</span>
-                        </div>
-                        @if($latest->last_movement_at)
-                            <div class="flex items-center justify-between text-xs">
-                                <span class="text-[var(--nx-muted)]">Letzte Bewegung</span>
-                                <span class="text-[var(--nx-text)]" title="{{ $latest->last_movement_at->format('d.m.Y H:i') }}">{{ $latest->last_movement_at->diffForHumans(short: true) }}</span>
-                            </div>
-                        @endif
-                    </section>
-                @endif
-
-                {{-- Trend-Range --}}
-                <section class="space-y-2">
-                    <div class="text-[10px] uppercase tracking-wider text-[var(--nx-muted)] font-semibold">Trend-Zeitraum</div>
-                    <div class="inline-flex rounded-md border border-[color:var(--nx-line)] overflow-hidden w-full">
-                        @foreach([7, 30, 90, 180] as $i => $opt)
-                            <button type="button" wire:click="setTrendDays({{ $opt }})"
-                                    class="flex-1 px-2 h-8 text-[11px] font-medium transition-colors {{ $i > 0 ? 'border-l border-[color:var(--nx-line)]' : '' }} {{ $trendDays === $opt ? 'bg-[var(--nx-accent)] text-white' : 'bg-transparent text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
-                                {{ $opt }}d
-                            </button>
-                        @endforeach
-                    </div>
-                </section>
-
-                {{-- Datenpflege --}}
-                @if($latest)
-                    <section class="space-y-2">
-                        <div class="text-[10px] uppercase tracking-wider text-[var(--nx-muted)] font-semibold">Datenpflege</div>
-                        <div class="rounded-lg p-3 {{ $confTone['bg'] }} {{ $confTone['border'] }} border">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-[11px] {{ $confTone['fg'] }} font-medium uppercase tracking-wider">Confidence</span>
-                                <span class="text-lg font-bold tabular-nums {{ $confTone['fg'] }}">{{ $latest->confidence_score }}%</span>
-                            </div>
-                            <div class="h-1.5 w-full bg-[color:var(--nx-surface)]/60 rounded-full overflow-hidden">
-                                <div class="h-full {{ $confTone['fill'] }}" style="width: {{ $latest->confidence_score }}%"></div>
-                            </div>
-                        </div>
-                        @if(!empty($missingLayers))
-                            <ul class="space-y-1 pt-1">
-                                @foreach($missingLayers as $m)
-                                    <li class="flex items-center gap-2 text-[11px] text-[var(--nx-muted)]">
-                                        @svg('heroicon-o-x-circle', 'w-3.5 h-3.5 text-[color:var(--nx-danger)]')
-                                        <span>{{ $missingLabel[$m] ?? $m }}</span>
-                                    </li>
-                                @endforeach
-                            </ul>
-                        @else
-                            <div class="flex items-center gap-2 text-[11px] text-[color:var(--nx-success)]">
-                                @svg('heroicon-o-check-circle', 'w-3.5 h-3.5')
-                                <span>Alle Datenebenen gepflegt</span>
-                            </div>
-                        @endif
-                    </section>
-                @endif
-
-                {{-- Quick Links --}}
-                <section class="space-y-2">
-                    <div class="text-[10px] uppercase tracking-wider text-[var(--nx-muted)] font-semibold">Direkt zu</div>
-                    <a href="{{ route('planner.projects.show', $project) }}" wire:navigate
-                       class="flex items-center gap-2 px-2.5 py-1.5 rounded text-[12px] text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition-colors">
-                        @svg('heroicon-o-clipboard-document-list', 'w-4 h-4 text-[var(--nx-muted)]')
-                        <span>Board</span>
-                    </a>
-                    <button type="button" @click="$dispatch('open-modal-project-settings', { projectId: {{ $project->id }} })"
-                            class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded text-[12px] text-left text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition-colors">
-                        @svg('heroicon-o-cog-6-tooth', 'w-4 h-4 text-[var(--nx-muted)]')
-                        <span>Projekt-Einstellungen</span>
-                    </button>
-                </section>
-            </div>
-        </x-ui-page-sidebar>
+            <x-slot:more>
+                <x-planner::menu-item icon="heroicon-o-arrow-path" wire:click="refreshSnapshot" title="Snapshot jetzt neu rechnen">Neu rechnen</x-planner::menu-item>
+            </x-slot:more>
+        </x-planner::actionbar>
     </x-slot>
 
     {{-- ════════ MAIN BODY ════════ --}}
     <div class="flex-1 min-h-0 overflow-y-auto bg-[var(--nx-bg)]">
-        <div class="max-w-6xl mx-auto p-6 space-y-5">
+        <div class="max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-5">
+
+        {{-- Snapshot-Stand + Datenpflege (früher Seitenleiste) --}}
+        @if($latest)
+            <section class="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] px-3 sm:px-4 py-2.5 text-[11px] text-[var(--nx-muted)]">
+                <span class="inline-flex items-center gap-1.5">
+                    @svg('heroicon-o-camera', 'w-3.5 h-3.5')
+                    Stand <span class="text-[var(--nx-text)] font-medium tabular-nums">{{ $latest->taken_on?->format('d.m.Y') }}</span>
+                    <span class="tabular-nums">{{ $latest->taken_at?->format('H:i') }}</span>
+                    <span class="px-1.5 py-0.5 rounded text-[10px] bg-[var(--nx-bg)] text-[var(--nx-text)] uppercase tracking-wider">{{ $latest->trigger }}</span>
+                </span>
+                @if($latest->last_movement_at)
+                    <span class="inline-flex items-center gap-1.5" title="{{ $latest->last_movement_at->format('d.m.Y H:i') }}">
+                        @svg('heroicon-o-bolt', 'w-3.5 h-3.5')
+                        Letzte Bewegung <span class="text-[var(--nx-text)]">{{ $latest->last_movement_at->diffForHumans(short: true) }}</span>
+                    </span>
+                @endif
+                <span class="inline-flex items-center gap-2 sm:ml-auto" title="Datenpflege — wie belastbar der Health-Wert ist">
+                    <span>Confidence</span>
+                    <span class="w-16 h-1.5 bg-[color:var(--nx-line)] rounded-full overflow-hidden">
+                        <span class="block h-full {{ $confTone['fill'] }}" style="width: {{ $latest->confidence_score }}%"></span>
+                    </span>
+                    <span class="font-semibold tabular-nums {{ $confTone['fg'] }}">{{ $latest->confidence_score }}%</span>
+                </span>
+                @if(!empty($missingLayers))
+                    <span class="w-full flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <span>Fehlt:</span>
+                        @foreach($missingLayers as $m)
+                            <span class="inline-flex items-center gap-1">
+                                @svg('heroicon-o-x-circle', 'w-3.5 h-3.5 text-[color:var(--nx-danger)]')
+                                {{ $missingLabel[$m] ?? $m }}
+                            </span>
+                        @endforeach
+                    </span>
+                @else
+                    <span class="inline-flex items-center gap-1 text-[color:var(--nx-success)]">
+                        @svg('heroicon-o-check-circle', 'w-3.5 h-3.5') Alle Datenebenen gepflegt
+                    </span>
+                @endif
+            </section>
+        @endif
 
         @if(!$latest)
-            <div class="rounded-xl border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] p-16 text-center">
+            <div class="rounded-xl border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] p-8 sm:p-16 text-center">
                 <div class="mx-auto w-14 h-14 rounded-full bg-[color:var(--nx-line)] flex items-center justify-center mb-3">
                     @svg('heroicon-o-heart', 'w-7 h-7 text-[color:var(--nx-muted)]')
                 </div>
@@ -239,11 +146,11 @@
 
         {{-- HERO: Health-Hauptkarte --}}
         <section class="rounded-2xl border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] overflow-hidden shadow-[var(--nx-shadow-card)]">
-            <div class="p-6 {{ $healthTone['bg'] }} border-b border-[color:var(--nx-line)]">
-                <div class="flex items-start gap-6">
+            <div class="p-4 sm:p-6 {{ $healthTone['bg'] }} border-b border-[color:var(--nx-line)]">
+                <div class="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
                     {{-- Score-Kreis --}}
                     <div class="flex-shrink-0">
-                        <div class="relative w-28 h-28">
+                        <div class="relative w-24 h-24 sm:w-28 sm:h-28">
                             <svg viewBox="0 0 100 100" class="w-full h-full -rotate-90">
                                 <circle cx="50" cy="50" r="44" fill="none" stroke="currentColor" stroke-width="6" class="text-[color:var(--nx-line)]"/>
                                 @if($latest->health_score !== null)
@@ -262,7 +169,7 @@
 
                     {{-- Lage-Statement --}}
                     <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2 mb-3">
+                        <div class="flex flex-wrap items-center gap-2 mb-3">
                             <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full {{ $healthTone['bg'] }} {{ $healthTone['fg'] }} border {{ $healthTone['border'] }} text-[11px] font-semibold uppercase tracking-wider">
                                 <span class="w-1.5 h-1.5 rounded-full {{ $healthTone['dot'] }}"></span>
                                 {{ $latest->health_color ?? 'unbekannt' }}
@@ -295,7 +202,7 @@
                             </h2>
                             <p class="text-sm text-[var(--nx-muted)] m-0 mt-1">
                                 @if($latest->health_color === 'gray')
-                                    Confidence-Score liegt unter 50% — siehe links welche Datenebenen fehlen.
+                                    Confidence-Score liegt unter 50% — siehe oben, welche Datenebenen fehlen.
                                 @else
                                     Keine Achse zeigt akuten Handlungsbedarf.
                                 @endif
@@ -338,8 +245,8 @@
         </section>
 
         {{-- TREND CHART --}}
-        <section class="rounded-2xl border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] p-5 shadow-[var(--nx-shadow-card)]">
-            <div class="flex items-center justify-between mb-4">
+        <section class="rounded-2xl border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] p-4 sm:p-5 shadow-[var(--nx-shadow-card)]">
+            <div class="flex items-center justify-between gap-3 mb-4">
                 <div>
                     <h3 class="text-sm font-semibold text-[var(--nx-text)] m-0">Health-Verlauf</h3>
                     <p class="text-[11px] text-[var(--nx-muted)] m-0 mt-0.5">{{ $trendDays }} Tage · {{ Carbon::parse($trendFrom)->format('d.m.') }} – {{ Carbon::parse($trendTo)->format('d.m.Y') }}</p>
@@ -427,13 +334,13 @@
                 ];
             @endphp
             @foreach($kn as $k)
-                <div class="rounded-xl border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] p-4 shadow-[var(--nx-shadow-card)]">
+                <div class="rounded-xl border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] p-3 sm:p-4 shadow-[var(--nx-shadow-card)] min-w-0">
                     <div class="flex items-start justify-between mb-2">
                         <span class="text-[10px] uppercase tracking-wider text-[var(--nx-muted)] font-semibold">{{ $k['label'] }}</span>
                         @svg($k['icon'], 'w-3.5 h-3.5 text-[var(--nx-muted)] opacity-50')
                     </div>
-                    <div class="flex items-baseline gap-1.5">
-                        <span class="text-2xl font-bold tabular-nums text-[var(--nx-text)]">{{ $k['value'] }}</span>
+                    <div class="flex flex-wrap items-baseline gap-1.5">
+                        <span class="text-xl sm:text-2xl font-bold tabular-nums text-[var(--nx-text)]">{{ $k['value'] }}</span>
                         @if($k['sub'])<span class="text-xs text-[var(--nx-muted)]">{{ $k['sub'] }}</span>@endif
                     </div>
                     @if($k['meta'])
@@ -507,7 +414,7 @@
         <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {{-- Top-5 Frogs --}}
             <div class="rounded-2xl border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] shadow-[var(--nx-shadow-card)]">
-                <div class="px-5 py-3 border-b border-[color:var(--nx-line)] flex items-center gap-2">
+                <div class="px-4 sm:px-5 py-3 border-b border-[color:var(--nx-line)] flex items-center gap-2">
                     @svg('heroicon-o-bug-ant', 'w-4 h-4 text-[color:var(--nx-warning)]')
                     <h3 class="text-sm font-semibold text-[var(--nx-text)] m-0">Top-5 Froesche</h3>
                     <span class="ml-auto text-[11px] text-[var(--nx-muted)] tabular-nums">{{ $latest->frogs->count() }} / {{ $latest->tasks_frog }} insgesamt</span>
@@ -520,7 +427,7 @@
                 @else
                     <ul class="divide-y divide-[color:var(--nx-line)]">
                         @foreach($latest->frogs as $frog)
-                            <li class="px-5 py-3 hover:bg-[var(--nx-bg)]/50 transition-colors">
+                            <li class="px-4 sm:px-5 py-3 hover:bg-[var(--nx-bg)]/50 transition-colors">
                                 <div class="flex items-start gap-3">
                                     <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[var(--nx-bg)] text-[10px] font-bold tabular-nums text-[var(--nx-text)] flex-shrink-0">{{ $frog->rank }}</span>
                                     <div class="flex-1 min-w-0">
@@ -555,7 +462,7 @@
 
             {{-- Workload --}}
             <div class="rounded-2xl border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] shadow-[var(--nx-shadow-card)]">
-                <div class="px-5 py-3 border-b border-[color:var(--nx-line)] flex items-center gap-2">
+                <div class="px-4 sm:px-5 py-3 border-b border-[color:var(--nx-line)] flex items-center gap-2">
                     @svg('heroicon-o-user-group', 'w-4 h-4 text-[color:var(--nx-accent)]')
                     <h3 class="text-sm font-semibold text-[var(--nx-text)] m-0">Workload</h3>
                     <span class="ml-auto text-[11px] text-[var(--nx-muted)] tabular-nums">{{ $latest->people->count() }} Person{{ $latest->people->count() === 1 ? '' : 'en' }}</span>
@@ -569,7 +476,7 @@
                     @php $maxOpen = max(1, $latest->people->max('open_tasks')); @endphp
                     <ul class="divide-y divide-[color:var(--nx-line)]">
                         @foreach($latest->people as $person)
-                            <li class="px-5 py-3">
+                            <li class="px-4 sm:px-5 py-3">
                                 <div class="flex items-center justify-between text-sm mb-2">
                                     <span class="text-[var(--nx-text)] font-medium truncate">{{ $person->user_name }}</span>
                                     <div class="flex items-center gap-2 text-[11px] tabular-nums">

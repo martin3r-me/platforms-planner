@@ -5,27 +5,37 @@
     </x-slot>
 
     <x-slot name="actionbar">
-        <x-ui-page-actionbar :breadcrumbs="[
-            ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
-            ['label' => $project->name, 'href' => route('planner.projects.show', $project)],
-        ]">
-            <x-slot name="left">
-                @include('planner::livewire.partials.project-tabs', ['project' => $project, 'active' => 'canvas'])
-            </x-slot>
+        <x-planner::actionbar :project="$project" active="canvas"
+            :filters-active="($statusFilter !== '' ? 1 : 0) + ($search !== '' ? 1 : 0)">
+            <x-slot:filters>
+                <x-planner::filter-group label="Suche">
+                    <div class="w-full">
+                        <x-nx-input-text wire:model.live.debounce.300ms="search" placeholder="Canvas suchen..." size="sm" />
+                    </div>
+                </x-planner::filter-group>
+                <x-planner::filter-group label="Status">
+                    <x-planner::chip :active="$statusFilter === ''" icon="heroicon-o-clipboard-document-list" :count="$stats['total']" wire:click="setStatusFilter('')">Alle</x-planner::chip>
+                    @foreach(\Platform\Planner\Models\PlannerProjectCanvas::STATUSES as $st)
+                        <x-planner::chip :active="$statusFilter === $st" :icon="\Platform\Planner\Models\PlannerProjectCanvas::STATUS_ICONS[$st]" :count="$stats[$st] ?? 0"
+                            wire:click="setStatusFilter('{{ $st }}')">{{ \Platform\Planner\Models\PlannerProjectCanvas::STATUS_LABELS[$st] }}</x-planner::chip>
+                    @endforeach
+                </x-planner::filter-group>
+            </x-slot:filters>
+
             @can('update', $project)
-                <x-nx-button variant="primary" size="sm" wire:click="createCanvas">
-                    @svg('heroicon-o-plus', 'w-3.5 h-3.5') Canvas anlegen
-                </x-nx-button>
+                <x-slot:create>
+                    <x-planner::menu-item icon="heroicon-o-squares-plus" wire:click="createCanvas">Canvas anlegen</x-planner::menu-item>
+                </x-slot:create>
             @endcan
-        </x-ui-page-actionbar>
+        </x-planner::actionbar>
     </x-slot>
 
     {{-- Main Content --}}
-    <x-ui-page-container width="contained">
-        <div class="space-y-6">
+    <x-ui-page-container width="contained" padding="px-3 sm:px-6 py-4 sm:py-6">
+        <div class="space-y-4 sm:space-y-6">
 
             {{-- Stats --}}
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
                 <x-nx-stat label="Gesamt" :value="$stats['total']" hint="Canvases" icon="heroicon-o-clipboard-document-list" />
                 @foreach(\Platform\Planner\Models\PlannerProjectCanvas::STATUSES as $st)
                     <x-nx-stat :label="\Platform\Planner\Models\PlannerProjectCanvas::STATUS_LABELS[$st]" :value="$stats[$st] ?? 0" :icon="\Platform\Planner\Models\PlannerProjectCanvas::STATUS_ICONS[$st]" />
@@ -90,7 +100,7 @@
             @else
             {{-- Empty State --}}
             <x-nx-card>
-                <div class="p-12 text-center">
+                <div class="p-6 sm:p-12 text-center">
                     @svg('heroicon-o-clipboard-document-list', 'w-16 h-16 text-[var(--nx-muted)] mx-auto mb-4')
                     <h3 class="text-lg font-semibold text-[var(--nx-text)] mb-2">Noch keine Canvases</h3>
                     <p class="text-[var(--nx-muted)] mb-4">Im Canvas steht der aktuelle Stand des Projekts: Ziel, Beteiligte, Nutzen, Risiken.</p>
@@ -103,45 +113,4 @@
         </div>
     </x-ui-page-container>
 
-    {{-- Left Sidebar --}}
-    <x-slot name="sidebar">
-        <x-ui-page-sidebar title="Filter" width="w-72" :defaultOpen="true">
-            <div class="p-5 space-y-5">
-                {{-- Search --}}
-                <div>
-                    <h3 class="text-sm font-bold text-[var(--nx-text)] uppercase tracking-wider mb-3">Suche</h3>
-                    <x-nx-input-text
-                        wire:model.live.debounce.300ms="search"
-                        placeholder="Canvas suchen..."
-                        size="sm"
-                    />
-                </div>
-
-                {{-- Status Filter --}}
-                <div>
-                    <h3 class="text-sm font-bold text-[var(--nx-text)] uppercase tracking-wider mb-3">Status</h3>
-                    <div class="space-y-1">
-                        <button wire:click="setStatusFilter('')"
-                            class="flex items-center justify-between w-full p-2 rounded-md text-xs transition-colors {{ $statusFilter === '' ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)] font-medium' : 'text-[var(--nx-muted)] hover:bg-[var(--nx-bg)] hover:text-[var(--nx-text)]' }}">
-                            <span class="flex items-center gap-2">
-                                @svg('heroicon-o-clipboard-document-list', 'w-3.5 h-3.5')
-                                Alle
-                            </span>
-                            <span>{{ $stats['total'] }}</span>
-                        </button>
-                        @foreach(\Platform\Planner\Models\PlannerProjectCanvas::STATUSES as $st)
-                        <button wire:click="setStatusFilter('{{ $st }}')"
-                            class="flex items-center justify-between w-full p-2 rounded-md text-xs transition-colors {{ $statusFilter === $st ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)] font-medium' : 'text-[var(--nx-muted)] hover:bg-[var(--nx-bg)] hover:text-[var(--nx-text)]' }}">
-                            <span class="flex items-center gap-2">
-                                @svg(\Platform\Planner\Models\PlannerProjectCanvas::STATUS_ICONS[$st], 'w-3.5 h-3.5')
-                                {{ \Platform\Planner\Models\PlannerProjectCanvas::STATUS_LABELS[$st] }}
-                            </span>
-                            <span>{{ $stats[$st] ?? 0 }}</span>
-                        </button>
-                        @endforeach
-                    </div>
-                </div>
-            </div>
-        </x-ui-page-sidebar>
-    </x-slot>
 </x-ui-page>

@@ -39,162 +39,153 @@
     </x-slot>
 
     <x-slot name="actionbar">
-        <x-ui-page-actionbar :breadcrumbs="[
-            ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
-            ['label' => 'Aufgaben'],
-        ]">
-            @include('planner::livewire.partials.tasks-tabs')
-
-            {{-- Kennzahlen als EIN Badge rechts (Projekt-Standard) --}}
-            <x-nx-badge title="offen {{ $headerOpenCount }} · überfällig {{ $headerOverdueCount }} · Frösche {{ $frogCount }}{{ $openPoints > 0 ? ' · ' . $openPoints . ' SP' : '' }}">
-                <span class="inline-flex items-center gap-1 text-[color:var(--nx-text)]">
-                    <span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-info)]"></span>
-                    <span class="tabular-nums">{{ $headerOpenCount }}</span>
-                </span>
-                @if($headerOverdueCount > 0)
-                    <span class="inline-flex items-center gap-1 text-[color:var(--nx-danger)]">
-                        <span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-danger)]"></span>
-                        <span class="tabular-nums">{{ $headerOverdueCount }}</span>
+        <x-planner::actionbar active="my-tasks" task-action="$wire.createTask()"
+            :filters-active="count($filterTagIds) + ($filterColor ? 1 : 0)">
+            <x-slot:meta>
+                {{-- Kennzahlen als EIN Badge rechts (Projekt-Standard) --}}
+                <x-nx-badge title="offen {{ $headerOpenCount }} · überfällig {{ $headerOverdueCount }} · Frösche {{ $frogCount }}{{ $openPoints > 0 ? ' · ' . $openPoints . ' SP' : '' }}">
+                    <span class="inline-flex items-center gap-1 text-[color:var(--nx-text)]">
+                        <span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-info)]"></span>
+                        <span class="tabular-nums">{{ $headerOpenCount }}</span>
                     </span>
-                @endif
-                @if($frogCount > 0)
-                    <span class="inline-flex items-center gap-1"><span>🐸</span><span class="tabular-nums">{{ $frogCount }}</span></span>
-                @endif
-                @if($openPoints > 0)
-                    <span class="opacity-30" aria-hidden="true">·</span>
-                    <span class="tabular-nums">{{ $openPoints }} SP</span>
-                @endif
-            </x-nx-badge>
-
-            {{-- Aktionen im Overflow-Menü (keine sichtbaren Buttons — Projekt-Standard) --}}
-            <div x-data="{ open: false }" class="relative">
-                <button type="button" @click="open = !open"
-                    class="inline-flex items-center justify-center w-8 h-7 rounded-md text-[var(--nx-muted)] hover:text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition-colors" title="Mehr">
-                    @svg('heroicon-o-ellipsis-horizontal', 'w-4 h-4')
-                </button>
-                <div x-show="open" x-cloak x-transition.opacity.duration.100ms @click.outside="open = false" @keydown.escape.window="open = false"
-                    class="absolute top-full right-0 mt-1 w-52 bg-[color:var(--nx-surface)] border border-[var(--nx-line-strong)] rounded-lg shadow-[var(--nx-shadow-pop)] z-30 py-1">
-                    <button type="button" wire:click="createTask()" @click="open = false"
-                        class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition-colors">
-                        @svg('heroicon-o-plus', 'w-4 h-4 text-[var(--nx-muted)]')
-                        <span>Neue Aufgabe</span>
-                    </button>
-                    <button type="button" wire:click="createTaskGroup" @click="open = false"
-                        class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition-colors">
-                        @svg('heroicon-o-square-2-stack', 'w-4 h-4 text-[var(--nx-muted)]')
-                        <span>Neue Spalte</span>
-                    </button>
-                </div>
-            </div>
-        </x-ui-page-actionbar>
-    </x-slot>
-
-    <x-slot name="sidebar">
-        <x-ui-page-sidebar title="Übersicht" icon="heroicon-o-rectangle-stack" width="w-72" :defaultOpen="true">
-            <div class="p-4 space-y-5 bg-[var(--nx-bg)]">
-                {{-- ÜBER --}}
-                <section class="p-3 rounded-lg bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)]">
-                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] mb-2">Über</h3>
-                    <p class="text-[11px] text-[var(--nx-text)] leading-relaxed m-0">
-                        Alle Aufgaben, die dir gerade gehören — projektübergreifend, sortiert in deinen persönlichen Spalten.
-                    </p>
-                </section>
-
-                {{-- PRO PROJEKT --}}
-                @if($byProject->isNotEmpty())
-                    <section class="p-3 rounded-lg bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)]">
-                        <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] mb-2">Pro Projekt</h3>
-                        <ul class="space-y-1">
-                            @foreach($byProject->take(8) as $proj)
-                                <li>
-                                    @if($proj['project_id'])
-                                        <a href="{{ route('planner.projects.show', ['plannerProject' => $proj['project_id']]) }}" wire:navigate
-                                           class="flex items-center gap-2 px-1.5 py-1 text-[11px] rounded hover:bg-[var(--nx-bg)] transition-colors">
-                                            <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {{ $proj['color'] ?? 'var(--nx-muted)' }};"></span>
-                                            <span class="truncate text-[var(--nx-text)] flex-1">{{ $proj['name'] }}</span>
-                                            <span class="tabular-nums text-[var(--nx-muted)]">{{ $proj['count'] }}</span>
-                                        </a>
-                                    @else
-                                        <div class="flex items-center gap-2 px-1.5 py-1 text-[11px]">
-                                            <span class="w-2 h-2 rounded-full flex-shrink-0 bg-[var(--nx-muted)] opacity-40"></span>
-                                            <span class="truncate text-[var(--nx-muted)] flex-1 italic">{{ $proj['name'] }}</span>
-                                            <span class="tabular-nums text-[var(--nx-muted)]">{{ $proj['count'] }}</span>
-                                        </div>
-                                    @endif
-                                </li>
-                            @endforeach
-                        </ul>
-                        @if($byProject->count() > 8)
-                            <p class="mt-1.5 text-[10px] text-[var(--nx-muted)] pl-1.5">+ {{ $byProject->count() - 8 }} weitere</p>
-                        @endif
-                    </section>
-                @endif
-
-
-                {{-- IN ERINNERUNGEN ABONNIEREN (CalDAV) --}}
-                <section class="p-3 rounded-lg bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] shadow-[var(--nx-shadow-card)]">
-                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] mb-1.5">📅 In Erinnerungen abonnieren</h3>
-                    <p class="text-[11px] text-[var(--nx-text)] leading-relaxed m-0 mb-2">
-                        Deine Aufgaben als Liste in Apple Erinnerungen (CalDAV) — schreibgeschützt.
-                    </p>
-
-                    {{-- Neues Secret + URL: nur einmalig sichtbar --}}
-                    @if($newCaldavSecret)
-                        <div class="rounded border border-[rgba(232,89,12,0.30)] bg-[rgba(232,89,12,0.10)] p-2 mb-2 space-y-1.5">
-                            <p class="text-[10px] font-medium text-[color:var(--nx-warning)] m-0">Jetzt am iPhone einrichten (Passwort wird nur einmal gezeigt):</p>
-                            <div x-data="{ copied: false }" class="flex items-center gap-1">
-                                <code x-ref="caldavnewurl" class="flex-1 px-2 py-1 text-[10px] rounded bg-[color:var(--nx-surface)] border border-[rgba(232,89,12,0.30)] font-mono break-all">{{ $newCaldavUrl }}</code>
-                                <button type="button" @click="navigator.clipboard.writeText($refs.caldavnewurl.textContent.trim()); copied=true; setTimeout(()=>copied=false,1500)" class="shrink-0 px-2 py-1 text-[10px] rounded border border-[rgba(232,89,12,0.30)] text-[color:var(--nx-warning)]" title="URL kopieren">
-                                    <span x-show="!copied">URL</span><span x-show="copied" x-cloak>✓</span>
-                                </button>
-                            </div>
-                            <div x-data="{ copied: false }" class="flex items-center gap-1">
-                                <code x-ref="caldavsecret" class="flex-1 px-2 py-1 text-[10px] rounded bg-[color:var(--nx-surface)] border border-[rgba(232,89,12,0.30)] font-mono break-all">{{ $newCaldavSecret }}</code>
-                                <button type="button" @click="navigator.clipboard.writeText($refs.caldavsecret.textContent.trim()); copied=true; setTimeout(()=>copied=false,1500)" class="shrink-0 px-2 py-1 text-[10px] rounded bg-[color:var(--nx-warning)] text-white" title="Passwort kopieren">
-                                    <span x-show="!copied">Passwort</span><span x-show="copied" x-cloak>✓</span>
-                                </button>
-                            </div>
-                            <p class="text-[10px] text-[color:var(--nx-warning)] m-0">Server = obige URL, Benutzer beliebig, Passwort = das Secret.</p>
-                        </div>
+                    @if($headerOverdueCount > 0)
+                        <span class="inline-flex items-center gap-1 text-[color:var(--nx-danger)]">
+                            <span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-danger)]"></span>
+                            <span class="tabular-nums">{{ $headerOverdueCount }}</span>
+                        </span>
                     @endif
+                    @if($frogCount > 0)
+                        <span class="inline-flex items-center gap-1"><span>🐸</span><span class="tabular-nums">{{ $frogCount }}</span></span>
+                    @endif
+                    @if($openPoints > 0)
+                        <span class="opacity-30" aria-hidden="true">·</span>
+                        <span class="tabular-nums">{{ $openPoints }} SP</span>
+                    @endif
+                </x-nx-badge>
+            </x-slot:meta>
 
-                    {{-- Neues Abo --}}
-                    <div class="flex items-center gap-1">
-                        <input type="text" wire:model="caldavName" placeholder="z. B. iPhone" class="flex-1 px-2 py-1 text-[10px] rounded border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] text-[var(--nx-text)] placeholder:text-[var(--nx-muted)]" />
-                        <button type="button" wire:click="createCaldavSubscription" class="shrink-0 px-2.5 py-1 text-[10px] font-medium rounded bg-[var(--nx-accent)] text-white hover:opacity-90">Abo</button>
-                    </div>
+            @if($availableFilterTags->isNotEmpty() || $availableFilterColors->isNotEmpty() || $hasActiveFilters)
+                <x-slot:filters>
+                    @if($availableFilterTags->isNotEmpty())
+                        <x-planner::filter-group label="Tags">
+                            @foreach($availableFilterTags as $tag)
+                                <x-planner::chip :active="in_array($tag['id'], $filterTagIds)" :dot="$tag['color']" wire:click="toggleTagFilter({{ $tag['id'] }})">{{ $tag['label'] }}</x-planner::chip>
+                            @endforeach
+                        </x-planner::filter-group>
+                    @endif
+                    @if($availableFilterColors->isNotEmpty())
+                        <x-planner::filter-group label="Farbe">
+                            @foreach($availableFilterColors as $color)
+                                <button type="button" wire:click="toggleColorFilter('{{ $color }}')" title="{{ $color }}"
+                                        class="w-6 h-6 sm:w-5 sm:h-5 rounded-full border-2 transition-all {{ $filterColor === $color ? 'border-[var(--nx-accent)] ring-2 ring-[var(--nx-accent)]/30' : 'border-[color:var(--nx-line)] hover:border-[var(--nx-accent)]/60' }}"
+                                        style="background-color: {{ $color }}"></button>
+                            @endforeach
+                        </x-planner::filter-group>
+                    @endif
+                    @if($hasActiveFilters)
+                        <button type="button" wire:click="clearFilters" class="inline-flex items-center gap-1 text-[11px] text-[color:var(--nx-muted)] hover:text-[color:var(--nx-danger)]">
+                            @svg('heroicon-o-x-mark', 'w-3.5 h-3.5') Filter zurücksetzen
+                        </button>
+                    @endif
+                </x-slot:filters>
+            @endif
 
-                    {{-- Aktive Abos (je eigene URL) --}}
-                    @foreach($this->caldavSubscriptions() as $sub)
-                        <div class="mt-1.5 text-[10px]">
-                            <div class="flex items-center justify-between">
-                                <span class="text-[var(--nx-text)] font-medium truncate">{{ $sub->name }}</span>
-                                <button type="button" wire:click="revokeCaldavSubscription({{ $sub->id }})" wire:confirm="Abo widerrufen? Geräte verlieren den Zugriff." class="shrink-0 text-[color:var(--nx-danger)] hover:underline">widerrufen</button>
-                            </div>
-                            <div x-data="{ copied: false }" class="flex items-center gap-1 mt-0.5">
-                                <code x-ref="u{{ $sub->id }}" class="flex-1 px-2 py-0.5 text-[10px] rounded bg-[var(--nx-bg)] border border-[color:var(--nx-line)] text-[var(--nx-muted)] font-mono break-all">{{ $this->caldavUrlFor($sub->handle) }}</code>
-                                <button type="button" @click="navigator.clipboard.writeText($refs.u{{ $sub->id }}.textContent.trim()); copied=true; setTimeout(()=>copied=false,1500)" class="shrink-0 px-2 py-0.5 rounded border border-[color:var(--nx-line)] text-[var(--nx-muted)]">
-                                    <span x-show="!copied">URL</span><span x-show="copied" x-cloak>✓</span>
-                                </button>
-                            </div>
-                        </div>
-                    @endforeach
-                </section>
-            </div>
-        </x-ui-page-sidebar>
+            <x-slot:create>
+                <x-planner::menu-item icon="heroicon-o-square-2-stack" wire:click="createTaskGroup">Gruppe</x-planner::menu-item>
+            </x-slot:create>
+
+            <x-slot:more>
+                <x-planner::menu-item icon="heroicon-o-calendar-days" x-on:click="$dispatch('planner-caldav-toggle')"
+                    title="Deine Aufgaben als Liste in Apple Erinnerungen (CalDAV)">In Erinnerungen abonnieren</x-planner::menu-item>
+            </x-slot:more>
+        </x-planner::actionbar>
     </x-slot>
-
 
     <div class="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
 
-        {{-- Filter-Bar --}}
-        @include('planner::livewire.project._filter-bar', [
-            'availableFilterTags' => $availableFilterTags,
-            'availableFilterColors' => $availableFilterColors,
-            'filterTagIds' => $filterTagIds,
-            'filterColor' => $filterColor,
-            'hasActiveFilters' => $hasActiveFilters,
-        ])
+        {{-- In Erinnerungen abonnieren (CalDAV) — über ⋯ ein-/ausblendbar --}}
+        <div x-data="{ show: @js((bool) $newCaldavSecret) }" @planner-caldav-toggle.window="show = !show"
+             x-show="show" x-cloak
+             class="shrink-0 max-h-[60vh] overflow-y-auto border-b border-[color:var(--nx-line)] bg-[var(--nx-bg)]">
+            <section class="max-w-2xl px-3 sm:px-4 py-3">
+                <div class="flex items-start justify-between gap-3 mb-1.5">
+                    <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] m-0">📅 In Erinnerungen abonnieren</h3>
+                    <button type="button" @click="show = false" class="shrink-0 text-[var(--nx-muted)] hover:text-[var(--nx-text)]" title="Schließen">
+                        @svg('heroicon-o-x-mark', 'w-4 h-4')
+                    </button>
+                </div>
+                <p class="text-[11px] text-[var(--nx-text)] leading-relaxed m-0 mb-2">
+                    Deine Aufgaben als Liste in Apple Erinnerungen (CalDAV) — schreibgeschützt.
+                </p>
+
+                {{-- Neues Secret + URL: nur einmalig sichtbar --}}
+                @if($newCaldavSecret)
+                    <div class="rounded border border-[rgba(232,89,12,0.30)] bg-[rgba(232,89,12,0.10)] p-2 mb-2 space-y-1.5">
+                        <p class="text-[10px] font-medium text-[color:var(--nx-warning)] m-0">Jetzt am iPhone einrichten (Passwort wird nur einmal gezeigt):</p>
+                        <div x-data="{ copied: false }" class="flex items-center gap-1">
+                            <code x-ref="caldavnewurl" class="flex-1 px-2 py-1 text-[10px] rounded bg-[color:var(--nx-surface)] border border-[rgba(232,89,12,0.30)] font-mono break-all">{{ $newCaldavUrl }}</code>
+                            <button type="button" @click="navigator.clipboard.writeText($refs.caldavnewurl.textContent.trim()); copied=true; setTimeout(()=>copied=false,1500)" class="shrink-0 px-2 py-1 text-[10px] rounded border border-[rgba(232,89,12,0.30)] text-[color:var(--nx-warning)]" title="URL kopieren">
+                                <span x-show="!copied">URL</span><span x-show="copied" x-cloak>✓</span>
+                            </button>
+                        </div>
+                        <div x-data="{ copied: false }" class="flex items-center gap-1">
+                            <code x-ref="caldavsecret" class="flex-1 px-2 py-1 text-[10px] rounded bg-[color:var(--nx-surface)] border border-[rgba(232,89,12,0.30)] font-mono break-all">{{ $newCaldavSecret }}</code>
+                            <button type="button" @click="navigator.clipboard.writeText($refs.caldavsecret.textContent.trim()); copied=true; setTimeout(()=>copied=false,1500)" class="shrink-0 px-2 py-1 text-[10px] rounded bg-[color:var(--nx-warning)] text-white" title="Passwort kopieren">
+                                <span x-show="!copied">Passwort</span><span x-show="copied" x-cloak>✓</span>
+                            </button>
+                        </div>
+                        <p class="text-[10px] text-[color:var(--nx-warning)] m-0">Server = obige URL, Benutzer beliebig, Passwort = das Secret.</p>
+                    </div>
+                @endif
+
+                {{-- Neues Abo --}}
+                <div class="flex items-center gap-1">
+                    <input type="text" wire:model="caldavName" placeholder="z. B. iPhone" class="flex-1 px-2 py-1 text-[10px] rounded border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] text-[var(--nx-text)] placeholder:text-[var(--nx-muted)]" />
+                    <button type="button" wire:click="createCaldavSubscription" class="shrink-0 px-2.5 py-1 text-[10px] font-medium rounded bg-[var(--nx-accent)] text-white hover:opacity-90">Abo</button>
+                </div>
+
+                {{-- Aktive Abos (je eigene URL) --}}
+                @foreach($this->caldavSubscriptions() as $sub)
+                    <div class="mt-1.5 text-[10px]">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[var(--nx-text)] font-medium truncate">{{ $sub->name }}</span>
+                            <button type="button" wire:click="revokeCaldavSubscription({{ $sub->id }})" wire:confirm="Abo widerrufen? Geräte verlieren den Zugriff." class="shrink-0 text-[color:var(--nx-danger)] hover:underline">widerrufen</button>
+                        </div>
+                        <div x-data="{ copied: false }" class="flex items-center gap-1 mt-0.5">
+                            <code x-ref="u{{ $sub->id }}" class="flex-1 px-2 py-0.5 text-[10px] rounded bg-[var(--nx-bg)] border border-[color:var(--nx-line)] text-[var(--nx-muted)] font-mono break-all">{{ $this->caldavUrlFor($sub->handle) }}</code>
+                            <button type="button" @click="navigator.clipboard.writeText($refs.u{{ $sub->id }}.textContent.trim()); copied=true; setTimeout(()=>copied=false,1500)" class="shrink-0 px-2 py-0.5 rounded border border-[color:var(--nx-line)] text-[var(--nx-muted)]">
+                                <span x-show="!copied">URL</span><span x-show="copied" x-cloak>✓</span>
+                            </button>
+                        </div>
+                    </div>
+                @endforeach
+            </section>
+        </div>
+
+        {{-- Pro Projekt — kompakte Leiste --}}
+        @if($byProject->isNotEmpty())
+            <div class="shrink-0 flex items-center gap-1.5 px-3 sm:px-4 h-9 border-b border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] overflow-x-auto"
+                 title="Alle Aufgaben, die dir gerade gehören — projektübergreifend, sortiert in deinen persönlichen Spalten.">
+                <span class="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] mr-1">Pro Projekt</span>
+                @foreach($byProject as $proj)
+                    @if($proj['project_id'])
+                        <a href="{{ route('planner.projects.show', ['plannerProject' => $proj['project_id']]) }}" wire:navigate
+                           class="shrink-0 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] bg-[var(--nx-bg)] hover:bg-[var(--nx-hover)] transition-colors">
+                            <span class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {{ $proj['color'] ?? 'var(--nx-muted)' }};"></span>
+                            <span class="max-w-[10rem] truncate text-[var(--nx-text)]">{{ $proj['name'] }}</span>
+                            <span class="tabular-nums text-[var(--nx-muted)]">{{ $proj['count'] }}</span>
+                        </a>
+                    @else
+                        <span class="shrink-0 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] bg-[var(--nx-bg)]">
+                            <span class="w-2 h-2 rounded-full flex-shrink-0 bg-[var(--nx-muted)] opacity-40"></span>
+                            <span class="max-w-[10rem] truncate text-[var(--nx-muted)] italic">{{ $proj['name'] }}</span>
+                            <span class="tabular-nums text-[var(--nx-muted)]">{{ $proj['count'] }}</span>
+                        </span>
+                    @endif
+                @endforeach
+            </div>
+        @endif
+
 
         {{-- Board --}}
         <div
