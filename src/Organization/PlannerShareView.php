@@ -11,6 +11,7 @@ use Platform\Planner\Enums\TaskLifecycleState;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectCanvas;
 use Platform\Planner\Models\PlannerProjectCanvasEntry;
+use Platform\Planner\Models\PlannerProjectLogbookEntry;
 use Platform\Planner\Models\PlannerProjectSlot;
 use Platform\Planner\Models\PlannerTask;
 
@@ -111,7 +112,7 @@ class PlannerShareView implements ProvidesShareView
 
     // ── Aktivität ──────────────────────────────────────────────
 
-    /** Ereignisse der letzten 60 Tage: erledigte Schritte, neue Schritte, Canvas-Arbeit, Statuswechsel. */
+    /** Ereignisse der letzten 60 Tage: erledigte Schritte, neue Schritte, Canvas-Arbeit, Logbuch, Statuswechsel. */
     public function shareActivity(string $alias, Collection $models, array $options): array
     {
         $from = now()->subDays(60);
@@ -192,6 +193,16 @@ class PlannerShareView implements ProvidesShareView
             }
         }
 
+        // Logbuch: Entscheidungen, Meilensteine, Risiken (ersetzte nicht)
+        foreach (PlannerProjectLogbookEntry::whereIn('project_id', $projects->keys())->current()->where('created_at', '>=', $from)->get() as $e) {
+            $events[] = [
+                'at' => $e->created_at, 'kind' => 'logbook',
+                'title' => $e->type->label() . ': ' . $e->title,
+                'text' => $e->rationale ? \Illuminate\Support\Str::limit((string) $e->rationale, 200) : null,
+                'parent_id' => $e->project_id,
+            ];
+        }
+
         return $events;
     }
 
@@ -245,31 +256,7 @@ class PlannerShareView implements ProvidesShareView
             if (! $canvas) {
                 return null;
             }
-            $canvas->load('blocks.entries');
-            $blockDefs = collect(config('planner.canvas_block_types', []));
-            $sinceAt = $options['since'] ?? now()->subDays(7);
-            $changes = $canvas->blocks->flatMap(fn ($b) => $b->entries->filter(fn ($e) => $e->updated_at?->gt($sinceAt))
-                ->map(fn ($e) => [
-                    'block' => $b->label ?: ($blockDefs[$b->block_type]['label'] ?? $b->block_type),
-                    'title' => strip_tags((string) ($e->title ?: \Illuminate\Support\Str::limit((string) $e->content, 80))),
-                    'new' => $e->created_at?->gt($sinceAt),
-                    'at' => $e->updated_at,
-                ]))->sortByDesc(fn ($c) => $c['at']->timestamp)->values()->all();
-
-            $detail['page'] = [
-                'title' => $canvas->name,
-                'view' => 'planner::share.canvas',
-                'data' => [
-                    'canvas' => $canvas,
-                    'canvasData' => $canvas->toCanvasArray(),
-                    'changes' => $changes,
-                    'sinceIsVisit' => ($options['since'] ?? null) !== null,
-                    'updatedAt' => $canvas->blocks->flatMap->entries->max('updated_at') ?? $canvas->updated_at,
-                    'blockDefs' => collect(config('planner.canvas_block_types', []))
-                        ->map(fn ($def, $key) => array_merge($def, ['key' => $key]))
-                        ->sortBy('position')->values()->all(),
-                ],
-            ];
+            $detail['page'] = ['title' => $canvas->name] + $this->canvasPage($canvas, $options);
 
             return $detail;
         }
@@ -286,15 +273,75 @@ class PlannerShareView implements ProvidesShareView
                 'data' => ['weeks' => $this->historyWeeks($done)],
             ];
         }
-        if ($canvases->isNotEmpty()) {
+        // Ein Canvas pro Projekt: der Reiter zeigt es direkt; Karten nur noch für Altbestand mit mehreren
+        if ($canvases->count() === 1) {
+            $page = $this->canvasPage($canvases->first(), $options);
+            $detail['tabs'][] = [
+                'key' => 'canvas', 'label' => 'Canvas', 'count' => null, 'order' => 10,
+                'view' => 'planner::share.canvas-tab',
+                'data' => $page['data'],
+            ];
+        } elseif ($canvases->isNotEmpty()) {
             $detail['tabs'][] = [
                 'key' => 'canvases', 'label' => 'Canvases', 'count' => $canvases->count(), 'order' => 10,
                 'view' => 'planner::share.canvases',
                 'data' => ['canvases' => $this->canvasCards($canvases, $options['since'] ?? null)],
             ];
         }
+        if ($details && ($logbook = $this->logbook($model))) {
+            $detail['tabs'][] = [
+                'key' => 'logbuch', 'label' => 'Logbuch', 'count' => count($logbook), 'order' => 35,
+                'view' => 'planner::share.logbook',
+                'data' => ['entries' => $logbook],
+            ];
+        }
 
         return $detail;
+    }
+
+    /** Ein Canvas zum Lesen: Blöcke wie intern, oben was sich seit dem letzten Besuch (sonst 7 Tagen) geändert hat. */
+    protected function canvasPage(PlannerProjectCanvas $canvas, array $options): array
+    {
+        $canvas->load('blocks.entries');
+        $blockDefs = collect(config('planner.canvas_block_types', []));
+        $sinceAt = $options['since'] ?? now()->subDays(7);
+        $changes = $canvas->blocks->flatMap(fn ($b) => $b->entries->filter(fn ($e) => $e->updated_at?->gt($sinceAt))
+            ->map(fn ($e) => [
+                'block' => $b->label ?: ($blockDefs[$b->block_type]['label'] ?? $b->block_type),
+                'title' => strip_tags((string) ($e->title ?: \Illuminate\Support\Str::limit((string) $e->content, 80))),
+                'new' => $e->created_at?->gt($sinceAt),
+                'at' => $e->updated_at,
+            ]))->sortByDesc(fn ($c) => $c['at']->timestamp)->values()->all();
+
+        return [
+            'view' => 'planner::share.canvas',
+            'data' => [
+                'canvas' => $canvas,
+                'canvasData' => $canvas->toCanvasArray(),
+                'changes' => $changes,
+                'sinceIsVisit' => ($options['since'] ?? null) !== null,
+                'updatedAt' => $canvas->blocks->flatMap->entries->max('updated_at') ?? $canvas->updated_at,
+                'blockDefs' => $blockDefs->map(fn ($def, $key) => array_merge($def, ['key' => $key]))->sortBy('position')->values()->all(),
+            ],
+        ];
+    }
+
+    /** Logbuch ohne ersetzte Einträge, neueste zuerst — Wendepunkte mit Begründung; Verweise (Commits, IDs) bleiben intern. */
+    protected function logbook(PlannerProject $project): array
+    {
+        return PlannerProjectLogbookEntry::forProject($project->id)->current()
+            ->with('createdBy')
+            ->orderByDesc('occurred_on')->orderByDesc('id')
+            ->get()
+            ->map(fn ($e) => [
+                'type' => $e->type->value,
+                'type_label' => $e->type->label(),
+                'icon' => $e->type->icon(),
+                'title' => $e->title,
+                'rationale' => $e->rationale ?: null,
+                'date' => $e->occurred_on ?? $e->created_at,
+                'person' => $e->createdBy ? ($e->createdBy->fullname ?: $e->createdBy->name) : null,
+            ])->all();
     }
 
     /** Canvas-Karten: Status, wie viel ausgefüllt ist, was sich seit dem letzten Besuch getan hat. */
