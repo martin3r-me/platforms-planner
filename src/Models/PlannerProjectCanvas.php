@@ -87,11 +87,14 @@ class PlannerProjectCanvas extends Model implements AgendaRenderable
         'is_public',
         'workshop_settings',
         'created_by_user_id',
+        'kickoff_completed_at',
+        'kickoff_completed_by_user_id',
     ];
 
     protected $casts = [
         'status' => 'string',
         'is_public' => 'boolean',
+        'kickoff_completed_at' => 'datetime',
         'workshop_settings' => 'array',
     ];
 

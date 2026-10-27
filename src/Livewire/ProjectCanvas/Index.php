@@ -22,6 +22,14 @@ class Index extends Component
     {
         $this->project = $plannerProject;
         $this->authorize('view', $this->project);
+
+        // Ein Canvas pro Projekt: die Uebersicht braucht es nur bei Altbestand mit mehreren.
+        $active = PlannerProjectCanvas::forProject($this->project->id)
+            ->where('status', '!=', PlannerProjectCanvas::STATUS_DISCARDED)
+            ->count();
+        if ($active <= 1 && ($canvas = app(ProjectCanvasService::class)->forProject($this->project))) {
+            $this->redirect(route('planner.projects.canvas.show', [$this->project, $canvas]), navigate: true);
+        }
     }
 
     public function updatingSearch(): void

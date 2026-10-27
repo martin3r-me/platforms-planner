@@ -167,7 +167,7 @@ class Project extends Component
         ];
 
         // === CANVAS-INFO (für Header + Dashboard) ===
-        $canvas = $this->project->canvases()->first();
+        $canvas = app(ProjectCanvasService::class)->forProject($this->project);
         $canvasInfo = null;
         $canvasAnalysis = null;
         if ($canvas) {
@@ -179,6 +179,7 @@ class Project extends Component
                 'warnings_count' => isset($canvasAnalysis['warnings']) ? count($canvasAnalysis['warnings']) : 0,
                 'route' => route('planner.projects.canvas.show', [$this->project, $canvas]),
                 'name' => $canvas->name,
+                'kickoff_done' => (bool) $canvas->kickoff_completed_at,
             ];
         } else {
             $canvasInfo = [
@@ -188,6 +189,7 @@ class Project extends Component
                 'warnings_count' => 0,
                 'route' => null,
                 'name' => null,
+                'kickoff_done' => false,
             ];
         }
 
@@ -519,11 +521,10 @@ class Project extends Component
     {
         $this->authorize('view', $this->project);
 
-        $canvas = $this->project->canvases()->first();
+        $canvas = app(ProjectCanvasService::class)->forProject($this->project);
 
         if (!$canvas) {
             $this->authorize('update', $this->project);
-
             $canvas = app(ProjectCanvasService::class)->createForProject($this->project, Auth::id());
         }
 

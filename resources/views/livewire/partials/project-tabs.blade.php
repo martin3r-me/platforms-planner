@@ -21,12 +21,13 @@
             'href' => $nav['canvas']['url'],
             'label' => 'Canvas',
             'icon' => 'heroicon-o-squares-2x2',
-            'title' => 'Canvas — der aktuelle Stand (wird überschrieben)'
-                . ($nav['canvas']['completeness'] !== null ? ' · ' . $nav['canvas']['completeness'] . '% ausgefüllt' : '')
-                . ($nav['canvas']['count'] === 0 ? ' · noch nicht angelegt' : ''),
-            'meta' => $nav['canvas']['completeness'] !== null
-                ? $nav['canvas']['completeness'] . '%'
-                : ($nav['canvas']['count'] === 0 ? '+' : ($nav['canvas']['count'] > 1 ? (string) $nav['canvas']['count'] : null)),
+            'title' => 'Canvas — Kickoff und aktueller Stand (wird überschrieben, jede Sitzung bleibt als Version erhalten)'
+                . (! $nav['canvas']['kickoff_done'] ? ' · Kickoff offen' : '')
+                . ($nav['canvas']['completeness'] !== null ? ' · ' . $nav['canvas']['completeness'] . '% ausgefüllt' : ''),
+            'meta' => ! $nav['canvas']['kickoff_done']
+                ? 'Kickoff'
+                : ($nav['canvas']['completeness'] !== null ? $nav['canvas']['completeness'] . '%' : ($nav['canvas']['count'] > 1 ? (string) $nav['canvas']['count'] : null)),
+            'stale' => ! $nav['canvas']['kickoff_done'],
         ],
         'logbook' => [
             'href' => $nav['logbook']['url'],
@@ -69,7 +70,7 @@
             @if(($tab['risks'] ?? 0) > 0)
                 <span class="inline-flex items-center justify-center min-w-[14px] h-[14px] px-1 rounded-full text-[9px] font-semibold bg-[color:var(--nx-danger)] text-white tabular-nums">{{ $tab['risks'] }}</span>
             @elseif(($tab['stale'] ?? false) && ! $isActive)
-                <span class="w-1.5 h-1.5 rounded-full bg-[color:var(--nx-warning)]" title="Länger kein Eintrag"></span>
+                <span class="w-1.5 h-1.5 rounded-full bg-[color:var(--nx-warning)]" title="{{ $key === 'canvas' ? 'Kickoff noch offen' : 'Länger kein Eintrag' }}"></span>
             @endif
         </a>
     @endforeach

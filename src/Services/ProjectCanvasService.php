@@ -18,32 +18,39 @@ class ProjectCanvasService
         return $canvas->load('blocks');
     }
 
-    /** Standard-Canvas eines Projekts anlegen (Name/Status/Team aus dem Projekt). */
-    public function createForProject(\Platform\Planner\Models\PlannerProject $project, int $userId): PlannerProjectCanvas
+    /** Das (einzige) Canvas eines Projekts anlegen — passiert automatisch beim Projekt-Anlegen. */
+    public function createForProject(\Platform\Planner\Models\PlannerProject $project, ?int $userId): PlannerProjectCanvas
     {
         return $this->createCanvas([
             'project_id' => $project->id,
             'team_id' => $project->team_id,
-            'name' => $project->name . ' — Canvas',
+            'name' => 'Projekt-Canvas',
             'status' => PlannerProjectCanvas::STATUS_OPEN,
             'created_by_user_id' => $userId,
         ]);
     }
 
-    /**
-     * Create a snapshot of the current canvas state.
-     */
-    public function createSnapshot(PlannerProjectCanvas $canvas, int $userId): PlannerProjectCanvasSnapshot
+    /** Das Canvas eines Projekts (eins pro Projekt; bei Altbestand mit mehreren das aelteste aktive). */
+    public function forProject(\Platform\Planner\Models\PlannerProject $project): ?PlannerProjectCanvas
     {
-        $canvasData = $canvas->toCanvasArray();
+        return PlannerProjectCanvas::forProject($project->id)
+            ->orderByRaw('CASE WHEN status = ? THEN 1 ELSE 0 END', [PlannerProjectCanvas::STATUS_DISCARDED])
+            ->orderBy('id')
+            ->first();
+    }
 
-        $latestVersion = $canvas->snapshots()->max('version') ?? 0;
+    /** Canvas des Projekts holen, notfalls anlegen (Reparatur fuer Altbestand). */
+    public function ensureForProject(\Platform\Planner\Models\PlannerProject $project, ?int $userId): PlannerProjectCanvas
+    {
+        return $this->forProject($project) ?? $this->createForProject($project, $userId);
+    }
 
-        return $canvas->snapshots()->create([
-            'version' => $latestVersion + 1,
-            'snapshot_data' => $canvasData,
-            'created_by_user_id' => $userId,
-        ]);
+    /**
+     * Stand festhalten (manuell). Delegiert an die Versionierung.
+     */
+    public function createSnapshot(PlannerProjectCanvas $canvas, ?int $userId, ?string $label = null, string $source = ProjectCanvasVersioning::SOURCE_MANUAL): PlannerProjectCanvasSnapshot
+    {
+        return app(ProjectCanvasVersioning::class)->checkpoint($canvas, $source, $userId, $label, force: true);
     }
 
     /**

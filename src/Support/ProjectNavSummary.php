@@ -8,6 +8,7 @@ use Platform\Planner\Models\PlannerProjectCanvas;
 use Platform\Planner\Models\PlannerProjectLogbookEntry;
 use Platform\Planner\Models\PlannerProjectSnapshot;
 use Platform\Planner\Services\ProjectCanvasAnalysisService;
+use Platform\Planner\Services\ProjectCanvasService;
 
 /**
  * Kennzahlen fuer die Projekt-Reiter (Board · Canvas · Logbuch · Health).
@@ -21,15 +22,14 @@ class ProjectNavSummary
 
     public static function for(PlannerProject $project): array
     {
-        // Canvas: genau einer → direkt dorthin, sonst Uebersicht (dort kann man anlegen/waehlen)
-        $canvases = PlannerProjectCanvas::forProject($project->id)
+        // Canvas: eins pro Projekt (Altbestand mit mehreren → Uebersicht)
+        $active = PlannerProjectCanvas::forProject($project->id)
             ->where('status', '!=', PlannerProjectCanvas::STATUS_DISCARDED)
-            ->orderBy('id')
-            ->get(['id', 'project_id', 'name', 'status']);
+            ->count();
+        $canvas = app(ProjectCanvasService::class)->forProject($project);
 
         $canvasCompleteness = null;
-        if ($canvases->count() === 1) {
-            $canvas = $canvases->first();
+        if ($canvas && $active <= 1) {
             try {
                 $canvasCompleteness = (new ProjectCanvasAnalysisService())->analyze($canvas->load('blocks.entries'))['completeness_percent'] ?? null;
             } catch (\Throwable) {
@@ -54,7 +54,9 @@ class ProjectNavSummary
         return [
             'canvas' => [
                 'url' => $canvasUrl,
-                'count' => $canvases->count(),
+                'count' => $active,
+                'kickoff_done' => (bool) $canvas?->kickoff_completed_at,
+                'exists' => (bool) $canvas,
                 'completeness' => $canvasCompleteness !== null ? (int) round($canvasCompleteness) : null,
             ],
             'logbook' => [

@@ -39,6 +39,22 @@ class PlannerProjectCanvasEntry extends Model
                 $model->uuid = $uuid;
             }
         });
+
+        // Versionierung: vor inhaltlichen Aenderungen den bisherigen Stand sichern
+        // (Sitzungs-Checkpoint, siehe ProjectCanvasVersioning). Verschieben/Metadaten zaehlen nicht.
+        $checkpoint = function (self $entry) {
+            $canvas = $entry->block?->canvas;
+            if ($canvas) {
+                app(\Platform\Planner\Services\ProjectCanvasVersioning::class)->beforeChange($canvas);
+            }
+        };
+        static::creating($checkpoint);
+        static::deleting($checkpoint);
+        static::updating(function (self $entry) use ($checkpoint) {
+            if ($entry->isDirty(['title', 'content', 'entry_type', 'block_id'])) {
+                $checkpoint($entry);
+            }
+        });
     }
 
     // Relationships

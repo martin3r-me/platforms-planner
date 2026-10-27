@@ -8,15 +8,9 @@
         <x-ui-page-actionbar :breadcrumbs="[
             ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
             ['label' => $project->name, 'href' => route('planner.projects.show', $project)],
-            ['label' => $canvas->name, 'href' => route('planner.projects.canvas.index', $project)],
         ]">
             <x-slot name="left">
                 @include('planner::livewire.partials.project-tabs', ['project' => $project, 'active' => 'canvas'])
-            </x-slot>
-            <x-slot name="left">
-                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-[color:var(--nx-accent)] text-[color:var(--nx-on-accent)]">
-                    Project Canvas
-                </span>
             </x-slot>
 
             {{-- Rechts: Actions --}}
@@ -87,6 +81,9 @@
 
     {{-- Main Content --}}
     <x-ui-page-container width="full" padding="p-0" spacing="" background="">
+        {{-- Kickoff + Versionen (automatisch je Sitzung, "Stand festhalten", Verlauf/Wiederherstellen) --}}
+        @livewire(\Platform\Planner\Livewire\ProjectCanvas\Versions::class, ['canvasId' => $canvas->id], key('canvas-versions-' . $canvas->id))
+
         {{-- Meta-Infos --}}
         <div class="px-4 sm:px-6 py-4 border-b border-[color:var(--nx-line)]/40 bg-[color:var(--nx-surface)]/50">
             <div class="flex flex-wrap items-start gap-6">

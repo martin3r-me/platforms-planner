@@ -62,7 +62,10 @@ class Sidebar extends Component
             ]);
         }
 
-        return redirect()->route('planner.projects.show', ['plannerProject' => $project->id]);
+        // Projekt beginnt mit dem Kickoff im Canvas
+        $canvas = app(\Platform\Planner\Services\ProjectCanvasService::class)->ensureForProject($project, $user->id);
+
+        return redirect()->route('planner.projects.canvas.show', [$project->id, $canvas->id]);
     }
 
     /**

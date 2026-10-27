@@ -102,6 +102,18 @@ class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayN
             $model->uuid = $uuid;
         });
 
+        // Ein Projekt ohne Canvas ist keine Option: Canvas = Kickoff, entsteht mit dem Projekt.
+        static::created(function (self $project) {
+            if (! $project->team_id) {
+                return;
+            }
+            try {
+                app(\Platform\Planner\Services\ProjectCanvasService::class)->createForProject($project, $project->user_id);
+            } catch (\Throwable $e) {
+                Log::warning('Projekt-Canvas konnte nicht angelegt werden', ['project_id' => $project->id, 'error' => $e->getMessage()]);
+            }
+        });
+
         // Soft-Delete Cascade: Tasks + Canvases mit-soft-deleten
         static::deleting(function (self $project) {
             if ($project->isForceDeleting()) {

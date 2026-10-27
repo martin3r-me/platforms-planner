@@ -58,6 +58,13 @@ class Show extends Component
         return $listeners;
     }
 
+    /** Nach Wiederherstellen eines Stands (Versionsleiste) neu rendern. */
+    #[\Livewire\Attributes\On('canvas-version-restored')]
+    public function onVersionRestored(): void
+    {
+        $this->canvas->unsetRelation('blocks');
+    }
+
     public function onNoteChanged($payload): void
     {
         if (($payload['senderId'] ?? null) === Auth::id()) {
@@ -463,7 +470,7 @@ class Show extends Component
 
     public function render()
     {
-        $this->canvas->load(['blocks.entries', 'createdByUser', 'snapshots']);
+        $this->canvas->load(['blocks.entries', 'createdByUser']);
 
         $canvasData = $this->canvas->toCanvasArray();
         $analysisData = (new ProjectCanvasAnalysisService())->analyze($this->canvas);

@@ -139,6 +139,17 @@
     </x-slot>
 
     <div class="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
+    {{-- Kickoff offen: ein Projekt beginnt im Canvas (Ziel, Beteiligte, Nutzen, Risiken) --}}
+    @if(! ($canvasInfo['kickoff_done'] ?? true))
+        <div class="shrink-0 flex items-center gap-3 px-4 py-2 border-b border-[color:var(--nx-line)] bg-[var(--nx-warning)]/10 text-xs">
+            @svg('heroicon-o-rocket-launch', 'w-4 h-4 flex-shrink-0 text-[var(--nx-warning)]')
+            <span class="flex-1 min-w-0 text-[var(--nx-text)]">
+                <span class="font-medium">Kickoff offen.</span>
+                Im Canvas festhalten, was das Projekt erreichen soll, wer beteiligt ist und welche Risiken es gibt — dann den Kickoff abschließen.
+            </span>
+            <x-nx-button variant="primary" size="sm" wire:click="openCanvas">Zum Kickoff</x-nx-button>
+        </div>
+    @endif
     @include('planner::livewire.project._filter-bar', [
         'availableFilterTags' => $availableFilterTags,
         'availableFilterColors' => $availableFilterColors,
