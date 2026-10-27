@@ -5,15 +5,7 @@
     </x-slot>
 
     <x-slot name="actionbar">
-        <x-planner::actionbar :project="$project" active="canvas" :crumbs="[['label' => $canvas->name]]">
-            <x-slot:meta>
-                @if($canvas->visibility === 'private')
-                    <x-nx-badge variant="warning" title="Nur für dich sichtbar">@svg('heroicon-o-lock-closed', 'w-3 h-3') Privat</x-nx-badge>
-                @endif
-                @if($canvas->public_token && $canvas->is_public)
-                    <x-nx-badge variant="info" title="Öffentlicher Link ist aktiv">@svg('heroicon-o-globe-alt', 'w-3 h-3') Öffentlich</x-nx-badge>
-                @endif
-            </x-slot:meta>
+        <x-planner::actionbar :project="$project" active="canvas">
 
             <x-slot:more>
                 <x-planner::menu-item :icon="$canvas->visibility === 'private' ? 'heroicon-o-user-group' : 'heroicon-o-lock-closed'" wire:click="toggleVisibility"
@@ -134,6 +126,12 @@
 
                 {{-- Ansicht (Liste/Workshop) + Sprung zu den Kommentaren --}}
                 <div class="flex items-center gap-2 w-full sm:w-auto sm:ml-auto">
+                @if($canvas->visibility === 'private')
+                        <x-nx-badge variant="warning" title="Nur für dich sichtbar">@svg('heroicon-o-lock-closed', 'w-3 h-3') Privat</x-nx-badge>
+                    @endif
+                    @if($canvas->public_token && $canvas->is_public)
+                        <x-nx-badge variant="info" title="Öffentlicher Link ist aktiv">@svg('heroicon-o-globe-alt', 'w-3 h-3') Öffentlich</x-nx-badge>
+                    @endif
                     <a href="#canvas-comments"
                        class="inline-flex items-center gap-1 text-xs text-[color:var(--nx-muted)] hover:text-[var(--nx-text)]"
                        title="Zu den Kommentaren">
