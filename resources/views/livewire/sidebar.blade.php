@@ -9,78 +9,19 @@
         }
     }"
 >
-    {{-- Modul Header --}}
-    <div x-show="!collapsed" class="p-3 text-sm italic text-[var(--nx-text)] uppercase border-b border-[var(--nx-line)] mb-2">
-        Planner
-    </div>
+    {{-- Modul-Navigation = nur die Projektliste. Bereiche (Dashboard, Aufgaben, Pflege,
+         Portfolio) und "+ Neu" liegen in der Planner-Actionbar (<x-planner::actionbar>). --}}
+    <a x-show="!collapsed" href="{{ route('planner.dashboard') }}" wire:navigate
+       class="block p-3 text-sm italic text-[var(--nx-text)] uppercase border-b border-[var(--nx-line)] mb-2 hover:text-[var(--nx-accent)]">
+        Projekte
+    </a>
 
-    {{-- Nav-Sektionen (kompakt) --}}
-    @php
-        // Allgemein = persoenliches Tagesgeschaeft.
-        $generalItems = [
-            ['route' => 'planner.dashboard',        'icon' => 'heroicon-o-home',                     'label' => 'Dashboard'],
-            // Aufgaben = ein Einstieg; Meine/Delegiert/Erledigt sind Tabs auf der Seite.
-            ['route' => 'planner.my-tasks',         'icon' => 'heroicon-o-clipboard-document-check', 'label' => 'Aufgaben', 'active' => ['planner.my-tasks', 'planner.delegated-tasks', 'planner.completed-tasks']],
-        ];
-        // Steuerung = Portfolio-/Masse-Werkzeuge (nicht das Tagesgeschaeft).
-        // Pflege = Hygiene+Cleanup (Meins/Team), Portfolio-Health = Health-Index+Ops (Analyse/Wand).
-        $steuerungItems = [
-            ['route' => 'planner.hygiene',          'icon' => 'heroicon-o-shield-check',             'label' => 'Pflege',           'active' => ['planner.hygiene', 'planner.projects.cleanup']],
-            ['route' => 'planner.health-index',     'icon' => 'heroicon-o-heart',                    'label' => 'Portfolio-Health', 'active' => ['planner.health-index', 'planner.ops']],
-        ];
-        $navSections = [
-            'Allgemein' => $generalItems,
-            'Steuerung' => $steuerungItems,
-        ];
-    @endphp
-    <div x-show="!collapsed" class="px-2 pb-2 space-y-2">
-        @foreach($navSections as $sectionLabel => $items)
-            <div>
-                <div class="text-[10px] uppercase tracking-wider text-[var(--nx-muted)] px-1 py-1">{{ $sectionLabel }}</div>
-                <nav class="flex flex-col">
-                    @foreach($items as $item)
-                        @php $isActive = request()->routeIs(...($item['active'] ?? [$item['route']])); @endphp
-                        <a href="{{ route($item['route']) }}" wire:navigate
-                           class="flex items-center gap-2 px-2 py-1 rounded text-xs transition {{ $isActive ? 'bg-[color:var(--nx-accent)] text-[var(--nx-on-accent)]' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
-                            @svg($item['icon'], 'w-3.5 h-3.5 opacity-80 flex-shrink-0')
-                            <span class="truncate">{{ $item['label'] }}</span>
-                        </a>
-                    @endforeach
-                </nav>
-            </div>
-        @endforeach
-        <nav class="flex flex-col">
-            <button type="button" wire:click="createProject"
-                    class="flex items-center gap-2 px-2 py-1 rounded text-xs text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition text-left">
-                @svg('heroicon-o-plus-circle', 'w-3.5 h-3.5 opacity-80 flex-shrink-0')
-                <span class="truncate">Neues Projekt</span>
-            </button>
-        </nav>
-    </div>
-
-    {{-- Collapsed: Icons-only für Allgemein --}}
+    {{-- Eingeklappt: Einstieg ins Planner-Dashboard --}}
     <div x-show="collapsed" class="px-2 py-2 border-b border-[var(--nx-line)]">
-        <div class="flex flex-col gap-2">
-            <a href="{{ route('planner.dashboard') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.dashboard') ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)]' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
-                @svg('heroicon-o-home', 'w-5 h-5')
-            </a>
-            <a href="{{ route('planner.my-tasks') }}" wire:navigate title="Aufgaben" class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.my-tasks', 'planner.delegated-tasks', 'planner.completed-tasks') ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)]' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
-                @svg('heroicon-o-clipboard-document-check', 'w-5 h-5')
-            </a>
-            {{-- Steuerung --}}
-            <div class="my-0.5 border-t border-[var(--nx-line)] opacity-60"></div>
-            <a href="{{ route('planner.hygiene') }}" wire:navigate title="Pflege" class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.hygiene', 'planner.projects.cleanup') ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)]' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
-                @svg('heroicon-o-shield-check', 'w-5 h-5')
-            </a>
-            <a href="{{ route('planner.health-index') }}" wire:navigate title="Portfolio-Health" class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.health-index', 'planner.ops') ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)]' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
-                @svg('heroicon-o-heart', 'w-5 h-5')
-            </a>
-        </div>
-    </div>
-    <div x-show="collapsed" class="px-2 py-2 border-b border-[var(--nx-line)]">
-        <button type="button" wire:click="createProject" class="flex items-center justify-center p-2 rounded-md text-[var(--nx-text)] hover:bg-[var(--nx-bg)]">
-            @svg('heroicon-o-plus-circle', 'w-5 h-5')
-        </button>
+        <a href="{{ route('planner.dashboard') }}" wire:navigate title="Planner"
+           class="flex items-center justify-center p-2 rounded-md {{ request()->routeIs('planner.*') ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)]' : 'text-[var(--nx-text)] hover:bg-[var(--nx-bg)]' }}">
+            @svg('heroicon-o-home', 'w-5 h-5')
+        </a>
     </div>
 
     {{-- Abschnitt: Projekte (Entity-basierte Gruppierung) --}}

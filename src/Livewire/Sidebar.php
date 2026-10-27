@@ -5,7 +5,6 @@ namespace Platform\Planner\Livewire;
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Platform\Planner\Models\PlannerProject as Project;
-use Platform\Planner\Models\PlannerProjectSlot as ProjectSlot;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Enums\TaskLifecycleState;
 use Platform\Organization\Services\EntityAncestorService;
@@ -34,14 +33,6 @@ class Sidebar extends Component
     public function toggleShowAllProjects()
     {
         $this->showAllProjects = !$this->showAllProjects;
-    }
-
-    public function createProject()
-    {
-        [$project, $canvas] = app(\Platform\Planner\Services\ProjectCreationService::class)->createDefault(Auth::user());
-
-        // Projekt beginnt mit dem Kickoff im Canvas
-        return redirect()->route('planner.projects.canvas.show', [$project->id, $canvas->id]);
     }
 
     /**
