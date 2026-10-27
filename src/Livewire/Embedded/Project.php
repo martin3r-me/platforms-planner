@@ -147,7 +147,7 @@ class Project extends BaseProject
             'tasks' => $backlogTasks,
             'open_count' => $backlogTasks->count(),
             'open_points' => $backlogTasks->sum(
-                fn ($task) => $task->story_points instanceof \Platform\Planner\Enums\StoryPoints
+                fn ($task) => $task->story_points instanceof \Platform\Planner\Enums\TaskStoryPoints
                     ? $task->story_points->points()
                     : 1
             ),
@@ -175,7 +175,7 @@ class Project extends BaseProject
                     'tasks' => $tasks,
                     'open_count' => $tasks->count(),
                     'open_points' => $tasks->sum(
-                        fn ($task) => $task->story_points instanceof \Platform\Planner\Enums\StoryPoints
+                        fn ($task) => $task->story_points instanceof \Platform\Planner\Enums\TaskStoryPoints
                             ? $task->story_points->points()
                             : 1
                     ),

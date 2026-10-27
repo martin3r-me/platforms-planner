@@ -8,7 +8,7 @@ use Platform\Planner\Models\PlannerProjectCanvas;
 use Platform\Planner\Models\PlannerProjectSlot;
 use Platform\Planner\Models\PlannerTask;
 use Platform\Planner\Enums\TaskLifecycleState;
-use Platform\Planner\Enums\StoryPoints;
+use Platform\Planner\Enums\TaskStoryPoints as StoryPoints;
 
 class PublicProject extends Component
 {

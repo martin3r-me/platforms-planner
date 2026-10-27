@@ -79,7 +79,7 @@ class DelegatedTasks extends Component
             'isDueGroup' => true,
             'tasks' => $dueTasks,
             'open_count' => $dueTasks->count(),
-            'open_points' => $dueTasks->sum(fn ($task) => $task->story_points instanceof \App\Enums\StoryPoints ? $task->story_points->points() : 1),
+            'open_points' => $dueTasks->sum(fn ($task) => $task->story_points instanceof \Platform\Planner\Enums\TaskStoryPoints ? $task->story_points->points() : 1),
         ];
 
         // === 1. INBOX ===
@@ -97,7 +97,7 @@ class DelegatedTasks extends Component
             'isBacklog' => true,
             'tasks' => $inboxTasks,
             'open_count' => $inboxTasks->count(),
-            'open_points' => $inboxTasks->sum(fn ($task) => $task->story_points instanceof \App\Enums\StoryPoints ? $task->story_points->points() : 1),
+            'open_points' => $inboxTasks->sum(fn ($task) => $task->story_points instanceof \Platform\Planner\Enums\TaskStoryPoints ? $task->story_points->points() : 1),
         ];
 
         // === 2. GRUPPEN ===
@@ -118,7 +118,7 @@ class DelegatedTasks extends Component
             'isInbox' => false,
             'tasks' => $group->tasks, // Collection (kann leer sein)
             'open_count' => $group->tasks->count(),
-            'open_points' => $group->tasks->sum(fn ($task) => $task->story_points instanceof \App\Enums\StoryPoints ? $task->story_points->points() : 1),
+            'open_points' => $group->tasks->sum(fn ($task) => $task->story_points instanceof \Platform\Planner\Enums\TaskStoryPoints ? $task->story_points->points() : 1),
         ]);
 
         // === 3. ERLEDIGT ===
@@ -147,14 +147,14 @@ class DelegatedTasks extends Component
             ->whereDate('created_at', '>=', $startOfMonth)
             ->delegatedByMe($userId)
             ->get()
-            ->sum(fn ($task) => $task->story_points instanceof \App\Enums\StoryPoints ? $task->story_points->points() : 1);
+            ->sum(fn ($task) => $task->story_points instanceof \Platform\Planner\Enums\TaskStoryPoints ? $task->story_points->points() : 1);
 
         $donePoints = PlannerTask::query()
             ->withTrashed()
             ->whereDate('lifecycle_state_changed_at', '>=', $startOfMonth)
             ->delegatedByMe($userId)
             ->get()
-            ->sum(fn ($task) => $task->story_points instanceof \App\Enums\StoryPoints ? $task->story_points->points() : 1);
+            ->sum(fn ($task) => $task->story_points instanceof \Platform\Planner\Enums\TaskStoryPoints ? $task->story_points->points() : 1);
 
         $monthlyPerformanceScore = $createdPoints > 0 ? round($donePoints / $createdPoints, 2) : null;
 

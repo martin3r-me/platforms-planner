@@ -85,7 +85,7 @@ class MyTasks extends Component
             'isDueGroup' => true,
             'tasks' => $dueTasks,
             'open_count' => $dueTasks->count(),
-            'open_points' => $dueTasks->sum(fn ($task) => $task->story_points instanceof \App\Enums\StoryPoints ? $task->story_points->points() : 1),
+            'open_points' => $dueTasks->sum(fn ($task) => $task->story_points instanceof \Platform\Planner\Enums\TaskStoryPoints ? $task->story_points->points() : 1),
         ];
 
         // === 1. INBOX ===
@@ -103,7 +103,7 @@ class MyTasks extends Component
             'isBacklog' => true,
             'tasks' => $inboxTasks,
             'open_count' => $inboxTasks->count(),
-            'open_points' => $inboxTasks->sum(fn ($task) => $task->story_points instanceof \App\Enums\StoryPoints ? $task->story_points->points() : 1),
+            'open_points' => $inboxTasks->sum(fn ($task) => $task->story_points instanceof \Platform\Planner\Enums\TaskStoryPoints ? $task->story_points->points() : 1),
         ];
 
         // === 2. GRUPPEN ===
@@ -122,7 +122,7 @@ class MyTasks extends Component
             'isInbox' => false,
             'tasks' => $group->tasks,
             'open_count' => $group->tasks->count(),
-            'open_points' => $group->tasks->sum(fn ($task) => $task->story_points instanceof \App\Enums\StoryPoints ? $task->story_points->points() : 1),
+            'open_points' => $group->tasks->sum(fn ($task) => $task->story_points instanceof \Platform\Planner\Enums\TaskStoryPoints ? $task->story_points->points() : 1),
         ]);
 
         // === 3. ERLEDIGT ===
@@ -203,14 +203,14 @@ class MyTasks extends Component
             ->whereDate('created_at', '>=', $startOfMonth)
             ->forMyBoard($userId, 'sprint_slot_id')
             ->get()
-            ->sum(fn ($task) => $task->story_points instanceof \App\Enums\StoryPoints ? $task->story_points->points() : 1);
+            ->sum(fn ($task) => $task->story_points instanceof \Platform\Planner\Enums\TaskStoryPoints ? $task->story_points->points() : 1);
 
         $donePoints = PlannerTask::query()
             ->withTrashed()
             ->whereDate('lifecycle_state_changed_at', '>=', $startOfMonth)
             ->forMyBoard($userId, 'sprint_slot_id')
             ->get()
-            ->sum(fn ($task) => $task->story_points instanceof \App\Enums\StoryPoints ? $task->story_points->points() : 1);
+            ->sum(fn ($task) => $task->story_points instanceof \Platform\Planner\Enums\TaskStoryPoints ? $task->story_points->points() : 1);
 
         $monthlyPerformanceScore = $createdPoints > 0 ? round($donePoints / $createdPoints, 2) : null;
 

@@ -11,7 +11,7 @@ use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectSlot;
 use Platform\Planner\Enums\TaskLifecycleState;
 use Platform\Planner\Models\PlannerTask;
-use Platform\Planner\Enums\StoryPoints;
+use Platform\Planner\Enums\TaskStoryPoints as StoryPoints;
 use Platform\Planner\Livewire\Concerns\QuickTogglesDone;
 use Illuminate\Database\Eloquent\Collection;
 use Livewire\Attributes\On;
