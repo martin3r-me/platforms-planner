@@ -7,6 +7,7 @@ use Livewire\WithPagination;
 use Illuminate\Support\Facades\Auth;
 use Platform\Planner\Models\PlannerProject;
 use Platform\Planner\Models\PlannerProjectCanvas;
+use Platform\Planner\Services\ProjectCanvasService;
 use Platform\Planner\Services\ProjectCanvasStatusService;
 
 class Index extends Component
@@ -37,6 +38,15 @@ class Index extends Component
     {
         $this->statusFilter = $this->statusFilter === $status ? '' : $status;
         $this->resetPage();
+    }
+
+    public function createCanvas(ProjectCanvasService $service)
+    {
+        $this->authorize('update', $this->project);
+
+        $canvas = $service->createForProject($this->project, Auth::id());
+
+        return $this->redirect(route('planner.projects.canvas.show', [$this->project, $canvas]), navigate: true);
     }
 
     public function rendered(): void
@@ -78,10 +88,10 @@ class Index extends Component
         $baseQuery = PlannerProjectCanvas::forProject($this->project->id);
         $stats = [
             'total' => (clone $baseQuery)->count(),
-            'draft' => (clone $baseQuery)->byStatus('draft')->count(),
-            'active' => (clone $baseQuery)->byStatus('active')->count(),
-            'archived' => (clone $baseQuery)->byStatus('archived')->count(),
         ];
+        foreach (PlannerProjectCanvas::STATUSES as $status) {
+            $stats[$status] = (clone $baseQuery)->byStatus($status)->count();
+        }
 
         return view('planner::livewire.project-canvas.index', [
             'canvases' => $canvases,

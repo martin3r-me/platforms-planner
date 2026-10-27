@@ -6,9 +6,18 @@
 
     <x-slot name="actionbar">
         <x-ui-page-actionbar :breadcrumbs="[
-            ['label' => $project->name, 'href' => route('planner.projects.show', $project), 'icon' => 'folder'],
-            ['label' => 'Project Canvas', 'icon' => 'clipboard-document-list'],
-        ]" />
+            ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
+            ['label' => $project->name, 'href' => route('planner.projects.show', $project)],
+        ]">
+            <x-slot name="left">
+                @include('planner::livewire.partials.project-tabs', ['project' => $project, 'active' => 'canvas'])
+            </x-slot>
+            @can('update', $project)
+                <x-nx-button variant="primary" size="sm" wire:click="createCanvas">
+                    @svg('heroicon-o-plus', 'w-3.5 h-3.5') Canvas anlegen
+                </x-nx-button>
+            @endcan
+        </x-ui-page-actionbar>
     </x-slot>
 
     {{-- Main Content --}}
@@ -16,11 +25,11 @@
         <div class="space-y-6">
 
             {{-- Stats --}}
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <x-nx-stat label="Gesamt" :value="$stats['total']" hint="Canvases" icon="heroicon-o-clipboard-document-list" />
-                <x-nx-stat label="Entwurf" :value="$stats['draft']" hint="Draft" icon="heroicon-o-pencil-square" />
-                <x-nx-stat label="Aktiv" :value="$stats['active']" hint="In Bearbeitung" icon="heroicon-o-check-circle" />
-                <x-nx-stat label="Archiviert" :value="$stats['archived']" hint="Abgeschlossen" icon="heroicon-o-archive-box" />
+                @foreach(\Platform\Planner\Models\PlannerProjectCanvas::STATUSES as $st)
+                    <x-nx-stat :label="\Platform\Planner\Models\PlannerProjectCanvas::STATUS_LABELS[$st]" :value="$stats[$st] ?? 0" :icon="\Platform\Planner\Models\PlannerProjectCanvas::STATUS_ICONS[$st]" />
+                @endforeach
             </div>
 
             {{-- Canvas Table --}}
@@ -55,8 +64,8 @@
                                 @endif
                             </x-nx-table-cell>
                             <x-nx-table-cell compact="true">
-                                <x-nx-badge :variant="match($canvas->status) { 'active' => 'success', 'archived' => 'neutral', default => 'warning' }">
-                                    {{ ucfirst($canvas->status) }}
+                                <x-nx-badge :variant="match($canvas->status) { 'completed' => 'success', 'discarded' => 'neutral', default => 'info' }">
+                                    {{ \Platform\Planner\Models\PlannerProjectCanvas::STATUS_LABELS[$canvas->status] ?? $canvas->status }}
                                 </x-nx-badge>
                             </x-nx-table-cell>
                             <x-nx-table-cell compact="true">
@@ -84,7 +93,10 @@
                 <div class="p-12 text-center">
                     @svg('heroicon-o-clipboard-document-list', 'w-16 h-16 text-[var(--nx-muted)] mx-auto mb-4')
                     <h3 class="text-lg font-semibold text-[var(--nx-text)] mb-2">Noch keine Canvases</h3>
-                    <p class="text-[var(--nx-muted)]">Erstelle dein erstes Project Canvas per Chat.</p>
+                    <p class="text-[var(--nx-muted)] mb-4">Im Canvas steht der aktuelle Stand des Projekts: Ziel, Beteiligte, Nutzen, Risiken.</p>
+                    @can('update', $project)
+                        <x-nx-button variant="primary" wire:click="createCanvas">Canvas anlegen</x-nx-button>
+                    @endcan
                 </div>
             </x-nx-card>
             @endif
@@ -110,37 +122,23 @@
                     <h3 class="text-sm font-bold text-[var(--nx-text)] uppercase tracking-wider mb-3">Status</h3>
                     <div class="space-y-1">
                         <button wire:click="setStatusFilter('')"
-                            class="d-flex items-center justify-between w-full p-2 rounded-md text-xs transition-colors {{ $statusFilter === '' ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)] font-medium' : 'text-[var(--nx-muted)] hover:bg-[var(--nx-bg)] hover:text-[var(--nx-text)]' }}">
-                            <span class="d-flex items-center gap-2">
+                            class="flex items-center justify-between w-full p-2 rounded-md text-xs transition-colors {{ $statusFilter === '' ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)] font-medium' : 'text-[var(--nx-muted)] hover:bg-[var(--nx-bg)] hover:text-[var(--nx-text)]' }}">
+                            <span class="flex items-center gap-2">
                                 @svg('heroicon-o-clipboard-document-list', 'w-3.5 h-3.5')
                                 Alle
                             </span>
                             <span>{{ $stats['total'] }}</span>
                         </button>
-                        <button wire:click="setStatusFilter('draft')"
-                            class="d-flex items-center justify-between w-full p-2 rounded-md text-xs transition-colors {{ $statusFilter === 'draft' ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)] font-medium' : 'text-[var(--nx-muted)] hover:bg-[var(--nx-bg)] hover:text-[var(--nx-text)]' }}">
-                            <span class="d-flex items-center gap-2">
-                                @svg('heroicon-o-pencil-square', 'w-3.5 h-3.5')
-                                Entwurf
+                        @foreach(\Platform\Planner\Models\PlannerProjectCanvas::STATUSES as $st)
+                        <button wire:click="setStatusFilter('{{ $st }}')"
+                            class="flex items-center justify-between w-full p-2 rounded-md text-xs transition-colors {{ $statusFilter === $st ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)] font-medium' : 'text-[var(--nx-muted)] hover:bg-[var(--nx-bg)] hover:text-[var(--nx-text)]' }}">
+                            <span class="flex items-center gap-2">
+                                @svg(\Platform\Planner\Models\PlannerProjectCanvas::STATUS_ICONS[$st], 'w-3.5 h-3.5')
+                                {{ \Platform\Planner\Models\PlannerProjectCanvas::STATUS_LABELS[$st] }}
                             </span>
-                            <span>{{ $stats['draft'] }}</span>
+                            <span>{{ $stats[$st] ?? 0 }}</span>
                         </button>
-                        <button wire:click="setStatusFilter('active')"
-                            class="d-flex items-center justify-between w-full p-2 rounded-md text-xs transition-colors {{ $statusFilter === 'active' ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)] font-medium' : 'text-[var(--nx-muted)] hover:bg-[var(--nx-bg)] hover:text-[var(--nx-text)]' }}">
-                            <span class="d-flex items-center gap-2">
-                                @svg('heroicon-o-check-circle', 'w-3.5 h-3.5')
-                                Aktiv
-                            </span>
-                            <span>{{ $stats['active'] }}</span>
-                        </button>
-                        <button wire:click="setStatusFilter('archived')"
-                            class="d-flex items-center justify-between w-full p-2 rounded-md text-xs transition-colors {{ $statusFilter === 'archived' ? 'bg-[var(--nx-accent)]/10 text-[var(--nx-accent)] font-medium' : 'text-[var(--nx-muted)] hover:bg-[var(--nx-bg)] hover:text-[var(--nx-text)]' }}">
-                            <span class="d-flex items-center gap-2">
-                                @svg('heroicon-o-archive-box', 'w-3.5 h-3.5')
-                                Archiviert
-                            </span>
-                            <span>{{ $stats['archived'] }}</span>
-                        </button>
+                        @endforeach
                     </div>
                 </div>
             </div>

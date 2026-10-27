@@ -18,6 +18,18 @@ class ProjectCanvasService
         return $canvas->load('blocks');
     }
 
+    /** Standard-Canvas eines Projekts anlegen (Name/Status/Team aus dem Projekt). */
+    public function createForProject(\Platform\Planner\Models\PlannerProject $project, int $userId): PlannerProjectCanvas
+    {
+        return $this->createCanvas([
+            'project_id' => $project->id,
+            'team_id' => $project->team_id,
+            'name' => $project->name . ' — Canvas',
+            'status' => PlannerProjectCanvas::STATUS_OPEN,
+            'created_by_user_id' => $userId,
+        ]);
+    }
+
     /**
      * Create a snapshot of the current canvas state.
      */

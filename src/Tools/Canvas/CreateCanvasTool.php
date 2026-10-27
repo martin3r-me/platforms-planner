@@ -2,6 +2,7 @@
 
 namespace Platform\Planner\Tools\Canvas;
 
+use Platform\Planner\Models\PlannerProjectCanvas;
 use Platform\Core\Contracts\ToolContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolMetadataContract;
@@ -23,7 +24,7 @@ class CreateCanvasTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'POST /planner/canvases - Erstellt einen neuen Project Canvas (initialisiert automatisch 9 Building Blocks). ERFORDERLICH: project_id, name. Optional: description, status (default: draft).';
+        return 'POST /planner/canvases - Erstellt einen neuen Project Canvas (initialisiert automatisch 9 Building Blocks). ERFORDERLICH: project_id, name. Optional: description, status (open|completed|discarded, default: open).';
     }
 
     public function getSchema(): array
@@ -48,8 +49,8 @@ class CreateCanvasTool implements ToolContract, ToolMetadataContract
                 ],
                 'status' => [
                     'type' => 'string',
-                    'enum' => ['draft', 'active', 'archived'],
-                    'description' => 'Optional: Status (draft, active, archived). Default: draft.',
+                    'enum' => PlannerProjectCanvas::STATUSES,
+                    'description' => 'Optional: Status (open, completed, discarded). Default: open.',
                 ],
             ],
             'required' => ['project_id', 'name'],
@@ -89,7 +90,7 @@ class CreateCanvasTool implements ToolContract, ToolMetadataContract
                 'project_id' => $projectId,
                 'name' => $name,
                 'description' => $arguments['description'] ?? null,
-                'status' => $arguments['status'] ?? 'draft',
+                'status' => PlannerProjectCanvas::normalizeStatus($arguments['status'] ?? null),
                 'team_id' => $teamId,
                 'created_by_user_id' => $context->user->id,
             ]);

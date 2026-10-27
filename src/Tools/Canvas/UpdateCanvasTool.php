@@ -47,7 +47,7 @@ class UpdateCanvasTool implements ToolContract, ToolMetadataContract
                 ],
                 'status' => [
                     'type' => 'string',
-                    'enum' => ['draft', 'active', 'archived'],
+                    'enum' => PlannerProjectCanvas::STATUSES,
                     'description' => 'Optional: Neuer Status.',
                 ],
             ],

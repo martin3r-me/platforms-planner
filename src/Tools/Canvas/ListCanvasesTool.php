@@ -41,7 +41,7 @@ class ListCanvasesTool implements ToolContract, ToolMetadataContract
                     ],
                     'status' => [
                         'type' => 'string',
-                        'enum' => ['draft', 'active', 'archived'],
+                        'enum' => PlannerProjectCanvas::STATUSES,
                         'description' => 'Optional: Filter nach Status.',
                     ],
                 ],
@@ -70,7 +70,7 @@ class ListCanvasesTool implements ToolContract, ToolMetadataContract
                 ->where('project_id', $projectId);
 
             if (isset($arguments['status'])) {
-                $query->byStatus($arguments['status']);
+                $query->byStatus(PlannerProjectCanvas::normalizeStatus($arguments['status']));
             }
 
             $this->applyStandardFilters($query, $arguments, ['name', 'status', 'created_at', 'updated_at']);

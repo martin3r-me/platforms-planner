@@ -47,6 +47,20 @@ class PlannerProjectCanvas extends Model implements AgendaRenderable
         self::STATUS_DISCARDED => 'Verworfen',
     ];
 
+    /** Alt-Werte aus frueheren Tool-Schemas (draft/active/archived) → kanonischer Status. */
+    public const LEGACY_STATUS_MAP = [
+        'draft' => self::STATUS_OPEN,
+        'active' => self::STATUS_OPEN,
+        'archived' => self::STATUS_COMPLETED,
+    ];
+
+    public static function normalizeStatus(?string $status): string
+    {
+        $status = self::LEGACY_STATUS_MAP[$status] ?? $status;
+
+        return in_array($status, self::STATUSES, true) ? $status : self::STATUS_OPEN;
+    }
+
     public const STATUS_ICONS = [
         self::STATUS_OPEN => 'heroicon-o-pencil-square',
         self::STATUS_COMPLETED => 'heroicon-o-check-circle',
@@ -90,6 +104,10 @@ class PlannerProjectCanvas extends Model implements AgendaRenderable
                 } while (self::where('uuid', $uuid)->exists());
                 $model->uuid = $uuid;
             }
+        });
+
+        static::saving(function (self $model) {
+            $model->status = self::normalizeStatus($model->status);
         });
 
         // Soft-Delete Cascade: Entries mit-soft-deleten

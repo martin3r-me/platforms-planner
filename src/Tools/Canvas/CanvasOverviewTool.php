@@ -82,9 +82,9 @@ class CanvasOverviewTool implements ToolContract, ToolMetadataContract
                 'canvases' => $data,
                 'total' => count($data),
                 'by_status' => [
-                    'draft' => $canvases->where('status', 'draft')->count(),
-                    'active' => $canvases->where('status', 'active')->count(),
-                    'archived' => $canvases->where('status', 'archived')->count(),
+                    'open' => $canvases->where('status', PlannerProjectCanvas::STATUS_OPEN)->count(),
+                    'completed' => $canvases->where('status', PlannerProjectCanvas::STATUS_COMPLETED)->count(),
+                    'discarded' => $canvases->where('status', PlannerProjectCanvas::STATUS_DISCARDED)->count(),
                 ],
                 'team_id' => $teamId,
             ]);
