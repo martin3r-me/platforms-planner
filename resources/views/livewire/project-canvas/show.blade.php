@@ -6,9 +6,13 @@
 
     <x-slot name="actionbar">
         <x-ui-page-actionbar :breadcrumbs="[
-            ['label' => $project->name, 'href' => route('planner.projects.show', $project), 'icon' => 'folder'],
-            ['label' => $canvas->name, 'icon' => 'squares-2x2'],
+            ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
+            ['label' => $project->name, 'href' => route('planner.projects.show', $project)],
+            ['label' => $canvas->name, 'href' => route('planner.projects.canvas.index', $project)],
         ]">
+            <x-slot name="left">
+                @include('planner::livewire.partials.project-tabs', ['project' => $project, 'active' => 'canvas'])
+            </x-slot>
             <x-slot name="left">
                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-[color:var(--nx-accent)] text-[color:var(--nx-on-accent)]">
                     Project Canvas

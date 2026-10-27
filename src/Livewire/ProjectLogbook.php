@@ -34,6 +34,20 @@ class ProjectLogbook extends Component
         $this->authorize('view', $plannerProject);
         $this->project = $plannerProject;
         $this->resetForm();
+
+        // Einstieg aus Board/Sidebar: ?neu=decision|milestone|risk oeffnet das Formular,
+        // ?entwurf=1 erzeugt direkt einen Entwurf aus der Faktenlage.
+        if (! auth()->user()->can('update', $plannerProject)) {
+            return;
+        }
+        if (request()->boolean('entwurf')) {
+            $this->generateDraft(app(ProjectLogbookService::class));
+        } elseif ($neu = request()->query('neu')) {
+            $this->openForm();
+            if ($type = LogbookEntryType::tryFrom((string) $neu)) {
+                $this->form['type'] = $type->value;
+            }
+        }
     }
 
     public function openForm(?int $supersedesId = null): void

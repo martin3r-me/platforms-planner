@@ -184,6 +184,77 @@
         @endif
     </section>
 
+    {{-- ═══ 1b. VERLAUF — Logbuch: was wurde entschieden, erreicht, befürchtet? ═══ --}}
+    @php
+        $lb = $d['logbook'] ?? null;
+        $lbCanUpdate = auth()->user()?->can('update', $project);
+        $lbVariant = ['decision' => 'info', 'milestone' => 'success', 'risk' => 'warning'];
+        $lbNudge = $lb && $lbCanUpdate && $lb['stale'] && $lb['done_since'] > 0;
+    @endphp
+    @if($lb)
+    <section class="p-4 rounded-xl bg-[color:var(--nx-surface)] shadow-[var(--nx-shadow-card)] border border-[color:var(--nx-line)]">
+        <div class="flex items-center justify-between mb-2">
+            <div class="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)]">
+                @svg('heroicon-o-book-open', 'w-3 h-3')
+                <span>Verlauf</span>
+                @if($lb['days_since'] !== null)
+                    <span class="text-[var(--nx-line-strong)]">·</span>
+                    <span class="normal-case tracking-normal font-normal">{{ $lb['days_since'] === 0 ? 'heute' : 'vor ' . $lb['days_since'] . ' Tg.' }}</span>
+                @endif
+            </div>
+            <a href="{{ $lb['url'] }}" wire:navigate class="text-[10px] inline-flex items-center gap-0.5 text-[var(--nx-accent)] hover:underline">
+                Logbuch öffnen
+                @svg('heroicon-o-arrow-right', 'w-3 h-3')
+            </a>
+        </div>
+
+        {{-- Ruhe-Hinweis: es ist etwas passiert, aber nichts festgehalten --}}
+        @if($lbNudge)
+            <a href="{{ $lb['url'] }}?entwurf=1" wire:navigate
+               class="flex items-start gap-2 p-2.5 mb-2 rounded-md text-[11px] bg-[var(--nx-warning)]/10 hover:bg-[var(--nx-warning)]/15 transition-colors">
+                @svg('heroicon-o-sparkles', 'w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-[var(--nx-warning)]')
+                <span class="text-[var(--nx-text)]">
+                    {{ $lb['days_since'] === null ? 'Noch kein Eintrag' : 'Seit ' . $lb['days_since'] . ' Tagen kein Eintrag' }} —
+                    {{ $lb['done_since'] }} {{ $lb['done_since'] === 1 ? 'Aufgabe' : 'Aufgaben' }} erledigt.
+                    <span class="font-medium underline">Entwurf erzeugen</span>
+                </span>
+            </a>
+        @endif
+
+        @if($lb['recent']->isNotEmpty())
+            <ol class="space-y-1">
+                @foreach($lb['recent'] as $entry)
+                    <li>
+                        <a href="{{ $lb['url'] }}#eintrag-{{ $entry->id }}"
+                           class="flex items-start gap-2 p-1.5 -mx-1.5 rounded-md hover:bg-[var(--nx-bg)] transition-colors group/lb">
+                            <x-nx-badge :variant="$lbVariant[$entry->type->value] ?? 'neutral'" class="flex-shrink-0 !px-1.5" title="{{ $entry->type->label() }}">
+                                @svg($entry->type->icon(), 'w-3 h-3')
+                            </x-nx-badge>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-[11px] font-medium text-[var(--nx-text)] truncate group-hover/lb:text-[var(--nx-accent)]">{{ $entry->title }}</div>
+                                <div class="text-[9px] text-[var(--nx-muted)]">{{ $entry->type->label() }} · {{ $entry->occurred_on->format('d.m.Y') }}</div>
+                            </div>
+                        </a>
+                    </li>
+                @endforeach
+            </ol>
+        @elseif(! $lbNudge)
+            <p class="text-[12px] text-[var(--nx-muted)] m-0">Hier steht, was entschieden, erreicht oder befürchtet wurde — mit dem Warum. Das Canvas zeigt den Stand, das Logbuch den Weg dorthin.</p>
+        @endif
+
+        @if($lbCanUpdate)
+            <div class="flex flex-wrap gap-1 mt-2.5 pt-2.5 border-t border-[color:var(--nx-line)]">
+                @foreach(\Platform\Planner\Enums\LogbookEntryType::cases() as $type)
+                    <a href="{{ $lb['url'] }}?neu={{ $type->value }}" wire:navigate
+                       class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-[color:var(--nx-line)] text-[10px] text-[var(--nx-muted)] hover:text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition-colors">
+                        @svg('heroicon-o-plus', 'w-2.5 h-2.5') {{ $type->label() }}
+                    </a>
+                @endforeach
+            </div>
+        @endif
+    </section>
+    @endif
+
     {{-- ═══ 2. WIE WEIT? — Vital Signs kompakt ═══ --}}
     <section class="p-4 rounded-xl bg-[color:var(--nx-surface)] shadow-[var(--nx-shadow-card)] border border-[color:var(--nx-line)]">
         <div class="flex items-baseline justify-between mb-3">
@@ -302,21 +373,44 @@
         </div>
     </section>
 
-    {{-- ═══ 3. RISIKEN ═══ --}}
+    {{-- ═══ 3. RISIKEN — festgehaltene Risiken (Logbuch) + überfällige Aufgaben ═══ --}}
+    @php
+        $lbRisks = $d['logbook']['risks'] ?? collect();
+        $riskTotal = $overdueCount + $lbRisks->count();
+    @endphp
     <section class="p-4 rounded-xl bg-[color:var(--nx-surface)] shadow-[var(--nx-shadow-card)] border border-[color:var(--nx-line)]">
         <div class="flex items-center justify-between mb-3">
             <h2 class="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--nx-text)] m-0">
-                @if($overdueCount > 0)
+                @if($riskTotal > 0)
                     @svg('heroicon-o-exclamation-triangle', 'w-3.5 h-3.5 text-[var(--nx-danger)]')
                 @else
                     @svg('heroicon-o-check-circle', 'w-3.5 h-3.5 text-[var(--nx-success)]')
                 @endif
                 Risiken
             </h2>
-            @if($overdueCount > 0)
-                <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold rounded bg-[var(--nx-danger)]/10 text-[var(--nx-danger)]">{{ $overdueCount }}</span>
+            @if($riskTotal > 0)
+                <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold rounded bg-[var(--nx-danger)]/10 text-[var(--nx-danger)]">{{ $riskTotal }}</span>
             @endif
         </div>
+
+        @if($lbRisks->isNotEmpty())
+            <ul class="space-y-1.5 {{ $d['overdue_tasks']->isNotEmpty() ? 'mb-3 pb-3 border-b border-[color:var(--nx-line)]' : '' }}">
+                @foreach($lbRisks as $risk)
+                    <li>
+                        <a href="{{ $d['logbook']['url'] }}#eintrag-{{ $risk->id }}"
+                           class="flex items-start gap-2 p-1.5 -mx-1.5 rounded-md hover:bg-[var(--nx-bg)] transition-colors group/risk">
+                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-full flex-shrink-0 bg-[var(--nx-warning)]/10 text-[var(--nx-warning)]">
+                                @svg('heroicon-o-exclamation-triangle', 'w-3.5 h-3.5')
+                            </span>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-[11px] font-medium text-[var(--nx-text)] truncate group-hover/risk:text-[var(--nx-accent)]">{{ $risk->title }}</div>
+                                <div class="text-[9px] text-[var(--nx-muted)] truncate">Logbuch · {{ $risk->occurred_on->format('d.m.') }}@if($risk->rationale) · {{ \Illuminate\Support\Str::limit($risk->rationale, 60) }}@endif</div>
+                            </div>
+                        </a>
+                    </li>
+                @endforeach
+            </ul>
+        @endif
 
         @if($d['overdue_tasks']->isNotEmpty())
             <ul class="space-y-1.5">
@@ -351,7 +445,7 @@
             @if($overdueCount > 6)
                 <p class="text-[10px] text-[var(--nx-muted)] mt-1.5">+ {{ $overdueCount - 6 }} weitere</p>
             @endif
-        @else
+        @elseif($lbRisks->isEmpty())
             <div class="text-center py-4 text-[var(--nx-muted)] text-[11px]">
                 @svg('heroicon-o-check-circle', 'w-6 h-6 mx-auto mb-1 opacity-30 text-[var(--nx-success)]')
                 Alles unter Kontrolle

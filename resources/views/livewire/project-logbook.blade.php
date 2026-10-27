@@ -32,8 +32,10 @@
         <x-ui-page-actionbar :breadcrumbs="[
             ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
             ['label' => $project->title, 'href' => route('planner.projects.show', $project)],
-            ['label' => 'Logbuch'],
         ]">
+            <x-slot name="left">
+                @include('planner::livewire.partials.project-tabs', ['project' => $project, 'active' => 'logbook'])
+            </x-slot>
             @if($canUpdate)
                 <x-nx-button variant="secondary" size="sm" wire:click="generateDraft" wire:loading.attr="disabled" wire:target="generateDraft" title="Faktenprosa seit dem letzten Eintrag als Ausgangspunkt">
                     <span wire:loading.remove wire:target="generateDraft" class="inline-flex items-center gap-1.5">@svg('heroicon-o-sparkles', 'w-3.5 h-3.5') Entwurf</span>
@@ -204,7 +206,7 @@
                     <ol class="relative border-l border-[color:var(--nx-line)] ml-2 space-y-3">
                         @foreach($monthEntries as $entry)
                             @php $superseded = $entry->supersededBy !== null; @endphp
-                            <li class="ml-4 {{ $superseded ? 'opacity-50' : '' }}">
+                            <li id="eintrag-{{ $entry->id }}" wire:key="logbook-entry-{{ $entry->id }}" class="ml-4 scroll-mt-6 [&:target>div]:ring-2 [&:target>div]:ring-[color:var(--nx-accent)] {{ $superseded ? 'opacity-50' : '' }}">
                                 <span class="absolute -left-[7px] mt-3 w-3 h-3 rounded-full border-2 border-[color:var(--nx-surface)] bg-[color:var(--nx-line-strong)]"></span>
                                 <div class="rounded-lg border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] p-3 space-y-2">
                                     <div class="flex items-start justify-between gap-3">

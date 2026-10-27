@@ -60,8 +60,10 @@
         <x-ui-page-actionbar :breadcrumbs="[
             ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
             ['label' => $project->title, 'href' => route('planner.projects.show', $project)],
-            ['label' => 'Health'],
         ]">
+            <x-slot name="left">
+                @include('planner::livewire.partials.project-tabs', ['project' => $project, 'active' => 'health'])
+            </x-slot>
             @if($latest)
                 {{-- Health-Zustand als EIN Badge rechts (Projekt-Standard), health-getönt --}}
                 <x-nx-badge :variant="$healthVariant" title="Health {{ $latest->health_score ?? '–' }} · {{ $latest->health_color ?? 'unbekannt' }} · Confidence {{ $latest->confidence_score }}%">

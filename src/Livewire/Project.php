@@ -287,6 +287,38 @@ class Project extends Component
 
         $activities = $this->project->activities()->with('user')->latest()->limit(10)->get();
 
+        // === LOGBUCH (Verlauf) — juengste Eintraege, offene Risiken, Ruhe-Hinweis ===
+        $logbookRecent = \Platform\Planner\Models\PlannerProjectLogbookEntry::forProject($this->project->id)
+            ->current()
+            ->orderByDesc('occurred_on')
+            ->orderByDesc('id')
+            ->limit(3)
+            ->get(['id', 'project_id', 'type', 'title', 'occurred_on']);
+        $logbookRisks = \Platform\Planner\Models\PlannerProjectLogbookEntry::forProject($this->project->id)
+            ->current()
+            ->where('type', \Platform\Planner\Enums\LogbookEntryType::RISK->value)
+            ->orderByDesc('occurred_on')
+            ->orderByDesc('id')
+            ->limit(5)
+            ->get(['id', 'project_id', 'type', 'title', 'rationale', 'occurred_on']);
+        $logbookLastAt = \Platform\Planner\Models\PlannerProjectLogbookEntry::forProject($this->project->id)->max('created_at');
+        $logbookSince = app(\Platform\Planner\Services\ProjectLogbookService::class)->defaultDraftSince($this->project);
+        $logbookDaysSince = $logbookLastAt
+            ? (int) \Illuminate\Support\Carbon::parse($logbookLastAt)->startOfDay()->diffInDays(now()->startOfDay())
+            : null;
+        $logbookData = [
+            'recent' => $logbookRecent,
+            'risks' => $logbookRisks,
+            'days_since' => $logbookDaysSince,
+            'stale' => $logbookDaysSince === null || $logbookDaysSince >= \Platform\Planner\Support\ProjectNavSummary::LOGBOOK_STALE_DAYS,
+            // Was seit dem letzten Eintrag passiert ist — Anlass fuer einen Entwurf
+            'done_since' => PlannerTask::where('project_id', $this->project->id)
+                ->where('lifecycle_state', TaskLifecycleState::COMPLETED->value)
+                ->where('lifecycle_state_changed_at', '>=', $logbookSince)
+                ->count(),
+            'url' => route('planner.projects.logbook', $this->project),
+        ];
+
         $dashboardData = [
             'planned_hours'  => $this->project->totalPlannedHours(),
             'logged_minutes' => $this->project->totalLoggedMinutes(),
@@ -313,6 +345,8 @@ class Project extends Component
             'canvas_briefing' => $canvasBriefing,
             'team_members' => $teamMembers,
             'activities' => $activities,
+            'logbook' => $logbookData,
+            'logbook' => $logbookData,
         ];
 
         // === BOARD ===
@@ -453,9 +487,6 @@ class Project extends Component
             'availableFilterColors' => $availableFilterColors,
             'canvasInfo' => $canvasInfo,
             'dashboardData' => $dashboardData,
-            'latestSnapshot' => \Platform\Planner\Models\PlannerProjectSnapshot::where('project_id', $this->project->id)
-                ->orderByDesc('taken_on')
-                ->first(),
         ])->layout('platform::layouts.app');
     }
 
@@ -493,13 +524,7 @@ class Project extends Component
         if (!$canvas) {
             $this->authorize('update', $this->project);
 
-            $canvas = app(ProjectCanvasService::class)->createCanvas([
-                'project_id' => $this->project->id,
-                'team_id' => $this->project->team_id,
-                'name' => $this->project->name . ' — Canvas',
-                'status' => 'active',
-                'created_by_user_id' => Auth::id(),
-            ]);
+            $canvas = app(ProjectCanvasService::class)->createForProject($this->project, Auth::id());
         }
 
         return $this->redirect(

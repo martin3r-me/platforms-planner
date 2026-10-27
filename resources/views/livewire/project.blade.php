@@ -31,18 +31,13 @@
             ['label' => 'Dashboard', 'href' => route('planner.dashboard'), 'icon' => 'home'],
             ['label' => $project->title],
         ]">
-            {{-- Kennzahlen (offen/überfällig/erledigt) + Health-Index in EINEM
-                 klickbaren Badge; Ton = Health-Status, Zahlen mit semantischem Punkt --}}
-            @php
-                $healthVariant = match($latestSnapshot?->health_color ?? 'gray') {
-                    'green' => 'success', 'yellow' => 'warning', 'red' => 'danger', default => 'neutral',
-                };
-                $hScore = $latestSnapshot?->health_score;
-                $hDelta = $latestSnapshot?->delta_health_score;
-                $hTrend = ($hDelta === null || $hDelta === 0) ? null : ($hDelta > 0 ? '↑' : '↓');
-            @endphp
-            <x-nx-badge :variant="$healthVariant" :href="route('planner.projects.health', $project)"
-                title="offen {{ $headerOpenCount }} · überfällig {{ $headerOverdueCount }} · erledigt {{ $headerDoneCount }}{{ $hScore !== null ? ' · Health ' . $hScore : '' }}">
+            <x-slot name="left">
+                @include('planner::livewire.partials.project-tabs', ['project' => $project, 'active' => 'board'])
+            </x-slot>
+
+            {{-- Kennzahlen (offen/überfällig/erledigt); Health steht im Reiter --}}
+            <x-nx-badge variant="neutral"
+                title="offen {{ $headerOpenCount }} · überfällig {{ $headerOverdueCount }} · erledigt {{ $headerDoneCount }}">
                 <span class="inline-flex items-center gap-1 text-[color:var(--nx-text)]">
                     <span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-info)]"></span>
                     <span class="tabular-nums">{{ $headerOpenCount }}</span>
@@ -56,12 +51,6 @@
                 <span class="inline-flex items-center gap-1 text-[color:var(--nx-text)]">
                     <span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-success)]"></span>
                     <span class="tabular-nums">{{ $headerDoneCount }}</span>
-                </span>
-                <span class="opacity-30" aria-hidden="true">·</span>
-                <span class="inline-flex items-center gap-1">
-                    <span class="h-1.5 w-1.5 rounded-full" style="background: currentColor"></span>
-                    <span class="tabular-nums">{{ $hScore ?? 'Health' }}</span>
-                    @if($hTrend)<span class="tabular-nums opacity-80">{{ $hTrend }}{{ abs($hDelta) }}</span>@endif
                 </span>
             </x-nx-badge>
 
@@ -103,15 +92,6 @@
                             <span>Neue Spalte</span>
                         </button>
                     @endcan
-                    <button
-                        type="button"
-                        wire:click="openCanvas"
-                        @click="open = false"
-                        class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition-colors"
-                    >
-                        @svg('heroicon-o-squares-2x2', 'w-4 h-4 text-[var(--nx-muted)]')
-                        <span>Project Canvas</span>
-                    </button>
                     @if($this->hasPlannerCaldavSubscription())
                         <button
                             type="button"
@@ -124,24 +104,6 @@
                             <span>{{ $this->caldavExposed() ? 'In App ✓' : 'In App zeigen' }}</span>
                         </button>
                     @endif
-                    <a
-                        href="{{ route('planner.projects.health', $project) }}"
-                        wire:navigate
-                        @click="open = false"
-                        class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition-colors"
-                    >
-                        @svg('heroicon-o-heart', 'w-4 h-4 text-[var(--nx-muted)]')
-                        <span>Health-Sicht</span>
-                    </a>
-                    <a
-                        href="{{ route('planner.projects.logbook', $project) }}"
-                        wire:navigate
-                        @click="open = false"
-                        class="w-full inline-flex items-center gap-2 px-3 py-1.5 text-xs text-left text-[var(--nx-text)] hover:bg-[var(--nx-bg)] transition-colors"
-                    >
-                        @svg('heroicon-o-book-open', 'w-4 h-4 text-[var(--nx-muted)]')
-                        <span>Logbuch</span>
-                    </a>
                     @can('settings', $project)
                         <div class="border-t border-[color:var(--nx-line)] my-1"></div>
                         <button
