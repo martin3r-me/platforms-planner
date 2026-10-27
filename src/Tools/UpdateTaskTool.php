@@ -3,6 +3,7 @@
 namespace Platform\Planner\Tools;
 
 use Platform\Core\Contracts\ToolContract;
+use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Tools\Concerns\HasStandardizedWriteOperations;
@@ -21,7 +22,7 @@ use Illuminate\Auth\Access\AuthorizationException;
  * 
  * Unterstützt auch das Verschieben von Aufgaben zwischen Slots oder Projekten.
  */
-class UpdateTaskTool implements ToolContract
+class UpdateTaskTool implements ToolContract, ToolMetadataContract
 {
     use HasStandardizedWriteOperations;
     public function getName(): string
@@ -31,7 +32,9 @@ class UpdateTaskTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'PUT /tasks/{id} - Aktualisiert eine bestehende Aufgabe. Tool-Parameter: task_id (required). dod_items_update (optional, object) - Granulare DoD-Updates: toggle (Array von Indizes zum Umschalten), set_checked (Array von {index, checked}), add (Array von {text, checked}), remove (Array von Indizes), update_text (Array von {index, text}). dod_items (optional, array) - Komplette DoD als Array von {text, checked} (überschreibt alle). title, description, due_date, project_id, project_slot_id, user_in_charge_id, is_done sind weitere optionale Parameter.';
+        return 'Aktualisiert eine Aufgabe. Pflicht: task_id. Optional: title, description, due_date (null leert), project_id, project_slot_id, user_in_charge_id, story_points, '
+            . 'lifecycle_state (aktiv/erledigt/verworfen), Definition of Done über dod_items (ersetzt alle) oder dod_items_update (toggle/set_checked/add/remove/update_text). '
+            . 'Ist die erledigte Aufgabe ein Meilenstein oder steckt eine Entscheidung dahinter → zusätzlich planner.project.logbook.POST.';
     }
 
     public function getSchema(): array
@@ -153,9 +156,14 @@ class UpdateTaskTool implements ToolContract
                     'description' => 'Alias für story_points.',
                     'enum' => ['xs', 's', 'm', 'l', 'xl', 'xxl']
                 ],
+                'lifecycle_state' => [
+                    'type' => 'string',
+                    'enum' => ['aktiv', 'erledigt', 'verworfen'],
+                    'description' => 'Optional: erledigt = abgeschlossen, verworfen = ohne Ergebnis beendet (endgültig), aktiv = erledigte Aufgabe wieder öffnen.'
+                ],
                 'is_done' => [
                     'type' => 'boolean',
-                    'description' => 'Optional: Aufgabe als erledigt markieren. Frage nach, wenn der Nutzer die Aufgabe abschließen möchte.'
+                    'description' => 'Veraltet — nutze lifecycle_state.'
                 ]
             ],
             'required' => ['task_id']
@@ -175,21 +183,15 @@ class UpdateTaskTool implements ToolContract
                 $arguments['story_points'] = $arguments['storyPoints'];
             }
 
-            // Nutze standardisierte ID-Validierung (loose coupled - optional)
-            $validation = $this->validateAndFindModel(
-                $arguments,
-                $context,
-                'task_id',
-                PlannerTask::class,
-                'TASK_NOT_FOUND',
-                'Die angegebene Aufgabe wurde nicht gefunden.'
-            );
-            
-            if ($validation['error']) {
-                return $validation['error'];
+            // Lookup inkl. lange nicht angesehener Aufgaben (Staleness-Scope)
+            $taskId = (int) ($arguments['task_id'] ?? 0);
+            if ($taskId <= 0) {
+                return ToolResult::error('VALIDATION_ERROR', 'task_id ist erforderlich. Nutze planner.tasks.GET um Aufgaben zu finden.');
             }
-            
-            $task = $validation['model'];
+            $task = PlannerTask::withStale()->find($taskId);
+            if (! $task) {
+                return ToolResult::error('TASK_NOT_FOUND', 'Die angegebene Aufgabe wurde nicht gefunden.');
+            }
             
             // Policy wie UI (Task::mount + Editing Aktionen nutzen authorize('update', $task))
             try {
@@ -339,7 +341,7 @@ class UpdateTaskTool implements ToolContract
             }
 
             // Fälligkeitsdatum
-            if (isset($arguments['due_date'])) {
+            if (array_key_exists('due_date', $arguments)) {
                 $rawDueDate = $arguments['due_date'];
                 if (is_string($rawDueDate)) {
                     $rawDueDate = trim($rawDueDate);
@@ -507,12 +509,17 @@ class UpdateTaskTool implements ToolContract
                 }
             }
 
-            // is_done bleibt als Legacy-Parameter unterstuetzt, wird aber
-            // durch den LifecycleService in eine echte Zustandstransition
-            // uebersetzt. Verworfene Tasks werden dabei ignoriert.
-            $lifecycleFlip = null;
-            if (isset($arguments['is_done'])) {
-                $lifecycleFlip = (bool) $arguments['is_done'];
+            // Lebenszyklus: lifecycle_state (is_done bleibt als Alt-Alias)
+            $targetLifecycle = null;
+            if (isset($arguments['lifecycle_state'])) {
+                $targetLifecycle = \Platform\Planner\Enums\TaskLifecycleState::tryFrom((string) $arguments['lifecycle_state']);
+                if (! $targetLifecycle) {
+                    return ToolResult::error('VALIDATION_ERROR', 'lifecycle_state muss aktiv, erledigt oder verworfen sein.');
+                }
+            } elseif (isset($arguments['is_done'])) {
+                $targetLifecycle = $arguments['is_done']
+                    ? \Platform\Planner\Enums\TaskLifecycleState::COMPLETED
+                    : \Platform\Planner\Enums\TaskLifecycleState::ACTIVE;
             }
 
             // Task aktualisieren
@@ -540,17 +547,11 @@ class UpdateTaskTool implements ToolContract
 
             // Lifecycle flip AFTER other updates so the transition is the
             // last event on the task (correct changed_at, correct reason).
-            if ($lifecycleFlip !== null) {
+            if ($targetLifecycle !== null) {
                 try {
-                    $lifecycle = app(\Platform\Planner\Services\LifecycleService::class);
-                    if ($lifecycleFlip) {
-                        $lifecycle->completeTask($task);
-                    } elseif ($task->lifecycle_state === \Platform\Planner\Enums\TaskLifecycleState::COMPLETED) {
-                        $lifecycle->reopenTask($task);
-                    }
-                } catch (\Platform\Planner\Exceptions\InvalidLifecycleTransitionException) {
-                    // Discarded task requested to flip: refuse silently, same
-                    // as the UI trait.
+                    app(\Platform\Planner\Services\LifecycleService::class)->transitionTaskTo($task, $targetLifecycle);
+                } catch (\Platform\Planner\Exceptions\InvalidLifecycleTransitionException $e) {
+                    return ToolResult::error('INVALID_TRANSITION', 'Lebenszyklus-Wechsel nicht möglich (verworfene Aufgaben sind endgültig): ' . $e->getMessage() . ' Übrige Änderungen wurden gespeichert.');
                 }
             }
 
@@ -618,5 +619,17 @@ class UpdateTaskTool implements ToolContract
             return ToolResult::error('EXECUTION_ERROR', 'Fehler beim Aktualisieren der Aufgabe: ' . $e->getMessage());
         }
     }
-}
 
+    public function getMetadata(): array
+    {
+        return [
+            'category' => 'action',
+            'tags' => ['planner', 'tasks', 'put'],
+            'read_only' => false,
+            'requires_auth' => true,
+            'requires_team' => false,
+            'risk_level' => 'write',
+            'idempotent' => true,
+        ];
+    }
+}

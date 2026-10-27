@@ -3,6 +3,7 @@
 namespace Platform\Planner\Tools;
 
 use Platform\Core\Contracts\ToolContract;
+use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Tools\Concerns\HasStandardGetOperations;
@@ -14,7 +15,7 @@ use Illuminate\Support\Facades\Gate;
  * Tool zum Auflisten/Finden wiederkehrender Aufgaben-Vorlagen (PlannerRecurringTask).
  * Für eine einzelne Vorlage: filters mit field="id", op="eq", value=<id>.
  */
-class ListRecurringTasksTool implements ToolContract
+class ListRecurringTasksTool implements ToolContract, ToolMetadataContract
 {
     use HasStandardGetOperations;
 
@@ -25,7 +26,7 @@ class ListRecurringTasksTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'GET /recurring-tasks - Listet wiederkehrende Aufgaben-Vorlagen auf. Filter: project_id, user_in_charge_id (Default: aktueller User), is_active, filters (z.B. field="id" für Einzel-Abruf), search, sort, limit/offset.';
+        return 'Listet wiederkehrende Aufgaben-Vorlagen auf. Filter: project_id, user_in_charge_id (Default: aktueller User), is_active, filters (z.B. field="id" für Einzel-Abruf), search, sort, limit/offset.';
     }
 
     public function getSchema(): array
@@ -158,5 +159,18 @@ class ListRecurringTasksTool implements ToolContract
             }
         }
         return false;
+    }
+
+    public function getMetadata(): array
+    {
+        return [
+            'category' => 'query',
+            'tags' => ['planner', 'recurring', 'tasks', 'get'],
+            'read_only' => true,
+            'requires_auth' => true,
+            'requires_team' => false,
+            'risk_level' => 'safe',
+            'idempotent' => true,
+        ];
     }
 }

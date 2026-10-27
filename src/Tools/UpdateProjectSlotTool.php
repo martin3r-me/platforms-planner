@@ -3,6 +3,7 @@
 namespace Platform\Planner\Tools;
 
 use Platform\Core\Contracts\ToolContract;
+use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Tools\Concerns\HasStandardizedWriteOperations;
@@ -14,7 +15,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 /**
  * Tool zum Bearbeiten von Projekt-Slots
  */
-class UpdateProjectSlotTool implements ToolContract
+class UpdateProjectSlotTool implements ToolContract, ToolMetadataContract
 {
     use HasStandardizedWriteOperations;
     public function getName(): string
@@ -24,7 +25,7 @@ class UpdateProjectSlotTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'PUT /project_slots/{id} - Aktualisiert einen bestehenden Slot. REST-Parameter: id (required, integer) - Slot-ID. name (optional, string) - Name. order (optional, integer) - Reihenfolge.';
+        return 'Aktualisiert einen bestehenden Slot. Parameter: slot_id (required, integer) - Slot-ID. name (optional, string) - Name. order (optional, integer) - Reihenfolge.';
     }
 
     public function getSchema(): array
@@ -116,5 +117,17 @@ class UpdateProjectSlotTool implements ToolContract
             return ToolResult::error('EXECUTION_ERROR', 'Fehler beim Aktualisieren des Slots: ' . $e->getMessage());
         }
     }
-}
 
+    public function getMetadata(): array
+    {
+        return [
+            'category' => 'action',
+            'tags' => ['planner', 'project', 'slots', 'put'],
+            'read_only' => false,
+            'requires_auth' => true,
+            'requires_team' => false,
+            'risk_level' => 'write',
+            'idempotent' => true,
+        ];
+    }
+}

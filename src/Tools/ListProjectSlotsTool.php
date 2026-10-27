@@ -3,6 +3,7 @@
 namespace Platform\Planner\Tools;
 
 use Platform\Core\Contracts\ToolContract;
+use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Tools\Concerns\HasStandardGetOperations;
@@ -18,7 +19,7 @@ use Illuminate\Auth\Access\AuthorizationException;
  * 
  * Ermöglicht es der AI, alle Slots eines Projekts zu sehen.
  */
-class ListProjectSlotsTool implements ToolContract
+class ListProjectSlotsTool implements ToolContract, ToolMetadataContract
 {
     use HasStandardGetOperations;
     public function getName(): string
@@ -28,7 +29,7 @@ class ListProjectSlotsTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'GET /project_slots?project_id={id}&filters=[...]&search=...&sort=[...] - Listet Slots eines Projekts auf, inklusive Backlog-Aufgaben. REST-Parameter: project_id (required, integer) - ID des Projekts. filters (optional, array) - Filter-Array mit field, op, value. search (optional, string) - Suchbegriff. sort (optional, array) - Sortierung mit field, dir. limit/offset (optional) - Pagination. Zeigt: 1) Alle Slots mit Aufgaben, 2) Backlog-Aufgaben (ohne Slot).';
+        return 'Listet Slots eines Projekts auf, inklusive Backlog-Aufgaben. Parameter: project_id (required, integer) - ID des Projekts. filters (optional, array) - Filter-Array mit field, op, value. search (optional, string) - Suchbegriff. sort (optional, array) - Sortierung mit field, dir. limit/offset (optional) - Pagination. Zeigt: 1) Alle Slots mit Aufgaben, 2) Backlog-Aufgaben (ohne Slot).';
     }
 
     public function getSchema(): array
@@ -174,5 +175,17 @@ class ListProjectSlotsTool implements ToolContract
             return ToolResult::error('EXECUTION_ERROR', 'Fehler beim Laden der Slots: ' . $e->getMessage());
         }
     }
-}
 
+    public function getMetadata(): array
+    {
+        return [
+            'category' => 'query',
+            'tags' => ['planner', 'project', 'slots', 'get'],
+            'read_only' => true,
+            'requires_auth' => true,
+            'requires_team' => false,
+            'risk_level' => 'safe',
+            'idempotent' => true,
+        ];
+    }
+}

@@ -7,11 +7,11 @@ use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Planner\Models\PlannerProjectCanvas;
-use Platform\Planner\Tools\Canvas\Concerns\ResolvesCanvasTeam;
+use Platform\Planner\Tools\Canvas\Concerns\ResolvesProjectCanvas;
 
 class GetCanvasTool implements ToolContract, ToolMetadataContract
 {
-    use ResolvesCanvasTeam;
+    use ResolvesProjectCanvas;
 
     public function getName(): string
     {
@@ -20,7 +20,9 @@ class GetCanvasTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'GET /planner/canvas/{id} - Ruft einen einzelnen Project Canvas mit allen Building Blocks und Entries ab. ERFORDERLICH: canvas_id.';
+        return 'Liest das Projekt-Canvas: Kickoff und aktueller Zustand des Projekts (Ziel, Beteiligte, Nutzen, Rahmen, Risiken …) mit allen Blöcken, Einträgen und Leitfragen. '
+            . 'Jedes Projekt hat genau ein Canvas → project_id genügt. Enthält Kickoff-Status und Versionsstand. '
+            . 'Zustand = Canvas (wird überschrieben, Versionen automatisch); Verlauf/Begründungen = planner.project.logbook.*; Arbeit = planner.tasks.*.';
     }
 
     public function getSchema(): array
@@ -28,41 +30,20 @@ class GetCanvasTool implements ToolContract, ToolMetadataContract
         return [
             'type' => 'object',
             'properties' => [
-                'team_id' => [
-                    'type' => 'integer',
-                    'description' => 'Optional: Team-ID. Default: aktuelles Team aus Kontext.',
-                ],
-                'canvas_id' => [
-                    'type' => 'integer',
-                    'description' => 'ID des Canvas (ERFORDERLICH).',
-                ],
+                ...$this->canvasTargetSchema(),
             ],
-            'required' => ['canvas_id'],
+            'required' => [],
         ];
     }
 
     public function execute(array $arguments, ToolContext $context): ToolResult
     {
         try {
-            $resolved = $this->resolveTeam($arguments, $context);
-            if ($resolved['error']) {
-                return $resolved['error'];
+            [$canvas, $error] = $this->resolveCanvas($arguments, $context, 'view');
+            if ($error) {
+                return $error;
             }
-            $teamId = (int) $resolved['team_id'];
-
-            $canvasId = (int) ($arguments['canvas_id'] ?? 0);
-            if ($canvasId <= 0) {
-                return ToolResult::error('VALIDATION_ERROR', 'canvas_id ist erforderlich.');
-            }
-
-            $canvas = PlannerProjectCanvas::query()
-                ->with(['blocks.entries', 'createdByUser', 'snapshots'])
-                ->where('team_id', $teamId)
-                ->find($canvasId);
-
-            if (!$canvas) {
-                return ToolResult::error('NOT_FOUND', 'Canvas nicht gefunden (oder kein Zugriff).');
-            }
+            $canvas->loadMissing(['blocks.entries', 'createdByUser']);
 
             $canvasData = $canvas->toCanvasArray();
             $blockTypes = config('planner.canvas_block_types', []);
@@ -73,9 +54,21 @@ class GetCanvasTool implements ToolContract, ToolMetadataContract
                 $block['description'] = $blockTypes[$type]['description'] ?? '';
             }
 
+            $latest = $canvas->snapshots()->orderByDesc('version')->first();
+            $kickoff = $canvas->snapshots()->where('source', \Platform\Planner\Services\ProjectCanvasVersioning::SOURCE_KICKOFF)->orderBy('version')->first();
+
             return ToolResult::success(array_merge($canvasData, [
-                'snapshots_count' => $canvas->snapshots->count(),
-                'latest_snapshot_version' => $canvas->snapshots->first()?->version,
+                'kickoff' => [
+                    'completed' => (bool) $canvas->kickoff_completed_at,
+                    'completed_at' => $canvas->kickoff_completed_at?->toISOString(),
+                    'version' => $kickoff?->version,
+                    'hint' => $canvas->kickoff_completed_at ? null : 'Kickoff offen: Canvas füllen, dann planner.canvas.kickoff.POST.',
+                ],
+                'versions' => [
+                    'count' => $canvas->snapshots()->count(),
+                    'latest' => $latest?->version,
+                    'latest_at' => $latest?->created_at?->toISOString(),
+                ],
             ]));
         } catch (\Throwable $e) {
             return ToolResult::error('EXECUTION_ERROR', 'Fehler beim Laden des Canvas: ' . $e->getMessage());

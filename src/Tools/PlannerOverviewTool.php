@@ -2,20 +2,17 @@
 
 namespace Platform\Planner\Tools;
 
-use Platform\Core\Contracts\ToolContract;
 use Platform\Core\Contracts\ToolContext;
-use Platform\Core\Contracts\ToolResult;
+use Platform\Core\Contracts\ToolContract;
 use Platform\Core\Contracts\ToolMetadataContract;
+use Platform\Core\Contracts\ToolResult;
+use Platform\Core\Tools\ToolRegistry;
+use Platform\Planner\Services\ProjectCanvasVersioning;
+use Platform\Planner\Support\ProjectNavSummary;
 
 /**
- * Tool zum Abrufen einer Übersicht über Planner-Konzepte und Beziehungen
- * 
- * Gibt eine strukturierte Übersicht über alle Konzepte im Planner-Modul zurück:
- * - Aufgaben (Tasks) und ihre verschiedenen Typen
- * - Slots und ihre Beziehungen
- * - Backlog-Konzept
- * - Persönliche Aufgaben und Task Groups
- * - Beziehungen zwischen allen Konzepten
+ * Konzept-Uebersicht des Planners fuer Agenten: Projekt = Canvas (Zustand) +
+ * Logbuch (Verlauf) + Aufgaben/Zeiten (Arbeit). Tool-Liste kommt live aus der Registry.
  */
 class PlannerOverviewTool implements ToolContract, ToolMetadataContract
 {
@@ -26,7 +23,9 @@ class PlannerOverviewTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'GET /planner/overview - Zeigt Übersicht über Planner-Konzepte und Beziehungen. EMPFOHLEN: Nutze dieses Tool, wenn du die Struktur des Planner-Moduls verstehen möchtest (Aufgaben, Slots, Backlog, persönliche Aufgaben, Task Groups). REST-Parameter: keine.';
+        return 'Erklärt das Planner-Konzept und listet alle Planner-Tools nach Bereich. Kern: jedes Projekt hat drei Achsen — '
+            . 'Canvas (Kickoff + aktueller Zustand), Logbuch (Verlauf mit Begründung) und Aufgaben/Zeiten (Arbeit). '
+            . 'Für ein konkretes Projekt direkt planner.project.brief.GET nutzen. Keine Parameter.';
     }
 
     public function getSchema(): array
@@ -34,7 +33,7 @@ class PlannerOverviewTool implements ToolContract, ToolMetadataContract
         return [
             'type' => 'object',
             'properties' => new \stdClass(),
-            'required' => []
+            'required' => [],
         ];
     }
 
@@ -43,144 +42,100 @@ class PlannerOverviewTool implements ToolContract, ToolMetadataContract
         try {
             return ToolResult::success([
                 'module' => 'planner',
-                'scope' => [
-                    'team_based' => [
-                        'description' => 'Projekte sind IMMER team-bezogen',
-                        'projects' => [
-                            'team_required' => true,
-                            'team_id' => 'Projekte benötigen immer ein team_id (aus Kontext oder explizit angegeben)',
-                            'access' => 'Nur User, die dem Team angehören, können auf Projekte zugreifen',
-                        ],
-                        'project_tasks' => [
-                            'team_inheritance' => 'Aufgaben in Projekten erben das Team vom Projekt (über project_id)',
-                            'team_id' => 'Wird automatisch vom Projekt übernommen',
-                        ],
+                'principle' => 'Ein Projekt wird auf drei Achsen gepflegt. Nichts doppelt: das Logbuch verweist auf Aufgaben/Commits/Canvas-Stände, statt sie zu wiederholen. Der Agent entwirft, der Mensch kuratiert.',
+                'axes' => [
+                    'state_canvas' => [
+                        'what' => 'Projekt-Canvas: Kickoff und aktueller Zustand (Ziel, Beteiligte, Nutzen, Rahmen, Risiken …). Genau EIN Canvas pro Projekt, entsteht automatisch mit dem Projekt.',
+                        'semantics' => 'Wird überschrieben. Versionen entstehen automatisch je Bearbeitungssitzung (' . ProjectCanvasVersioning::SESSION_GAP_MINUTES . ' Min. Pause); bedeutsame Stände mit planner.canvas.snapshots.POST festhalten.',
+                        'kickoff' => 'Ein Projekt beginnt mit dem Kickoff im Canvas. planner.canvas.kickoff.POST sichert den Kickoff-Stand (Anker für alle Vergleiche) und schreibt den Meilenstein ins Logbuch.',
+                        'addressing' => 'Canvas-Tools nehmen project_id (oder canvas_id); Einträge hängen an Blöcken (block_id aus planner.canvas.GET).',
                     ],
-                    'user_based' => [
-                        'description' => 'Persönliche Aufgaben sind NICHT team-bezogen',
-                        'personal_tasks' => [
-                            'team_required' => false,
-                            'user_id' => 'Persönliche Aufgaben gehören nur zum User (user_id)',
-                            'team_id' => 'Kann vorhanden sein, ist aber nicht erforderlich',
-                            'access' => 'Nur der User selbst kann auf seine persönlichen Aufgaben zugreifen',
-                        ],
+                    'history_logbook' => [
+                        'what' => 'Projekt-Logbuch: chronologisch, append-only. Typen: decision (Entscheidung), milestone (Meilenstein), risk (Risiko) — jeweils mit Begründung (rationale = das Warum).',
+                        'semantics' => 'Unveränderlich; Korrektur = neuer Eintrag mit supersedes_entry_id. refs verweisen auf task, commit, canvas, canvas_snapshot, url.',
+                        'flow' => 'planner.project.logbook.draft.GET erzeugt einen Entwurf aus der Faktenlage seit dem letzten Eintrag → mit dem Nutzer kuratieren → planner.project.logbook.POST (optional capture_canvas=true).',
+                        'stale_after_days' => ProjectNavSummary::LOGBOOK_STALE_DAYS,
+                    ],
+                    'work_tasks' => [
+                        'what' => 'Aufgaben (in Spalten/Slots oder im Backlog = ohne Slot), wiederkehrende Aufgaben, Zeiten. Persönliche Aufgaben haben kein Projekt.',
+                        'lifecycle' => 'lifecycle_state: aktiv | erledigt | verworfen (verworfen ist endgültig).',
+                        'staleness' => 'Lange nicht angesehene Aufgaben sind in Listen ausgeblendet → planner.tasks.GET include_stale=true.',
                     ],
                 ],
-                'concepts' => [
-                    'tasks' => [
-                        'description' => 'Aufgaben (Tasks) können in Projekt-Slots oder persönlich sein',
-                        'types' => [
-                            'project_task' => [
-                                'description' => 'Aufgabe in Projekt-Slot',
-                                'conditions' => 'project_id vorhanden + project_slot_id vorhanden',
-                                'example' => 'Aufgabe ist einem Slot in einem Projekt zugeordnet',
-                            ],
-                            'backlog_task' => [
-                                'description' => 'Backlog-Aufgabe (Projekt-Bezug, aber ohne Slot)',
-                                'conditions' => 'project_id vorhanden + project_slot_id = null',
-                                'example' => 'Aufgabe gehört zu einem Projekt, ist aber noch keinem Slot zugeordnet',
-                                'how_enters' => 'Wenn project_slot_id auf null gesetzt wird oder Slot gelöscht wird',
-                            ],
-                            'personal_task' => [
-                                'description' => 'Persönliche Aufgabe in Task Group',
-                                'conditions' => 'project_id = null + task_group_id vorhanden',
-                                'example' => 'Persönliche Aufgabe, die einer Task Group zugeordnet ist',
-                            ],
-                            'personal_backlog' => [
-                                'description' => 'Persönliche Backlog-Aufgabe',
-                                'conditions' => 'project_id = null + task_group_id = null',
-                                'example' => 'Persönliche Aufgabe ohne Projekt- und Task-Group-Bezug',
-                            ],
-                        ],
-                    ],
-                    'slots' => [
-                        'description' => 'Projekt-Slots strukturieren Aufgaben zeitlich/strukturell (z.B. Sprint/Phase/Swimlane)',
-                        'relation' => 'Slot → Projekt (belongsTo), Slot → Tasks (hasMany)',
-                        'purpose' => 'Ermöglicht klare Zuordnung von Aufgaben zu Phasen/Sprints innerhalb eines Projekts',
-                    ],
-                    'backlog' => [
-                        'description' => 'Backlog = Aufgaben mit Projekt-Bezug, aber ohne Slot-Zuordnung',
-                        'how_tasks_enter' => [
-                            'Wenn project_slot_id auf null gesetzt wird',
-                            'Wenn ein Slot gelöscht wird (Aufgaben werden ins Backlog verschoben)',
-                            'Wenn eine Aufgabe mit project_id, aber ohne project_slot_id erstellt wird',
-                        ],
-                        'project_backlog' => 'Aufgaben mit project_id, aber project_slot_id = null',
-                        'personal_backlog' => 'Aufgaben ohne project_id und ohne task_group_id',
-                    ],
-                    'task_groups' => [
-                        'description' => 'Task Groups = persönliche Slots (äquivalent zu Projekt-Slots, aber für persönliche Aufgaben)',
-                        'relation' => 'Task Group → Tasks (hasMany)',
-                        'purpose' => 'Gruppiert thematisch/organisatorisch persönliche Aufgaben (z.B. in Backlogs oder Bereichen)',
-                    ],
-                ],
-                'relationships' => [
-                    'project_hierarchy' => 'Projekt → Slots → Tasks',
-                    'personal_hierarchy' => 'User → Task Groups → Tasks',
-                    'task_movement' => 'Aufgaben können zwischen Projekt und persönlich verschoben werden',
-                    'backlog_flow' => [
-                        'project_backlog' => 'Aufgaben mit Projekt, aber ohne Slot',
-                        'personal_backlog' => 'Aufgaben ohne Projekt und ohne Task Group',
-                    ],
+                'project' => [
+                    'lifecycle' => 'lifecycle_state: aktiv | ruhend (automatisch bei Inaktivität) | abgeschlossen | verworfen.',
+                    'access' => 'Zugriff über den Organisations-Graphen (Ersteller oder verknüpfte Org-Einheit), nicht über Mitgliederlisten. Lesen = view, Schreiben = update, Owner-Wechsel/Transfer/Löschen = manage.',
+                    'health' => 'Nächtlicher Health-Snapshot pro Projekt (planner.project_snapshots.*).',
                 ],
                 'workflows' => [
-                    'creating_project_task' => [
-                        'step_1' => 'Erstelle Projekt (planner.projects.POST)',
-                        'step_2' => 'Erstelle Slot im Projekt (planner.project_slots.POST)',
-                        'step_3' => 'Erstelle Aufgabe mit project_id und project_slot_id (planner.tasks.POST)',
+                    'understand_project' => ['planner.project.brief.GET (alle drei Achsen + nächste Schritte)'],
+                    'new_project' => [
+                        'planner.projects.POST (Canvas entsteht automatisch)',
+                        'Canvas füllen: planner.canvas.GET → planner.canvas.entries.POST / entries.bulk.POST',
+                        'planner.canvas.kickoff.POST',
+                        'Arbeit anlegen: planner.tasks.POST / tasks.bulk.POST',
                     ],
-                    'creating_personal_task' => [
-                        'step_1' => 'Erstelle Task Group (optional, für Gruppierung)',
-                        'step_2' => 'Erstelle Aufgabe ohne project_id (planner.tasks.POST)',
-                        'step_3' => 'Optional: Weise task_group_id zu',
+                    'record_decision' => [
+                        'planner.canvas.changes.GET (was hat sich am Zustand geändert?)',
+                        'planner.project.logbook.draft.GET (Faktenlage)',
+                        'mit dem Nutzer kuratieren → planner.project.logbook.POST (capture_canvas=true, wenn der Zustand mitgeändert wurde)',
                     ],
-                    'moving_to_backlog' => [
-                        'project_task' => 'Setze project_slot_id auf null → Aufgabe wird ins Projekt-Backlog verschoben',
-                        'personal_task' => 'Setze task_group_id auf null → Aufgabe wird ins persönliche Backlog verschoben',
-                    ],
+                    'finish_task' => ['planner.tasks.PUT lifecycle_state=erledigt; war es ein Meilenstein → planner.project.logbook.POST type=milestone mit refs task'],
+                    'undo_canvas_change' => ['planner.canvas.snapshots.GET → planner.canvas.changes.GET from_version → planner.canvas.restore.POST (confirm=true)'],
                 ],
-                'related_tools' => [
-                    'projects' => [
-                        'list' => 'planner.projects.GET - Listet alle Projekte auf',
-                        'metrics' => 'planner.projects.metrics.GET - Aggregierte Projekt-Metriken (Tasks, Story Points, Minuten) + Ranking nach Komplexität',
-                        'get' => 'planner.project.GET - Ruft einzelnes Projekt mit vollständiger Struktur ab',
-                        'create' => 'planner.projects.POST - Erstellt neues Projekt',
-                        'transfer' => 'planner.projects.TRANSFER - Transferiert ein Projekt in ein anderes Team (ändert team_id + zieht Slots/Tasks/Sprints/TimeEntries mit). WICHTIG: zuerst Preview, dann confirm=true.',
-                    ],
-                    'slots' => [
-                        'list' => 'planner.project_slots.GET - Listet Slots eines Projekts auf',
-                        'get' => 'planner.project_slot.GET - Ruft einzelnen Slot mit vollständiger Struktur ab',
-                        'create' => 'planner.project_slots.POST - Erstellt neuen Slot in Projekt',
-                        'transfer' => 'planner.project_slots.TRANSFER - Aktualisiert team_id eines Slots (nur wenn Projekt bereits im Ziel-Team ist). WICHTIG: Preview + confirm=true.',
-                        'move' => 'planner.project_slots.MOVE - Verschiebt einen Slot in ein anderes Projekt (ändert project_id) und zieht Tasks im Slot mit. WICHTIG: Preview + confirm=true.',
-                    ],
-                    'tasks' => [
-                        'list' => 'planner.tasks.GET - Listet Aufgaben auf (filterbar nach Projekt, Slot, User)',
-                        'create' => 'planner.tasks.POST - Erstellt neue Aufgabe',
-                        'update' => 'planner.tasks.PUT - Aktualisiert Aufgabe (kann zwischen Projekt/Slot verschoben werden)',
-                        'bulk_create' => 'planner.tasks.bulk.POST - Erstellt mehrere Aufgaben in einem Request (Batch-Anlage)',
-                        'bulk_update' => 'planner.tasks.bulk.PUT - Aktualisiert mehrere Aufgaben in einem Request (Batch-Operation)',
-                        'transfer' => 'planner.tasks.TRANSFER - Transferiert eine persönliche Aufgabe (project_id=null) in ein anderes Team (ändert team_id). Projekt-Tasks: nicht erlaubt (nutze planner.projects.TRANSFER oder planner.tasks.PUT).',
-                    ],
-                ],
+                'tools' => $this->toolsByArea(),
             ]);
         } catch (\Throwable $e) {
             return ToolResult::error('EXECUTION_ERROR', 'Fehler beim Laden der Planner-Übersicht: ' . $e->getMessage());
         }
     }
 
+    /** Live aus der Registry, gruppiert nach Bereich — bleibt automatisch aktuell. */
+    protected function toolsByArea(): array
+    {
+        $areas = [
+            'einstieg' => ['planner.overview.', 'planner.project.brief.'],
+            'canvas' => ['planner.canvas.'],
+            'logbuch' => ['planner.project.logbook.'],
+            'projekte' => ['planner.projects.', 'planner.project.'],
+            'spalten' => ['planner.project_slots.', 'planner.project_slot.'],
+            'aufgaben' => ['planner.tasks.', 'planner.recurring_tasks.'],
+            'health' => ['planner.project_snapshots.', 'planner.snapshot_systems.'],
+        ];
+
+        $out = array_fill_keys(array_keys($areas), []);
+        $registry = app(ToolRegistry::class);
+
+        foreach ($registry->all() as $tool) {
+            $name = $tool->getName();
+            if (! str_starts_with($name, 'planner.')) {
+                continue;
+            }
+            foreach ($areas as $area => $prefixes) {
+                foreach ($prefixes as $prefix) {
+                    if (str_starts_with($name, $prefix)) {
+                        $desc = preg_replace('/^[A-Z]+ \/\S+ - /', '', $tool->getDescription());
+                        $out[$area][$name] = mb_strimwidth($desc, 0, 160, '…');
+                        continue 3;
+                    }
+                }
+            }
+        }
+
+        return array_filter($out);
+    }
+
     public function getMetadata(): array
     {
         return [
             'category' => 'overview',
-            'tags' => ['overview', 'help', 'planner', 'concepts', 'structure'],
+            'tags' => ['overview', 'help', 'planner', 'concepts', 'canvas', 'logbook'],
             'read_only' => true,
             'requires_auth' => true,
             'requires_team' => false,
             'risk_level' => 'safe',
             'idempotent' => true,
-            'recommended_for' => 'Verstehen der Modul-Struktur und Beziehungen zwischen Konzepten',
+            'recommended_for' => 'Verstehen des Planner-Konzepts (Canvas · Logbuch · Arbeit) und Finden des passenden Tools',
         ];
     }
 }
-

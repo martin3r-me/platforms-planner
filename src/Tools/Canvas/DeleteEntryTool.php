@@ -9,6 +9,7 @@ use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Tools\Concerns\HasStandardizedWriteOperations;
 use Platform\Planner\Models\PlannerProjectCanvasEntry;
 use Platform\Planner\Tools\Canvas\Concerns\ResolvesCanvasTeam;
+use Platform\Planner\Tools\Canvas\Concerns\ResolvesProjectCanvas;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Auth\Access\AuthorizationException;
 
@@ -16,6 +17,7 @@ class DeleteEntryTool implements ToolContract, ToolMetadataContract
 {
     use HasStandardizedWriteOperations;
     use ResolvesCanvasTeam;
+    use ResolvesProjectCanvas;
 
     public function getName(): string
     {
@@ -24,7 +26,7 @@ class DeleteEntryTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'DELETE /planner/canvas/entries/{id} - Loescht einen Entry (Standard: Soft-Delete). ERFORDERLICH: entry_id. Mit force=true wird unwiderruflich hart gelöscht (Purge) — nur für Owner/Admin des zugehörigen Projekts, erfordert confirm=true.';
+        return 'Loescht einen Entry (Standard: Soft-Delete). ERFORDERLICH: entry_id. Mit force=true wird unwiderruflich hart gelöscht (Purge) — nur für Owner/Admin des zugehörigen Projekts, erfordert confirm=true.';
     }
 
     public function getSchema(): array
@@ -79,6 +81,9 @@ class DeleteEntryTool implements ToolContract, ToolMetadataContract
 
             if (!$entry) {
                 return ToolResult::error('NOT_FOUND', 'Entry nicht gefunden (oder kein Zugriff).');
+            }
+            if ($authError = $this->authorizeCanvas($entry->block?->canvas, $context, 'update')) {
+                return $authError;
             }
 
             if ($force) {

@@ -10,11 +10,13 @@ use Platform\Core\Tools\Concerns\HasStandardizedWriteOperations;
 use Platform\Planner\Models\PlannerProjectCanvasBlock;
 use Platform\Planner\Services\ProjectCanvasEntryService;
 use Platform\Planner\Tools\Canvas\Concerns\ResolvesCanvasTeam;
+use Platform\Planner\Tools\Canvas\Concerns\ResolvesProjectCanvas;
 
 class BulkCreateEntriesTool implements ToolContract, ToolMetadataContract
 {
     use HasStandardizedWriteOperations;
     use ResolvesCanvasTeam;
+    use ResolvesProjectCanvas;
 
     public function getName(): string
     {
@@ -23,7 +25,7 @@ class BulkCreateEntriesTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'POST /planner/canvas/entries/bulk - Erstellt mehrere Entries auf einmal. ERFORDERLICH: block_id, entries (Array mit title, optional content/entry_type/metadata).';
+        return 'Erstellt mehrere Entries auf einmal. ERFORDERLICH: block_id, entries (Array mit title, optional content/entry_type/metadata).';
     }
 
     public function getSchema(): array
@@ -81,6 +83,9 @@ class BulkCreateEntriesTool implements ToolContract, ToolMetadataContract
 
             if (!$block) {
                 return ToolResult::error('NOT_FOUND', 'Building Block nicht gefunden (oder kein Zugriff).');
+            }
+            if ($authError = $this->authorizeCanvas($block->canvas, $context, 'update')) {
+                return $authError;
             }
 
             $entriesData = $arguments['entries'] ?? [];

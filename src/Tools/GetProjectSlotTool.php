@@ -30,7 +30,7 @@ class GetProjectSlotTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'GET /project_slots/{id} - Ruft einen einzelnen Slot mit vollständiger Struktur ab. REST-Parameter: id (required, integer) - Slot-ID. Gibt zurück: Slot-Details, alle Aufgaben im Slot mit IDs und Details, Statistiken. Nutze "planner.project_slots.GET" um verfügbare Slot-IDs zu sehen.';
+        return 'Ruft einen einzelnen Slot mit vollständiger Struktur ab. Parameter: id (required, integer) - Slot-ID. Gibt zurück: Slot-Details, alle Aufgaben im Slot mit IDs und Details, Statistiken. Nutze "planner.project_slots.GET" um verfügbare Slot-IDs zu sehen.';
     }
 
     public function getSchema(): array

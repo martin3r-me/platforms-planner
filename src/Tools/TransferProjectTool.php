@@ -6,6 +6,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Platform\Core\Contracts\ToolContract;
+use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Tools\Concerns\HasStandardizedWriteOperations;
@@ -14,6 +15,10 @@ use Platform\Planner\Models\PlannerProjectSlot;
 use Platform\Planner\Models\PlannerSprint;
 use Platform\Planner\Models\PlannerSprintSlot;
 use Platform\Planner\Models\PlannerTask;
+use Platform\Planner\Models\PlannerProjectCanvas;
+use Platform\Planner\Models\PlannerProjectLogbookEntry;
+use Platform\Planner\Models\PlannerProjectSnapshot;
+use Platform\Planner\Models\PlannerRecurringTask;
 
 /**
  * Verschiebt ein Projekt (und abhängige Entities) in ein anderes Team, indem team_id angepasst wird.
@@ -22,7 +27,7 @@ use Platform\Planner\Models\PlannerTask;
  * - Cross-Team Move ist ein "Transfer" und NICHT nur ein normales Update.
  * - Require confirm=true, sonst nur Preview.
  */
-class TransferProjectTool implements ToolContract
+class TransferProjectTool implements ToolContract, ToolMetadataContract
 {
     use HasStandardizedWriteOperations;
 
@@ -33,7 +38,7 @@ class TransferProjectTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'TRANSFER /planner/projects - Verschiebt ein Projekt in ein anderes Team (ändert team_id) und aktualisiert abhängige Daten (Slots, Tasks, Sprints). Ohne confirm=true wird nur eine Preview zurückgegeben.';
+        return 'Verschiebt ein Projekt in ein anderes Team (ändert team_id) und aktualisiert abhängige Daten (Slots, Tasks, Sprints). Ohne confirm=true wird nur eine Preview zurückgegeben.';
     }
 
     public function getSchema(): array
@@ -78,9 +83,10 @@ class TransferProjectTool implements ToolContract
             $project = $validation['model'];
 
             try {
-                Gate::forUser($context->user)->authorize('update', $project);
+                // Team-Wechsel verschiebt das ganze Projekt samt Verlauf → Manage-Recht
+                Gate::forUser($context->user)->authorize('transferOwnership', $project);
             } catch (AuthorizationException $e) {
-                return ToolResult::error('ACCESS_DENIED', 'Du darfst dieses Projekt nicht transferieren (Policy update).');
+                return ToolResult::error('ACCESS_DENIED', 'Projekt-Transfer in ein anderes Team erfordert Manage-Recht am Projekt.');
             }
 
             $targetTeamId = (int) ($arguments['target_team_id'] ?? 0);
@@ -105,7 +111,7 @@ class TransferProjectTool implements ToolContract
 
             // Preview: wie viele Datensätze sind betroffen?
             $projectSlotsCount = PlannerProjectSlot::where('project_id', $project->id)->count();
-            $tasksCount = PlannerTask::where('project_id', $project->id)->count();
+            $tasksCount = PlannerTask::withStale()->withTrashed()->where('project_id', $project->id)->count();
             $sprintsCount = PlannerSprint::where('project_id', $project->id)->count();
             $sprintSlotCount = PlannerSprintSlot::whereHas('sprint', function ($q) use ($project) {
                 $q->where('project_id', $project->id);
@@ -118,6 +124,10 @@ class TransferProjectTool implements ToolContract
                 'tasks' => $tasksCount,
                 'sprints' => $sprintsCount,
                 'sprint_slots' => $sprintSlotCount,
+                'canvases' => PlannerProjectCanvas::withTrashed()->where('project_id', $project->id)->count(),
+                'logbook_entries' => PlannerProjectLogbookEntry::where('project_id', $project->id)->count(),
+                'recurring_tasks' => PlannerRecurringTask::withTrashed()->where('project_id', $project->id)->count(),
+                'health_snapshots' => PlannerProjectSnapshot::where('project_id', $project->id)->count(),
             ];
 
             $confirm = (bool) ($arguments['confirm'] ?? false);
@@ -133,7 +143,15 @@ class TransferProjectTool implements ToolContract
                 $project->update(['team_id' => $targetTeamId]);
 
                 PlannerProjectSlot::where('project_id', $project->id)->update(['team_id' => $targetTeamId]);
-                PlannerTask::where('project_id', $project->id)->update(['team_id' => $targetTeamId]);
+                PlannerTask::withStale()->withTrashed()->where('project_id', $project->id)->update(['team_id' => $targetTeamId]);
+
+                // Canvas (Zustand), Logbuch (Verlauf), wiederkehrende Aufgaben, Health-Snapshots
+                PlannerProjectCanvas::withTrashed()->where('project_id', $project->id)->update(['team_id' => $targetTeamId]);
+                PlannerProjectLogbookEntry::withoutGlobalScopes()->where('project_id', $project->id)->toBase()->update(['team_id' => $targetTeamId]);
+                PlannerRecurringTask::withTrashed()->where('project_id', $project->id)->update(['team_id' => $targetTeamId]);
+                PlannerProjectSnapshot::where('project_id', $project->id)->update(['team_id' => $targetTeamId]);
+                \Platform\Planner\Models\PlannerCustomerProject::withoutGlobalScopes()->where('project_id', $project->id)->update(['team_id' => $targetTeamId]);
+                \Platform\Planner\Models\PlannerProjectBillingItem::withoutGlobalScopes()->where('project_id', $project->id)->update(['team_id' => $targetTeamId]);
 
                 PlannerSprint::where('project_id', $project->id)->update(['team_id' => $targetTeamId]);
                 PlannerSprintSlot::whereHas('sprint', function ($q) use ($project) {
@@ -147,12 +165,23 @@ class TransferProjectTool implements ToolContract
                 'project_id' => $project->id,
                 'team_id' => $project->team_id,
                 'preview' => $preview,
-                'message' => 'Projekt wurde erfolgreich in das Ziel-Team transferiert (inkl. Slots/Tasks/Sprints). Hinweis: Zeitbuchungen bleiben im ursprünglichen Team.',
+                'message' => 'Projekt wurde erfolgreich in das Ziel-Team transferiert (inkl. Slots, Aufgaben, Sprints, Canvas, Logbuch, wiederkehrende Aufgaben, Health-Snapshots). Hinweis: Zeitbuchungen bleiben im ursprünglichen Team.',
             ]);
         } catch (\Throwable $e) {
             return ToolResult::error('EXECUTION_ERROR', 'Fehler beim Projekt-Transfer: ' . $e->getMessage());
         }
     }
+
+    public function getMetadata(): array
+    {
+        return [
+            'category' => 'action',
+            'tags' => ['planner', 'projects', 'transfer'],
+            'read_only' => false,
+            'requires_auth' => true,
+            'requires_team' => false,
+            'risk_level' => 'write',
+            'idempotent' => false,
+        ];
+    }
 }
-
-

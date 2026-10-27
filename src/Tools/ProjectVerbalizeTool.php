@@ -32,7 +32,7 @@ class ProjectVerbalizeTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'VERBALIZE /projects/{id} - Erzeugt faktentreue Prosa zum aktuellen Zustand eines Planner-Projekts. Parameter: project_id (required, integer), style (optional, "formal"|"collegial", default "formal"), provider (optional, "anthropic"|"openai", default config), model (optional, override), include_fact_sheet (optional, boolean, default false). Gibt Prosa zurueck plus optional die deterministische Faktenbasis (was das LLM bekommen hat).';
+        return 'Erzeugt faktentreue Prosa zum aktuellen Zustand eines Planner-Projekts. Parameter: project_id (required, integer), style (optional, "formal"|"collegial", default "formal"), provider (optional, "anthropic"|"openai", default config), model (optional, override), include_fact_sheet (optional, boolean, default false). Gibt Prosa zurueck plus optional die deterministische Faktenbasis (was das LLM bekommen hat).';
     }
 
     public function getSchema(): array

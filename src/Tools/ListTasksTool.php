@@ -3,6 +3,7 @@
 namespace Platform\Planner\Tools;
 
 use Platform\Core\Contracts\ToolContract;
+use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Tools\Concerns\HasStandardGetOperations;
@@ -17,7 +18,7 @@ use Illuminate\Support\Facades\Gate;
  * 
  * Ermöglicht es der AI, Aufgaben zu finden und anzuzeigen.
  */
-class ListTasksTool implements ToolContract
+class ListTasksTool implements ToolContract, ToolMetadataContract
 {
     use HasStandardGetOperations;
     public function getName(): string
@@ -27,7 +28,9 @@ class ListTasksTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'GET /tasks - Listet Aufgaben auf. Response enthält für jede Task: dod_items (Array von {text, checked} Items) und dod_progress ({total, checked, percentage, isComplete}). Filter: project_id, project_slot_id, user_in_charge_id (default: aktueller User), is_done, filters, search, sort, limit/offset.';
+        return 'Listet Aufgaben (inkl. Definition of Done: dod_items, dod_progress). Filter: project_id, project_slot_id, user_in_charge_id, lifecycle_state (aktiv/erledigt/verworfen), filters/search/sort/limit/offset. '
+            . 'Ohne project_id/user_in_charge_id/id-Filter: nur Aufgaben des aktuellen Users. Einzelne Aufgabe: filters=[{field:"id",op:"eq",value:…}]. '
+            . 'Lange nicht angesehene Aufgaben sind ausgeblendet → include_stale=true.';
     }
 
     public function getSchema(): array
@@ -39,19 +42,24 @@ class ListTasksTool implements ToolContract
                     // Legacy-Parameter (für Backwards-Kompatibilität und einfache Nutzung)
                     'project_id' => [
                         'type' => 'integer',
-                        'description' => 'REST-Parameter (optional): Filter nach Projekt-ID. Beispiel: project_id=123. Nutze "planner.projects.GET" um verfügbare Projekt-IDs zu sehen.'
+                        'description' => 'Optional: Filter nach Projekt-ID. Beispiel: project_id=123. Nutze "planner.projects.GET" um verfügbare Projekt-IDs zu sehen.'
                     ],
                     'project_slot_id' => [
                         'type' => 'integer',
-                        'description' => 'REST-Parameter (optional): Filter nach Slot-ID. Beispiel: project_slot_id=456. Nutze "planner.project_slots.GET" um verfügbare Slot-IDs zu sehen.'
+                        'description' => 'Optional: Filter nach Slot-ID. Beispiel: project_slot_id=456. Nutze "planner.project_slots.GET" um verfügbare Slot-IDs zu sehen.'
                     ],
                     'user_in_charge_id' => [
                         'type' => 'integer',
-                        'description' => 'REST-Parameter (optional): Filter nach User-ID (zuständiger User). Beispiel: user_in_charge_id=789. Wenn nicht angegeben, werden Aufgaben des aktuellen Users angezeigt.'
+                        'description' => 'Optional: Filter nach User-ID (zuständiger User). Beispiel: user_in_charge_id=789. Wenn nicht angegeben, werden Aufgaben des aktuellen Users angezeigt.'
+                    ],
+                    'lifecycle_state' => [
+                        'type' => 'string',
+                        'enum' => ['aktiv', 'erledigt', 'verworfen'],
+                        'description' => 'Optional: Filter nach Lebenszyklus. aktiv = offen, erledigt = abgeschlossen, verworfen = ohne Ergebnis beendet. Ohne Angabe: alle.'
                     ],
                     'is_done' => [
                         'type' => 'boolean',
-                        'description' => 'Optional: Filter nach Status (Legacy - nutze stattdessen filters mit field="is_done" und op="eq"). true = erledigte Aufgaben, false = offene Aufgaben. Wenn nicht angegeben, werden alle Aufgaben angezeigt.'
+                        'description' => 'Veraltet — nutze lifecycle_state. true = erledigt, false = aktiv.'
                     ],
                     'is_personal' => [
                         'type' => 'boolean',
@@ -125,10 +133,9 @@ class ListTasksTool implements ToolContract
 
             // Standard-Operationen anwenden
             $this->applyStandardFilters($query, $arguments, [
-                'id', 'project_id', 'project_slot_id', 'user_in_charge_id', 'is_done',
+                'id', 'project_id', 'project_slot_id', 'user_in_charge_id',
+                'lifecycle_state', 'lifecycle_state_changed_at',
                 'title', 'description', 'due_date', 'created_at', 'updated_at', 'last_viewed_at',
-                // numeric effort/estimate field (used as proxy for points)
-                'planned_minutes',
                 // story points enum stored as string (xs..xxl)
                 'story_points',
             ]);
@@ -175,6 +182,14 @@ class ListTasksTool implements ToolContract
                 // Wenn Projekt- oder ID-Filter vorhanden: Zeige alle sichtbaren Treffer (kein User-Filter)
             }
             
+            if (! empty($arguments['lifecycle_state'])) {
+                $state = TaskLifecycleState::tryFrom((string) $arguments['lifecycle_state']);
+                if (! $state) {
+                    return ToolResult::error('VALIDATION_ERROR', 'lifecycle_state muss aktiv, erledigt oder verworfen sein.');
+                }
+                $query->where('lifecycle_state', $state->value);
+            }
+
             // Legacy: is_done (für Backwards-Kompatibilität) — mappt auf lifecycle_state.
             // true  → erledigt (Terminal-Endzustand)
             // false → aktiv (verworfene Tasks sind NICHT enthalten)
@@ -207,7 +222,7 @@ class ListTasksTool implements ToolContract
             $this->applyStandardSort($query, $arguments, [
                 'title', 'description', 'due_date', 'created_at', 'updated_at',
                 'lifecycle_state', 'lifecycle_state_changed_at',
-                'user_in_charge_id', 'planned_minutes', 'last_viewed_at'
+                'user_in_charge_id', 'story_points', 'last_viewed_at'
             ], 'due_date', 'asc');
             
             // Wenn keine explizite Sortierung, füge created_at desc hinzu
@@ -316,5 +331,17 @@ class ListTasksTool implements ToolContract
         }
         return false;
     }
-}
 
+    public function getMetadata(): array
+    {
+        return [
+            'category' => 'query',
+            'tags' => ['planner', 'tasks', 'get'],
+            'read_only' => true,
+            'requires_auth' => true,
+            'requires_team' => false,
+            'risk_level' => 'safe',
+            'idempotent' => true,
+        ];
+    }
+}

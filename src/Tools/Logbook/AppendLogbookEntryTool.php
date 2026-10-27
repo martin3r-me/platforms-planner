@@ -23,7 +23,12 @@ class AppendLogbookEntryTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'POST /projects/{id}/logbook - Haengt einen Eintrag ans Projekt-Logbuch an (append-only, nicht editierbar). Parameter: project_id (required), type (required: decision|milestone|risk), title (required), rationale (empfohlen: das WARUM — Begruendung, verworfene Alternativen, Annahmen), occurred_on (optional, YYYY-MM-DD, default heute, nicht in der Zukunft), refs (optional: [{type: task|commit|canvas|canvas_snapshot|url, ref, label?}] — VERWEISE statt Wiederholung; commit als "sha" oder "repo@sha"), supersedes_entry_id (optional: korrigiert einen frueheren Eintrag). Arbeitsschritte gehoeren NICHT ins Logbuch (dafuer Aufgaben/Zeiten). Fuer einen Entwurf aus der Faktenlage vorher planner.project.logbook.draft.GET nutzen und mit dem Nutzer kuratieren.';
+        return 'Hängt einen Eintrag ans Projekt-Logbuch an — dem Verlauf des Projekts (append-only, unveränderlich). Pflicht: project_id, type (decision|milestone|risk), title. '
+            . 'rationale ist das Wichtigste: das WARUM (Auslöser, Abwägung, verworfene Alternativen, Annahmen). '
+            . 'refs verweisen auf Belege statt sie zu wiederholen (task, commit "sha"/"repo@sha", canvas, canvas_snapshot, url). '
+            . 'capture_canvas=true sichert zusätzlich den aktuellen Canvas-Stand und verweist darauf — für Entscheidungen, die den Projektzustand ändern. '
+            . 'Korrektur: neuer Eintrag mit supersedes_entry_id. Arbeitsschritte gehören nicht hierher (→ Aufgaben/Zeiten). '
+            . 'Für einen Entwurf aus der Faktenlage vorher planner.project.logbook.draft.GET nutzen und mit dem Nutzer kuratieren.';
     }
 
     public function getSchema(): array
@@ -50,6 +55,7 @@ class AppendLogbookEntryTool implements ToolContract, ToolMetadataContract
                     ],
                 ],
                 'supersedes_entry_id' => ['type' => 'integer', 'description' => 'Optional: ID eines frueheren Eintrags, den dieser korrigiert/ersetzt.'],
+                'capture_canvas' => ['type' => 'boolean', 'description' => 'Optional: aktuellen Canvas-Stand als Version sichern und als Verweis anhängen.'],
             ],
             'required' => ['project_id', 'type', 'title'],
         ];
@@ -63,6 +69,14 @@ class AppendLogbookEntryTool implements ToolContract, ToolMetadataContract
         }
 
         try {
+            if (! empty($arguments['capture_canvas'])) {
+                $canvas = app(\Platform\Planner\Services\ProjectCanvasService::class)->ensureForProject($project, $context->user->id);
+                $snapshot = app(\Platform\Planner\Services\ProjectCanvasVersioning::class)
+                    ->checkpoint($canvas, \Platform\Planner\Services\ProjectCanvasVersioning::SOURCE_AGENT, $context->user->id, mb_substr((string) ($arguments['title'] ?? ''), 0, 255) ?: null);
+                $arguments['refs'] = [...(is_array($arguments['refs'] ?? null) ? $arguments['refs'] : []), ['type' => 'canvas_snapshot', 'ref' => (string) $snapshot->id]];
+            }
+            unset($arguments['capture_canvas']);
+
             $entry = app(ProjectLogbookService::class)->append($project, $context->user, [
                 ...$arguments,
                 'source' => 'agent',

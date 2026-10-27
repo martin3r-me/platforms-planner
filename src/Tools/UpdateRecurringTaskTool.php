@@ -3,6 +3,7 @@
 namespace Platform\Planner\Tools;
 
 use Platform\Core\Contracts\ToolContract;
+use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Tools\Concerns\HasStandardizedWriteOperations;
@@ -18,7 +19,7 @@ use Illuminate\Auth\Access\AuthorizationException;
  * ohne sie zu löschen (z.B. wenn eine Routine durch eine andere Automatisierung
  * redundant geworden ist).
  */
-class UpdateRecurringTaskTool implements ToolContract
+class UpdateRecurringTaskTool implements ToolContract, ToolMetadataContract
 {
     use HasStandardizedWriteOperations;
 
@@ -29,7 +30,7 @@ class UpdateRecurringTaskTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'PUT /recurring-tasks/{id} - Aktualisiert eine wiederkehrende Aufgaben-Vorlage. Pflicht: recurring_task_id. is_active=false pausiert die Vorlage (keine neuen Tasks mehr, ohne sie zu löschen). Weitere optionale Parameter: title, description, recurrence_type, recurrence_interval, next_due_date, recurrence_end_date, weekday_mask, project_id, project_slot_id, user_in_charge_id, lead_time_days, skip_weekends, max_occurrences, auto_delete_old_tasks, auto_mark_as_done.';
+        return 'Aktualisiert eine wiederkehrende Aufgaben-Vorlage. Pflicht: recurring_task_id. is_active=false pausiert die Vorlage (keine neuen Tasks mehr, ohne sie zu löschen). Weitere optionale Parameter: title, description, recurrence_type, recurrence_interval, next_due_date, recurrence_end_date, weekday_mask, project_id, project_slot_id, user_in_charge_id, lead_time_days, skip_weekends, max_occurrences, auto_delete_old_tasks, auto_mark_as_done.';
     }
 
     public function getSchema(): array
@@ -253,5 +254,18 @@ class UpdateRecurringTaskTool implements ToolContract
         } catch (\Throwable $e) {
             return ToolResult::error('EXECUTION_ERROR', 'Fehler beim Aktualisieren der wiederkehrenden Aufgabe: ' . $e->getMessage());
         }
+    }
+
+    public function getMetadata(): array
+    {
+        return [
+            'category' => 'action',
+            'tags' => ['planner', 'recurring', 'tasks', 'put'],
+            'read_only' => false,
+            'requires_auth' => true,
+            'requires_team' => false,
+            'risk_level' => 'write',
+            'idempotent' => true,
+        ];
     }
 }

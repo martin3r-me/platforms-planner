@@ -10,11 +10,13 @@ use Platform\Core\Tools\Concerns\HasStandardGetOperations;
 use Platform\Planner\Models\PlannerProjectCanvasBlock;
 use Platform\Planner\Models\PlannerProjectCanvasEntry;
 use Platform\Planner\Tools\Canvas\Concerns\ResolvesCanvasTeam;
+use Platform\Planner\Tools\Canvas\Concerns\ResolvesProjectCanvas;
 
 class ListEntriesTool implements ToolContract, ToolMetadataContract
 {
     use HasStandardGetOperations;
     use ResolvesCanvasTeam;
+    use ResolvesProjectCanvas;
 
     public function getName(): string
     {
@@ -23,7 +25,7 @@ class ListEntriesTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'GET /planner/canvas/entries - Listet Entries eines Building Blocks. ERFORDERLICH: block_id. Optional: entry_type, limit/offset.';
+        return 'Listet Entries eines Building Blocks. ERFORDERLICH: block_id. Optional: entry_type, limit/offset.';
     }
 
     public function getSchema(): array
@@ -71,6 +73,9 @@ class ListEntriesTool implements ToolContract, ToolMetadataContract
 
             if (!$block) {
                 return ToolResult::error('NOT_FOUND', 'Building Block nicht gefunden (oder kein Zugriff).');
+            }
+            if ($authError = $this->authorizeCanvas($block->canvas, $context, 'view')) {
+                return $authError;
             }
 
             $query = $block->entries()->orderBy('position');

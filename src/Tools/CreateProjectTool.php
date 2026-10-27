@@ -36,7 +36,7 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract, ToolMet
 
     public function getDescription(): string
     {
-        return 'POST /projects - Erstellt ein neues Projekt. REST-Parameter: name (required, string) - Projektname. team_id (optional, integer) - wenn nicht angegeben, wird aktuelles Team verwendet. description (optional, string) - Beschreibung. project_type (optional, string) - Typ: internal, customer, event, cooking. owner_user_id (optional, integer) - Ersteller/Owner des Projekts (Default: aktueller Nutzer).';
+        return 'Erstellt ein neues Projekt. Parameter: name (required, string) - Projektname. team_id (optional, integer) - wenn nicht angegeben, wird aktuelles Team verwendet. description (optional, string) - Beschreibung. project_type (optional, string) - Typ: internal, customer, event, cooking. owner_user_id (optional, integer) - Ersteller/Owner des Projekts (Default: aktueller Nutzer).';
     }
 
     public function getSchema(): array
@@ -64,11 +64,6 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract, ToolMet
                     'type' => 'string',
                     'description' => 'Wesensart (stabil): "project" (abgegrenzt, hat Ziel und Ende) oder "run" (laeuft fortlaufend, Betrieb/Support). Standard: "project".',
                     'enum' => ['project', 'run'],
-                ],
-                'status' => [
-                    'type' => 'string',
-                    'description' => 'Fluechtiger Zustand: "aktiv" (Standard), "passiv" (ruht voruebergehend) oder "inaktiv" (laeuft aus).',
-                    'enum' => ['aktiv', 'passiv', 'inaktiv'],
                 ],
                 'owner_user_id' => [
                     'type' => 'integer',
@@ -169,17 +164,28 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract, ToolMet
             // Wenn nicht gesetzt, verwende aktuellen User aus Kontext
             if (!$ownerUserId) {
                 $ownerUserId = $context->user->id;
+            } elseif ((int) $ownerUserId !== (int) $context->user->id) {
+                $owner = \Platform\Core\Models\User::find((int) $ownerUserId);
+                if (! $owner || ! $owner->teams()->where('teams.id', $team->id)->exists()) {
+                    return ToolResult::error('VALIDATION_ERROR', 'owner_user_id ist kein Mitglied des Ziel-Teams.');
+                }
             }
 
             // Projekttyp bestimmen (Standard: internal)
             $projectType = ProjectType::INTERNAL; // Default
             if (!empty($arguments['project_type'])) {
-                $projectType = ProjectType::tryFrom($arguments['project_type']) ?? ProjectType::INTERNAL;
+                $projectType = ProjectType::tryFrom($arguments['project_type']);
+                if (! $projectType) {
+                    return ToolResult::error('VALIDATION_ERROR', 'project_type muss einer von internal, customer, event, cooking sein.');
+                }
             }
 
             $kind = \Platform\Planner\Enums\ProjectKind::PROJECT;
             if (!empty($arguments['kind'])) {
-                $kind = \Platform\Planner\Enums\ProjectKind::tryFrom($arguments['kind']) ?? $kind;
+                $kind = \Platform\Planner\Enums\ProjectKind::tryFrom($arguments['kind']);
+                if (! $kind) {
+                    return ToolResult::error('VALIDATION_ERROR', 'kind muss "project" oder "run" sein.');
+                }
             }
 
             // New projects always start in lifecycle 'aktiv'. The legacy
@@ -296,7 +302,9 @@ class CreateProjectTool implements ToolContract, ToolDependencyContract, ToolMet
                 'planned_minutes' => $project->totalPlannedMinutes(),
                 'estimated_hours' => $project->totalPlannedHours(),
                 'created_at' => $project->created_at->toIso8601String(),
-                'message' => "Projekt '{$project->name}' erfolgreich erstellt."
+                'canvas_id' => app(\Platform\Planner\Services\ProjectCanvasService::class)->forProject($project)?->id,
+                'next_step' => 'Kickoff: Canvas füllen (planner.canvas.GET mit project_id → planner.canvas.entries.bulk.POST), dann planner.canvas.kickoff.POST.',
+                'message' => "Projekt '{$project->name}' erstellt — das Canvas für den Kickoff ist angelegt."
             ]);
         } catch (\Throwable $e) {
             return ToolResult::error('EXECUTION_ERROR', 'Fehler beim Erstellen des Projekts: ' . $e->getMessage());

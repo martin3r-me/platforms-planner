@@ -3,6 +3,7 @@
 namespace Platform\Planner\Tools;
 
 use Platform\Core\Contracts\ToolContract;
+use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Planner\Enums\TaskStoryPoints;
@@ -18,7 +19,7 @@ use Illuminate\Auth\Access\AuthorizationException;
  * einzelne Task, sondern ein Muster (PlannerRecurringTask), aus dem der Cron regelmäßig Tasks
  * erstellt. Kern-Werkzeug für autonome Worker, die sich selbst Routinen einrichten.
  */
-class CreateRecurringTaskTool implements ToolContract
+class CreateRecurringTaskTool implements ToolContract, ToolMetadataContract
 {
     public function getName(): string
     {
@@ -27,7 +28,7 @@ class CreateRecurringTaskTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'POST /recurring-tasks - Legt eine WIEDERKEHRENDE Aufgabe (Vorlage) an, aus der automatisch in regelmaessigen Abstaenden Tasks erstellt werden. Pflicht: title, recurrence_type (daily|weekly|monthly|yearly), next_due_date (erste Faelligkeit). Optional: recurrence_interval (Default 1, z.B. 2 = alle 2 Wochen), weekday_mask (Wochentag-Bitmaske), project_id, user_in_charge_id (Default: aktueller User), recurrence_end_date, story_points, planned_minutes, lead_time_days, skip_weekends, max_occurrences. Fuer eine EINZELNE Aufgabe stattdessen planner.tasks.POST nutzen.';
+        return 'Legt eine WIEDERKEHRENDE Aufgabe (Vorlage) an, aus der automatisch in regelmaessigen Abstaenden Tasks erstellt werden. Pflicht: title, recurrence_type (daily|weekly|monthly|yearly), next_due_date (erste Faelligkeit). Optional: recurrence_interval (Default 1, z.B. 2 = alle 2 Wochen), weekday_mask (Wochentag-Bitmaske), project_id, user_in_charge_id (Default: aktueller User), recurrence_end_date, story_points, planned_minutes, lead_time_days, skip_weekends, max_occurrences. Fuer eine EINZELNE Aufgabe stattdessen planner.tasks.POST nutzen.';
     }
 
     public function getSchema(): array
@@ -147,5 +148,18 @@ class CreateRecurringTaskTool implements ToolContract
         } catch (\Throwable $e) {
             return ToolResult::error('EXECUTION_ERROR', 'Fehler beim Anlegen der wiederkehrenden Aufgabe: ' . $e->getMessage());
         }
+    }
+
+    public function getMetadata(): array
+    {
+        return [
+            'category' => 'action',
+            'tags' => ['planner', 'recurring', 'tasks', 'post'],
+            'read_only' => false,
+            'requires_auth' => true,
+            'requires_team' => false,
+            'risk_level' => 'write',
+            'idempotent' => false,
+        ];
     }
 }

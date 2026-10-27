@@ -3,6 +3,7 @@
 namespace Platform\Planner\Tools;
 
 use Platform\Core\Contracts\ToolContract;
+use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Tools\Concerns\HasStandardizedWriteOperations;
@@ -14,7 +15,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 /**
  * Tool zum Löschen von Projekt-Slots
  */
-class DeleteProjectSlotTool implements ToolContract
+class DeleteProjectSlotTool implements ToolContract, ToolMetadataContract
 {
     use HasStandardizedWriteOperations;
     public function getName(): string
@@ -24,7 +25,7 @@ class DeleteProjectSlotTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'DELETE /project_slots/{id} - Löscht einen Slot. REST-Parameter: id (required, integer) - Slot-ID. Hinweis: Beim Löschen werden alle zugehörigen Aufgaben in das Projekt-Backlog verschoben (project_slot_id wird auf null gesetzt).';
+        return 'Löscht einen Slot. Parameter: slot_id (required, integer) - Slot-ID. Hinweis: Beim Löschen werden alle zugehörigen Aufgaben in das Projekt-Backlog verschoben (project_slot_id wird auf null gesetzt).';
     }
 
     public function getSchema(): array
@@ -115,5 +116,17 @@ class DeleteProjectSlotTool implements ToolContract
             return ToolResult::error('EXECUTION_ERROR', 'Fehler beim Löschen des Slots: ' . $e->getMessage());
         }
     }
-}
 
+    public function getMetadata(): array
+    {
+        return [
+            'category' => 'action',
+            'tags' => ['planner', 'project', 'slots', 'delete'],
+            'read_only' => false,
+            'requires_auth' => true,
+            'requires_team' => false,
+            'risk_level' => 'destructive',
+            'idempotent' => false,
+        ];
+    }
+}

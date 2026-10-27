@@ -3,6 +3,7 @@
 namespace Platform\Planner\Tools;
 
 use Platform\Core\Contracts\ToolContract;
+use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolDependencyContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
@@ -25,7 +26,7 @@ use Illuminate\Auth\Access\AuthorizationException;
  * 
  * LOOSE COUPLED: Definiert seine Dependencies selbst via ToolDependencyContract.
  */
-class CreateTaskTool implements ToolContract, ToolDependencyContract
+class CreateTaskTool implements ToolContract, ToolDependencyContract, ToolMetadataContract
 {
     public function getName(): string
     {
@@ -34,7 +35,7 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
 
     public function getDescription(): string
     {
-        return 'POST /tasks - Erstellt eine neue Aufgabe. REST-Parameter: title (required, string) - Titel der Aufgabe. project_id (optional, integer) - Projekt-ID. project_slot_id (optional, integer) - Slot-ID. description (optional, string) - Beschreibung. dod_items (optional, array) - Definition of Done als Array von {text, checked} Items. due_date (optional, date) - Fälligkeitsdatum. user_in_charge_id (optional, integer) - verantwortlicher User. WICHTIG: user_id wird automatisch auf den aktuellen User gesetzt. WICHTIG: user_in_charge_id wird ebenfalls automatisch auf den aktuellen User gesetzt, wenn nicht angegeben (auch ein explizit übergebenes user_in_charge_id=null unterdrückt das nicht — es gibt aktuell keine Möglichkeit, die Aufgabe ohne Verantwortlichen anzulegen).';
+        return 'Erstellt eine neue Aufgabe. Parameter: title (required, string) - Titel der Aufgabe. project_id (optional, integer) - Projekt-ID. project_slot_id (optional, integer) - Slot-ID. description (optional, string) - Beschreibung. dod_items (optional, array) - Definition of Done als Array von {text, checked} Items. due_date (optional, date) - Fälligkeitsdatum. user_in_charge_id (optional, integer) - verantwortlicher User. WICHTIG: user_id wird automatisch auf den aktuellen User gesetzt. WICHTIG: user_in_charge_id wird ebenfalls automatisch auf den aktuellen User gesetzt, wenn nicht angegeben (auch ein explizit übergebenes user_in_charge_id=null unterdrückt das nicht — es gibt aktuell keine Möglichkeit, die Aufgabe ohne Verantwortlichen anzulegen).';
     }
 
     public function getSchema(): array
@@ -354,5 +355,17 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract
             ]
         ];
     }
-}
 
+    public function getMetadata(): array
+    {
+        return [
+            'category' => 'action',
+            'tags' => ['planner', 'tasks', 'post'],
+            'read_only' => false,
+            'requires_auth' => true,
+            'requires_team' => false,
+            'risk_level' => 'write',
+            'idempotent' => false,
+        ];
+    }
+}

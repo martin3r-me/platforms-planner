@@ -25,7 +25,7 @@ class GetProjectSnapshotTrendTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'GET /project-snapshots/trend - Zeitreihe der Health-Score, Canvas-Score, Task-Counts und Burn-Werte eines Projekts. Default: letzte 30 Tage. days=N (1..365) oder from/to (YYYY-MM-DD) zum Eingrenzen.';
+        return 'Zeitreihe der Health-Score, Canvas-Score, Task-Counts und Burn-Werte eines Projekts. Default: letzte 30 Tage. days=N (1..365) oder from/to (YYYY-MM-DD) zum Eingrenzen.';
     }
 
     public function getSchema(): array

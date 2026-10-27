@@ -8,10 +8,12 @@ use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Planner\Models\PlannerProjectCanvasSnapshot;
 use Platform\Planner\Tools\Canvas\Concerns\ResolvesCanvasTeam;
+use Platform\Planner\Tools\Canvas\Concerns\ResolvesProjectCanvas;
 
 class GetSnapshotTool implements ToolContract, ToolMetadataContract
 {
     use ResolvesCanvasTeam;
+    use ResolvesProjectCanvas;
 
     public function getName(): string
     {
@@ -20,7 +22,7 @@ class GetSnapshotTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'GET /planner/canvas/snapshots/{id} - Ruft einen einzelnen Snapshot mit vollstaendigen Daten ab. ERFORDERLICH: snapshot_id.';
+        return 'Ruft einen einzelnen Snapshot mit vollstaendigen Daten ab. ERFORDERLICH: snapshot_id.';
     }
 
     public function getSchema(): array
@@ -61,6 +63,9 @@ class GetSnapshotTool implements ToolContract, ToolMetadataContract
 
             if (!$snapshot) {
                 return ToolResult::error('NOT_FOUND', 'Snapshot nicht gefunden (oder kein Zugriff).');
+            }
+            if ($authError = $this->authorizeCanvas($snapshot->canvas, $context, 'view')) {
+                return $authError;
             }
 
             return ToolResult::success([

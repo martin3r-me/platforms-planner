@@ -6,6 +6,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Platform\Core\Contracts\ToolContract;
+use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Tools\Concerns\HasStandardizedWriteOperations;
@@ -23,7 +24,7 @@ use Platform\Planner\Models\PlannerTask;
  *
  * Ohne confirm=true wird nur eine Preview zurückgegeben.
  */
-class MoveProjectSlotTool implements ToolContract
+class MoveProjectSlotTool implements ToolContract, ToolMetadataContract
 {
     use HasStandardizedWriteOperations;
 
@@ -34,7 +35,7 @@ class MoveProjectSlotTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'MOVE /planner/project_slots - Verschiebt einen Slot in ein anderes Projekt (ändert project_id) und zieht Tasks im Slot mit. Ohne confirm=true gibt es nur eine Preview.';
+        return 'Verschiebt einen Slot in ein anderes Projekt (ändert project_id) und zieht Tasks im Slot mit. Ohne confirm=true gibt es nur eine Preview.';
     }
 
     public function getSchema(): array
@@ -173,6 +174,17 @@ class MoveProjectSlotTool implements ToolContract
             return ToolResult::error('EXECUTION_ERROR', 'Fehler beim Slot-Move: ' . $e->getMessage());
         }
     }
+
+    public function getMetadata(): array
+    {
+        return [
+            'category' => 'action',
+            'tags' => ['planner', 'project', 'slots', 'move'],
+            'read_only' => false,
+            'requires_auth' => true,
+            'requires_team' => false,
+            'risk_level' => 'write',
+            'idempotent' => false,
+        ];
+    }
 }
-
-

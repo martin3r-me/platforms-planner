@@ -28,7 +28,7 @@ class ListProjectSnapshotsSummaryTool implements ToolContract, ToolMetadataContr
 
     public function getDescription(): string
     {
-        return 'GET /project-snapshots/summary - Aggregat-Sicht ueber die juengsten Project-Snapshots eines Teams: Health-Ampel-Verteilung (red/yellow/green/gray), Confidence-Verteilung (high/medium/low/none), Top-N rote Projekte, Top-N daten-arme Projekte. Optional team_id (default: aktuelles Team), top_n (default 5).';
+        return 'Aggregat-Sicht ueber die juengsten Project-Snapshots eines Teams: Health-Ampel-Verteilung (red/yellow/green/gray), Confidence-Verteilung (high/medium/low/none), Top-N rote Projekte, Top-N daten-arme Projekte. Optional team_id (default: aktuelles Team), top_n (default 5).';
     }
 
     public function getSchema(): array

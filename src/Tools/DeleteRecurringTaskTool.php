@@ -3,6 +3,7 @@
 namespace Platform\Planner\Tools;
 
 use Platform\Core\Contracts\ToolContract;
+use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Tools\Concerns\HasStandardizedWriteOperations;
@@ -15,7 +16,7 @@ use Illuminate\Auth\Access\AuthorizationException;
  * Für ein reines Pausieren (reversibel, ohne Lösch-Historie) besser
  * "planner.recurring_tasks.PUT" mit is_active=false nutzen.
  */
-class DeleteRecurringTaskTool implements ToolContract
+class DeleteRecurringTaskTool implements ToolContract, ToolMetadataContract
 {
     use HasStandardizedWriteOperations;
 
@@ -26,7 +27,7 @@ class DeleteRecurringTaskTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'DELETE /recurring-tasks/{id} - Löscht eine wiederkehrende Aufgaben-Vorlage (Soft-Delete, wiederherstellbar). Für reines Pausieren ohne Löschung stattdessen "planner.recurring_tasks.PUT" mit is_active=false nutzen. REST-Parameter: recurring_task_id (required).';
+        return 'Löscht eine wiederkehrende Aufgaben-Vorlage (Soft-Delete, wiederherstellbar). Für reines Pausieren ohne Löschung stattdessen "planner.recurring_tasks.PUT" mit is_active=false nutzen. Parameter: recurring_task_id (required).';
     }
 
     public function getSchema(): array
@@ -106,5 +107,18 @@ class DeleteRecurringTaskTool implements ToolContract
         } catch (\Throwable $e) {
             return ToolResult::error('EXECUTION_ERROR', 'Fehler beim Löschen der wiederkehrenden Aufgabe: ' . $e->getMessage());
         }
+    }
+
+    public function getMetadata(): array
+    {
+        return [
+            'category' => 'action',
+            'tags' => ['planner', 'recurring', 'tasks', 'delete'],
+            'read_only' => false,
+            'requires_auth' => true,
+            'requires_team' => false,
+            'risk_level' => 'destructive',
+            'idempotent' => false,
+        ];
     }
 }

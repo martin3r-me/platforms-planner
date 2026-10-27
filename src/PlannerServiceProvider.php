@@ -314,7 +314,6 @@ class PlannerServiceProvider extends ServiceProvider
             $registry->register(new \Platform\Planner\Tools\GetProjectSlotTool());
             $registry->register(new \Platform\Planner\Tools\UpdateProjectSlotTool());
             $registry->register(new \Platform\Planner\Tools\DeleteProjectSlotTool());
-            $registry->register(new \Platform\Planner\Tools\TransferProjectSlotTool());
             $registry->register(new \Platform\Planner\Tools\MoveProjectSlotTool());
             
             // Task-Tools
@@ -332,11 +331,8 @@ class PlannerServiceProvider extends ServiceProvider
 
             // Canvas-Tools
             $registry->register(new \Platform\Planner\Tools\Canvas\CanvasOverviewTool());
-            $registry->register(new \Platform\Planner\Tools\Canvas\ListCanvasesTool());
             $registry->register(new \Platform\Planner\Tools\Canvas\GetCanvasTool());
-            $registry->register(new \Platform\Planner\Tools\Canvas\CreateCanvasTool());
             $registry->register(new \Platform\Planner\Tools\Canvas\UpdateCanvasTool());
-            $registry->register(new \Platform\Planner\Tools\Canvas\DeleteCanvasTool());
             $registry->register(new \Platform\Planner\Tools\Canvas\ListEntriesTool());
             $registry->register(new \Platform\Planner\Tools\Canvas\CreateEntryTool());
             $registry->register(new \Platform\Planner\Tools\Canvas\UpdateEntryTool());
@@ -346,7 +342,9 @@ class PlannerServiceProvider extends ServiceProvider
             $registry->register(new \Platform\Planner\Tools\Canvas\CreateSnapshotTool());
             $registry->register(new \Platform\Planner\Tools\Canvas\ListSnapshotsTool());
             $registry->register(new \Platform\Planner\Tools\Canvas\GetSnapshotTool());
-            $registry->register(new \Platform\Planner\Tools\Canvas\CompareSnapshotsTool());
+            $registry->register(new \Platform\Planner\Tools\Canvas\CanvasChangesTool());
+            $registry->register(new \Platform\Planner\Tools\Canvas\RestoreCanvasVersionTool());
+            $registry->register(new \Platform\Planner\Tools\Canvas\CompleteKickoffTool());
             $registry->register(new \Platform\Planner\Tools\Canvas\ExportCanvasTool());
             $registry->register(new \Platform\Planner\Tools\Canvas\CanvasStatusTool());
 
@@ -355,6 +353,9 @@ class PlannerServiceProvider extends ServiceProvider
             $registry->register(new \Platform\Planner\Tools\CreateProjectSnapshotTool());
             $registry->register(new \Platform\Planner\Tools\GetProjectSnapshotTrendTool());
             $registry->register(new \Platform\Planner\Tools\ListProjectSnapshotsSummaryTool());
+
+            // Einstieg: Projekt auf allen drei Achsen (Canvas · Logbuch · Aufgaben)
+            $registry->register(new \Platform\Planner\Tools\ProjectBriefTool());
 
             // Projekt-Logbuch (append-only Verlauf: Entscheidung/Meilenstein/Risiko)
             $registry->register(new \Platform\Planner\Tools\Logbook\ListLogbookEntriesTool());

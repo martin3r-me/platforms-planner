@@ -5,6 +5,7 @@ namespace Platform\Planner\Tools;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Gate;
 use Platform\Core\Contracts\ToolContract;
+use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Tools\Concerns\HasStandardizedWriteOperations;
@@ -20,7 +21,7 @@ use Platform\Planner\Models\PlannerTaskGroup;
  * - Tasks OHNE project_id (persönlich): team_id darf transferiert werden (wenn User Zugriff auf Zielteam hat).
  * - Wenn task_group_id gesetzt ist, muss die TaskGroup im Zielteam liegen (sonst abbrechen).
  */
-class TransferTaskTool implements ToolContract
+class TransferTaskTool implements ToolContract, ToolMetadataContract
 {
     use HasStandardizedWriteOperations;
 
@@ -31,7 +32,7 @@ class TransferTaskTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'TRANSFER /planner/tasks - Verschiebt eine Aufgabe in ein anderes Team (ändert team_id). Für Projekt-Aufgaben ist ein Einzel-Transfer nicht erlaubt (nutze planner.projects.TRANSFER oder planner.tasks.PUT mit project_id). Ohne confirm=true nur Preview.';
+        return 'Verschiebt eine Aufgabe in ein anderes Team (ändert team_id). Für Projekt-Aufgaben ist ein Einzel-Transfer nicht erlaubt (nutze planner.projects.TRANSFER oder planner.tasks.PUT mit project_id). Ohne confirm=true nur Preview.';
     }
 
     public function getSchema(): array
@@ -59,21 +60,16 @@ class TransferTaskTool implements ToolContract
     public function execute(array $arguments, ToolContext $context): ToolResult
     {
         try {
-            $validation = $this->validateAndFindModel(
-                $arguments,
-                $context,
-                'task_id',
-                PlannerTask::class,
-                'TASK_NOT_FOUND',
-                'Die angegebene Aufgabe wurde nicht gefunden.'
-            );
-
-            if ($validation['error']) {
-                return $validation['error'];
+            // Lookup inkl. lange nicht angesehener Aufgaben (Staleness-Scope)
+            $taskId = (int) ($arguments['task_id'] ?? 0);
+            if ($taskId <= 0) {
+                return ToolResult::error('VALIDATION_ERROR', 'task_id ist erforderlich.');
             }
-
-            /** @var PlannerTask $task */
-            $task = $validation['model'];
+            /** @var PlannerTask|null $task */
+            $task = PlannerTask::withStale()->find($taskId);
+            if (! $task) {
+                return ToolResult::error('TASK_NOT_FOUND', 'Die angegebene Aufgabe wurde nicht gefunden.');
+            }
 
             try {
                 Gate::forUser($context->user)->authorize('update', $task);
@@ -106,7 +102,7 @@ class TransferTaskTool implements ToolContract
                 if ($group && (int) $group->team_id !== (int) $targetTeamId) {
                     return ToolResult::error(
                         'TEAM_MISMATCH',
-                        'Die Aufgabe hängt an einer TaskGroup aus einem anderen Team. Entferne zuerst task_group_id (planner.tasks.PUT) oder transferiere die Gruppe (noch nicht implementiert).'
+                        'Die Aufgabe hängt an einer TaskGroup aus einem anderen Team. Die Aufgabe zuerst in der Planner-Oberfläche aus der Gruppe lösen (per Tool noch nicht möglich).'
                     );
                 }
             }
@@ -150,6 +146,17 @@ class TransferTaskTool implements ToolContract
             return ToolResult::error('EXECUTION_ERROR', 'Fehler beim Task-Transfer: ' . $e->getMessage());
         }
     }
+
+    public function getMetadata(): array
+    {
+        return [
+            'category' => 'action',
+            'tags' => ['planner', 'tasks', 'transfer'],
+            'read_only' => false,
+            'requires_auth' => true,
+            'requires_team' => false,
+            'risk_level' => 'write',
+            'idempotent' => false,
+        ];
+    }
 }
-
-

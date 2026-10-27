@@ -20,7 +20,7 @@ class CanvasOverviewTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'GET /planner/canvas/overview - Zeigt Uebersicht aller Project Canvases im Team mit Status-Ampel und Statistiken.';
+        return 'Zeigt Uebersicht aller Project Canvases im Team mit Status-Ampel und Statistiken.';
     }
 
     public function getSchema(): array

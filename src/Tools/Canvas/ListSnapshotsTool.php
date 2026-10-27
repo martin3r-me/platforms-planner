@@ -9,12 +9,12 @@ use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Tools\Concerns\HasStandardGetOperations;
 use Platform\Planner\Models\PlannerProjectCanvas;
 use Platform\Planner\Models\PlannerProjectCanvasSnapshot;
-use Platform\Planner\Tools\Canvas\Concerns\ResolvesCanvasTeam;
+use Platform\Planner\Tools\Canvas\Concerns\ResolvesProjectCanvas;
 
 class ListSnapshotsTool implements ToolContract, ToolMetadataContract
 {
     use HasStandardGetOperations;
-    use ResolvesCanvasTeam;
+    use ResolvesProjectCanvas;
 
     public function getName(): string
     {
@@ -23,7 +23,7 @@ class ListSnapshotsTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'GET /planner/canvas/snapshots - Listet Snapshots eines Canvas. ERFORDERLICH: canvas_id. Optional: limit/offset.';
+        return 'Listet die Versionen (Stände) des Projekt-Canvas, neueste zuerst — mit Herkunft (kickoff/manual/agent/auto/restore) und Bezeichnung. Pflicht: project_id oder canvas_id. Was sich geändert hat: planner.canvas.changes.GET.';
     }
 
     public function getSchema(): array
@@ -32,16 +32,9 @@ class ListSnapshotsTool implements ToolContract, ToolMetadataContract
             $this->getStandardGetSchema(),
             [
                 'properties' => [
-                    'team_id' => [
-                        'type' => 'integer',
-                        'description' => 'Optional: Team-ID.',
-                    ],
-                    'canvas_id' => [
-                        'type' => 'integer',
-                        'description' => 'ID des Canvas (ERFORDERLICH).',
-                    ],
+                    ...$this->canvasTargetSchema(),
                 ],
-                'required' => ['canvas_id'],
+                'required' => [],
             ]
         );
     }
@@ -49,27 +42,13 @@ class ListSnapshotsTool implements ToolContract, ToolMetadataContract
     public function execute(array $arguments, ToolContext $context): ToolResult
     {
         try {
-            $resolved = $this->resolveTeam($arguments, $context);
-            if ($resolved['error']) {
-                return $resolved['error'];
-            }
-            $teamId = (int) $resolved['team_id'];
-
-            $canvasId = (int) ($arguments['canvas_id'] ?? 0);
-            if ($canvasId <= 0) {
-                return ToolResult::error('VALIDATION_ERROR', 'canvas_id ist erforderlich.');
-            }
-
-            $canvas = PlannerProjectCanvas::query()
-                ->where('team_id', $teamId)
-                ->find($canvasId);
-
-            if (!$canvas) {
-                return ToolResult::error('NOT_FOUND', 'Canvas nicht gefunden (oder kein Zugriff).');
+            [$canvas, $error] = $this->resolveCanvas($arguments, $context, 'view');
+            if ($error) {
+                return $error;
             }
 
             $query = PlannerProjectCanvasSnapshot::query()
-                ->where('canvas_id', $canvasId)
+                ->where('canvas_id', $canvas->id)
                 ->orderBy('version', 'desc');
 
             $result = $this->applyStandardPaginationResult($query, $arguments);
@@ -79,6 +58,8 @@ class ListSnapshotsTool implements ToolContract, ToolMetadataContract
                     'id' => $snapshot->id,
                     'uuid' => $snapshot->uuid,
                     'version' => $snapshot->version,
+                    'source' => $snapshot->source,
+                    'label' => $snapshot->label,
                     'created_by_user_id' => $snapshot->created_by_user_id,
                     'created_at' => $snapshot->created_at?->toISOString(),
                 ];
@@ -87,8 +68,8 @@ class ListSnapshotsTool implements ToolContract, ToolMetadataContract
             return ToolResult::success([
                 'data' => $data,
                 'pagination' => $result['pagination'] ?? null,
-                'canvas_id' => $canvasId,
-                'team_id' => $teamId,
+                'canvas_id' => $canvas->id,
+                'team_id' => $canvas->team_id,
             ]);
         } catch (\Throwable $e) {
             return ToolResult::error('EXECUTION_ERROR', 'Fehler beim Laden der Snapshots: ' . $e->getMessage());

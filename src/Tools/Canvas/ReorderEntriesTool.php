@@ -10,11 +10,13 @@ use Platform\Core\Tools\Concerns\HasStandardizedWriteOperations;
 use Platform\Planner\Models\PlannerProjectCanvasBlock;
 use Platform\Planner\Services\ProjectCanvasEntryService;
 use Platform\Planner\Tools\Canvas\Concerns\ResolvesCanvasTeam;
+use Platform\Planner\Tools\Canvas\Concerns\ResolvesProjectCanvas;
 
 class ReorderEntriesTool implements ToolContract, ToolMetadataContract
 {
     use HasStandardizedWriteOperations;
     use ResolvesCanvasTeam;
+    use ResolvesProjectCanvas;
 
     public function getName(): string
     {
@@ -23,7 +25,7 @@ class ReorderEntriesTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'PUT /planner/canvas/entries/reorder - Sortiert Entries innerhalb eines Building Blocks neu. ERFORDERLICH: block_id, entry_ids (geordnetes Array von Entry-IDs).';
+        return 'Sortiert Entries innerhalb eines Building Blocks neu. ERFORDERLICH: block_id, entry_ids (geordnetes Array von Entry-IDs).';
     }
 
     public function getSchema(): array
@@ -68,6 +70,9 @@ class ReorderEntriesTool implements ToolContract, ToolMetadataContract
 
             if (!$block) {
                 return ToolResult::error('NOT_FOUND', 'Building Block nicht gefunden (oder kein Zugriff).');
+            }
+            if ($authError = $this->authorizeCanvas($block->canvas, $context, 'update')) {
+                return $authError;
             }
 
             $entryIds = $arguments['entry_ids'] ?? [];

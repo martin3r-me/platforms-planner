@@ -61,7 +61,7 @@ class SnapshotSystemsDiagnoseTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'GET /snapshot-systems/diagnose - Diagnose der naechtlichen Health-Snapshot-Cronjobs (Planner-Projekte, Helpdesk-Boards, Dev-Packages). Zeigt pro System letzten Snapshot, Cron-Aktivitaet der letzten 7 Tage und ein Gesamturteil, ob der Scheduler laeuft. scope=global (default) oder scope=team. days=N Fenster (default 7).';
+        return 'Diagnose der naechtlichen Health-Snapshot-Cronjobs (Planner-Projekte, Helpdesk-Boards, Dev-Packages). Zeigt pro System letzten Snapshot, Cron-Aktivitaet der letzten 7 Tage und ein Gesamturteil, ob der Scheduler laeuft. scope=team (default) oder scope=global (nur aggregierte Zaehler ueber alle Teams). days=N Fenster (default 7).';
     }
 
     public function getSchema(): array
@@ -72,7 +72,7 @@ class SnapshotSystemsDiagnoseTool implements ToolContract, ToolMetadataContract
                 'scope' => [
                     'type' => 'string',
                     'enum' => ['global', 'team'],
-                    'description' => 'global = ueber alle Teams (default, bester Cron-Indikator). team = nur aktuelles Team.',
+                    'description' => 'team = nur aktuelles Team (default). global = aggregierte Zaehler ueber alle Teams (bester Cron-Indikator, keine Inhalte).',
                 ],
                 'days' => [
                     'type' => 'integer',
@@ -90,7 +90,7 @@ class SnapshotSystemsDiagnoseTool implements ToolContract, ToolMetadataContract
                 return ToolResult::error('AUTH_ERROR', 'Kein User im Kontext.');
             }
 
-            $scope = ($arguments['scope'] ?? 'global') === 'team' ? 'team' : 'global';
+            $scope = ($arguments['scope'] ?? 'team') === 'global' ? 'global' : 'team';
             $days = max(1, min(90, (int) ($arguments['days'] ?? 7)));
 
             $teamId = null;

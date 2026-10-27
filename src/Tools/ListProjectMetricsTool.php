@@ -28,7 +28,7 @@ class ListProjectMetricsTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'GET /planner/projects/metrics?team_id=... - Liefert aggregierte Projekt-Metriken (Tasks-Anzahl, Story-Points, geplante Minuten) pro Projekt und ein Ranking nach Komplexität. Ideal, um "komplexestes Projekt" zu bestimmen ohne viele Einzel-Toolcalls. Default: Backlog ausgeschlossen (project_slot_id = null).';
+        return 'Liefert aggregierte Projekt-Metriken (Tasks-Anzahl, Story-Points, geplante Minuten) pro Projekt und ein Ranking nach Komplexität. Ideal, um "komplexestes Projekt" zu bestimmen ohne viele Einzel-Toolcalls. Default: Backlog ausgeschlossen (project_slot_id = null).';
     }
 
     public function getSchema(): array

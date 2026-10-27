@@ -8,11 +8,11 @@ use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Planner\Models\PlannerProjectCanvas;
 use Platform\Planner\Services\ProjectCanvasStatusService;
-use Platform\Planner\Tools\Canvas\Concerns\ResolvesCanvasTeam;
+use Platform\Planner\Tools\Canvas\Concerns\ResolvesProjectCanvas;
 
 class CanvasStatusTool implements ToolContract, ToolMetadataContract
 {
-    use ResolvesCanvasTeam;
+    use ResolvesProjectCanvas;
 
     public function getName(): string
     {
@@ -21,7 +21,7 @@ class CanvasStatusTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'GET /planner/canvas/status - Bewertet Canvas-Vollstaendigkeit und Health-Metriken (Ampel-Logik). ERFORDERLICH: canvas_id.';
+        return 'Bewertet Canvas-Vollstaendigkeit und Health-Metriken (Ampel-Logik). ERFORDERLICH: canvas_id.';
     }
 
     public function getSchema(): array
@@ -29,41 +29,20 @@ class CanvasStatusTool implements ToolContract, ToolMetadataContract
         return [
             'type' => 'object',
             'properties' => [
-                'team_id' => [
-                    'type' => 'integer',
-                    'description' => 'Optional: Team-ID.',
-                ],
-                'canvas_id' => [
-                    'type' => 'integer',
-                    'description' => 'ID des Canvas (ERFORDERLICH).',
-                ],
+                ...$this->canvasTargetSchema(),
             ],
-            'required' => ['canvas_id'],
+            'required' => [],
         ];
     }
 
     public function execute(array $arguments, ToolContext $context): ToolResult
     {
         try {
-            $resolved = $this->resolveTeam($arguments, $context);
-            if ($resolved['error']) {
-                return $resolved['error'];
+            [$canvas, $error] = $this->resolveCanvas($arguments, $context, 'view');
+            if ($error) {
+                return $error;
             }
-            $teamId = (int) $resolved['team_id'];
-
-            $canvasId = (int) ($arguments['canvas_id'] ?? 0);
-            if ($canvasId <= 0) {
-                return ToolResult::error('VALIDATION_ERROR', 'canvas_id ist erforderlich.');
-            }
-
-            $canvas = PlannerProjectCanvas::query()
-                ->with(['blocks.entries'])
-                ->where('team_id', $teamId)
-                ->find($canvasId);
-
-            if (!$canvas) {
-                return ToolResult::error('NOT_FOUND', 'Canvas nicht gefunden (oder kein Zugriff).');
-            }
+            $canvas->loadMissing(['blocks.entries']);
 
             $statusService = new ProjectCanvasStatusService();
             $status = $statusService->assessStatus($canvas);

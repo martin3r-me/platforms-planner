@@ -25,7 +25,7 @@ class GetProjectSnapshotTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'GET /project-snapshots - Holt den juengsten Snapshot eines Projekts (oder einen historischen via taken_on) inkl. Health-Ampel, Score, Confidence, Sub-Daten (Slot-Breakdown, Top-5-Froesche, Person-Workload). Rein lesend, kein Nebeneffekt. Um einen neuen Snapshot zu erzwingen, nutze planner.project_snapshots.POST.';
+        return 'Holt den juengsten Snapshot eines Projekts (oder einen historischen via taken_on) inkl. Health-Ampel, Score, Confidence, Sub-Daten (Slot-Breakdown, Top-5-Froesche, Person-Workload). Rein lesend, kein Nebeneffekt. Um einen neuen Snapshot zu erzwingen, nutze planner.project_snapshots.POST.';
     }
 
     public function getSchema(): array

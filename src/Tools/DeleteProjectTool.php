@@ -3,6 +3,7 @@
 namespace Platform\Planner\Tools;
 
 use Platform\Core\Contracts\ToolContract;
+use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Tools\Concerns\HasStandardizedWriteOperations;
@@ -13,7 +14,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 /**
  * Tool zum Löschen von Projekten im Planner-Modul
  */
-class DeleteProjectTool implements ToolContract
+class DeleteProjectTool implements ToolContract, ToolMetadataContract
 {
     use HasStandardizedWriteOperations;
     public function getName(): string
@@ -23,7 +24,7 @@ class DeleteProjectTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'DELETE /projects/{id} - Löscht ein Projekt. REST-Parameter: id (required, integer) - Projekt-ID. Hinweis: Beim Löschen werden auch alle zugehörigen Slots und Aufgaben gelöscht (Standard: Soft-Delete, wiederherstellbar). Mit force=true wird unwiderruflich hart gelöscht (Purge, z.B. für DSGVO-Löschpflichten) — nur für Owner/Admin, erfordert confirm=true.';
+        return 'Löscht ein Projekt. Parameter: project_id (required, integer) - Projekt-ID. Hinweis: Beim Löschen werden auch alle zugehörigen Slots und Aufgaben gelöscht (Standard: Soft-Delete, wiederherstellbar). Mit force=true wird unwiderruflich hart gelöscht (Purge, z.B. für DSGVO-Löschpflichten) — nur für Owner/Admin, erfordert confirm=true.';
     }
 
     public function getSchema(): array
@@ -168,5 +169,17 @@ class DeleteProjectTool implements ToolContract
             return ToolResult::error('EXECUTION_ERROR', 'Fehler beim Löschen des Projekts: ' . $e->getMessage());
         }
     }
-}
 
+    public function getMetadata(): array
+    {
+        return [
+            'category' => 'action',
+            'tags' => ['planner', 'projects', 'delete'],
+            'read_only' => false,
+            'requires_auth' => true,
+            'requires_team' => false,
+            'risk_level' => 'destructive',
+            'idempotent' => false,
+        ];
+    }
+}

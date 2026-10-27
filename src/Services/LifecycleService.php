@@ -155,6 +155,54 @@ class LifecycleService
         $this->transitionTask($task, TaskLifecycleState::ACTIVE, 'manual:reopen');
     }
 
+    // ── Zielzustand → passender Uebergang (fuer Tools/API) ──────
+
+    /**
+     * Projekt in den Zielzustand bringen (aktiv/abgeschlossen/verworfen). "ruhend"
+     * setzt nur der Inaktivitaets-Tick. Bereits im Zielzustand = no-op.
+     *
+     * @throws InvalidLifecycleTransitionException
+     */
+    public function transitionProjectTo(PlannerProject $project, ProjectLifecycleState $target): void
+    {
+        if ($project->lifecycle_state === $target) {
+            return;
+        }
+
+        match ($target) {
+            ProjectLifecycleState::COMPLETED => $this->complete($project),
+            ProjectLifecycleState::DISCARDED => $this->discard($project),
+            ProjectLifecycleState::ACTIVE => match ($project->lifecycle_state) {
+                ProjectLifecycleState::COMPLETED => $this->reopen($project),
+                ProjectLifecycleState::DISCARDED => $this->revive($project),
+                ProjectLifecycleState::DORMANT => $this->autoReactivate($project),
+                default => null,
+            },
+            ProjectLifecycleState::DORMANT => throw new InvalidLifecycleTransitionException(
+                "'ruhend' wird automatisch bei Inaktivitaet gesetzt und ist nicht manuell waehlbar."
+            ),
+        };
+    }
+
+    /**
+     * Aufgabe in den Zielzustand bringen (aktiv/erledigt/verworfen). Bereits im
+     * Zielzustand = no-op.
+     *
+     * @throws InvalidLifecycleTransitionException
+     */
+    public function transitionTaskTo(PlannerTask $task, TaskLifecycleState $target): void
+    {
+        if ($task->lifecycle_state === $target) {
+            return;
+        }
+
+        match ($target) {
+            TaskLifecycleState::COMPLETED => $this->completeTask($task),
+            TaskLifecycleState::DISCARDED => $this->discardTask($task),
+            TaskLifecycleState::ACTIVE => $this->reopenTask($task),
+        };
+    }
+
     // ── Query helpers ────────────────────────────────────────────
 
     public function canProjectTransitionTo(PlannerProject $project, ProjectLifecycleState $target): bool

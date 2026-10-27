@@ -25,7 +25,7 @@ class CreateProjectSnapshotTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'POST /project-snapshots - Erzwingt die Neuberechnung des Snapshots eines Projekts (Trigger=manual) und gibt ihn zurueck. Schreibender Vorgang: legt fuer den heutigen Tag einen Snapshot an bzw. ueberschreibt den bestehenden.';
+        return 'Erzwingt die Neuberechnung des Snapshots eines Projekts (Trigger=manual) und gibt ihn zurueck. Schreibender Vorgang: legt fuer den heutigen Tag einen Snapshot an bzw. ueberschreibt den bestehenden.';
     }
 
     public function getSchema(): array
@@ -45,6 +45,9 @@ class CreateProjectSnapshotTool implements ToolContract, ToolMetadataContract
     public function execute(array $arguments, ToolContext $context): ToolResult
     {
         try {
+            if (! $context->user) {
+                return ToolResult::error('AUTH_ERROR', 'Kein User im Kontext.');
+            }
             if (empty($arguments['project_id'])) {
                 return ToolResult::error('VALIDATION_ERROR', 'project_id ist erforderlich.');
             }

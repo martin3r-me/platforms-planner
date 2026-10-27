@@ -29,7 +29,7 @@ class GetProjectTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'GET /projects/{id} - Ruft ein einzelnes Projekt mit vollständiger Struktur ab. REST-Parameter: id (required, integer) - Projekt-ID. Gibt zurück: Projekt-Details, alle Slots mit IDs und Aufgaben-Anzahl, Backlog-Aufgaben-Anzahl. Nutze "planner.projects.GET" um verfügbare Projekt-IDs zu sehen.';
+        return 'Ruft ein Projekt mit Stammdaten und Struktur (Spalten, Backlog) ab. Pflicht: project_id. Gibt zurück: Projekt-Details, alle Slots mit IDs und Aufgaben-Anzahl, Backlog-Aufgaben-Anzahl. Nutze "planner.projects.GET" um verfügbare Projekt-IDs zu sehen.';
     }
 
     public function getSchema(): array
@@ -37,12 +37,12 @@ class GetProjectTool implements ToolContract, ToolMetadataContract
         return [
             'type' => 'object',
             'properties' => [
-                'id' => [
+                'project_id' => [
                     'type' => 'integer',
-                    'description' => 'REST-Parameter (required): ID des Projekts. Beispiel: id=123. Nutze "planner.projects.GET" um verfügbare Projekt-IDs zu sehen.'
+                    'description' => 'ID des Projekts (ERFORDERLICH). Nutze "planner.projects.GET" um Projekte zu finden. ("id" wird als Alias akzeptiert.)'
                 ]
             ],
-            'required' => ['id']
+            'required' => ['project_id']
         ];
     }
 
@@ -53,6 +53,7 @@ class GetProjectTool implements ToolContract, ToolMetadataContract
                 return ToolResult::error('AUTH_ERROR', 'Kein User im Kontext gefunden.');
             }
 
+            $arguments['id'] = $arguments['project_id'] ?? $arguments['id'] ?? null;
             if (empty($arguments['id'])) {
                 return ToolResult::error('VALIDATION_ERROR', 'Projekt-ID ist erforderlich. Nutze "planner.projects.GET" um Projekte zu finden.');
             }
@@ -136,7 +137,6 @@ class GetProjectTool implements ToolContract, ToolMetadataContract
                 'description' => $project->description,
                 'project_type' => $project->project_type?->value,
                 'kind' => $project->kind?->value,
-                'status' => $project->status?->value, // legacy
                 'lifecycle_state' => $project->lifecycle_state?->value,
                 'lifecycle_state_changed_at' => $project->lifecycle_state_changed_at?->toIso8601String(),
                 'team_id' => $project->team_id,
@@ -152,7 +152,11 @@ class GetProjectTool implements ToolContract, ToolMetadataContract
                 'planned_end' => $project->plannedEnd()?->toDateString(),
                 'planned_minutes' => $project->totalPlannedMinutes(),
                 'estimated_hours' => $project->totalPlannedHours(),
-                'done' => $project->lifecycle_state === \Platform\Planner\Enums\ProjectLifecycleState::COMPLETED,
+                'canvas' => (function () use ($project) {
+                    $c = app(\Platform\Planner\Services\ProjectCanvasService::class)->forProject($project);
+                    return $c ? ['canvas_id' => $c->id, 'kickoff_completed' => (bool) $c->kickoff_completed_at] : null;
+                })(),
+                'hint' => 'Zustand, Verlauf und Arbeit im Zusammenhang: planner.project.brief.GET.',
                 'created_at' => $project->created_at->toIso8601String(),
                 'last_viewed_at' => $project->last_viewed_at?->toIso8601String(),
                 // Komplette Struktur-Informationen

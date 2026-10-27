@@ -3,6 +3,7 @@
 namespace Platform\Planner\Tools;
 
 use Platform\Core\Contracts\ToolContract;
+use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Tools\Concerns\HasStandardizedWriteOperations;
@@ -18,7 +19,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 /**
  * Tool zum Bearbeiten von Projekten im Planner-Modul
  */
-class UpdateProjectTool implements ToolContract
+class UpdateProjectTool implements ToolContract, ToolMetadataContract
 {
     use HasStandardizedWriteOperations;
     public function getName(): string
@@ -28,7 +29,10 @@ class UpdateProjectTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'PUT /projects/{id} - Aktualisiert ein bestehendes Projekt. REST-Parameter: id (required, integer) - Projekt-ID. name (optional, string) - Projektname. description (optional, string) - Beschreibung. project_type (optional, string) - Typ: internal, customer, event, cooking. owner_user_id (optional, integer) - Owner des Projekts. Hinweis: Es gibt keine Projekt-Mitgliederliste mehr; die Antwortfeld \'members\' enthaelt nur den Owner. Sichtbarkeit/Zugriff laeuft ueber das Organisations-Graph-Berechtigungsmodell (Entity-Links), nicht ueber diesen Parameter.';
+        return 'Aktualisiert ein Projekt (Stammdaten, Lebenszyklus, Plan/Budget). Pflicht: project_id. '
+            . 'Lebenszyklus über lifecycle_state (aktiv/abgeschlossen/verworfen; "ruhend" setzt das System). '
+            . 'Owner-Wechsel braucht Manage-Recht. Zugriff/Sichtbarkeit laufen über den Organisations-Graphen, nicht über dieses Tool. '
+            . 'Kickoff/Ist-Zustand → planner.canvas.*, Entscheidungen/Meilensteine/Risiken → planner.project.logbook.*.';
     }
 
     public function getSchema(): array
@@ -45,8 +49,8 @@ class UpdateProjectTool implements ToolContract
                     'description' => 'Optional: Neuer Name des Projekts. Frage nach, wenn der Nutzer den Namen ändern möchte.'
                 ],
                 'description' => [
-                    'type' => 'string',
-                    'description' => 'Optional: Neue Beschreibung des Projekts. Frage nach, wenn der Nutzer die Beschreibung ändern möchte.'
+                    'type' => ['string', 'null'],
+                    'description' => 'Optional: Neue Beschreibung des Projekts (null oder "" leert sie).'
                 ],
                 'project_type' => [
                     'type' => 'string',
@@ -58,14 +62,14 @@ class UpdateProjectTool implements ToolContract
                     'description' => 'Optional: Wesensart. "project" (abgegrenzt, hat Ende) oder "run" (laeuft fortlaufend).',
                     'enum' => ['project', 'run'],
                 ],
-                'status' => [
+                'lifecycle_state' => [
                     'type' => 'string',
-                    'description' => 'Optional: Fluechtiger Status. "aktiv", "passiv" oder "inaktiv".',
-                    'enum' => ['aktiv', 'passiv', 'inaktiv'],
+                    'description' => 'Optional: Lebenszyklus setzen. "abgeschlossen" = Ziel erreicht, "verworfen" = ohne Ergebnis beendet (offene Aufgaben werden mit verworfen), "aktiv" = wieder öffnen. Vorher beim Nutzer rückfragen.',
+                    'enum' => ['aktiv', 'abgeschlossen', 'verworfen'],
                 ],
                 'owner_user_id' => [
                     'type' => 'integer',
-                    'description' => 'Optional: Neue Owner-User-ID. Frage nach, wenn der Nutzer den Owner ändern möchte.'
+                    'description' => 'Optional: Neue Owner-User-ID (Owner = Ersteller mit Manage-Recht). Erfordert selbst Manage-Recht; der User muss Mitglied des Projekt-Teams sein.'
                 ],
                 'planned_minutes' => [
                     'type' => 'integer',
@@ -104,10 +108,6 @@ class UpdateProjectTool implements ToolContract
                     'type' => 'string',
                     'description' => 'Optional: Währung (3-Buchstaben ISO-Code, z.B. "EUR", "USD").'
                 ],
-                'done' => [
-                    'type' => 'boolean',
-                    'description' => 'Optional: Projekt als erledigt markieren. Frage nach, wenn der Nutzer das Projekt abschließen möchte.'
-                ]
             ],
             'required' => ['project_id']
         ];
@@ -146,26 +146,50 @@ class UpdateProjectTool implements ToolContract
                 $updateData['name'] = $arguments['name'];
             }
 
-            if (isset($arguments['description'])) {
-                $updateData['description'] = $arguments['description'];
+            if (array_key_exists('description', $arguments)) {
+                $desc = trim((string) ($arguments['description'] ?? ''));
+                $updateData['description'] = $desc === '' ? null : $desc;
             }
 
             if (isset($arguments['project_type'])) {
                 $projectType = ProjectType::tryFrom($arguments['project_type']);
-                if ($projectType) {
-                    $updateData['project_type'] = $projectType;
+                if (! $projectType) {
+                    return ToolResult::error('VALIDATION_ERROR', 'project_type muss einer von internal, customer, event, cooking sein.');
                 }
+                $updateData['project_type'] = $projectType;
             }
 
             if (isset($arguments['kind'])) {
                 $kindEnum = \Platform\Planner\Enums\ProjectKind::tryFrom($arguments['kind']);
-                if ($kindEnum) {
-                    $updateData['kind'] = $kindEnum;
+                if (! $kindEnum) {
+                    return ToolResult::error('VALIDATION_ERROR', 'kind muss "project" oder "run" sein.');
                 }
+                $updateData['kind'] = $kindEnum;
             }
 
-            // Legacy: `status` argument is no longer accepted. Lifecycle
-            // transitions must go through the dedicated tool actions.
+            // Lebenszyklus: lifecycle_state (done=true/false bleibt als Alt-Alias erhalten)
+            $targetLifecycle = null;
+            if (isset($arguments['lifecycle_state'])) {
+                $targetLifecycle = \Platform\Planner\Enums\ProjectLifecycleState::tryFrom((string) $arguments['lifecycle_state']);
+                if (! $targetLifecycle || $targetLifecycle === \Platform\Planner\Enums\ProjectLifecycleState::DORMANT) {
+                    return ToolResult::error('VALIDATION_ERROR', 'lifecycle_state muss "aktiv", "abgeschlossen" oder "verworfen" sein.');
+                }
+            } elseif (isset($arguments['done'])) {
+                $targetLifecycle = $arguments['done']
+                    ? \Platform\Planner\Enums\ProjectLifecycleState::COMPLETED
+                    : \Platform\Planner\Enums\ProjectLifecycleState::ACTIVE;
+            }
+
+            // Owner-Wechsel = Uebergabe der Manage-Rechte → eigene Policy-Schwelle
+            if (isset($arguments['owner_user_id']) && (int) $arguments['owner_user_id'] !== (int) $project->user_id) {
+                if (! Gate::forUser($context->user)->allows('transferOwnership', $project)) {
+                    return ToolResult::error('ACCESS_DENIED', 'Owner-Wechsel erfordert Manage-Recht am Projekt.');
+                }
+                $newOwner = \Platform\Core\Models\User::find((int) $arguments['owner_user_id']);
+                if (! $newOwner || ! $newOwner->teams()->where('teams.id', $project->team_id)->exists()) {
+                    return ToolResult::error('VALIDATION_ERROR', 'owner_user_id ist kein Mitglied des Projekt-Teams.');
+                }
+            }
 
             // planned_minutes und estimated_hours → zentrales System
             $newPlannedMinutes = null;
@@ -260,18 +284,9 @@ class UpdateProjectTool implements ToolContract
                 $updateData['currency'] = $arguments['currency'];
             }
 
-            // Legacy: `done=true` argument routes through the lifecycle
-            // service, so an existing MCP client can still complete a project
-            // via update. `done=false` re-opens if currently completed.
-            $lifecycleFlip = null;
-            if (isset($arguments['done'])) {
-                $lifecycleFlip = (bool) $arguments['done'];
-            }
-
             if (isset($arguments['owner_user_id'])) {
-                // Ersteller/Owner = user_id-Spalte. Keine projectUsers-Rolle mehr.
-                $project->user_id = $arguments['owner_user_id'];
-                $updateData['user_id'] = $arguments['owner_user_id'];
+                // Ersteller/Owner = user_id-Spalte (oben autorisiert + validiert).
+                $updateData['user_id'] = (int) $arguments['owner_user_id'];
             }
 
             // Projekt aktualisieren
@@ -279,30 +294,17 @@ class UpdateProjectTool implements ToolContract
                 $project->update($updateData);
             }
 
-            // Lifecycle flip via done argument (legacy).
-            if ($lifecycleFlip !== null) {
+            if ($targetLifecycle !== null) {
                 try {
-                    $lifecycle = app(\Platform\Planner\Services\LifecycleService::class);
-                    if ($lifecycleFlip) {
-                        $lifecycle->complete($project);
-                    } elseif ($project->lifecycle_state === \Platform\Planner\Enums\ProjectLifecycleState::COMPLETED) {
-                        $lifecycle->reopen($project);
-                    }
-                } catch (\Platform\Planner\Exceptions\InvalidLifecycleTransitionException) {
-                    // Discarded / already active — silent no-op.
+                    app(\Platform\Planner\Services\LifecycleService::class)->transitionProjectTo($project, $targetLifecycle);
+                } catch (\Platform\Planner\Exceptions\InvalidLifecycleTransitionException $e) {
+                    return ToolResult::error('INVALID_TRANSITION', 'Lebenszyklus-Wechsel nicht möglich: ' . $e->getMessage() . ' (Stammdaten wurden gespeichert.)');
                 }
             }
 
             // Aktualisiertes Projekt laden
             $project->refresh();
             $project->load(['user']);
-
-            // Kein Mitgliedschaftskonzept mehr — "members" = Ersteller (owner).
-            $projectUsers = [[
-                'user_id' => $project->user_id,
-                'user_name' => $project->user->name ?? 'Unbekannt',
-                'role' => 'owner',
-            ]];
 
             // Entity-Links laden (via DimensionLink Bridge)
             $entityLinks = \Platform\Organization\Services\EntityDimensionBridge::linksForLinkables(
@@ -327,7 +329,6 @@ class UpdateProjectTool implements ToolContract
                 'team_id' => $project->team_id,
                 'owner_user_id' => $project->user_id,
                 'owner_name' => $project->user->name ?? 'Unbekannt',
-                'members' => $projectUsers,
                 'billing_method' => $project->billing_method?->value,
                 'hourly_rate' => $project->hourly_rate ? (float) $project->hourly_rate : null,
                 'budget_amount' => $project->budget_amount ? (float) $project->budget_amount : null,
@@ -337,9 +338,6 @@ class UpdateProjectTool implements ToolContract
                 'planned_end' => $project->plannedEnd()?->toDateString(),
                 'planned_minutes' => $project->totalPlannedMinutes(),
                 'estimated_hours' => $project->totalPlannedHours(),
-                'done' => $project->lifecycle_state === \Platform\Planner\Enums\ProjectLifecycleState::COMPLETED,
-                'done_at' => $project->lifecycle_state === \Platform\Planner\Enums\ProjectLifecycleState::COMPLETED
-                    ? $project->lifecycle_state_changed_at?->toIso8601String() : null,
                 'updated_at' => $project->updated_at->toIso8601String(),
                 'message' => "Projekt '{$project->name}' erfolgreich aktualisiert."
             ]);
@@ -347,5 +345,17 @@ class UpdateProjectTool implements ToolContract
             return ToolResult::error('EXECUTION_ERROR', 'Fehler beim Aktualisieren des Projekts: ' . $e->getMessage());
         }
     }
-}
 
+    public function getMetadata(): array
+    {
+        return [
+            'category' => 'action',
+            'tags' => ['planner', 'projects', 'put'],
+            'read_only' => false,
+            'requires_auth' => true,
+            'requires_team' => false,
+            'risk_level' => 'write',
+            'idempotent' => true,
+        ];
+    }
+}

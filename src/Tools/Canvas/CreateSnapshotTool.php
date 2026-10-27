@@ -9,12 +9,12 @@ use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Tools\Concerns\HasStandardizedWriteOperations;
 use Platform\Planner\Models\PlannerProjectCanvas;
 use Platform\Planner\Services\ProjectCanvasService;
-use Platform\Planner\Tools\Canvas\Concerns\ResolvesCanvasTeam;
+use Platform\Planner\Tools\Canvas\Concerns\ResolvesProjectCanvas;
 
 class CreateSnapshotTool implements ToolContract, ToolMetadataContract
 {
     use HasStandardizedWriteOperations;
-    use ResolvesCanvasTeam;
+    use ResolvesProjectCanvas;
 
     public function getName(): string
     {
@@ -23,23 +23,28 @@ class CreateSnapshotTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'POST /planner/canvas/snapshots - Erstellt einen Snapshot des aktuellen Canvas-Zustands. ERFORDERLICH: canvas_id.';
+        return 'Hält den aktuellen Stand des Projekt-Canvas als benannte Version fest — optional zusammen mit einem Logbuch-Eintrag (Entscheidung/Meilenstein/Risiko), '
+            . 'der auf genau diesen Stand verweist. Pflicht: project_id oder canvas_id. Hinweis: Versionen entstehen ohnehin automatisch je Bearbeitungssitzung; '
+            . 'festhalten lohnt sich, wenn der Stand eine Bedeutung hat (z.B. nach Kundentermin, vor großem Umbau).';
     }
 
     public function getSchema(): array
     {
         return $this->mergeWriteSchema([
             'properties' => [
-                'team_id' => [
-                    'type' => 'integer',
-                    'description' => 'Optional: Team-ID.',
-                ],
-                'canvas_id' => [
-                    'type' => 'integer',
-                    'description' => 'ID des Canvas (ERFORDERLICH).',
+                ...$this->canvasTargetSchema(),
+                'label' => ['type' => 'string', 'description' => 'Optional: Bezeichnung des Stands, z.B. "Nach Abstimmung mit Kunde".'],
+                'logbook' => [
+                    'type' => 'object',
+                    'description' => 'Optional: Logbuch-Eintrag mit Verweis auf diesen Stand — das Warum zur Änderung.',
+                    'properties' => [
+                        'type' => ['type' => 'string', 'enum' => ['decision', 'milestone', 'risk']],
+                        'title' => ['type' => 'string', 'description' => 'Was (Pflicht, wenn logbook angegeben).'],
+                        'rationale' => ['type' => 'string', 'description' => 'Warum: Auslöser, Abwägung, verworfene Alternativen.'],
+                    ],
                 ],
             ],
-            'required' => ['canvas_id'],
+            'required' => [],
         ]);
     }
 
@@ -50,35 +55,41 @@ class CreateSnapshotTool implements ToolContract, ToolMetadataContract
                 return ToolResult::error('AUTH_ERROR', 'Kein User im Kontext gefunden.');
             }
 
-            $resolved = $this->resolveTeam($arguments, $context);
-            if ($resolved['error']) {
-                return $resolved['error'];
-            }
-            $teamId = (int) $resolved['team_id'];
-
-            $canvasId = (int) ($arguments['canvas_id'] ?? 0);
-            if ($canvasId <= 0) {
-                return ToolResult::error('VALIDATION_ERROR', 'canvas_id ist erforderlich.');
+            [$canvas, $error] = $this->resolveCanvas($arguments, $context, 'update');
+            if ($error) {
+                return $error;
             }
 
-            $canvas = PlannerProjectCanvas::query()
-                ->where('team_id', $teamId)
-                ->find($canvasId);
-
-            if (!$canvas) {
-                return ToolResult::error('NOT_FOUND', 'Canvas nicht gefunden (oder kein Zugriff).');
+            $logbook = is_array($arguments['logbook'] ?? null) ? $arguments['logbook'] : null;
+            if ($logbook && trim((string) ($logbook['title'] ?? '')) === '') {
+                return ToolResult::error('VALIDATION_ERROR', 'logbook.title ist erforderlich, wenn ein Logbuch-Eintrag angelegt werden soll.');
+            }
+            if ($logbook) {
+                $logbook['source'] = 'agent';
             }
 
-            $canvasService = new ProjectCanvasService();
-            $snapshot = $canvasService->createSnapshot($canvas, $context->user->id);
+            try {
+                $result = app(\Platform\Planner\Services\ProjectCanvasVersioning::class)->capture(
+                    $canvas,
+                    $context->user,
+                    trim((string) ($arguments['label'] ?? '')) ?: null,
+                    $logbook,
+                    \Platform\Planner\Services\ProjectCanvasVersioning::SOURCE_AGENT,
+                );
+            } catch (\InvalidArgumentException $e) {
+                return ToolResult::error('VALIDATION_ERROR', $e->getMessage());
+            }
+            $snapshot = $result['snapshot'];
 
             return ToolResult::success([
                 'id' => $snapshot->id,
-                'uuid' => $snapshot->uuid,
                 'canvas_id' => $snapshot->canvas_id,
                 'version' => $snapshot->version,
+                'label' => $snapshot->label,
+                'source' => $snapshot->source,
                 'created_at' => $snapshot->created_at?->toISOString(),
-                'message' => 'Snapshot Version ' . $snapshot->version . ' erfolgreich erstellt.',
+                'logbook_entry' => $result['entry']?->toToolArray(),
+                'message' => "Stand als v{$snapshot->version} festgehalten" . ($result['entry'] ? ' und im Logbuch verknüpft.' : '.'),
             ]);
         } catch (\Throwable $e) {
             return ToolResult::error('EXECUTION_ERROR', 'Fehler beim Erstellen des Snapshots: ' . $e->getMessage());
@@ -93,7 +104,7 @@ class CreateSnapshotTool implements ToolContract, ToolMetadataContract
             'tags' => ['planner', 'canvas', 'snapshots', 'create'],
             'risk_level' => 'write',
             'requires_auth' => true,
-            'requires_team' => true,
+            'requires_team' => false,
             'idempotent' => false,
         ];
     }

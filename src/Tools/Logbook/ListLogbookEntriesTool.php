@@ -21,7 +21,7 @@ class ListLogbookEntriesTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'GET /projects/{id}/logbook - Liest das Projekt-Logbuch: chronologische, unveraenderliche Eintraege (Entscheidung/Meilenstein/Risiko) mit Begruendung und Verweisen auf Aufgaben/Commits/Canvas. Parameter: project_id (required), type (optional: decision|milestone|risk), since (optional, YYYY-MM-DD), include_superseded (optional, default false), order (optional: asc|desc, default asc), limit (optional, default 50, max 200). Abgrenzung: Canvas = aktueller Zustand, Logbuch = Verlauf/Warum, Aufgaben/Zeiten = Arbeit.';
+        return 'Liest das Projekt-Logbuch: chronologische, unveraenderliche Eintraege (Entscheidung/Meilenstein/Risiko) mit Begruendung und Verweisen auf Aufgaben/Commits/Canvas. Parameter: project_id (required), type (optional: decision|milestone|risk), since (optional, YYYY-MM-DD), include_superseded (optional, default false), order (optional: asc|desc, default asc), limit (optional, default 50, max 200). Abgrenzung: Canvas = aktueller Zustand, Logbuch = Verlauf/Warum, Aufgaben/Zeiten = Arbeit.';
     }
 
     public function getSchema(): array

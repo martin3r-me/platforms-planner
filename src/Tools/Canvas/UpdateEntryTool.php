@@ -9,11 +9,13 @@ use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Tools\Concerns\HasStandardizedWriteOperations;
 use Platform\Planner\Models\PlannerProjectCanvasEntry;
 use Platform\Planner\Tools\Canvas\Concerns\ResolvesCanvasTeam;
+use Platform\Planner\Tools\Canvas\Concerns\ResolvesProjectCanvas;
 
 class UpdateEntryTool implements ToolContract, ToolMetadataContract
 {
     use HasStandardizedWriteOperations;
     use ResolvesCanvasTeam;
+    use ResolvesProjectCanvas;
 
     public function getName(): string
     {
@@ -22,7 +24,7 @@ class UpdateEntryTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'PUT /planner/canvas/entries/{id} - Aktualisiert einen Entry. ERFORDERLICH: entry_id. Optional: title, content, entry_type, position, metadata.';
+        return 'Aktualisiert einen Entry. ERFORDERLICH: entry_id. Optional: title, content, entry_type, position, metadata.';
     }
 
     public function getSchema(): array
@@ -83,6 +85,9 @@ class UpdateEntryTool implements ToolContract, ToolMetadataContract
 
             if (!$entry) {
                 return ToolResult::error('NOT_FOUND', 'Entry nicht gefunden (oder kein Zugriff).');
+            }
+            if ($authError = $this->authorizeCanvas($entry->block?->canvas, $context, 'update')) {
+                return $authError;
             }
 
             $updated = [];

@@ -3,6 +3,7 @@
 namespace Platform\Planner\Tools;
 
 use Platform\Core\Contracts\ToolContract;
+use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolDependencyContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
@@ -19,7 +20,7 @@ use Illuminate\Auth\Access\AuthorizationException;
  * 
  * LOOSE COUPLED: Definiert seine Dependencies selbst via ToolDependencyContract.
  */
-class CreateProjectSlotTool implements ToolContract, ToolDependencyContract
+class CreateProjectSlotTool implements ToolContract, ToolDependencyContract, ToolMetadataContract
 {
     public function getName(): string
     {
@@ -28,7 +29,7 @@ class CreateProjectSlotTool implements ToolContract, ToolDependencyContract
 
     public function getDescription(): string
     {
-        return 'POST /project_slots - Erstellt einen neuen Slot in einem Projekt. REST-Parameter: name (required, string) - Name des Slots. project_id (required, integer) - Projekt-ID. order (optional, integer) - Reihenfolge.';
+        return 'Erstellt einen neuen Slot in einem Projekt. Parameter: name (required, string) - Name des Slots. project_id (required, integer) - Projekt-ID. order (optional, integer) - Reihenfolge.';
     }
 
     public function getSchema(): array
@@ -144,5 +145,17 @@ class CreateProjectSlotTool implements ToolContract, ToolDependencyContract
             ]
         ];
     }
-}
 
+    public function getMetadata(): array
+    {
+        return [
+            'category' => 'action',
+            'tags' => ['planner', 'project', 'slots', 'post'],
+            'read_only' => false,
+            'requires_auth' => true,
+            'requires_team' => false,
+            'risk_level' => 'write',
+            'idempotent' => false,
+        ];
+    }
+}

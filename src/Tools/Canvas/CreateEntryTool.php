@@ -10,11 +10,13 @@ use Platform\Core\Tools\Concerns\HasStandardizedWriteOperations;
 use Platform\Planner\Models\PlannerProjectCanvasBlock;
 use Platform\Planner\Services\ProjectCanvasEntryService;
 use Platform\Planner\Tools\Canvas\Concerns\ResolvesCanvasTeam;
+use Platform\Planner\Tools\Canvas\Concerns\ResolvesProjectCanvas;
 
 class CreateEntryTool implements ToolContract, ToolMetadataContract
 {
     use HasStandardizedWriteOperations;
     use ResolvesCanvasTeam;
+    use ResolvesProjectCanvas;
 
     public function getName(): string
     {
@@ -23,7 +25,7 @@ class CreateEntryTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'POST /planner/canvas/entries - Erstellt einen neuen Entry in einem Building Block. ERFORDERLICH: block_id, title. Optional: content, entry_type (text/date/person/amount), position, metadata.';
+        return 'Erstellt einen neuen Entry in einem Building Block. ERFORDERLICH: block_id, title. Optional: content, entry_type (text/date/person/amount), position, metadata.';
     }
 
     public function getSchema(): array
@@ -88,6 +90,9 @@ class CreateEntryTool implements ToolContract, ToolMetadataContract
 
             if (!$block) {
                 return ToolResult::error('NOT_FOUND', 'Building Block nicht gefunden (oder kein Zugriff).');
+            }
+            if ($authError = $this->authorizeCanvas($block->canvas, $context, 'update')) {
+                return $authError;
             }
 
             $title = trim((string) ($arguments['title'] ?? ''));

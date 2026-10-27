@@ -3,6 +3,7 @@
 namespace Platform\Planner\Tools;
 
 use Platform\Core\Contracts\ToolContract;
+use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolContext;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Tools\Concerns\HasStandardizedWriteOperations;
@@ -15,7 +16,7 @@ use Illuminate\Auth\Access\AuthorizationException;
  * 
  * Verwendet Soft-Delete, sodass Aufgaben wiederhergestellt werden können.
  */
-class DeleteTaskTool implements ToolContract
+class DeleteTaskTool implements ToolContract, ToolMetadataContract
 {
     use HasStandardizedWriteOperations;
     public function getName(): string
@@ -25,7 +26,7 @@ class DeleteTaskTool implements ToolContract
 
     public function getDescription(): string
     {
-        return 'DELETE /tasks/{id} - Löscht eine Aufgabe. REST-Parameter: id (required, integer) - Task-ID. Hinweis: Aufgaben werden soft-deleted und können wiederhergestellt werden.';
+        return 'Löscht eine Aufgabe. Parameter: task_id (required, integer) - Task-ID. Hinweis: Aufgaben werden soft-deleted und können wiederhergestellt werden.';
     }
 
     public function getSchema(): array
@@ -61,7 +62,7 @@ class DeleteTaskTool implements ToolContract
             }
             
             // Task finden (auch gelöschte Tasks können gefunden werden)
-            $task = PlannerTask::withTrashed()->find($taskId);
+            $task = PlannerTask::withTrashed()->withStale()->find($taskId);
             if (!$task) {
                 return ToolResult::error('TASK_NOT_FOUND', 'Die angegebene Aufgabe wurde nicht gefunden. Nutze "planner.tasks.GET" um alle verfügbaren Aufgaben zu sehen.');
             }
@@ -128,5 +129,17 @@ class DeleteTaskTool implements ToolContract
             return ToolResult::error('EXECUTION_ERROR', 'Fehler beim Löschen der Aufgabe: ' . $e->getMessage());
         }
     }
-}
 
+    public function getMetadata(): array
+    {
+        return [
+            'category' => 'action',
+            'tags' => ['planner', 'tasks', 'delete'],
+            'read_only' => false,
+            'requires_auth' => true,
+            'requires_team' => false,
+            'risk_level' => 'destructive',
+            'idempotent' => false,
+        ];
+    }
+}

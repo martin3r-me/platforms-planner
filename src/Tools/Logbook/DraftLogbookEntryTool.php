@@ -21,7 +21,7 @@ class DraftLogbookEntryTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'GET /projects/{id}/logbook/draft - Entwurfs-Motor fuers Logbuch: erzeugt Faktenprosa (planner.project.verbalize-Pipeline) zur Bewegung seit dem letzten Logbuch-Eintrag plus Verweis-Vorschlaege (erledigte Aufgaben, neue Canvas-Staende). Schreibt NICHTS. Ablauf: Entwurf zeigen → Nutzer entscheidet, was davon Entscheidung/Meilenstein/Risiko ist und warum → planner.project.logbook.POST. Parameter: project_id (required), since (optional, YYYY-MM-DD; default: letzter Eintrag, max. 90 Tage), dry_run (optional: true = ohne LLM, nur Faktenbasis).';
+        return 'Entwurfs-Motor fuers Logbuch: erzeugt Faktenprosa (planner.project.verbalize-Pipeline) zur Bewegung seit dem letzten Logbuch-Eintrag plus Verweis-Vorschlaege (erledigte Aufgaben, neue Canvas-Staende). Schreibt NICHTS. Ablauf: Entwurf zeigen → Nutzer entscheidet, was davon Entscheidung/Meilenstein/Risiko ist und warum → planner.project.logbook.POST. Parameter: project_id (required), since (optional, YYYY-MM-DD; default: letzter Eintrag, max. 90 Tage), dry_run (optional: true = ohne LLM, nur Faktenbasis).';
     }
 
     public function getSchema(): array

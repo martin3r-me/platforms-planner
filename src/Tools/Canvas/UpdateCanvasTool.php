@@ -8,12 +8,12 @@ use Platform\Core\Contracts\ToolMetadataContract;
 use Platform\Core\Contracts\ToolResult;
 use Platform\Core\Tools\Concerns\HasStandardizedWriteOperations;
 use Platform\Planner\Models\PlannerProjectCanvas;
-use Platform\Planner\Tools\Canvas\Concerns\ResolvesCanvasTeam;
+use Platform\Planner\Tools\Canvas\Concerns\ResolvesProjectCanvas;
 
 class UpdateCanvasTool implements ToolContract, ToolMetadataContract
 {
     use HasStandardizedWriteOperations;
-    use ResolvesCanvasTeam;
+    use ResolvesProjectCanvas;
 
     public function getName(): string
     {
@@ -22,21 +22,14 @@ class UpdateCanvasTool implements ToolContract, ToolMetadataContract
 
     public function getDescription(): string
     {
-        return 'PUT /planner/canvas/{id} - Aktualisiert einen Project Canvas. ERFORDERLICH: canvas_id. Optional: name, description, status.';
+        return 'Aktualisiert einen Project Canvas. ERFORDERLICH: canvas_id. Optional: name, description, status.';
     }
 
     public function getSchema(): array
     {
         return $this->mergeWriteSchema([
             'properties' => [
-                'team_id' => [
-                    'type' => 'integer',
-                    'description' => 'Optional: Team-ID.',
-                ],
-                'canvas_id' => [
-                    'type' => 'integer',
-                    'description' => 'ID des Canvas (ERFORDERLICH).',
-                ],
+                ...$this->canvasTargetSchema(),
                 'name' => [
                     'type' => 'string',
                     'description' => 'Optional: Neuer Name.',
@@ -51,30 +44,16 @@ class UpdateCanvasTool implements ToolContract, ToolMetadataContract
                     'description' => 'Optional: Neuer Status.',
                 ],
             ],
-            'required' => ['canvas_id'],
+            'required' => [],
         ]);
     }
 
     public function execute(array $arguments, ToolContext $context): ToolResult
     {
         try {
-            $resolved = $this->resolveTeam($arguments, $context);
-            if ($resolved['error']) {
-                return $resolved['error'];
-            }
-            $teamId = (int) $resolved['team_id'];
-
-            $canvasId = (int) ($arguments['canvas_id'] ?? 0);
-            if ($canvasId <= 0) {
-                return ToolResult::error('VALIDATION_ERROR', 'canvas_id ist erforderlich.');
-            }
-
-            $canvas = PlannerProjectCanvas::query()
-                ->where('team_id', $teamId)
-                ->find($canvasId);
-
-            if (!$canvas) {
-                return ToolResult::error('NOT_FOUND', 'Canvas nicht gefunden (oder kein Zugriff).');
+            [$canvas, $error] = $this->resolveCanvas($arguments, $context, 'update');
+            if ($error) {
+                return $error;
             }
 
             $updated = [];
