@@ -1,4 +1,4 @@
-{{-- Kunden-Tor · Verlauf eines Projekts: Erledigtes nach Kalenderwochen. Daten: $weeks (PlannerShareView::historyWeeks). --}}
+{{-- Kunden-Tor · Reiter „Erledigt“ eines Projekts: Erledigtes nach Kalenderwochen. Daten: $weeks (PlannerShareView::historyWeeks). --}}
 <div class="gp-wrap py-6">
     @forelse ($weeks as $week)
         <section @class(['mt-8' => ! $loop->first])>

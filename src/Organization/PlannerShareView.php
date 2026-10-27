@@ -268,7 +268,7 @@ class PlannerShareView implements ProvidesShareView
                 'data' => ['columns' => $this->boardColumns($model, $open, $done)],
             ];
             $detail['tabs'][] = [
-                'key' => 'verlauf', 'label' => 'Verlauf', 'count' => $done->count(), 'order' => 40,
+                'key' => 'erledigt', 'label' => 'Erledigt', 'count' => $done->count(), 'order' => 40,
                 'view' => 'planner::share.history',
                 'data' => ['weeks' => $this->historyWeeks($done)],
             ];
