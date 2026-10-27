@@ -54,7 +54,7 @@
         </x-planner::actionbar>
     </x-slot>
 
-    <x-ui-page-container width="contained" padding="px-3 sm:px-6 py-4 sm:py-6" spacing="space-y-5 sm:space-y-6" background="bg-[color:var(--nx-bg)]">
+    <x-planner::body>
 
         {{-- Abgrenzung + letzter Eintrag (früher Seitenleiste) --}}
         <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-[var(--nx-muted)] leading-relaxed">
@@ -204,5 +204,5 @@
                 </section>
             @endforeach
         @endif
-    </x-ui-page-container>
+    </x-planner::body>
 </x-ui-page>

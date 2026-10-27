@@ -19,7 +19,7 @@
                 @endif
             </div>
             @if($kickoffOpen)
-                <div class="mt-3 ml-8 max-w-2xl space-y-2">
+                <div class="mt-3 ml-8 space-y-2">
                     <x-nx-input-textarea name="kickoffNote" label="Notiz zum Kickoff (optional)" wire:model="kickoffNote" rows="2"
                                          placeholder="z.B. Wer war dabei, was ist bewusst offen geblieben?" />
                     @error('kickoff')<div class="text-xs text-[color:var(--nx-danger)]">{{ $message }}</div>@enderror

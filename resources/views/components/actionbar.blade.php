@@ -9,7 +9,7 @@
     • + Neu:   immer Aufgabe + Projekt (im Projekt zusätzlich Logbuch-Eintrag); Seiten ergänzen über Slot "create".
     • ⋯:       Seitenoptionen (Slot "more"); im Projekt immer Projekt-Einstellungen.
 
-    Responsiv: Reiter < md als Dropdown, Button-Beschriftungen < sm nur Icons, Popover passen sich der Breite an.
+    Reiter = Textreiter mit Akzentstrich (kein Rahmen). Responsiv: Reiter < md als Dropdown, Button-Beschriftungen < sm nur Icons, Popover passen sich der Breite an.
 
     <x-planner::actionbar :project="$project" :crumbs="[['label' => $canvas->name]]" :filters-active="2">
         <x-slot:filters> … </x-slot:filters>
@@ -106,27 +106,29 @@
     <div class="h-full flex items-center gap-1.5 sm:gap-2">
 
         {{-- Wo bin ich --}}
-        <div class="min-w-0 flex-1 md:flex-initial md:max-w-[38%] lg:max-w-[32%]">
+        <div class="min-w-0 flex-1 md:flex-initial md:max-w-[34%] lg:max-w-[30%]">
             <x-ui-breadcrumb :items="$trail" />
         </div>
 
-        {{-- Reiter: ab md als Segmente --}}
-        <nav class="hidden md:inline-flex shrink-0 rounded-md border border-[color:var(--nx-line-strong)] overflow-hidden ml-1" aria-label="Bereiche">
+        {{-- Reiter ab md: ruhige Textreiter, aktiver Reiter mit Akzentstrich auf der Unterkante der Leiste --}}
+        <span class="hidden md:block h-4 w-px bg-[color:var(--nx-line)] mx-1.5 shrink-0" aria-hidden="true"></span>
+        <nav class="hidden md:flex self-stretch items-stretch shrink-0 -mb-px" aria-label="Bereiche">
             @foreach($tabs as $key => $tab)
                 @php $isActive = $active === $key; @endphp
                 <a href="{{ $tab['href'] }}" wire:navigate title="{{ $tab['title'] ?? $tab['label'] }}" @if($isActive) aria-current="page" @endif
-                   class="relative inline-flex items-center gap-1.5 h-7 px-2 lg:px-2.5 text-[11px] font-medium whitespace-nowrap transition-colors {{ $loop->first ? '' : 'border-l border-[color:var(--nx-line-strong)]' }} {{ $isActive ? 'bg-[color:var(--nx-accent)] text-[color:var(--nx-on-accent)]' : 'text-[color:var(--nx-muted)] hover:text-[color:var(--nx-text)] hover:bg-[color:var(--nx-hover)]' }}">
-                    @svg($tab['icon'], 'w-3.5 h-3.5 shrink-0')
+                   class="group relative inline-flex items-center gap-1.5 px-2 lg:px-3 text-[12px] whitespace-nowrap transition-colors {{ $isActive ? 'text-[color:var(--nx-text)] font-semibold' : 'text-[color:var(--nx-muted)] font-medium hover:text-[color:var(--nx-text)]' }}">
+                    @svg($tab['icon'], 'w-4 h-4 shrink-0 ' . ($isActive ? 'text-[color:var(--nx-accent)]' : 'opacity-70 group-hover:opacity-100'))
                     <span class="{{ $isActive ? '' : 'hidden lg:inline' }}">{{ $tab['label'] }}</span>
                     @if(! empty($tab['dot']))<span class="w-1.5 h-1.5 rounded-full {{ $tab['dot'] }}"></span>@endif
                     @if(($tab['meta'] ?? null) !== null)
-                        <span class="hidden xl:inline tabular-nums text-[10px] opacity-75">{{ $tab['meta'] }}</span>
+                        <span class="hidden xl:inline tabular-nums text-[10px] font-normal text-[color:var(--nx-faint)]">{{ $tab['meta'] }}</span>
                     @endif
                     @if(($tab['count'] ?? 0) > 0)
-                        <span class="inline-flex items-center justify-center min-w-[14px] h-[14px] px-1 rounded-full text-[9px] font-semibold bg-[color:var(--nx-danger)] text-white tabular-nums">{{ $tab['count'] }}</span>
+                        <span class="inline-flex items-center justify-center min-w-[15px] h-[15px] px-1 rounded-full text-[9px] font-semibold bg-[color:var(--nx-danger)] text-white tabular-nums">{{ $tab['count'] }}</span>
                     @elseif(($tab['warn'] ?? false) && ! $isActive)
                         <span class="w-1.5 h-1.5 rounded-full bg-[color:var(--nx-warning)]"></span>
                     @endif
+                    <span class="absolute inset-x-1.5 lg:inset-x-2 bottom-0 h-0.5 rounded-t-full transition-colors {{ $isActive ? 'bg-[color:var(--nx-accent)]' : 'bg-transparent group-hover:bg-[color:var(--nx-line-strong)]' }}" aria-hidden="true"></span>
                 </a>
             @endforeach
         </nav>
@@ -134,8 +136,8 @@
         {{-- Reiter: unter md als Dropdown --}}
         <div class="relative md:hidden shrink-0">
             <button type="button" @click="toggle('tabs')" :aria-expanded="open === 'tabs'"
-                    class="{{ $iconBtn }} border border-[color:var(--nx-line-strong)] text-[color:var(--nx-text)] hover:bg-[color:var(--nx-hover)]">
-                @if($activeTab) @svg($activeTab['icon'], 'w-4 h-4') <span class="max-w-[7rem] truncate">{{ $activeTab['short'] ?? $activeTab['label'] }}</span>
+                    class="{{ $iconBtn }} font-semibold text-[color:var(--nx-text)] hover:bg-[color:var(--nx-hover)]">
+                @if($activeTab) @svg($activeTab['icon'], 'w-4 h-4 text-[color:var(--nx-accent)]') <span class="max-w-[7rem] truncate">{{ $activeTab['short'] ?? $activeTab['label'] }}</span>
                 @else @svg('heroicon-o-squares-2x2', 'w-4 h-4') @endif
                 @svg('heroicon-o-chevron-down', 'w-3.5 h-3.5 text-[color:var(--nx-muted)]')
             </button>

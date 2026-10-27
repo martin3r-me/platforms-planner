@@ -36,7 +36,7 @@
     </x-slot>
 
     {{-- Main Content --}}
-    <x-ui-page-container width="full" padding="p-0" spacing="" background="">
+    <x-planner::body flush>
         {{-- Kickoff + Versionen (automatisch je Sitzung, "Stand festhalten", Verlauf/Wiederherstellen) --}}
         @livewire(\Platform\Planner\Livewire\ProjectCanvas\Versions::class, ['canvasId' => $canvas->id], key('canvas-versions-' . $canvas->id))
 
@@ -467,7 +467,7 @@
                 Kommentare
                 <span class="text-xs font-normal text-[color:var(--nx-muted)] tabular-nums">{{ $allComments->count() }}</span>
             </h2>
-            <div class="max-w-3xl space-y-4">
+            <div class="space-y-4">
                 {{-- Block Filter Chips --}}
                 <div>
                     <div class="flex flex-wrap items-center gap-1.5">
@@ -626,6 +626,6 @@
                 </div>
             </div>
         </section>
-    </x-ui-page-container>
+    </x-planner::body>
 
 </x-ui-page>

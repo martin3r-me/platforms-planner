@@ -12,7 +12,7 @@
         <x-planner::actionbar active="dashboard" />
     </x-slot>
 
-    <x-ui-page-container width="contained" padding="px-3 sm:px-6 py-4 sm:py-6">
+    <x-planner::body>
 
 
         {{-- Greeting --}}
@@ -234,5 +234,5 @@
             @endif
         </section>
 
-    </x-ui-page-container>
+    </x-planner::body>
 </x-ui-page>

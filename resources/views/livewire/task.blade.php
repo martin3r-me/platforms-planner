@@ -56,7 +56,7 @@
         </x-planner::actionbar>
     </x-slot>
 
-    <x-ui-page-container width="contained" padding="px-3 sm:px-6 py-4 sm:py-6" spacing="space-y-4" background="bg-[color:var(--nx-bg)]">
+    <x-planner::body>
 
             {{-- Ungespeicherte Änderungen (Fallback — die meisten Felder speichern automatisch) --}}
             @can('update', $task)
@@ -363,7 +363,7 @@
                 :definitions="$this->extraFieldDefinitions"
                 :model="$task"
             />
-    </x-ui-page-container>
+    </x-planner::body>
 
     {{-- Print Modal --}}
     <livewire:planner.print-modal />

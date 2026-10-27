@@ -7,8 +7,8 @@
         <x-planner::actionbar />
     </x-slot>
 
-    <div class="flex-1 min-w-0 overflow-y-auto">
-    <div class="max-w-5xl mx-auto py-4 sm:py-8 px-3 sm:px-6 space-y-8">
+    <div class="flex-1 min-w-0 overflow-y-auto bg-[color:var(--nx-bg)]">
+    <div class="w-full px-3 sm:px-6 py-4 sm:py-6 space-y-6">
 
         {{-- Header --}}
         <div>

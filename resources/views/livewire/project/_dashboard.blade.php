@@ -95,7 +95,8 @@
     $narrative = !empty($narrativeParts) ? implode(' · ', $narrativeParts) : null;
 @endphp
 
-<div class="p-3 space-y-3 bg-[var(--nx-bg)]">
+{{-- Volle Breite: Karten fliessen in Spalten (1 · 2 ab lg · 3 ab 2xl) --}}
+<div class="columns-1 lg:columns-2 2xl:columns-3 gap-4 [&>section]:break-inside-avoid [&>section]:mb-4">
 
     {{-- ═══ 1. BRIEFING — Warum gibt es das Projekt? ═══ --}}
     <section class="p-4 rounded-xl bg-[color:var(--nx-surface)] shadow-[var(--nx-shadow-card)] border border-[color:var(--nx-line)]" style="background: linear-gradient(to bottom, {{ $ct['bg'] }}, white);">

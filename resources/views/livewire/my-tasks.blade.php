@@ -107,7 +107,7 @@
         <div x-data="{ show: @js((bool) $newCaldavSecret) }" @planner-caldav-toggle.window="show = !show"
              x-show="show" x-cloak
              class="shrink-0 max-h-[60vh] overflow-y-auto border-b border-[color:var(--nx-line)] bg-[var(--nx-bg)]">
-            <section class="max-w-2xl px-3 sm:px-4 py-3">
+            <section class="px-3 sm:px-4 py-3">
                 <div class="flex items-start justify-between gap-3 mb-1.5">
                     <h3 class="text-[10px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] m-0">📅 In Erinnerungen abonnieren</h3>
                     <button type="button" @click="show = false" class="shrink-0 text-[var(--nx-muted)] hover:text-[var(--nx-text)]" title="Schließen">

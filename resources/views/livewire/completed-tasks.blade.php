@@ -60,7 +60,7 @@
                     <p class="text-xs text-[var(--nx-muted)] m-0">
                         Abgeschlossen im Zeitraum <span class="font-medium text-[var(--nx-text)]">{{ $rangeLabel }}</span> — geordnet nach Datum, optional pro Person.
                     </p>
-                    <div class="grid grid-cols-3 gap-2 sm:gap-3 max-w-xl">
+                    <div class="grid grid-cols-3 gap-2 sm:gap-3">
                         <div class="rounded-lg bg-[color:var(--nx-surface)] border border-[color:var(--nx-line)] px-3 py-2">
                             <div class="text-[10px] uppercase tracking-wider text-[var(--nx-muted)]">Aufgaben</div>
                             <div class="text-lg font-semibold tabular-nums text-[var(--nx-text)]">{{ $totalCount }}</div>

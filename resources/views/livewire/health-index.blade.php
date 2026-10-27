@@ -79,7 +79,7 @@
     <div class="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
 
         {{-- Projekt-Liste --}}
-        <div class="flex-1 overflow-y-auto px-3 sm:px-6 py-3 sm:py-4 bg-[var(--nx-bg)]">
+        <div class="flex-1 overflow-y-auto px-3 sm:px-6 py-4 sm:py-6 bg-[var(--nx-bg)]">
             <p class="mb-3 text-xs text-[var(--nx-muted)]">
                 Teamweite Health-Sicht aller Projekte — Daten aus dem jüngsten nächtlichen Snapshot.
                 @if($lastTakenOn)

@@ -7,9 +7,7 @@
         <x-planner::actionbar :project="$project" active="overview" />
     </x-slot>
 
-    <div class="flex-1 min-w-0 overflow-y-auto bg-[var(--nx-bg)]">
-        <div class="max-w-3xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
-            @include('planner::livewire.project._dashboard', ['dashboardData' => $dashboardData, 'project' => $project])
-        </div>
-    </div>
+    <x-planner::body>
+        @include('planner::livewire.project._dashboard', ['dashboardData' => $dashboardData, 'project' => $project])
+    </x-planner::body>
 </x-ui-page>

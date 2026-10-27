@@ -88,7 +88,7 @@
 
     {{-- ════════ MAIN BODY ════════ --}}
     <div class="flex-1 min-h-0 overflow-y-auto bg-[var(--nx-bg)]">
-        <div class="max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-5">
+        <div class="w-full px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-5">
 
         {{-- Snapshot-Stand + Datenpflege (früher Seitenleiste) --}}
         @if($latest)
