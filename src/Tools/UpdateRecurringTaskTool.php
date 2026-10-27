@@ -21,6 +21,7 @@ use Illuminate\Auth\Access\AuthorizationException;
  */
 class UpdateRecurringTaskTool implements ToolContract, ToolMetadataContract
 {
+    use \Platform\Planner\Tools\Concerns\ValidatesAssignee;
     use HasStandardizedWriteOperations;
 
     public function getName(): string
@@ -198,6 +199,9 @@ class UpdateRecurringTaskTool implements ToolContract, ToolMetadataContract
                 if ($val === null || $val === 'null') {
                     $updateData['user_in_charge_id'] = null;
                 } elseif (is_numeric($val)) {
+                    if ($err = $this->assigneeError((int) $val, $recurring->team_id ? (int) $recurring->team_id : null)) {
+                        return $err;
+                    }
                     $updateData['user_in_charge_id'] = (int) $val;
                 } else {
                     return ToolResult::error('VALIDATION_ERROR', 'user_in_charge_id muss eine Zahl sein (oder null zum Entfernen).');

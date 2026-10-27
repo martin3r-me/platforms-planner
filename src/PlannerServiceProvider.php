@@ -302,7 +302,7 @@ class PlannerServiceProvider extends ServiceProvider
             $registry->register(new \Platform\Planner\Tools\CreateProjectTool());
             $registry->register(new \Platform\Planner\Tools\ListProjectsTool());
             $registry->register(new \Platform\Planner\Tools\GetProjectTool());
-            $registry->register(new \Platform\Planner\Tools\ListProjectMetricsTool());
+            $registry->register(new \Platform\Planner\Tools\ListProjectsHealthTool());
             $registry->register(new \Platform\Planner\Tools\UpdateProjectTool());
             $registry->register(new \Platform\Planner\Tools\ProjectVerbalizeTool());
             $registry->register(new \Platform\Planner\Tools\DeleteProjectTool());
@@ -352,7 +352,6 @@ class PlannerServiceProvider extends ServiceProvider
             $registry->register(new \Platform\Planner\Tools\GetProjectSnapshotTool());
             $registry->register(new \Platform\Planner\Tools\CreateProjectSnapshotTool());
             $registry->register(new \Platform\Planner\Tools\GetProjectSnapshotTrendTool());
-            $registry->register(new \Platform\Planner\Tools\ListProjectSnapshotsSummaryTool());
 
             // Einstieg: Projekt auf allen drei Achsen (Canvas · Logbuch · Aufgaben)
             $registry->register(new \Platform\Planner\Tools\ProjectBriefTool());

@@ -24,6 +24,7 @@ use Illuminate\Auth\Access\AuthorizationException;
  */
 class UpdateTaskTool implements ToolContract, ToolMetadataContract
 {
+    use \Platform\Planner\Tools\Concerns\ValidatesAssignee;
     use HasStandardizedWriteOperations;
     public function getName(): string
     {
@@ -445,6 +446,12 @@ class UpdateTaskTool implements ToolContract, ToolMetadataContract
                         $updateData['user_in_charge_id'] = null;
                     }
                 } elseif (is_numeric($val)) {
+                    $targetTeamId = array_key_exists('project_id', $updateData) && $updateData['project_id']
+                        ? \Platform\Planner\Models\PlannerProject::find($updateData['project_id'])?->team_id
+                        : $task->team_id;
+                    if ($err = $this->assigneeError((int) $val, $targetTeamId ? (int) $targetTeamId : null)) {
+                        return $err;
+                    }
                     $updateData['user_in_charge_id'] = (int)$val;
                 } else {
                     return ToolResult::error('VALIDATION_ERROR', 'user_in_charge_id muss eine Zahl sein (oder null zum Entfernen).');

@@ -21,6 +21,7 @@ use Illuminate\Auth\Access\AuthorizationException;
  */
 class CreateRecurringTaskTool implements ToolContract, ToolMetadataContract
 {
+    use \Platform\Planner\Tools\Concerns\ValidatesAssignee;
     public function getName(): string
     {
         return 'planner.recurring_tasks.POST';
@@ -112,6 +113,10 @@ class CreateRecurringTaskTool implements ToolContract, ToolMetadataContract
             $teamId = $project?->team_id ?? $context->team?->id;
             if (! $teamId) {
                 return ToolResult::error('MISSING_TEAM', 'Kein Team gefunden. Persoenliche Aufgaben benoetigen ein Team im Kontext.');
+            }
+
+            if ($err = $this->assigneeError((int) ($arguments['user_in_charge_id'] ?? $context->user->id), (int) $teamId)) {
+                return $err;
             }
 
             $recurring = app(StoreRecurringTask::class)->store([

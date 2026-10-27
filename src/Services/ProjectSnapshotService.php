@@ -128,7 +128,10 @@ class ProjectSnapshotService
         $canvasScore = $canvasColor = $canvasCompleteness = null;
         $canvasFilled = $canvasTotal = $canvasRisk = $canvasOverdueMs = null;
 
-        $primaryCanvas = $project->canvases->first();
+        // Das Projekt-Canvas (eins pro Projekt; bei Altbestand das aelteste nicht verworfene)
+        $primaryCanvas = $project->canvases
+            ->sortBy(fn ($c) => [$c->status === \Platform\Planner\Models\PlannerProjectCanvas::STATUS_DISCARDED ? 1 : 0, $c->id])
+            ->first();
         if ($primaryCanvas) {
             try {
                 $analyzer = new TrafficLightAnalyzer();

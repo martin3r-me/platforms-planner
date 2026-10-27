@@ -28,6 +28,7 @@ use Illuminate\Auth\Access\AuthorizationException;
  */
 class CreateTaskTool implements ToolContract, ToolDependencyContract, ToolMetadataContract
 {
+    use \Platform\Planner\Tools\Concerns\ValidatesAssignee;
     public function getName(): string
     {
         return 'planner.tasks.POST';
@@ -201,6 +202,9 @@ class CreateTaskTool implements ToolContract, ToolDependencyContract, ToolMetada
             // User in Charge bestimmen — ?? fängt auch ein explizit übergebenes null ab,
             // d.h. "keinen Verantwortlichen setzen" ist über die API aktuell nicht möglich.
             $userInChargeId = $arguments['user_in_charge_id'] ?? $context->user->id;
+            if ($err = $this->assigneeError((int) $userInChargeId, (int) $teamId)) {
+                return $err;
+            }
 
             // Order berechnen (neue Aufgabe kommt an den Anfang)
             $order = null;
