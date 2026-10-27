@@ -20,23 +20,6 @@
     <x-slot name="actionbar">
         <x-planner::actionbar
             :filters-active="($tab !== 'stale' ? 1 : 0) + ($entityType !== 'all' ? 1 : 0) + ($tab === 'stale' && $projectFilter ? 1 : 0)">
-            <x-slot:meta>
-                {{-- Pflege-Zustand als EIN Badge rechts (Projekt-Standard), health-getönt --}}
-                <x-nx-badge :variant="$hygieneVariant" title="{{ $hygieneTitle }}">
-                    @svg('heroicon-o-shield-check', 'w-3 h-3')
-                    @if($totalStale === 0)
-                        <span>sauber</span>
-                    @else
-                        <span class="tabular-nums">{{ $staleProjectsCount }} Proj.</span>
-                        <span class="opacity-40" aria-hidden="true">·</span>
-                        <span class="tabular-nums">{{ $staleTasksCount }} Aufg.</span>
-                        @if($staleOverdue > 0)
-                            <span class="opacity-40" aria-hidden="true">·</span>
-                            <span class="tabular-nums">{{ $staleOverdue }} überfällig</span>
-                        @endif
-                    @endif
-                </x-nx-badge>
-            </x-slot:meta>
 
             <x-slot:filters>
                 <x-planner::filter-group label="Ansicht">
@@ -70,6 +53,23 @@
     </x-slot>
 
     <div class="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
+        <x-planner::statusbar>
+            {{-- Pflege-Zustand als EIN Badge rechts (Projekt-Standard), health-getönt --}}
+            <x-nx-badge :variant="$hygieneVariant" title="{{ $hygieneTitle }}">
+                @svg('heroicon-o-shield-check', 'w-3 h-3')
+                @if($totalStale === 0)
+                    <span>sauber</span>
+                @else
+                    <span class="tabular-nums">{{ $staleProjectsCount }} Proj.</span>
+                    <span class="opacity-40" aria-hidden="true">·</span>
+                    <span class="tabular-nums">{{ $staleTasksCount }} Aufg.</span>
+                    @if($staleOverdue > 0)
+                        <span class="opacity-40" aria-hidden="true">·</span>
+                        <span class="tabular-nums">{{ $staleOverdue }} überfällig</span>
+                    @endif
+                @endif
+            </x-nx-badge>
+        </x-planner::statusbar>
 
         {{-- Content --}}
         <div class="flex-1 overflow-y-auto bg-[var(--nx-bg)]">

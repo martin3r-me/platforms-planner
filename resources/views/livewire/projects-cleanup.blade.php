@@ -56,15 +56,6 @@
     <x-slot name="actionbar">
         <x-planner::actionbar
             :filters-active="($colorFilter !== 'all' ? 1 : 0) + ($lifecycleFilter !== 'aktiv' ? 1 : 0) + ($ownerFilter ? 1 : 0) + count($suspectFlags) + ($sort !== 'name' ? 1 : 0)">
-            <x-slot:meta>
-                {{-- Aufräum-Signal als EIN Badge rechts (Projekt-Standard) --}}
-                <x-nx-badge :variant="$pflegeVariant" title="{{ $totalRows }} Projekte im Scope · {{ $kpiCleanupCandidates }} Aufräum-Kandidaten (>30d ohne Aktivität)">
-                    @svg('heroicon-o-archive-box-x-mark', 'w-3 h-3')
-                    <span class="tabular-nums">{{ $kpiCleanupCandidates }}</span>
-                    <span class="opacity-40" aria-hidden="true">/</span>
-                    <span class="tabular-nums">{{ $totalRows }}</span>
-                </x-nx-badge>
-            </x-slot:meta>
 
             <x-slot:filters>
                 <x-planner::filter-group label="Ampel">
@@ -118,6 +109,15 @@
     {{-- ════════ CONTENT ════════ --}}
 
     <div class="flex-1 min-w-0 flex flex-col bg-[var(--nx-bg)] min-h-0">
+        <x-planner::statusbar>
+            {{-- Aufräum-Signal als EIN Badge rechts (Projekt-Standard) --}}
+            <x-nx-badge :variant="$pflegeVariant" title="{{ $totalRows }} Projekte im Scope · {{ $kpiCleanupCandidates }} Aufräum-Kandidaten (>30d ohne Aktivität)">
+                @svg('heroicon-o-archive-box-x-mark', 'w-3 h-3')
+                <span class="tabular-nums">{{ $kpiCleanupCandidates }}</span>
+                <span class="opacity-40" aria-hidden="true">/</span>
+                <span class="tabular-nums">{{ $totalRows }}</span>
+            </x-nx-badge>
+        </x-planner::statusbar>
 
         {{-- Kopf: Scope Meins ⟷ Team + Suche + Kurzbeschreibung --}}
         <div class="shrink-0 border-b border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] px-3 sm:px-6 pt-3 pb-2 space-y-2">

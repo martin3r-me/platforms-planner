@@ -28,17 +28,6 @@
     <x-slot name="actionbar">
         <x-planner::actionbar
             :filters-active="($colorFilter !== 'all' ? 1 : 0) + ($axisFilter !== 'all' ? 1 : 0) + ($lifecycleFilter !== 'aktiv' ? 1 : 0) + ($sort !== 'worst' ? 1 : 0)">
-            <x-slot:meta>
-                {{-- Ampel-Verteilung als EIN Badge rechts (Projekt-Standard), health-getönt --}}
-                <x-nx-badge :variant="$idxVariant" title="Brennt {{ $byColor['red'] ?? 0 }} · Achtung {{ $byColor['yellow'] ?? 0 }} · Stabil {{ $byColor['green'] ?? 0 }} · Keine Daten {{ $byColor['gray'] ?? 0 }}">
-                    <span class="inline-flex items-center gap-1 text-[color:var(--nx-danger)]"><span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-danger)]"></span><span class="tabular-nums">{{ $byColor['red'] ?? 0 }}</span></span>
-                    <span class="inline-flex items-center gap-1 text-[color:var(--nx-warning)]"><span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-warning)]"></span><span class="tabular-nums">{{ $byColor['yellow'] ?? 0 }}</span></span>
-                    <span class="inline-flex items-center gap-1 text-[color:var(--nx-success)]"><span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-success)]"></span><span class="tabular-nums">{{ $byColor['green'] ?? 0 }}</span></span>
-                    @if(($byColor['gray'] ?? 0) > 0)
-                        <span class="inline-flex items-center gap-1 text-[var(--nx-muted)]"><span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-muted)]"></span><span class="tabular-nums">{{ $byColor['gray'] }}</span></span>
-                    @endif
-                </x-nx-badge>
-            </x-slot:meta>
 
             <x-slot:filters>
                 <x-planner::filter-group label="Ampel">
@@ -77,6 +66,17 @@
 
     {{-- ════════ MAIN BODY ════════ --}}
     <div class="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
+        <x-planner::statusbar>
+            {{-- Ampel-Verteilung als EIN Badge rechts (Projekt-Standard), health-getönt --}}
+            <x-nx-badge :variant="$idxVariant" title="Brennt {{ $byColor['red'] ?? 0 }} · Achtung {{ $byColor['yellow'] ?? 0 }} · Stabil {{ $byColor['green'] ?? 0 }} · Keine Daten {{ $byColor['gray'] ?? 0 }}">
+                <span class="inline-flex items-center gap-1 text-[color:var(--nx-danger)]"><span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-danger)]"></span><span class="tabular-nums">{{ $byColor['red'] ?? 0 }}</span></span>
+                <span class="inline-flex items-center gap-1 text-[color:var(--nx-warning)]"><span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-warning)]"></span><span class="tabular-nums">{{ $byColor['yellow'] ?? 0 }}</span></span>
+                <span class="inline-flex items-center gap-1 text-[color:var(--nx-success)]"><span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-success)]"></span><span class="tabular-nums">{{ $byColor['green'] ?? 0 }}</span></span>
+                @if(($byColor['gray'] ?? 0) > 0)
+                    <span class="inline-flex items-center gap-1 text-[var(--nx-muted)]"><span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-muted)]"></span><span class="tabular-nums">{{ $byColor['gray'] }}</span></span>
+                @endif
+            </x-nx-badge>
+        </x-planner::statusbar>
 
         {{-- Projekt-Liste --}}
         <div class="flex-1 overflow-y-auto px-3 sm:px-6 py-4 sm:py-6 bg-[var(--nx-bg)]">

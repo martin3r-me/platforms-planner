@@ -29,26 +29,6 @@
     <x-slot name="actionbar">
         <x-planner::actionbar :project="$project" active="board" task-action="$wire.createTask()"
             :filters-active="count($filterTagIds) + ($filterColor ? 1 : 0)">
-            <x-slot:meta>
-                {{-- Kennzahlen (offen/überfällig/erledigt); Health steht im Reiter --}}
-                <x-nx-badge variant="neutral"
-                    title="offen {{ $headerOpenCount }} · überfällig {{ $headerOverdueCount }} · erledigt {{ $headerDoneCount }}">
-                    <span class="inline-flex items-center gap-1 text-[color:var(--nx-text)]">
-                        <span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-info)]"></span>
-                        <span class="tabular-nums">{{ $headerOpenCount }}</span>
-                    </span>
-                    @if($headerOverdueCount > 0)
-                        <span class="inline-flex items-center gap-1 text-[color:var(--nx-danger)]">
-                            <span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-danger)]"></span>
-                            <span class="tabular-nums">{{ $headerOverdueCount }}</span>
-                        </span>
-                    @endif
-                    <span class="inline-flex items-center gap-1 text-[color:var(--nx-text)]">
-                        <span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-success)]"></span>
-                        <span class="tabular-nums">{{ $headerDoneCount }}</span>
-                    </span>
-                </x-nx-badge>
-            </x-slot:meta>
 
             @if($availableFilterTags->isNotEmpty() || $availableFilterColors->isNotEmpty() || $hasActiveFilters)
                 <x-slot:filters>
@@ -94,6 +74,26 @@
     </x-slot>
 
     <div class="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
+        <x-planner::statusbar>
+            {{-- Kennzahlen (offen/überfällig/erledigt); Health steht im Reiter --}}
+            <x-nx-badge variant="neutral"
+                title="offen {{ $headerOpenCount }} · überfällig {{ $headerOverdueCount }} · erledigt {{ $headerDoneCount }}">
+                <span class="inline-flex items-center gap-1 text-[color:var(--nx-text)]">
+                    <span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-info)]"></span>
+                    <span class="tabular-nums">{{ $headerOpenCount }}</span>
+                </span>
+                @if($headerOverdueCount > 0)
+                    <span class="inline-flex items-center gap-1 text-[color:var(--nx-danger)]">
+                        <span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-danger)]"></span>
+                        <span class="tabular-nums">{{ $headerOverdueCount }}</span>
+                    </span>
+                @endif
+                <span class="inline-flex items-center gap-1 text-[color:var(--nx-text)]">
+                    <span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-success)]"></span>
+                    <span class="tabular-nums">{{ $headerDoneCount }}</span>
+                </span>
+            </x-nx-badge>
+        </x-planner::statusbar>
     {{-- Kickoff offen: ein Projekt beginnt im Canvas (Ziel, Beteiligte, Nutzen, Risiken) --}}
     @if(! ($canvasInfo['kickoff_done'] ?? true))
         <div class="shrink-0 flex items-center gap-3 px-4 py-2 border-b border-[color:var(--nx-line)] bg-[var(--nx-warning)]/10 text-xs">

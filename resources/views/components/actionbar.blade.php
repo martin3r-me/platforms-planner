@@ -1,7 +1,10 @@
 {{--
     Planner-Actionbar — EINE Leiste für alle Planner-Seiten, feste Plätze:
 
-      [Breadcrumb]  [Reiter der Ebene]  ·········  [meta]  [Filter ▾] [+ Neu ▾] [⋯]
+      [Breadcrumb]  [Reiter der Ebene]  ·········  [Filter ▾] [+ Neu ▾] [⋯]
+
+    Die Leiste ist auf jeder Seite identisch: keine Seiten-Badges/Kennzahlen hier —
+    die gehören in <x-planner::statusbar> als erstes Element des Inhalts.
 
     • Ebene Planner:  Dashboard · Meine · Delegiert · Erledigt · Pflege · Portfolio
     • Ebene Projekt:  Überblick · Board · Canvas · Logbuch · Health  (sobald :project gesetzt)
@@ -15,7 +18,6 @@
         <x-slot:filters> … </x-slot:filters>
         <x-slot:create> <x-planner::menu-item icon="…" wire:click="…">…</x-planner::menu-item> </x-slot:create>
         <x-slot:more> … </x-slot:more>
-        <x-slot:meta> … kleine Statusanzeige … </x-slot:meta>
     </x-planner::actionbar>
 --}}
 @props([
@@ -160,10 +162,6 @@
         </div>
 
         <div class="hidden md:block flex-1"></div>
-
-        @isset($meta)
-            <div class="hidden lg:flex items-center gap-2 shrink-0">{{ $meta }}</div>
-        @endisset
 
         {{-- Filter --}}
         <div class="relative shrink-0">

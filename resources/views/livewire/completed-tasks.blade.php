@@ -16,17 +16,6 @@
     <x-slot name="actionbar">
         <x-planner::actionbar active="completed"
             :filters-active="((int) $daysFilter !== 30 ? 1 : 0) + ($userFilter ? 1 : 0)">
-            <x-slot:meta>
-                {{-- Bilanz als EIN Badge rechts (Projekt-Standard) --}}
-                <x-nx-badge variant="success" title="{{ $totalCount }} erledigt{{ $totalPoints > 0 ? ' · ' . $totalPoints . ' SP' : '' }}{{ $totalCount > 0 ? ' · ⌀ ' . number_format($totalCount / max(1, $daysFilter), 1, ',', '.') . '/Tag' : '' }}">
-                    @svg('heroicon-o-check-circle', 'w-3 h-3')
-                    <span class="tabular-nums">{{ $totalCount }}</span>
-                    @if($totalPoints > 0)
-                        <span class="opacity-40" aria-hidden="true">·</span>
-                        <span class="tabular-nums">{{ $totalPoints }} SP</span>
-                    @endif
-                </x-nx-badge>
-            </x-slot:meta>
 
             <x-slot:filters>
                 <x-planner::filter-group label="Zeitraum">
@@ -50,6 +39,17 @@
     </x-slot>
 
     <div class="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
+        <x-planner::statusbar>
+            {{-- Bilanz als EIN Badge rechts (Projekt-Standard) --}}
+            <x-nx-badge variant="success" title="{{ $totalCount }} erledigt{{ $totalPoints > 0 ? ' · ' . $totalPoints . ' SP' : '' }}{{ $totalCount > 0 ? ' · ⌀ ' . number_format($totalCount / max(1, $daysFilter), 1, ',', '.') . '/Tag' : '' }}">
+                @svg('heroicon-o-check-circle', 'w-3 h-3')
+                <span class="tabular-nums">{{ $totalCount }}</span>
+                @if($totalPoints > 0)
+                    <span class="opacity-40" aria-hidden="true">·</span>
+                    <span class="tabular-nums">{{ $totalPoints }} SP</span>
+                @endif
+            </x-nx-badge>
+        </x-planner::statusbar>
 
         {{-- Content --}}
         <div class="flex-1 overflow-y-auto bg-[var(--nx-bg)]">

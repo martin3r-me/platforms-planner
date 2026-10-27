@@ -58,19 +58,6 @@
 
     <x-slot name="actionbar">
         <x-planner::actionbar :project="$project" active="health" :filters-active="$trendDays !== 30 ? 1 : 0">
-            @if($latest)
-                <x-slot:meta>
-                    {{-- Health-Zustand als EIN Badge (Projekt-Standard), health-getönt --}}
-                    <x-nx-badge :variant="$healthVariant" title="Health {{ $latest->health_score ?? '–' }} · {{ $latest->health_color ?? 'unbekannt' }} · Confidence {{ $latest->confidence_score }}%">
-                        @svg('heroicon-o-heart', 'w-3 h-3')
-                        <span class="tabular-nums">{{ $latest->health_score ?? '–' }}</span>
-                        @if($latest->delta_health_score !== null && $latest->delta_health_score !== 0)
-                            <span class="opacity-40" aria-hidden="true">·</span>
-                            <span class="tabular-nums">{{ $latest->delta_health_score > 0 ? '↑' : '↓' }}{{ abs($latest->delta_health_score) }}</span>
-                        @endif
-                    </x-nx-badge>
-                </x-slot:meta>
-            @endif
 
             <x-slot:filters>
                 <x-planner::filter-group label="Trend-Zeitraum">
@@ -87,6 +74,20 @@
     </x-slot>
 
     {{-- ════════ MAIN BODY ════════ --}}
+    <div class="flex-1 min-w-0 min-h-0 flex flex-col">
+    @if($latest)
+        <x-planner::statusbar>
+            {{-- Health-Zustand als EIN Badge (Projekt-Standard), health-getönt --}}
+            <x-nx-badge :variant="$healthVariant" title="Health {{ $latest->health_score ?? '–' }} · {{ $latest->health_color ?? 'unbekannt' }} · Confidence {{ $latest->confidence_score }}%">
+                @svg('heroicon-o-heart', 'w-3 h-3')
+                <span class="tabular-nums">{{ $latest->health_score ?? '–' }}</span>
+                @if($latest->delta_health_score !== null && $latest->delta_health_score !== 0)
+                    <span class="opacity-40" aria-hidden="true">·</span>
+                    <span class="tabular-nums">{{ $latest->delta_health_score > 0 ? '↑' : '↓' }}{{ abs($latest->delta_health_score) }}</span>
+                @endif
+            </x-nx-badge>
+        </x-planner::statusbar>
+    @endif
     <div class="flex-1 min-h-0 overflow-y-auto bg-[var(--nx-bg)]">
         <div class="w-full px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-5">
 
@@ -532,5 +533,6 @@
         @endif {{-- latest --}}
 
         </div>
+    </div>
     </div>
 </x-ui-page>
