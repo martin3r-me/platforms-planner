@@ -45,7 +45,17 @@
         'planner.projects.logbook' => 'logbook',
         'planner.projects.health' => 'health',
     ];
-    $active ??= $routeTabs[request()->route()?->getName()] ?? null;
+    // Bei Livewire-Updates (wire:click …) ist request()->route() die Update-Route —
+    // dann die Route der ursprünglichen Seite auflösen, sonst verliert die Leiste den aktiven Reiter.
+    $route = request()->route();
+    if (\Livewire\Livewire::isLivewireRequest()) {
+        try {
+            $route = app('router')->getRoutes()->match(\Illuminate\Http\Request::create(\Livewire\Livewire::originalUrl(), 'GET'));
+        } catch (\Throwable $e) {
+            $route = null;
+        }
+    }
+    $active ??= $routeTabs[$route?->getName()] ?? null;
 
     if ($project) {
         $nav = \Platform\Planner\Support\ProjectNavSummary::for($project);
@@ -237,7 +247,7 @@
     </div>
 
     @livewire('planner.quick-create', key('planner-quick-create'))
-    @if($project && $canSettings && ! request()->routeIs('planner.projects.show'))
+    @if($project && $canSettings && $route?->getName() !== 'planner.projects.show')
         @livewire('planner.project-settings-modal', key('planner-actionbar-settings-' . $project->id))
     @endif
 </div>
