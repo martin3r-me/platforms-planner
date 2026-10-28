@@ -254,6 +254,8 @@ class Task extends Component
                 'due_date' => $this->task->due_date,
                 'story_points' => $this->task->story_points,
             ],
+            // Verknüpfungen hängen am Projekt — die Aufgabe erbt sie (contextParent)
+            'apps' => ['links' => false],
         ];
     }
 

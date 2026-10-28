@@ -110,6 +110,8 @@ class Show extends Component
             'url' => route('planner.projects.canvas.show', [$this->project, $this->canvas]),
             'source' => 'planner.projects.canvas.show',
             'meta' => ['view_type' => 'show'],
+            // Verknüpfungen hängen immer am Projekt, nie am Canvas
+            'apps' => ['links' => false],
         ];
     }
 
