@@ -409,4 +409,45 @@ class PlannerEntityLinkProvider implements EntityLinkProvider, HasContextParent,
 
         return null;
     }
+
+    /**
+     * Kontext-Karte für Parlan (rooms/0.4) — organization fragt per method_exists. Titel, Status,
+     * Link und ein paar Kernfakten; die Knoten darüber (Einheit, Projekt) ergänzt organization.
+     *
+     * @return array<string,mixed>|null
+     */
+    public function contextCard(string $morphAlias, Model $object): ?array
+    {
+        $name = static fn ($u) => $u ? (trim((string) ($u->fullname ?? '')) ?: (string) $u->name) : '';
+        if ($morphAlias === 'project') {
+            $open = PlannerTask::query()->where('project_id', $object->id)
+                ->where(fn ($q) => $q->whereNull('lifecycle_state')->orWhere('lifecycle_state', TaskLifecycleState::ACTIVE->value))
+                ->count();
+
+            return [
+                'title' => (string) $object->name,
+                'status' => (string) ($object->lifecycle_state?->label() ?? ''),
+                'url' => route('planner.projects.show', $object),
+                'summary' => mb_substr(trim(strip_tags((string) $object->description)), 0, 600),
+                'facts' => array_values(array_filter([
+                    ($n = $name($object->user)) !== '' ? ['label' => 'Verantwortlich', 'value' => $n] : null,
+                    ['label' => 'Offene Aufgaben', 'value' => (string) $open],
+                ])),
+            ];
+        }
+        if ($morphAlias === 'planner_task') {
+            return [
+                'title' => (string) $object->title,
+                'status' => (string) ($object->lifecycle_state?->label() ?? ''),
+                'url' => route('planner.tasks.show', $object),
+                'summary' => mb_substr(trim(strip_tags((string) $object->description)), 0, 600),
+                'facts' => array_values(array_filter([
+                    ($n = $name($object->userInCharge)) !== '' ? ['label' => 'Zuständig', 'value' => $n] : null,
+                    $object->due_date ? ['label' => 'Fällig', 'value' => $object->due_date->format('d.m.Y')] : null,
+                ])),
+            ];
+        }
+
+        return null;
+    }
 }
