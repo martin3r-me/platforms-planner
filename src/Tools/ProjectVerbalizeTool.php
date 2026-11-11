@@ -129,6 +129,9 @@ class ProjectVerbalizeTool implements ToolContract, ToolMetadataContract
         // Recipe aufloesen, wenn Key angegeben.
         $recipe = null;
         $recipeError = null;
+        if ($recipeKey && ! app()->bound(ReportEngine::class)) {
+            return ToolResult::error('REPORTING_NOT_INSTALLED', 'Recipes brauchen das reporting-Modul — auf dieser Instanz nicht installiert.');
+        }
         if ($recipeKey) {
             try {
                 $teamForRecipe = $context->team ?? $context->user->currentTeam ?? null;
@@ -185,6 +188,10 @@ class ProjectVerbalizeTool implements ToolContract, ToolMetadataContract
                         ] : null,
                     ],
                 ]);
+            }
+
+            if (! app()->bound(ReportEngine::class)) {
+                return ToolResult::error('REPORTING_NOT_INSTALLED', 'Verbalisierung braucht das reporting-Modul — auf dieser Instanz nicht installiert. dry_run liefert die Faktenbasis.');
             }
 
             $result = app(ReportEngine::class)->verbalize(

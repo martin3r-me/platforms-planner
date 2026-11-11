@@ -181,7 +181,8 @@ class ProjectLogbookService
         $factSheet = null;
         $error = null;
 
-        if ($useLlm) {
+        // Ohne reporting-Modul keine Engine → deterministische Faktenbasis.
+        if ($useLlm && app()->bound(ReportEngine::class)) {
             try {
                 $result = app(ReportEngine::class)->verbalize(
                     subject: $subject,
