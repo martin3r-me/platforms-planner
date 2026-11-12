@@ -5,6 +5,10 @@
     $headerOpenCount = $openTasks->count();
     $headerDoneCount = $doneTasks->count();
     $headerOverdueCount = $openTasks->filter(fn($t) => $t->due_date && $t->due_date->isPast() && $t->lifecycle_state === \Platform\Planner\Enums\TaskLifecycleState::ACTIVE)->count();
+    // Offene Komplexität: Story Points der offenen Aufgaben + wie viele noch ungeschätzt sind
+    $openPoints = $openTasks->sum(fn($t) => $t->story_points?->points() ?? 0);
+    $donePoints = $doneTasks->sum(fn($t) => $t->story_points?->points() ?? 0);
+    $unestimatedCount = $openTasks->filter(fn($t) => ! $t->story_points)->count();
     $hasActiveFilters = !empty($filterTagIds) || $filterColor;
 
     // MeisterTask-Section-Tones — Spalten-Akzentfarben (Slot-color zuerst, sonst rotierend nach Position)
@@ -75,22 +79,40 @@
 
     <div class="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
         <x-planner::statusbar>
-            {{-- Kennzahlen (offen/überfällig/erledigt); Health steht im Reiter --}}
+            {{-- Kennzahlen: offene Komplexität (SP) zuerst, dann Anzahl; Health steht im Reiter --}}
+            <x-nx-badge variant="neutral"
+                title="Offene Komplexität {{ $openPoints }} SP{{ $unestimatedCount ? ' · ' . $unestimatedCount . ' offene Aufgabe(n) ohne Schätzung' : '' }} · erledigt {{ $donePoints }} SP">
+                <span class="inline-flex items-center gap-1 text-[color:var(--nx-text)]">
+                    @svg('heroicon-o-puzzle-piece', 'w-3.5 h-3.5 text-[color:var(--nx-muted)]')
+                    <span class="tabular-nums font-semibold">{{ $openPoints }}</span>
+                    <span>SP offen</span>
+                </span>
+                @if($unestimatedCount > 0)
+                    <span class="opacity-30" aria-hidden="true">·</span>
+                    <span class="inline-flex items-center gap-1 text-[color:var(--nx-warning)]">
+                        <span class="tabular-nums">{{ $unestimatedCount }}</span>
+                        <span>ohne Schätzung</span>
+                    </span>
+                @endif
+            </x-nx-badge>
             <x-nx-badge variant="neutral"
                 title="offen {{ $headerOpenCount }} · überfällig {{ $headerOverdueCount }} · erledigt {{ $headerDoneCount }}">
                 <span class="inline-flex items-center gap-1 text-[color:var(--nx-text)]">
                     <span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-info)]"></span>
                     <span class="tabular-nums">{{ $headerOpenCount }}</span>
+                    <span>offen</span>
                 </span>
                 @if($headerOverdueCount > 0)
                     <span class="inline-flex items-center gap-1 text-[color:var(--nx-danger)]">
                         <span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-danger)]"></span>
                         <span class="tabular-nums">{{ $headerOverdueCount }}</span>
+                        <span>überfällig</span>
                     </span>
                 @endif
                 <span class="inline-flex items-center gap-1 text-[color:var(--nx-text)]">
                     <span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-success)]"></span>
                     <span class="tabular-nums">{{ $headerDoneCount }}</span>
+                    <span>erledigt</span>
                 </span>
             </x-nx-badge>
         </x-planner::statusbar>
