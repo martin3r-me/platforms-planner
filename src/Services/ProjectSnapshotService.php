@@ -156,7 +156,7 @@ class ProjectSnapshotService
             $axes['strategy'] = $canvasScore;
         }
         if ($tasks->count() > 0) {
-            $axes['progress'] = $this->progressScore($doneTasks->count(), $tasks->count());
+            $axes['progress'] = self::progressScore($spDone, $spTotal, $doneTasks->count(), $tasks->count(), $plannedStart, $plannedEnd, $now);
         }
         $axes['burn'] = $this->burnScore(
             $overdueTasks->count(),
@@ -256,26 +256,139 @@ class ProjectSnapshotService
         ];
     }
 
-    private function progressScore(int $done, int $total): int
+    // Abzüge der Druck-Achse — eine Quelle für Berechnung und Erklärung (explain())
+    public const BURN_PER_OVERDUE = 10;
+    public const BURN_MAX_OVERDUE = 40;
+    public const BURN_PER_FROG = 5;
+    public const BURN_MAX_FROGS = 20;
+    public const BURN_HOURS_OVER = 20;
+    public const BURN_BUDGET_OVER = 20;
+
+    /**
+     * Fortschritt gemessen an der Komplexität (Story Points; ohne Schätzung: Anzahl)
+     * und — wenn ein Zeitraum geplant ist — relativ zum erwarteten Stand:
+     * pro Prozentpunkt Rückstand gegenüber der verstrichenen Zeit 2 Punkte Abzug.
+     * Ohne Zeitraum bleibt es beim reinen Erledigt-Anteil.
+     */
+    public static function progressScore(int $spDone, int $spTotal, int $done, int $total, ?Carbon $start, ?Carbon $end, ?Carbon $now = null): int
     {
-        if ($total <= 0) {
+        $actual = self::progressPercent($spDone, $spTotal, $done, $total);
+        if ($actual === null) {
             return 0;
         }
-        return (int) round(($done / $total) * 100);
+
+        $expected = self::expectedPercent($start, $end, $now);
+        if ($expected === null) {
+            return (int) round($actual);
+        }
+
+        $gap = max(0, $expected - $actual);
+
+        return (int) max(0, min(100, round(100 - 2 * $gap)));
+    }
+
+    /** Erledigt-Anteil in % — nach Story Points, sonst nach Anzahl; null ohne Aufgaben. */
+    public static function progressPercent(int $spDone, int $spTotal, int $done, int $total): ?float
+    {
+        if ($spTotal > 0) {
+            return $spDone / $spTotal * 100;
+        }
+
+        return $total > 0 ? $done / $total * 100 : null;
+    }
+
+    /** Verstrichener Anteil des geplanten Zeitraums in % (0..100), null ohne Zeitraum. */
+    public static function expectedPercent(?Carbon $start, ?Carbon $end, ?Carbon $now = null): ?float
+    {
+        if (! $start || ! $end || $end->lte($start)) {
+            return null;
+        }
+        $now ??= now();
+        $total = $start->diffInSeconds($end);
+        $elapsed = $start->diffInSeconds($now, false);
+
+        return max(0, min(100, $elapsed / $total * 100));
     }
 
     private function burnScore(int $overdue, int $frogs, int $minutesLogged, int $minutesPlanned, ?float $budgetUsed, ?float $budgetAmount): int
     {
         $score = 100;
-        $score -= min(40, $overdue * 10);
-        $score -= min(20, $frogs * 5);
+        $score -= min(self::BURN_MAX_OVERDUE, $overdue * self::BURN_PER_OVERDUE);
+        $score -= min(self::BURN_MAX_FROGS, $frogs * self::BURN_PER_FROG);
         if ($minutesPlanned > 0 && $minutesLogged > $minutesPlanned * 1.1) {
-            $score -= 20;
+            $score -= self::BURN_HOURS_OVER;
         }
         if ($budgetAmount !== null && $budgetAmount > 0 && $budgetUsed !== null && $budgetUsed > $budgetAmount) {
-            $score -= 20;
+            $score -= self::BURN_BUDGET_OVER;
         }
         return max(0, $score);
+    }
+
+    /**
+     * Warum hat jede Achse ihren Wert? Konkrete Gründe aus den Snapshot-Feldern —
+     * dieselben Regeln wie in der Berechnung.
+     *
+     * @return array<string, array{reasons: array<int, array{text: string, delta: ?int}>}>
+     */
+    public static function explain(PlannerProjectSnapshot $s): array
+    {
+        $out = ['strategy' => ['reasons' => []], 'progress' => ['reasons' => []], 'burn' => ['reasons' => []]];
+
+        // Strategie (Canvas)
+        if ($s->canvas_score === null) {
+            $out['strategy']['reasons'][] = ['text' => 'Kein Canvas — Achse wird nicht gerechnet', 'delta' => null];
+        } else {
+            $out['strategy']['reasons'][] = ['text' => "Canvas zu {$s->canvas_completeness_percent} % ausgefüllt ({$s->canvas_filled_blocks} von {$s->canvas_total_blocks} Blöcken)", 'delta' => null];
+            if ((int) $s->canvas_overdue_milestones > 0) {
+                $out['strategy']['reasons'][] = ['text' => "{$s->canvas_overdue_milestones} überfällige(r) Meilenstein(e)", 'delta' => null];
+            }
+            if ((int) $s->canvas_risk_count === 0) {
+                $out['strategy']['reasons'][] = ['text' => 'Keine Risiken im Canvas benannt', 'delta' => null];
+            } elseif ((int) $s->canvas_risk_count > 5) {
+                $out['strategy']['reasons'][] = ['text' => "Viele Risiken im Canvas ({$s->canvas_risk_count})", 'delta' => null];
+            }
+        }
+
+        // Fortschritt
+        $actual = self::progressPercent((int) $s->story_points_done, (int) $s->story_points_total, (int) $s->tasks_done, (int) $s->tasks_total);
+        $start = $s->planned_start ? Carbon::parse($s->planned_start) : null;
+        $end = $s->planned_end ? Carbon::parse($s->planned_end) : null;
+        $expected = self::expectedPercent($start, $end, $s->taken_at ? Carbon::parse($s->taken_at) : null);
+        if ($actual === null) {
+            $out['progress']['reasons'][] = ['text' => 'Keine Aufgaben', 'delta' => null];
+        } else {
+            $basis = (int) $s->story_points_total > 0
+                ? "{$s->story_points_done} von {$s->story_points_total} SP erledigt"
+                : "{$s->tasks_done} von {$s->tasks_total} Aufgaben erledigt (keine Story Points)";
+            $out['progress']['reasons'][] = ['text' => $basis . ' — ' . (int) round($actual) . ' %', 'delta' => null];
+            if ($expected === null) {
+                $out['progress']['reasons'][] = ['text' => 'Kein Zeitraum geplant — Fortschritt nicht am Soll gemessen', 'delta' => null];
+            } else {
+                $gap = (int) round($expected - $actual);
+                $out['progress']['reasons'][] = $gap > 0
+                    ? ['text' => (int) round($expected) . " % der Zeit verstrichen — {$gap} Prozentpunkte Rückstand", 'delta' => -min(100, 2 * $gap)]
+                    : ['text' => (int) round($expected) . ' % der Zeit verstrichen — im Soll', 'delta' => null];
+            }
+        }
+
+        // Druck
+        if ((int) $s->tasks_overdue > 0) {
+            $out['burn']['reasons'][] = ['text' => "{$s->tasks_overdue} überfällige Aufgabe(n)", 'delta' => -min(self::BURN_MAX_OVERDUE, $s->tasks_overdue * self::BURN_PER_OVERDUE)];
+        }
+        if ((int) $s->tasks_frog > 0) {
+            $out['burn']['reasons'][] = ['text' => "{$s->tasks_frog} offene(r) Frosch/Frösche", 'delta' => -min(self::BURN_MAX_FROGS, $s->tasks_frog * self::BURN_PER_FROG)];
+        }
+        if ((int) $s->minutes_planned > 0 && $s->minutes_logged > $s->minutes_planned * 1.1) {
+            $out['burn']['reasons'][] = ['text' => round($s->minutes_logged / 60, 1) . ' h erfasst bei ' . round($s->minutes_planned / 60, 1) . ' h geplant', 'delta' => -self::BURN_HOURS_OVER];
+        }
+        if ((float) $s->budget_amount > 0 && $s->budget_used_euro !== null && (float) $s->budget_used_euro > (float) $s->budget_amount) {
+            $out['burn']['reasons'][] = ['text' => 'Budget überschritten (' . number_format((float) $s->budget_used_euro, 0, ',', '.') . ' von ' . number_format((float) $s->budget_amount, 0, ',', '.') . ' ' . ($s->currency ?? 'EUR') . ')', 'delta' => -self::BURN_BUDGET_OVER];
+        }
+        if (empty($out['burn']['reasons'])) {
+            $out['burn']['reasons'][] = ['text' => 'Nichts überfällig, keine Frösche, Stunden und Budget im Rahmen', 'delta' => null];
+        }
+
+        return $out;
     }
 
     // compositeHealth / resolveWorstAxis / valueToColor / computeConfidence

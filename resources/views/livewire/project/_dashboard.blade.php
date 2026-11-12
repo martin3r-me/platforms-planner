@@ -54,6 +54,7 @@
         'red' => 'var(--nx-danger)',
         default => 'var(--nx-muted)',
     };
+    $healthAge = $health['taken_on'] ? (int) $health['taken_on']->copy()->startOfDay()->diffInDays(now()->startOfDay()) : null;
     $axisLabel = ['strategy' => 'Strategie', 'progress' => 'Fortschritt', 'burn' => 'Druck'][$health['worst_axis'] ?? ''] ?? null;
 
     // === Lage in einem Satz ===
@@ -149,9 +150,14 @@
             <div class="flex-1 min-w-[14rem]">
                 <div class="text-lg font-semibold text-[var(--nx-text)]" style="color: {{ $health['color'] ? $healthTone : 'inherit' }};">{{ $healthWord }}</div>
                 <p class="text-sm text-[var(--nx-text)] mt-1 mb-0">{{ implode(' · ', $facts) }}</p>
-                @if($axisLabel && $health['color'] !== 'green')
-                    <p class="text-xs text-[var(--nx-muted)] mt-1 mb-0">Schwächste Achse: {{ $axisLabel }}</p>
-                @endif
+                <p class="text-xs mt-1 mb-0 {{ $healthAge !== null && $healthAge >= 2 ? 'text-[var(--nx-warning)]' : 'text-[var(--nx-muted)]' }}">
+                    @if($axisLabel && $health['color'] !== 'green')Schwächste Achse: {{ $axisLabel }} · @endif
+                    @if($health['taken_on'])
+                        Health-Stand {{ $health['taken_on']->format('d.m.Y') }}{{ $healthAge === 0 ? ' (heute)' : ($healthAge === 1 ? ' (gestern)' : ' (vor ' . $healthAge . ' Tagen)') }}
+                    @else
+                        Noch nicht gemessen
+                    @endif
+                </p>
             </div>
         </div>
 
