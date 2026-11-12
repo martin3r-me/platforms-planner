@@ -270,13 +270,20 @@
                     @endif
                 </div>
                 <div class="p-5">
-                    <div class="space-y-1.5">
+                    <div class="space-y-1.5" wire:sortable="reorderDodItems">
                         @forelse($dodItems as $index => $item)
                             <div
-                                class="group relative flex items-start gap-3 p-2.5 pl-4 rounded-lg border border-[color:var(--nx-line)] hover:border-[var(--nx-accent)]/40 hover:bg-[var(--nx-bg)] transition-all"
-                                wire:key="dod-item-{{ $index }}"
+                                class="group relative flex items-start gap-2 p-2.5 pl-4 rounded-lg border border-[color:var(--nx-line)] bg-[color:var(--nx-surface)] hover:border-[var(--nx-accent)]/40 hover:bg-[var(--nx-bg)] transition-all"
+                                wire:key="dod-item-{{ $index }}-{{ md5($item['text']) }}"
+                                wire:sortable.item="{{ $index }}"
                             >
                                 <span class="absolute top-2 bottom-2 left-1 w-[2px] rounded-full {{ $item['checked'] ? 'bg-[var(--nx-success)]' : 'bg-[var(--nx-line-strong)]' }}"></span>
+                                @if(count($dodItems) > 1)
+                                    <span wire:sortable.handle title="Ziehen zum Sortieren"
+                                        class="flex-shrink-0 mt-0.5 -ml-1 cursor-grab active:cursor-grabbing text-[var(--nx-muted)] opacity-40 group-hover:opacity-100 transition-opacity touch-none">
+                                        @svg('heroicon-o-bars-2', 'w-4 h-4')
+                                    </span>
+                                @endif
                                 <button
                                     type="button"
                                     wire:click="toggleDodItem({{ $index }})"

@@ -1201,6 +1201,30 @@ class Task extends Component
     }
 
     /**
+     * Sortiert die DoD-Items per Drag & Drop (wire:sortable).
+     * $order: [['order' => 1, 'value' => alterIndex], …]
+     */
+    public function reorderDodItems(array $order): void
+    {
+        if (!$this->task || count($order) !== count($this->dodItems)) {
+            return;
+        }
+
+        $this->authorize('update', $this->task);
+
+        $indices = collect($order)->sortBy('order')->pluck('value')->map(fn ($v) => (int) $v)->values()->all();
+        if (array_diff(array_keys($this->dodItems), $indices) || count(array_unique($indices)) !== count($indices)) {
+            return;
+        }
+
+        $this->dodItems = array_map(fn ($i) => $this->dodItems[$i], $indices);
+
+        $this->dod = $this->serializeDodItems($this->dodItems);
+        $this->task->dod = $this->dod;
+        $this->task->save();
+    }
+
+    /**
      * Aktualisiert den Text eines DoD-Items.
      */
     public function updateDodItemText(int $index, string $text): void
