@@ -136,6 +136,7 @@ class ProcessAiAssignedTasks extends Command
                     $model,
                     $toolContext,
                     [
+                        'provider' => 'anthropic',
                         'max_iterations' => $maxIterations,
                         'max_output_tokens' => $maxOutputTokens,
                         'include_web_search' => $includeWebSearch,
