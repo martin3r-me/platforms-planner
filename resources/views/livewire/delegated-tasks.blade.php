@@ -53,26 +53,7 @@
 
     <div class="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
         <x-planner::statusbar>
-            {{-- Kennzahlen als EIN Badge rechts (Projekt-Standard) --}}
-            <x-nx-badge title="offen {{ $headerOpenCount }} · überfällig {{ $headerOverdueCount }} · Frösche {{ $frogCount }}{{ $openPoints > 0 ? ' · ' . $openPoints . ' SP' : '' }}">
-                <span class="inline-flex items-center gap-1 text-[color:var(--nx-text)]">
-                    <span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-info)]"></span>
-                    <span class="tabular-nums">{{ $headerOpenCount }}</span>
-                </span>
-                @if($headerOverdueCount > 0)
-                    <span class="inline-flex items-center gap-1 text-[color:var(--nx-danger)]">
-                        <span class="h-1.5 w-1.5 rounded-full bg-[color:var(--nx-danger)]"></span>
-                        <span class="tabular-nums">{{ $headerOverdueCount }}</span>
-                    </span>
-                @endif
-                @if($frogCount > 0)
-                    <span class="inline-flex items-center gap-1"><span>🐸</span><span class="tabular-nums">{{ $frogCount }}</span></span>
-                @endif
-                @if($openPoints > 0)
-                    <span class="opacity-30" aria-hidden="true">·</span>
-                    <span class="tabular-nums">{{ $openPoints }} SP</span>
-                @endif
-            </x-nx-badge>
+            <x-planner::workload-badges :open="$openTasks" :done="$doneTasks" :show-frogs="true" />
         </x-planner::statusbar>
 
         {{-- Pro Person — kompakte Leiste (Balken = Last; rot = überfällig vorhanden) --}}
