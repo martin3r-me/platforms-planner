@@ -55,7 +55,34 @@ class ProjectDashboardData
                 ->first();
 
         $pointsData = PlannerTask::where('project_id', $project->id)
-            ->get(['lifecycle_state', 'story_points']);
+            ->get(['lifecycle_state', 'story_points', 'user_in_charge_id']);
+        $unestimatedCount = $pointsData->filter(fn ($t) => $t->lifecycle_state === TaskLifecycleState::ACTIVE && ! $t->story_points)->count();
+
+        // Als Nächstes: offene Aufgaben — fällige zuerst, dann Frösche/hohe Priorität, dann Board-Reihenfolge
+        $nextTasks = PlannerTask::with('userInCharge')
+            ->where('project_id', $project->id)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
+            ->where(fn ($q) => $q->whereNull('due_date')->orWhere('due_date', '>=', now()->startOfDay()))
+            ->orderByRaw('due_date IS NULL')
+            ->orderBy('due_date')
+            ->orderByDesc('is_frog')
+            ->orderByRaw("CASE priority WHEN 'high' THEN 0 WHEN 'normal' THEN 1 ELSE 2 END")
+            ->orderBy('project_slot_order')
+            ->limit(6)
+            ->get()
+            ->map(fn ($t) => [
+                'id' => $t->id,
+                'title' => $t->title,
+                'due_date' => $t->due_date,
+                'points' => $t->story_points instanceof StoryPoints ? $t->story_points->points() : null,
+                'is_frog' => (bool) $t->is_frog,
+                'high' => $t->priority?->value === 'high',
+                'assignee' => $t->userInCharge?->name,
+            ]);
+
+        $healthSnapshot = \Platform\Planner\Models\PlannerProjectSnapshot::where('project_id', $project->id)
+            ->orderByDesc('taken_on')
+            ->first(['health_score', 'health_color', 'worst_axis', 'taken_on']);
 
         $openPoints = $pointsData->filter(fn ($t) => $t->lifecycle_state === TaskLifecycleState::ACTIVE)->sum(
             fn ($t) => $t->story_points instanceof StoryPoints ? $t->story_points->points() : 0
@@ -134,13 +161,10 @@ class ProjectDashboardData
         $teamMembers = $participantIds->map(fn ($uid) => [
             'name' => $participantUsers[$uid]?->name ?? 'Unbekannt',
             'role' => (int) $uid === (int) $project->user_id ? 'owner' : 'beteiligt',
-            'open_tasks' => PlannerTask::where('project_id', $project->id)
-                ->where('user_in_charge_id', $uid)
-                ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value)
-                ->count(),
+            'open_tasks' => $pointsData->filter(fn ($t) => (int) $t->user_in_charge_id === (int) $uid && $t->lifecycle_state === TaskLifecycleState::ACTIVE)->count(),
+            'open_points' => $pointsData->filter(fn ($t) => (int) $t->user_in_charge_id === (int) $uid && $t->lifecycle_state === TaskLifecycleState::ACTIVE)
+                ->sum(fn ($t) => $t->story_points instanceof StoryPoints ? $t->story_points->points() : 0),
         ]);
-
-        $activities = $project->activities()->with('user')->latest()->limit(10)->get();
 
         // === LOGBUCH (Verlauf) — juengste Eintraege, offene Risiken, Ruhe-Hinweis ===
         $logbookRecent = \Platform\Planner\Models\PlannerProjectLogbookEntry::forProject($project->id)
@@ -194,12 +218,20 @@ class ProjectDashboardData
             'total_count'   => (int) $taskCounts->total,
             'open_points'   => $openPoints,
             'done_points'   => $donePoints,
+            'unestimated_count' => $unestimatedCount,
             'overdue_tasks' => $overdueTasks,
+            'next_tasks' => $nextTasks,
+            'health' => [
+                'score' => $healthSnapshot?->health_score,
+                'color' => $healthSnapshot?->health_color,
+                'worst_axis' => $healthSnapshot?->worst_axis,
+                'taken_on' => $healthSnapshot?->taken_on,
+                'url' => route('planner.projects.health', $project),
+            ],
             'slots' => $slotsBreakdown,
             'canvas' => $canvasData,
             'canvas_briefing' => $canvasBriefing,
             'team_members' => $teamMembers,
-            'activities' => $activities,
             'logbook' => $logbookData,
         ];
 
