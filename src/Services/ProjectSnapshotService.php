@@ -185,6 +185,11 @@ class ProjectSnapshotService
         // C) Axis-Confidence: progress-Achse ist bei jungen Projekten nicht aussagekraeftig.
         // Linear ramp ueber 7 Tage: 0h → 0.0, 24h → ~0.14, 7d → 1.0.
         $progressConfidence = max(0.0, min(1.0, $hoursOld / (24 * 7)));
+        // Ohne geplanten Zeitraum gibt es kein Soll — ob 0 % erledigt ein Rückstand ist,
+        // lässt sich nicht sagen. Achse wird angezeigt, zählt aber nicht in Score und Ampel.
+        if (self::expectedPercent($plannedStart, $plannedEnd, $now) === null) {
+            $progressConfidence = 0.0;
+        }
         $axisConfidence = [
             'progress' => $progressConfidence,
             // strategy + burn bleiben default 1.0 (volle Aussagekraft)
@@ -362,7 +367,7 @@ class ProjectSnapshotService
                 : "{$s->tasks_done} von {$s->tasks_total} Aufgaben erledigt (keine Story Points)";
             $out['progress']['reasons'][] = ['text' => $basis . ' — ' . (int) round($actual) . ' %', 'delta' => null];
             if ($expected === null) {
-                $out['progress']['reasons'][] = ['text' => 'Kein Zeitraum geplant — Fortschritt nicht am Soll gemessen', 'delta' => null];
+                $out['progress']['reasons'][] = ['text' => 'Kein Zeitraum geplant — ohne Soll zählt Fortschritt nicht in die Ampel', 'delta' => null];
             } else {
                 $gap = (int) round($expected - $actual);
                 $out['progress']['reasons'][] = $gap > 0

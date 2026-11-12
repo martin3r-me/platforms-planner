@@ -136,7 +136,7 @@
     $h2 = 'text-[11px] font-semibold uppercase tracking-wider text-[var(--nx-muted)] m-0';
 @endphp
 
-<div class="max-w-6xl mx-auto w-full space-y-4">
+<div class="w-full space-y-4">
 
     {{-- ═══ LAGE ═══ --}}
     <section class="{{ $card }} p-5">

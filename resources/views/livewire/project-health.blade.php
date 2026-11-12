@@ -73,7 +73,7 @@
     </x-slot>
 
     <x-planner::body>
-    <div class="max-w-6xl mx-auto w-full space-y-4">
+    <div class="w-full space-y-4">
 
     @if(! $latest)
         <section class="{{ $card }} p-10 text-center">
@@ -141,7 +141,9 @@
             @foreach(['progress', 'burn', 'strategy'] as $axisKey)
                 @php
                     $val = $axisScores[$axisKey] ?? null;
-                    $col = $c($scoreToColor($val));
+                    // Fortschritt ohne geplanten Zeitraum: angezeigt, aber nicht bewertet
+                    $rated = ! ($axisKey === 'progress' && ! ($latest->planned_start && $latest->planned_end));
+                    $col = $c($rated ? $scoreToColor($val) : 'gray');
                     $isWorst = $latest->worst_axis === $axisKey && $latest->health_color !== 'green';
                     $link = match ($axisKey) {
                         'strategy' => $nav['canvas']['url'],
@@ -152,7 +154,7 @@
                     <div class="flex items-center gap-2">
                         <span style="color: {{ $col }};">@svg($axisIcons[$axisKey], 'w-4 h-4')</span>
                         <span class="text-sm font-semibold text-[var(--nx-text)]">{{ $axisLabels[$axisKey] }}</span>
-                        <span class="text-[10px] text-[var(--nx-muted)]">Gewicht {{ $axisWeights[$axisKey] }} %</span>
+                        <span class="text-[10px] text-[var(--nx-muted)]">{{ $rated ? 'Gewicht ' . $axisWeights[$axisKey] . ' %' : 'nicht bewertet' }}</span>
                         <span class="ml-auto text-2xl font-bold tabular-nums" style="color: {{ $col }};">{{ $val ?? '–' }}</span>
                     </div>
                     <p class="text-xs text-[var(--nx-muted)] mt-1 mb-3">{{ $axisQuestion[$axisKey] }}</p>
