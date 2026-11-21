@@ -162,6 +162,17 @@ class PlannerServiceProvider extends ServiceProvider
             // Registry nicht verfügbar
         }
 
+        // ImpactSource registrieren (Wirkung im people-Modul, loose Kopplung).
+        // PlannerImpactSource erbt von einer people-Klasse → nur instanziieren, wenn people da ist.
+        try {
+            if (class_exists(\Platform\People\Support\ImpactSourceBase::class)) {
+                resolve(\Platform\People\Services\ImpactSourceRegistry::class)
+                    ->register(new \Platform\Planner\People\PlannerImpactSource());
+            }
+        } catch (\Throwable $e) {
+            // people-Modul nicht geladen
+        }
+
         // PersonActivityProvider registrieren (loose Kopplung mit Organization-Modul)
         try {
             resolve(\Platform\Organization\Services\PersonActivityRegistry::class)

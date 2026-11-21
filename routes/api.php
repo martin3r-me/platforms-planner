@@ -41,6 +41,8 @@ Route::prefix('agent')->group(function () {
     Route::post('/recurring-tasks', [PlannerAgentController::class, 'createRecurringTask'])->name('planner.api.agent.create-recurring-task');
     Route::post('/tasks/{id}/complete', [PlannerAgentController::class, 'complete'])->name('planner.api.agent.complete');
     Route::post('/tasks/{id}/log-time', [PlannerAgentController::class, 'logTime'])->name('planner.api.agent.log-time');
+    Route::post('/tasks/{id}/dod', [PlannerAgentController::class, 'updateDod'])->name('planner.api.agent.dod');
+    Route::post('/tasks/{id}/story-points', [PlannerAgentController::class, 'updateStoryPoints'])->name('planner.api.agent.story-points');
     Route::post('/tasks/{id}/defer', [PlannerAgentController::class, 'defer'])->name('planner.api.agent.defer');
     Route::post('/tasks/{id}/fail', [PlannerAgentController::class, 'fail'])->name('planner.api.agent.fail');
     Route::post('/tasks/{id}/unlock', [PlannerAgentController::class, 'unlock'])->name('planner.api.agent.unlock');

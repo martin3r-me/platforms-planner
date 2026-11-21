@@ -19,7 +19,7 @@ use Platform\Planner\Models\PlannerTask;
  * Bearer-Tokens) EXKLUSIV zugewiesen sind (user_in_charge_id). Kein Package/Board-
  * Gate — die Identität selbst ist der Filter.
  *
- * Routen: POST /api/planner/agent/next-task · /tasks/{id}/complete|defer|fail|unlock
+ * Routen: POST /api/planner/agent/next-task · /tasks/{id}/complete|defer|fail|unlock|dod|story-points
  */
 class PlannerAgentController extends Controller
 {
@@ -186,6 +186,8 @@ class PlannerAgentController extends Controller
             'title' => $task->title,
             'description' => $task->description,   // Encryptable entschlüsselt beim Zugriff
             'dod' => $task->dod,
+            'dod_items' => $task->dod_items,       // geparst: [{text, checked}]
+            'dod_progress' => $task->dod_progress, // {total, checked, percentage, isComplete}
             'due_date' => optional($task->due_date)->toIso8601String(),
             'story_points' => $task->story_points?->value,
             'project_id' => $task->project_id,
@@ -456,6 +458,101 @@ class PlannerAgentController extends Controller
         Log::info('[Planner Agent] Time logged', ['task_id' => $task->id, 'minutes' => (int) $data['minutes'], 'entry_id' => $entry->id]);
 
         return response()->json(['message' => 'Time logged', 'data' => ['id' => $entry->id, 'minutes' => $entry->minutes, 'task_id' => $task->id]]);
+    }
+
+    /**
+     * Definition of Done einer eigenen Task pflegen (Transparenz: der Worker dokumentiert, was
+     * „fertig" heißt und was davon erfüllt ist). Speicherformat wie UI/MCP (UpdateTaskTool):
+     * JSON-Liste [{text, checked}] in `dod`; Verschlüsselung + dod_hash übernimmt Encryptable
+     * beim Speichern. Reihenfolge: dod_items ersetzt alles, danach set_checked, danach add.
+     * Eine leere Ergebnisliste löscht die DoD.
+     *
+     * POST /api/planner/agent/tasks/{id}/dod
+     *   { dod_items?: [{text, checked?}], set_checked?: [{index, checked}], add?: [{text, checked?}] }
+     *   → { message, data: taskPayload }
+     */
+    public function updateDod(Request $request, int $id): JsonResponse
+    {
+        $task = $this->ownedTask($request, $id);
+        if (! $task) {
+            return response()->json(['message' => 'Task not found'], 404);
+        }
+        $data = $request->validate([
+            'dod_items' => 'nullable|array|max:100',
+            'dod_items.*.text' => 'required|string|max:1000',
+            'dod_items.*.checked' => 'nullable|boolean',
+            'set_checked' => 'nullable|array|max:100',
+            'set_checked.*.index' => 'required|integer|min:0',
+            'set_checked.*.checked' => 'required|boolean',
+            'add' => 'nullable|array|max:100',
+            'add.*.text' => 'required|string|max:1000',
+            'add.*.checked' => 'nullable|boolean',
+        ]);
+        if (! array_key_exists('dod_items', $data) && empty($data['set_checked']) && empty($data['add'])) {
+            return response()->json(['message' => 'Nothing to update (dod_items, set_checked or add required)'], 422);
+        }
+
+        // Ausgangspunkt: bestehende Items (versteht JSON- und Alt-Plaintext-DoD) oder Ersatzliste.
+        $items = array_key_exists('dod_items', $data)
+            ? array_map(fn ($i) => ['text' => trim((string) $i['text']), 'checked' => (bool) ($i['checked'] ?? false)], $data['dod_items'] ?? [])
+            : $task->dod_items;
+
+        foreach ($data['set_checked'] ?? [] as $op) {
+            $idx = (int) $op['index'];
+            if (! isset($items[$idx])) {
+                return response()->json(['message' => "DoD item index {$idx} does not exist"], 422);
+            }
+            $items[$idx]['checked'] = (bool) $op['checked'];
+        }
+
+        foreach ($data['add'] ?? [] as $item) {
+            $items[] = ['text' => trim((string) $item['text']), 'checked' => (bool) ($item['checked'] ?? false)];
+        }
+
+        $items = array_values(array_filter($items, fn ($i) => trim((string) ($i['text'] ?? '')) !== ''));
+        $task->update(['dod' => empty($items) ? null : json_encode($items, JSON_UNESCAPED_UNICODE)]);
+
+        $progress = $task->dod_progress;
+        $task->logActivity("Worker hat die Definition of Done aktualisiert ({$progress['checked']} von {$progress['total']} erfüllt).", [
+            'source' => 'agent', 'status' => 'dod_updated',
+        ]);
+        Log::info('[Planner Agent] DoD updated', ['task_id' => $task->id, 'total' => $progress['total'], 'checked' => $progress['checked']]);
+
+        return response()->json(['message' => 'DoD updated', 'data' => $this->taskPayload($task, (int) $request->user()->id)]);
+    }
+
+    /**
+     * Story Points einer eigenen Task selbst schätzen (Scrum-Stil). null entfernt die Schätzung.
+     *
+     * POST /api/planner/agent/tasks/{id}/story-points  { story_points: xs|s|m|l|xl|xxl|null }
+     *   → { message, data: taskPayload }
+     */
+    public function updateStoryPoints(Request $request, int $id): JsonResponse
+    {
+        $task = $this->ownedTask($request, $id);
+        if (! $task) {
+            return response()->json(['message' => 'Task not found'], 404);
+        }
+        if (is_string($request->input('story_points'))) {
+            $request->merge(['story_points' => strtolower(trim($request->input('story_points'))) ?: null]);
+        }
+        $allowedSp = collect(TaskStoryPoints::cases())->map(fn ($s) => $s->value)->all();
+        $data = $request->validate([
+            'story_points' => ['present', 'nullable', 'string', 'in:'.implode(',', $allowedSp)],
+        ]);
+
+        $before = $task->story_points?->value;
+        $task->update(['story_points' => $data['story_points']]);
+        $after = $task->story_points?->value;
+
+        if ($before !== $after) {
+            $task->logActivity('Worker hat die Story Points geschätzt: '.strtoupper($before ?? '–').' → '.strtoupper($after ?? '–').'.', [
+                'source' => 'agent', 'status' => 'estimated',
+            ]);
+        }
+        Log::info('[Planner Agent] Story points updated', ['task_id' => $task->id, 'story_points' => $after]);
+
+        return response()->json(['message' => 'Story points updated', 'data' => $this->taskPayload($task, (int) $request->user()->id)]);
     }
 
     /** Rückfrage: auf Antwort warten (Owner bleibt Worker, Session gemerkt). */
