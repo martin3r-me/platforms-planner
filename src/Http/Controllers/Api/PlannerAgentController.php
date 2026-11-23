@@ -284,7 +284,7 @@ class PlannerAgentController extends Controller
      * damit ist die Arbeit auditierbar (Zeit bucht später auf DIESEN Task). Kein Lauf
      * abseits eines dokumentierten Tasks.
      *
-     * POST /api/planner/agent/tasks  { title, description?, origin? }
+     * POST /api/planner/agent/tasks  { title, description?, origin?, project_id?, due_date? }
      */
     public function createTask(Request $request): JsonResponse
     {
@@ -292,12 +292,22 @@ class PlannerAgentController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string|max:10000',
             'origin' => 'nullable|string|max:500',
+            'project_id' => 'nullable|integer',
+            'due_date' => 'nullable|date',
         ]);
 
         $user = $request->user();
         $teamId = (int) ($user->current_team_id ?? 0);
         if ($teamId < 1) {
             return response()->json(['message' => 'No team context for worker'], 422);
+        }
+        // Optional im Projekt: Arbeit gehört dorthin, wo sie wirkt — das Projekt muss im eigenen Team liegen.
+        $project = null;
+        if (! empty($data['project_id'])) {
+            $project = PlannerProject::query()->where('team_id', $teamId)->find((int) $data['project_id']);
+            if (! $project) {
+                return response()->json(['message' => 'Projekt nicht gefunden (oder nicht in deinem Team).'], 404);
+            }
         }
 
         // Herkunft in die Beschreibung — nichts lebt nur im Chat.
@@ -306,9 +316,9 @@ class PlannerAgentController extends Controller
             $description = trim($description."\n\nHerkunft: ".$data['origin']);
         }
 
-        // Persönlicher Task (kein Projekt), oben in der eigenen Liste.
+        // Ohne Projekt: persönlicher Task, oben in der eigenen Liste.
         $order = (PlannerTask::where('user_in_charge_id', $user->id)
-            ->whereNull('project_id')->min('order') ?? 0) - 1;
+            ->where('project_id', $project?->id)->min('order') ?? 0) - 1;
 
         $task = PlannerTask::create([
             'title' => $data['title'],
@@ -316,7 +326,8 @@ class PlannerAgentController extends Controller
             'user_id' => $user->id,
             'user_in_charge_id' => $user->id,   // self-assigned
             'team_id' => $teamId,
-            'project_id' => null,               // persönlich
+            'project_id' => $project?->id,      // ohne Projekt: persönlich
+            'due_date' => $data['due_date'] ?? null,
             'lifecycle_state' => TaskLifecycleState::ACTIVE->value,
             'order' => $order,
             'agent_summary' => 'Vom Worker aus einer Nachricht angelegt.',
