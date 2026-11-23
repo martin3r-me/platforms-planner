@@ -237,7 +237,29 @@ class PlannerAgentController extends Controller
                 'type' => 'task',
                 'package' => optional($t->project)->name,
                 'story_points' => $t->story_points?->value,
+                'due_date' => $t->due_date?->toDateString(),
                 'created_at' => optional($t->created_at)->toIso8601String(),
+            ])->values();
+
+        // Meine offenen Aufgaben für die Lage des Agenten: was fällig ist, was ungeschätzt ist —
+        // Fakten, aus denen die Firmware Spannung ableitet (keine Bewertung hier).
+        $active = fn () => PlannerTask::query()
+            ->where('user_in_charge_id', $userId)
+            ->where('lifecycle_state', TaskLifecycleState::ACTIVE->value);
+        $today = now()->startOfDay();
+        $mine = $active()->with('project:id,name')
+            ->orderByRaw('due_date IS NULL')->orderBy('due_date')->orderBy('created_at')
+            ->limit(15)->get()
+            ->map(fn (PlannerTask $t) => [
+                'id' => $t->id,
+                'title' => $t->title,
+                'project_id' => $t->project_id,
+                'project' => optional($t->project)->name,
+                'due_date' => $t->due_date?->toDateString(),
+                'overdue' => $t->due_date !== null && $t->due_date->lt($today),
+                'story_points' => $t->story_points?->value,
+                'dod' => array_intersect_key($t->dod_progress, ['total' => 1, 'checked' => 1]),
+                'updated_at' => optional($t->updated_at)->toIso8601String(),
             ])->values();
 
         return response()->json(['data' => [
@@ -246,8 +268,12 @@ class PlannerAgentController extends Controller
                 'ready' => PlannerTask::query()->where('user_in_charge_id', $userId)->agentClaimable()->count(),
                 'rueckfragen' => $open()->whereNotNull('agent_waiting_at')->count(),
                 'oldest' => $open()->min('created_at'),
+                'active' => $active()->count(),
+                'overdue' => $active()->whereNotNull('due_date')->where('due_date', '<', $today)->count(),
+                'unestimated' => $active()->whereNull('story_points')->count(),
             ],
             'next_up' => $nextUp,
+            'mine' => $mine,
             'packages' => [], // Backoffice: keine Dev-Packages.
         ]]);
     }
