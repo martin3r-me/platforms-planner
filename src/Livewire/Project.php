@@ -74,6 +74,11 @@ class Project extends Component
             'url' => route('planner.projects.show', $this->project),
             'source' => 'planner.project.view',
             'capabilities' => ['manage_channels' => true, 'threads' => false],
+            // Meetings hängen am Projekt (gathering, lose gekoppelt) — Reiter im Kontext-Panel,
+            // dort anlegen/öffnen. Nur anbieten, wenn das Modul installiert ist.
+            'apps' => class_exists(\Platform\Gathering\Terminal\MeetingsPanelApp::class)
+                ? ['meetings' => true]
+                : [],
             'meta' => [
                 'project_type' => $this->project->project_type,
                 'created_at' => $this->project->created_at,
