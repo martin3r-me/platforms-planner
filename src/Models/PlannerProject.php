@@ -23,6 +23,7 @@ use Platform\Core\Models\Concerns\HasEntityLinks;
 use Platform\ActivityLog\Traits\LogsActivity;
 use Platform\Core\Contracts\HasKeyResultAncestors;
 use Platform\Core\Contracts\HasDisplayName;
+use Platform\Core\Contracts\MeetingHost;
 use Platform\Core\Contracts\AgendaRenderable;
 use Platform\Organization\Contracts\HasChildContextRelations;
 use Platform\Planner\Enums\CustomerBillingMethod;
@@ -31,7 +32,7 @@ use Platform\Planner\Enums\CustomerBillingMethod;
  * @ai.description Projekt bündelt Aufgaben (Tasks) und Sprints. Dient als Container für Planung, Ressourcen und Fortschritt eines Vorhabens im Team.
  * @property-read string $title Berechneter Anzeigename: "<KIND-PREFIX> · <name>".
  */
-class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayName, AgendaRenderable, HasChildContextRelations
+class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayName, MeetingHost, AgendaRenderable, HasChildContextRelations
 {
     use SoftDeletes, HasTimeEntries, HasPlannedTime, HasPlannedPeriod, HasColors, HasTags, HasExtraFields, HasEntityLinks, LogsActivity, TracksLastViewed;
 
@@ -236,6 +237,25 @@ class PlannerProject extends Model implements HasKeyResultAncestors, HasDisplayN
     public function getDisplayName(): ?string
     {
         return $this->title;
+    }
+
+    // ── MeetingHost (gathering: Herkunft eines Meetings, lose gekoppelt) ──
+
+    public function meetingHostIcon(): ?string
+    {
+        return 'briefcase';
+    }
+
+    public function meetingHostUrl(): ?string
+    {
+        return \Illuminate\Support\Facades\Route::has('planner.projects.show')
+            ? route('planner.projects.show', $this)
+            : null;
+    }
+
+    public function meetingHostTypeLabel(): ?string
+    {
+        return 'Projekt';
     }
 
     // ── AgendaRenderable ──────────────────────────────────────
