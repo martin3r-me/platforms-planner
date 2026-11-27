@@ -132,6 +132,11 @@ class PlannerServiceProvider extends ServiceProvider
             // Organization-Modul nicht geladen
         }
 
+        // Arbeitsfeld der Agenten (GET/POST /api/org/agent/field) — nur, wenn organization es schon kennt
+        if (class_exists(\Platform\Organization\Support\AgentFieldSources::class)) {
+            \Platform\Organization\Support\AgentFieldSources::register(new \Platform\Planner\Organization\PlannerAgentField());
+        }
+
         // Lifecycle auto-reactivation: dormant projects wake up on any
         // activity signal. Reactivator itself guards against self-loops
         // and no-ops when the project is not dormant.
